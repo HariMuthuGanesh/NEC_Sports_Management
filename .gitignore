@@ -1,5 +1,21 @@
-# Logs
-logs
+# ==========================================
+# 1. Documentation & Markdown Files
+# ==========================================
+*.md
+
+# ==========================================
+# 2. Node & Package Dependencies
+# ==========================================
+node_modules/
+**/node_modules/
+.npm/
+.yarn/
+.pnpm-store/
+
+# ==========================================
+# 3. Logs & Debugging
+# ==========================================
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -7,39 +23,84 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Dependencies
-node_modules/
-
-# Production Build
+# ==========================================
+# 4. Production Build & Bundler Outputs
+# ==========================================
 dist/
+**/dist/
+dist-ssr/
+build/
+**/build/
+out/
+.next/
+*.tgz
+*.tar.gz
 
-# Vite Cache
+# ==========================================
+# 5. Caches & Temporary Files
+# ==========================================
 .vite/
+**/.vite/
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+*.sw?
 
-# Environment Variables
+# ==========================================
+# 6. Environment Variables & Secrets
+# ==========================================
 .env
+.env.*
+!.env.example
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
 
-# IDE Files
+# ==========================================
+# 7. IDE & Editor Files
+# ==========================================
 .vscode/
 .idea/
-*.swp
-*.swo
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sublime-project
+*.sublime-workspace
+.project
+.classpath
+.settings/
 
-# OS Files
+# ==========================================
+# 8. Operating System Files
+# ==========================================
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+[Dd]esktop.ini
 
-# Coverage
+# ==========================================
+# 9. Testing & Code Coverage
+# ==========================================
 coverage/
+**/coverage/
+.nyc_output/
+junit.xml
 
-# Cache
-.cache/
-.eslintcache
-
-# Temporary Files
-*.tmp
-*.temp
+# ==========================================
+# 10. Database & Storage Files
+# ==========================================
+*.db
+*.sqlite
+*.sqlite3
