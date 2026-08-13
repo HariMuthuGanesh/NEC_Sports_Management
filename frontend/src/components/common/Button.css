@@ -1,0 +1,96 @@
+.nec-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: var(--nec-radius-md);
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--nec-transition);
+  border: 1px solid transparent;
+  outline: none;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.nec-btn:focus-visible {
+  box-shadow: 0 0 0 3px rgba(0, 43, 73, 0.25);
+}
+
+/* Sizes */
+.nec-btn-sm {
+  padding: 6px 12px;
+  font-size: 0.8125rem;
+}
+.nec-btn-md {
+  padding: 8px 16px;
+  font-size: 0.875rem;
+}
+.nec-btn-lg {
+  padding: 10px 20px;
+  font-size: 1rem;
+}
+
+/* Variants */
+.nec-btn-primary {
+  background-color: var(--nec-navy);
+  color: var(--nec-text-on-navy);
+}
+.nec-btn-primary:hover:not(:disabled) {
+  background-color: var(--nec-navy-light);
+  box-shadow: var(--nec-shadow-sm);
+}
+
+.nec-btn-secondary {
+  background-color: var(--nec-gold);
+  color: #000;
+}
+.nec-btn-secondary:hover:not(:disabled) {
+  background-color: var(--nec-gold-light);
+  box-shadow: var(--nec-shadow-sm);
+}
+
+.nec-btn-outline {
+  background-color: transparent;
+  border-color: var(--nec-border-dark);
+  color: var(--nec-text-main);
+}
+.nec-btn-outline:hover:not(:disabled) {
+  background-color: var(--nec-surface-hover);
+  border-color: var(--nec-navy);
+}
+
+.nec-btn-danger {
+  background-color: var(--nec-danger);
+  color: #fff;
+}
+.nec-btn-danger:hover:not(:disabled) {
+  background-color: #dc2626;
+}
+
+.nec-btn-ghost {
+  background-color: transparent;
+  color: var(--nec-text-muted);
+}
+.nec-btn-ghost:hover:not(:disabled) {
+  background-color: var(--nec-surface-hover);
+  color: var(--nec-text-main);
+}
+
+.nec-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.nec-btn-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: necSpin 0.75s linear infinite;
+}
+
+@keyframes necSpin {
+  to { transform: rotate(360deg); }
+}

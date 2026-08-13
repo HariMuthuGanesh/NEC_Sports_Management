@@ -1,0 +1,33 @@
+.nec-pulse {
+  animation: necPulse 1.5s ease-in-out infinite;
+  background-color: var(--nec-surface-raised);
+  border-radius: var(--nec-radius-md);
+}
+
+@keyframes necPulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 0.2; }
+  100% { opacity: 0.6; }
+}
+
+.nec-skeleton-table {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.nec-skeleton-row {
+  height: 44px;
+  width: 100%;
+}
+
+.nec-skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.nec-skeleton-card {
+  height: 120px;
+}

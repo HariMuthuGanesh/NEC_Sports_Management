@@ -1,0 +1,60 @@
+.nec-student-search-box {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.nec-student-results-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.nec-student-result-card {
+  padding: 12px 16px;
+  background-color: var(--nec-surface-raised);
+  border: 1px solid var(--nec-border);
+  border-radius: var(--nec-radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.nec-sr-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.nec-sr-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--nec-text-main);
+}
+
+.nec-sr-sub {
+  font-size: 0.775rem;
+  color: var(--nec-text-muted);
+}
+
+.nec-attendance-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.nec-att-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background-color: var(--nec-surface-raised);
+  border: 1px solid var(--nec-border);
+  border-radius: var(--nec-radius-md);
+}
+
+.nec-att-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}

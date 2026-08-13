@@ -1,0 +1,84 @@
+.nec-login-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--nec-navy-dark), var(--nec-navy));
+  padding: 20px;
+}
+
+.nec-login-card {
+  width: 100%;
+  max-width: 440px;
+  background-color: var(--nec-surface);
+  border: 1px solid var(--nec-border);
+  border-radius: var(--nec-radius-lg);
+  box-shadow: var(--nec-shadow-lg);
+  overflow: hidden;
+}
+
+.nec-login-header {
+  padding: 32px 24px 20px 24px;
+  background-color: var(--nec-navy);
+  color: #fff;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-bottom: 3px solid var(--nec-gold);
+}
+
+.nec-login-logo {
+  width: 56px;
+  height: 56px;
+  background: linear-gradient(135deg, var(--nec-gold), #b3861b);
+  border-radius: 12px;
+  color: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.nec-login-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0;
+  color: #fff;
+}
+
+.nec-login-subtitle {
+  font-size: 0.8125rem;
+  color: var(--nec-gold-light);
+  margin-top: 4px;
+}
+
+.nec-login-form {
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.nec-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nec-form-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--nec-text-main);
+}
+
+.nec-login-footer-info {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 0.725rem;
+  color: var(--nec-text-muted);
+  text-align: center;
+  margin-top: 10px;
+}

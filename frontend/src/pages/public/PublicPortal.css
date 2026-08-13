@@ -1,0 +1,128 @@
+.nec-portal-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.nec-page-header {
+  border-bottom: 2px solid var(--nec-border);
+  padding-bottom: 12px;
+}
+
+.nec-page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--nec-text-main);
+  margin: 0 0 4px 0;
+}
+
+.nec-page-desc {
+  font-size: 0.875rem;
+  color: var(--nec-text-muted);
+  margin: 0;
+}
+
+.nec-portal-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.nec-sub-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--nec-text-main);
+  margin: 0;
+}
+
+.nec-matches-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.nec-score-card.live {
+  border-top: 4px solid var(--nec-live);
+}
+.nec-score-card.completed {
+  border-top: 4px solid var(--nec-success);
+}
+
+.nec-score-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.775rem;
+  font-weight: 600;
+  color: var(--nec-text-muted);
+  margin-bottom: 12px;
+}
+
+.nec-score-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-top: 1px solid var(--nec-border);
+  border-bottom: 1px solid var(--nec-border);
+}
+
+.nec-score-team {
+  display: flex;
+  flex-direction: column;
+}
+.nec-score-team.text-right {
+  text-align: right;
+}
+
+.nec-st-dept {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--nec-navy);
+}
+
+[data-theme="dark"] .nec-st-dept {
+  color: var(--nec-gold-light);
+}
+
+.nec-st-name {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--nec-text-main);
+}
+
+.nec-score-badge {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--nec-live);
+  background-color: var(--nec-live-bg);
+  padding: 4px 12px;
+  border-radius: var(--nec-radius-md);
+}
+
+.nec-score-badge.dark {
+  color: var(--nec-navy);
+  background-color: var(--nec-surface-raised);
+}
+
+[data-theme="dark"] .nec-score-badge.dark {
+  color: var(--nec-gold-light);
+}
+
+.nec-score-foot {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--nec-text-muted);
+  margin-top: 10px;
+}
+
+.nec-winner-banner {
+  margin-top: 10px;
+  padding: 6px 10px;
+  background-color: var(--nec-success-bg);
+  color: var(--nec-success-text);
+  border-radius: var(--nec-radius-sm);
+  font-size: 0.775rem;
+  text-align: center;
+}

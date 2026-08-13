@@ -1,0 +1,113 @@
+.nec-card {
+  background-color: var(--nec-surface);
+  border: 1px solid var(--nec-border);
+  border-radius: var(--nec-radius-lg);
+  box-shadow: var(--nec-shadow-sm);
+  transition: var(--nec-transition);
+  overflow: hidden;
+}
+
+.nec-card:hover {
+  box-shadow: var(--nec-shadow-md);
+}
+
+.nec-card-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--nec-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.nec-card-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--nec-text-main);
+}
+
+.nec-card-subtitle {
+  margin: 2px 0 0 0;
+  font-size: 0.8125rem;
+  color: var(--nec-text-muted);
+}
+
+.nec-card-body {
+  padding: 20px;
+}
+
+.nec-card-footer {
+  padding: 12px 20px;
+  background-color: var(--nec-surface-raised);
+  border-top: 1px solid var(--nec-border);
+}
+
+/* StatCard styles */
+.nec-stat-card {
+  background-color: var(--nec-surface);
+  border: 1px solid var(--nec-border);
+  border-radius: var(--nec-radius-lg);
+  padding: 20px;
+  box-shadow: var(--nec-shadow-sm);
+  transition: var(--nec-transition);
+  position: relative;
+  overflow: hidden;
+}
+
+.nec-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--nec-shadow-md);
+}
+
+.nec-stat-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.nec-stat-title {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--nec-text-muted);
+}
+
+.nec-stat-icon-wrapper {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--nec-radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--nec-surface-raised);
+  color: var(--nec-navy);
+}
+
+.nec-stat-card-gold .nec-stat-icon-wrapper {
+  background-color: var(--nec-gold-subtle);
+  color: var(--nec-gold);
+}
+
+.nec-stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--nec-text-main);
+  margin: 12px 0 4px 0;
+  line-height: 1;
+}
+
+.nec-stat-subtext {
+  font-size: 0.775rem;
+  color: var(--nec-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nec-stat-trend.up {
+  color: var(--nec-success);
+  font-weight: 600;
+}
+.nec-stat-trend.down {
+  color: var(--nec-danger);
+  font-weight: 600;
+}

@@ -1,0 +1,58 @@
+.nec-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: var(--nec-radius-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.nec-badge-symbol {
+  font-size: 0.8em;
+}
+
+.nec-badge-success {
+  background-color: var(--nec-success-bg);
+  color: var(--nec-success-text);
+  border: 1px solid var(--nec-success);
+}
+
+.nec-badge-warning {
+  background-color: var(--nec-warning-bg);
+  color: var(--nec-warning-text);
+  border: 1px solid var(--nec-warning);
+}
+
+.nec-badge-danger {
+  background-color: var(--nec-danger-bg);
+  color: var(--nec-danger-text);
+  border: 1px solid var(--nec-danger);
+}
+
+.nec-badge-info {
+  background-color: var(--nec-info-bg);
+  color: var(--nec-info-text);
+  border: 1px solid var(--nec-info);
+}
+
+.nec-badge-live {
+  background-color: var(--nec-live-bg);
+  color: var(--nec-live);
+  border: 1px solid var(--nec-live);
+  animation: pulseLive 1.5s infinite;
+}
+
+.nec-badge-neutral {
+  background-color: var(--nec-surface-hover);
+  color: var(--nec-text-muted);
+  border: 1px solid var(--nec-border);
+}
+
+@keyframes pulseLive {
+  0% { opacity: 1; }
+  50% { opacity: 0.6; }
+  100% { opacity: 1; }
+}

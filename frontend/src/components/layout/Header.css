@@ -1,0 +1,216 @@
+.nec-header {
+  height: 64px;
+  background-color: var(--nec-navy);
+  color: var(--nec-text-on-navy);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  box-shadow: var(--nec-shadow-md);
+  position: sticky;
+  top: 0;
+  z-index: 900;
+  border-bottom: 2px solid var(--nec-gold);
+}
+
+.nec-header-left, .nec-header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.nec-menu-toggle-btn {
+  display: none;
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: var(--nec-radius-sm);
+}
+
+@media (max-width: 900px) {
+  .nec-menu-toggle-btn {
+    display: flex;
+  }
+}
+
+.nec-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.nec-logo-emblem {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, var(--nec-gold), #b3861b);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #000;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.nec-brand-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.nec-college-name {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #ffffff;
+  line-height: 1.1;
+}
+
+.nec-system-title {
+  font-size: 0.75rem;
+  color: var(--nec-gold-light);
+  font-weight: 500;
+}
+
+.nec-icon-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #fff;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--nec-transition);
+  position: relative;
+}
+
+.nec-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.nec-notif-wrapper {
+  position: relative;
+}
+
+.nec-notif-dot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 8px;
+  height: 8px;
+  background-color: var(--nec-gold);
+  border-radius: 50%;
+  border: 1px solid var(--nec-navy);
+}
+
+.nec-role-switcher-dropdown {
+  position: relative;
+}
+
+.nec-role-badge-btn {
+  background: rgba(197, 155, 39, 0.2);
+  border: 1px solid var(--nec-gold);
+  color: var(--nec-gold-light);
+  padding: 4px 10px;
+  border-radius: var(--nec-radius-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: var(--nec-transition);
+}
+
+.nec-role-badge-btn:hover {
+  background: rgba(197, 155, 39, 0.35);
+}
+
+.nec-role-menu {
+  position: absolute;
+  right: 0;
+  top: 110%;
+  background-color: var(--nec-surface);
+  border: 1px solid var(--nec-border);
+  border-radius: var(--nec-radius-md);
+  box-shadow: var(--nec-shadow-lg);
+  min-width: 200px;
+  overflow: hidden;
+  z-index: 1000;
+}
+
+.nec-role-menu-header {
+  padding: 8px 12px;
+  font-size: 0.725rem;
+  text-transform: uppercase;
+  color: var(--nec-text-muted);
+  font-weight: 700;
+  background-color: var(--nec-surface-raised);
+}
+
+.nec-role-menu-item {
+  width: 100%;
+  text-align: left;
+  padding: 10px 14px;
+  background: none;
+  border: none;
+  color: var(--nec-text-main);
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.nec-role-menu-item:hover {
+  background-color: var(--nec-surface-hover);
+}
+
+.nec-role-menu-item.active {
+  font-weight: 700;
+  color: var(--nec-navy);
+  background-color: var(--nec-surface-hover);
+}
+
+.nec-user-profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-left: 8px;
+  border-left: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.nec-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--nec-gold);
+  color: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nec-user-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.nec-user-name {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #fff;
+  line-height: 1.1;
+}
+
+.nec-user-dept {
+  font-size: 0.7rem;
+  color: var(--nec-gold-light);
+}
+
+@media (max-width: 640px) {
+  .nec-user-info, .nec-brand-text {
+    display: none;
+  }
+}

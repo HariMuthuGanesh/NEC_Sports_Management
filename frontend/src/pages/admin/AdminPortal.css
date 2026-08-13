@@ -1,0 +1,34 @@
+.nec-admin-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.nec-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.nec-admin-main-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 1024px) {
+  .nec-admin-main-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.nec-quick-actions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.nec-quick-actions-list button {
+  width: 100%;
+  justify-content: flex-start;
+}

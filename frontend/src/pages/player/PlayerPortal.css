@@ -1,0 +1,6 @@
+.nec-player-card {
+  background-color: var(--nec-surface);
+  border: 1px solid var(--nec-border);
+  border-radius: var(--nec-radius-lg);
+  padding: 16px;
+}

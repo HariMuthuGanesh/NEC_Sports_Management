@@ -1,0 +1,135 @@
+/* National Engineering College (NEC) Design Tokens & Institutional Styling */
+
+:root {
+  /* Brand Colors - NEC Primary Palette */
+  --nec-navy: #002b49;
+  --nec-navy-dark: #001a2e;
+  --nec-navy-light: #004070;
+  --nec-blue: #005691;
+  --nec-gold: #c59b27;
+  --nec-gold-light: #e5b948;
+  --nec-gold-subtle: #fcf8e8;
+
+  /* Neutral Colors (Light Theme Defaults) */
+  --nec-bg: #f4f6f9;
+  --nec-surface: #ffffff;
+  --nec-surface-raised: #f8fafc;
+  --nec-surface-hover: #edf2f7;
+  --nec-border: #e2e8f0;
+  --nec-border-dark: #cbd5e1;
+
+  /* Typography Colors */
+  --nec-text-main: #1e293b;
+  --nec-text-muted: #64748b;
+  --nec-text-light: #94a3b8;
+  --nec-text-on-navy: #ffffff;
+
+  /* Status & Messaging Tokens */
+  --nec-success: #10b981;
+  --nec-success-bg: #ecfdf5;
+  --nec-success-text: #065f46;
+
+  --nec-warning: #f59e0b;
+  --nec-warning-bg: #fffbe6;
+  --nec-warning-text: #92400e;
+
+  --nec-danger: #ef4444;
+  --nec-danger-bg: #fef2f2;
+  --nec-danger-text: #991b1b;
+
+  --nec-info: #3b82f6;
+  --nec-info-bg: #eff6ff;
+  --nec-info-text: #1e40af;
+
+  --nec-live: #dc2626;
+  --nec-live-bg: #fef2f2;
+
+  /* Layout & Elevations */
+  --nec-radius-sm: 4px;
+  --nec-radius-md: 8px;
+  --nec-radius-lg: 12px;
+  --nec-radius-full: 9999px;
+
+  --nec-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1);
+  --nec-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  --nec-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
+
+  --nec-transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --nec-font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Dark Theme Overrides */
+[data-theme="dark"] {
+  --nec-bg: #0b1120;
+  --nec-surface: #1e293b;
+  --nec-surface-raised: #334155;
+  --nec-surface-hover: #475569;
+  --nec-border: #334155;
+  --nec-border-dark: #475569;
+
+  --nec-text-main: #f8fafc;
+  --nec-text-muted: #94a3b8;
+  --nec-text-light: #64748b;
+
+  --nec-gold-subtle: #2d2615;
+
+  --nec-success-bg: #064e3b;
+  --nec-success-text: #a7f3d0;
+
+  --nec-warning-bg: #78350f;
+  --nec-warning-text: #fde68a;
+
+  --nec-danger-bg: #7f1d1d;
+  --nec-danger-text: #fecaca;
+
+  --nec-info-bg: #1e3a8a;
+  --nec-info-text: #bfdbfe;
+
+  --nec-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --nec-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.5);
+  --nec-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.6);
+}
+
+/* Global Reset & Utility Styling */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--nec-font);
+  background-color: var(--nec-bg);
+  color: var(--nec-text-main);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+a {
+  color: var(--nec-blue);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+button, input, select, textarea {
+  font-family: inherit;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--nec-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--nec-border-dark);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--nec-text-muted);
+}

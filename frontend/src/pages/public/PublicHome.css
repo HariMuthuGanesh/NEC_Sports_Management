@@ -1,0 +1,222 @@
+.nec-public-home {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.nec-public-hero {
+  background: linear-gradient(135deg, var(--nec-navy), var(--nec-navy-dark));
+  border-radius: var(--nec-radius-lg);
+  padding: 36px 32px;
+  color: #fff;
+  border-left: 6px solid var(--nec-gold);
+  box-shadow: var(--nec-shadow-md);
+  position: relative;
+  overflow: hidden;
+}
+
+.nec-hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(197, 155, 39, 0.2);
+  border: 1px solid var(--nec-gold);
+  color: var(--nec-gold-light);
+  padding: 4px 12px;
+  border-radius: var(--nec-radius-full);
+  font-size: 0.775rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.nec-hero-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+  color: #ffffff;
+  line-height: 1.2;
+}
+
+.nec-hero-subtitle {
+  font-size: 0.95rem;
+  color: #cbd5e1;
+  max-width: 680px;
+  margin: 0 0 24px 0;
+}
+
+.nec-hero-actions {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.nec-section-block {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.nec-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.nec-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--nec-text-main);
+}
+.nec-section-title h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.nec-icon-live-spin {
+  color: var(--nec-live);
+}
+
+.nec-live-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.nec-live-match-card {
+  border-left: 4px solid var(--nec-live);
+}
+
+.nec-live-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.nec-sport-tag {
+  font-size: 0.775rem;
+  font-weight: 600;
+  color: var(--nec-text-muted);
+  text-transform: uppercase;
+}
+
+.nec-score-display {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-top: 1px solid var(--nec-border);
+  border-bottom: 1px solid var(--nec-border);
+}
+
+.nec-team-col {
+  display: flex;
+  flex-direction: column;
+}
+.nec-team-col.text-right {
+  text-align: right;
+}
+
+.nec-team-code {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--nec-navy);
+}
+
+[data-theme="dark"] .nec-team-code {
+  color: var(--nec-gold-light);
+}
+
+.nec-team-name {
+  font-size: 0.75rem;
+  color: var(--nec-text-muted);
+}
+
+.nec-score-val {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--nec-live);
+  background-color: var(--nec-live-bg);
+  padding: 4px 14px;
+  border-radius: var(--nec-radius-md);
+}
+
+.nec-live-card-sub {
+  margin-top: 10px;
+  font-size: 0.775rem;
+  color: var(--nec-text-muted);
+  display: flex;
+  justify-content: space-between;
+}
+
+.nec-home-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 900px) {
+  .nec-home-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.nec-mini-tally {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.nec-mini-tally th, .nec-mini-tally td {
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--nec-border);
+  text-align: center;
+}
+.nec-mini-tally th:first-child, .nec-mini-tally td:first-child {
+  text-align: left;
+}
+.nec-mini-tally td.nec-dept-cell {
+  text-align: left;
+}
+
+.nec-bulletin-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.nec-bulletin-item {
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--nec-border);
+}
+.nec-bulletin-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.nec-bulletin-date {
+  font-size: 0.725rem;
+  font-weight: 600;
+  color: var(--nec-gold);
+}
+
+.nec-bulletin-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--nec-text-main);
+  margin: 2px 0;
+}
+
+.nec-bulletin-desc {
+  font-size: 0.8rem;
+  color: var(--nec-text-muted);
+}
+
+.nec-bulletin-by {
+  font-size: 0.7rem;
+  color: var(--nec-text-light);
+  margin-top: 4px;
+  font-style: italic;
+}

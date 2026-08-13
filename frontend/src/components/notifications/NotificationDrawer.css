@@ -1,0 +1,97 @@
+.nec-notif-drawer {
+  position: absolute;
+  right: 0;
+  top: 110%;
+  width: 320px;
+  max-height: 420px;
+  background-color: var(--nec-surface);
+  border: 1px solid var(--nec-border);
+  border-radius: var(--nec-radius-lg);
+  box-shadow: var(--nec-shadow-lg);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.nec-notif-header {
+  padding: 12px 16px;
+  background-color: var(--nec-surface-raised);
+  border-bottom: 1px solid var(--nec-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.nec-notif-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--nec-text-main);
+}
+
+.nec-mark-read-btn {
+  background: none;
+  border: none;
+  font-size: 0.75rem;
+  color: var(--nec-navy);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+[data-theme="dark"] .nec-mark-read-btn {
+  color: var(--nec-gold-light);
+}
+
+.nec-notif-list {
+  overflow-y: auto;
+  flex: 1;
+}
+
+.nec-notif-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--nec-border);
+  transition: var(--nec-transition);
+}
+
+.nec-notif-item.unread {
+  background-color: var(--nec-gold-subtle);
+}
+
+.nec-notif-item:hover {
+  background-color: var(--nec-surface-hover);
+}
+
+.notif-type-icon.live { color: var(--nec-live); }
+.notif-type-icon.approval { color: var(--nec-success); }
+.notif-type-icon.score { color: var(--nec-gold); }
+
+.nec-notif-item-title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--nec-text-main);
+}
+
+.nec-notif-message {
+  font-size: 0.775rem;
+  color: var(--nec-text-muted);
+  margin-top: 2px;
+  line-height: 1.3;
+}
+
+.nec-notif-time {
+  font-size: 0.6875rem;
+  color: var(--nec-text-light);
+  margin-top: 4px;
+}
+
+.nec-notif-loading, .nec-notif-empty {
+  padding: 24px;
+  text-align: center;
+  font-size: 0.8125rem;
+  color: var(--nec-text-muted);
+}

@@ -1,0 +1,199 @@
+/* === FLOATING SETTINGS FAB === */
+.sp-fab-wrap {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+/* Gear FAB button */
+.sp-fab {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, #6366f1, #3b82f6);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.45), 0 2px 8px rgba(0,0,0,0.2);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.3s ease,
+              background 0.3s ease;
+  flex-shrink: 0;
+}
+.sp-fab svg {
+  width: 22px;
+  height: 22px;
+  transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.sp-fab:hover {
+  transform: scale(1.1);
+  box-shadow: 0 8px 28px rgba(99, 102, 241, 0.55), 0 4px 12px rgba(0,0,0,0.25);
+}
+.sp-fab--open {
+  background: linear-gradient(135deg, #7c3aed, #2563eb);
+}
+.sp-fab--open svg {
+  transform: rotate(120deg);
+}
+
+/* Settings panel popup */
+.sp-panel {
+  position: absolute;
+  bottom: calc(100% + 14px);
+  right: 0;
+  width: 260px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(18px) saturate(180%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 18px;
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.15), 0 8px 24px rgba(15, 23, 42, 0.08);
+  overflow: hidden;
+  transform-origin: bottom right;
+  transform: scale(0.85) translateY(12px);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+              opacity 0.2s ease;
+}
+.sp-panel--open {
+  transform: scale(1) translateY(0);
+  opacity: 1;
+  pointer-events: all;
+}
+
+/* Dark mode panel */
+[data-theme="dark"] .sp-panel,
+body.dark-mode .sp-panel {
+  background: rgba(30, 41, 59, 0.92);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+/* Panel header */
+.sp-panel__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 18px 14px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.2px;
+}
+.sp-panel__header svg {
+  width: 16px;
+  height: 16px;
+  color: #6366f1;
+  flex-shrink: 0;
+}
+[data-theme="dark"] .sp-panel__header,
+body.dark-mode .sp-panel__header {
+  color: #f1f5f9;
+  border-bottom-color: rgba(255, 255, 255, 0.07);
+}
+
+/* Panel sections */
+.sp-section {
+  padding: 14px 18px;
+}
+.sp-section + .sp-section {
+  border-top: 1px solid rgba(15, 23, 42, 0.06);
+}
+[data-theme="dark"] .sp-section + .sp-section,
+body.dark-mode .sp-section + .sp-section {
+  border-top-color: rgba(255, 255, 255, 0.06);
+}
+
+.sp-section__label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: #64748b;
+  margin-bottom: 10px;
+}
+.sp-section__label svg {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+}
+
+/* Toggle row */
+.sp-toggle-row {
+  display: flex;
+  gap: 8px;
+}
+
+.sp-toggle-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1.5px solid rgba(15, 23, 42, 0.1);
+  border-radius: 10px;
+  background: rgba(248, 250, 252, 0.8);
+  color: #475569;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+.sp-toggle-btn svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+.sp-toggle-btn:hover {
+  background: rgba(99, 102, 241, 0.08);
+  border-color: rgba(99, 102, 241, 0.3);
+  color: #6366f1;
+}
+.sp-toggle-btn--active {
+  background: linear-gradient(135deg, #6366f1, #3b82f6) !important;
+  border-color: transparent !important;
+  color: #fff !important;
+  box-shadow: 0 3px 10px rgba(99, 102, 241, 0.35);
+  font-weight: 600;
+}
+
+/* Dark mode buttons */
+[data-theme="dark"] .sp-toggle-btn,
+body.dark-mode .sp-toggle-btn {
+  background: rgba(30, 41, 59, 0.7);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+}
+[data-theme="dark"] .sp-toggle-btn:hover,
+body.dark-mode .sp-toggle-btn:hover {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: rgba(99, 102, 241, 0.4);
+  color: #a5b4fc;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 480px) {
+  .sp-fab-wrap {
+    bottom: 18px;
+    right: 18px;
+  }
+  .sp-panel {
+    width: calc(100vw - 36px);
+    right: 0;
+  }
+}

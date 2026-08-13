@@ -1,0 +1,38 @@
+.nec-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+  background-color: var(--nec-surface);
+  border: 1px dashed var(--nec-border-dark);
+  border-radius: var(--nec-radius-lg);
+  margin: 12px 0;
+}
+
+.nec-empty-icon-wrapper {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background-color: var(--nec-surface-raised);
+  color: var(--nec-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.nec-empty-title {
+  margin: 0 0 4px 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--nec-text-main);
+}
+
+.nec-empty-message {
+  margin: 0 0 16px 0;
+  font-size: 0.875rem;
+  color: var(--nec-text-muted);
+  max-width: 360px;
+}
