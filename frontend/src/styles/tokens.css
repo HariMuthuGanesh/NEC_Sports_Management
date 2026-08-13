@@ -118,6 +118,20 @@ button, input, select, textarea {
   font-family: inherit;
 }
 
+button, input, select, textarea, a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+:focus-visible {
+  outline: 3px solid var(--nec-gold);
+  outline-offset: 3px;
+}
+
+button:focus-visible, a:focus-visible {
+  position: relative;
+  z-index: 1;
+}
+
 /* Scrollbar Styling */
 ::-webkit-scrollbar {
   width: 8px;

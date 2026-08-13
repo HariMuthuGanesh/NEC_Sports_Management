@@ -3,7 +3,7 @@ import Header from "./Header";
 import Sidebar from "./Sidebar";
 import "./AppShell.css";
 
-export default function AppShell({ activeNav, onSelectNav, children }) {
+export default function AppShell({ activeNav, onSelectNav, onRoleChange, children }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
@@ -11,6 +11,7 @@ export default function AppShell({ activeNav, onSelectNav, children }) {
       <Header
         onToggleSidebar={() => setIsSidebarOpen(prev => !prev)}
         isSidebarOpen={isSidebarOpen}
+        onRoleChange={onRoleChange}
       />
       <div className="nec-app-body">
         <Sidebar

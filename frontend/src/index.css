@@ -9,4 +9,5 @@
   flex-direction: column;
   box-sizing: border-box;
   text-align: left;
+  overflow-x: clip;
 }

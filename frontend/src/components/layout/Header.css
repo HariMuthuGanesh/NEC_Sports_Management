@@ -29,6 +29,12 @@
   border-radius: var(--nec-radius-sm);
 }
 
+.nec-menu-toggle-btn:focus-visible,
+.nec-icon-btn:focus-visible,
+.nec-role-badge-btn:focus-visible {
+  outline-color: var(--nec-gold-light);
+}
+
 @media (max-width: 900px) {
   .nec-menu-toggle-btn {
     display: flex;
@@ -211,6 +217,26 @@
 
 @media (max-width: 640px) {
   .nec-user-info, .nec-brand-text {
+    display: none;
+  }
+
+  .nec-header {
+    height: 60px;
+    padding: 0 12px;
+  }
+
+  .nec-header-left, .nec-header-right {
+    gap: 8px;
+  }
+
+  .nec-user-profile {
+    padding-left: 4px;
+  }
+}
+
+@media (max-width: 480px) {
+  .nec-role-switcher-dropdown:first-child,
+  .nec-user-profile {
     display: none;
   }
 }

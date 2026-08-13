@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { AuthProvider, useAuth, ROLES } from "./context/AuthContext";
 import AppShell from "./components/layout/AppShell";
+import ProtectedRoute from "./components/common/ProtectedRoute";
 
 // Public Pages
 import PublicHome from "./pages/public/PublicHome";
@@ -10,7 +11,7 @@ import PublicLeaderboard from "./pages/public/PublicLeaderboard";
 import PublicGallery from "./pages/public/PublicGallery";
 import PublicAnnouncements from "./pages/public/PublicAnnouncements";
 
-// Admin / PT Sir Pages
+// Admin / Sports Administrator Pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import TournamentsManager from "./pages/admin/TournamentsManager";
 import RegistrationsManager from "./pages/admin/RegistrationsManager";
@@ -29,15 +30,27 @@ import PlayerDashboard from "./pages/player/PlayerDashboard";
 // Auth Page
 import LoginPage from "./pages/auth/LoginPage";
 
+function getDefaultRoute(role) {
+  const defaultRoute = {
+    [ROLES.ADMIN]: "admin_dash",
+    [ROLES.COORDINATOR]: "coord_dash",
+    [ROLES.PLAYER]: "player_dash",
+    [ROLES.PUBLIC]: "public_home"
+  };
+  return defaultRoute[role] || "public_home";
+}
+
 function MainApp() {
   const { currentUser, ROLES } = useAuth();
-  const [activeNav, setActiveNav] = useState("public_home");
-  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [activeNav, setActiveNav] = useState(() => getDefaultRoute(currentUser.role));
 
-  // Fallback to default route if role changes
+  const handleRoleChange = (role) => {
+    setActiveNav(getDefaultRoute(role));
+  };
+
   const renderContent = () => {
     switch (activeNav) {
-      // Public Routes
+      // Public Portal Routes (Open Access)
       case "public_home":
         return <PublicHome onNavigate={(nav) => setActiveNav(nav)} />;
       case "public_live":
@@ -51,57 +64,98 @@ function MainApp() {
       case "public_announcements":
         return <PublicAnnouncements />;
 
-      // Admin Routes
+      // Protected Admin / Director of Physical Education Routes
       case "admin_dash":
-        return <AdminDashboard onNavigate={(nav) => setActiveNav(nav)} />;
+        return (
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={() => setActiveNav("public_home")}>
+            <AdminDashboard onNavigate={(nav) => setActiveNav(nav)} />
+          </ProtectedRoute>
+        );
       case "admin_sports":
       case "admin_tournaments":
       case "admin_events":
-        return <TournamentsManager />;
+        return (
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={() => setActiveNav("public_home")}>
+            <TournamentsManager />
+          </ProtectedRoute>
+        );
       case "admin_regs":
-        return <RegistrationsManager />;
+        return (
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={() => setActiveNav("public_home")}>
+            <RegistrationsManager />
+          </ProtectedRoute>
+        );
       case "admin_teams":
       case "admin_matches":
       case "admin_venues":
       case "admin_depts":
-        return <MatchesManager />;
+        return (
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={() => setActiveNav("public_home")}>
+            <MatchesManager />
+          </ProtectedRoute>
+        );
       case "admin_announcements":
         return <PublicAnnouncements />;
       case "admin_reports":
-        return <ReportsManager />;
+        return (
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={() => setActiveNav("public_home")}>
+            <ReportsManager />
+          </ProtectedRoute>
+        );
 
-      // Coordinator Routes
+      // Protected Coordinator Routes
       case "coord_dash":
-        return <CoordinatorDashboard onNavigate={(nav) => setActiveNav(nav)} />;
+        return (
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.COORDINATOR]} onRedirectPublic={() => setActiveNav("public_home")}>
+            <CoordinatorDashboard onNavigate={(nav) => setActiveNav(nav)} />
+          </ProtectedRoute>
+        );
       case "coord_players":
       case "coord_event_reg":
-        return <RosterManager />;
+        return (
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.COORDINATOR]} onRedirectPublic={() => setActiveNav("public_home")}>
+            <RosterManager />
+          </ProtectedRoute>
+        );
       case "coord_matches":
         return <PublicFixtures />;
       case "coord_score_entry":
-        return <ScoreEntry />;
+        return (
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.COORDINATOR]} onRedirectPublic={() => setActiveNav("public_home")}>
+            <ScoreEntry />
+          </ProtectedRoute>
+        );
       case "coord_attendance":
-        return <AttendanceMarker />;
+        return (
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.COORDINATOR]} onRedirectPublic={() => setActiveNav("public_home")}>
+            <AttendanceMarker />
+          </ProtectedRoute>
+        );
       case "coord_media":
         return <PublicGallery />;
 
-      // Player Routes
+      // Protected Player Routes
       case "player_dash":
       case "player_team":
       case "player_matches":
       case "player_notifs":
-        return <PlayerDashboard />;
+        return (
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.COORDINATOR, ROLES.PLAYER]} onRedirectPublic={() => setActiveNav("public_home")}>
+            <PlayerDashboard />
+          </ProtectedRoute>
+        );
 
       default:
-        if (currentUser.role === ROLES.ADMIN) return <AdminDashboard onNavigate={(nav) => setActiveNav(nav)} />;
-        if (currentUser.role === ROLES.COORDINATOR) return <CoordinatorDashboard onNavigate={(nav) => setActiveNav(nav)} />;
-        if (currentUser.role === ROLES.PLAYER) return <PlayerDashboard />;
         return <PublicHome onNavigate={(nav) => setActiveNav(nav)} />;
     }
   };
 
   return (
-    <AppShell activeNav={activeNav} onSelectNav={(navId) => setActiveNav(navId)}>
+    <AppShell
+      activeNav={activeNav}
+      onSelectNav={(navId) => setActiveNav(navId)}
+      onRoleChange={handleRoleChange}
+    >
       {renderContent()}
     </AppShell>
   );

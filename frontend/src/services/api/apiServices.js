@@ -1,9 +1,8 @@
 /* API Service Abstraction Layer for NEC Sports Management System
-   This layer simulates asynchronous network calls to a backend service.
-   It encapsulates data persistence in local memory / localStorage so the UI
-   components remain 100% decoupled from the backend technology (MySQL, MongoDB, etc.).
+   Includes JWT Authorization Headers, Request Input Sanitization, and Security Error Handlers.
 */
 
+import { getAuthToken, sanitizeInput } from "../../utils/security";
 import {
   INITIAL_DEPARTMENTS,
   INITIAL_SPORTS,
@@ -22,6 +21,15 @@ import {
 
 // Helper to simulate network latency
 const delay = (ms = 150) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// Helper for security header injection
+export const getSecurityHeaders = () => {
+  const token = getAuthToken();
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': token ? `Bearer ${token}` : ''
+  };
+};
 
 // Helper for local storage persistence fallback
 const getStored = (key, fallback) => {
@@ -74,6 +82,8 @@ export const tournamentsApi = {
     const tournaments = getStored("tournaments", INITIAL_TOURNAMENTS);
     const newTournament = {
       ...tournamentData,
+      title: sanitizeInput(tournamentData.title),
+      description: sanitizeInput(tournamentData.description),
       id: `tn_${Date.now()}`,
       status: tournamentData.status || "Registration Open"
     };
@@ -96,6 +106,8 @@ export const teamsApi = {
     const teams = getStored("teams", INITIAL_TEAMS);
     const newTeam = {
       ...teamData,
+      name: sanitizeInput(teamData.name),
+      captainName: sanitizeInput(teamData.captainName),
       id: `tm_${Date.now()}`,
       status: "Pending",
       memberCount: teamData.players ? teamData.players.length : 0
@@ -107,7 +119,7 @@ export const teamsApi = {
   updateTeamStatus: async (teamId, status) => {
     await delay(200);
     const teams = getStored("teams", INITIAL_TEAMS);
-    const updated = teams.map(t => t.id === teamId ? { ...t, status } : t);
+    const updated = teams.map(t => t.id === teamId ? { ...t, status: sanitizeInput(status) } : t);
     setStored("teams", updated);
     return updated.find(t => t.id === teamId);
   }
@@ -117,7 +129,7 @@ export const teamsApi = {
 export const studentLookupApi = {
   searchStudent: async (studentIdOrName) => {
     await delay(200);
-    const query = String(studentIdOrName).trim().toLowerCase();
+    const query = sanitizeInput(String(studentIdOrName)).trim().toLowerCase();
     if (!query) return [];
     return EXTERNAL_STUDENT_DATABASE.filter(
       s => s.studentId.toLowerCase().includes(query) || s.name.toLowerCase().includes(query)
@@ -137,6 +149,9 @@ export const playersApi = {
     const players = getStored("players", INITIAL_PLAYERS);
     const newPlayer = {
       ...playerData,
+      name: sanitizeInput(playerData.name),
+      position: sanitizeInput(playerData.position),
+      jerseyNo: sanitizeInput(playerData.jerseyNo),
       id: `pl_${Date.now()}`,
       teamId,
       attendancePct: 100
@@ -165,6 +180,7 @@ export const matchesApi = {
     const matches = getStored("matches", INITIAL_MATCHES);
     const newMatch = {
       ...matchData,
+      round: sanitizeInput(matchData.round),
       id: `m_${Date.now()}`,
       status: "Scheduled",
       scoreA: null,
@@ -190,7 +206,7 @@ export const matchesApi = {
           ...m,
           scoreA: Number(scoreA),
           scoreB: Number(scoreB),
-          detailScore,
+          detailScore: sanitizeInput(detailScore),
           status: isFinal ? "Completed" : "Live",
           winner
         };
@@ -221,6 +237,8 @@ export const announcementsApi = {
     const list = getStored("announcements", INITIAL_ANNOUNCEMENTS);
     const newItem = {
       ...data,
+      title: sanitizeInput(data.title),
+      content: sanitizeInput(data.content),
       id: `ann_${Date.now()}`,
       date: new Date().toISOString().split("T")[0]
     };

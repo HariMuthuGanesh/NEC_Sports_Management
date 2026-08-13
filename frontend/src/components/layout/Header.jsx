@@ -4,8 +4,8 @@ import { useAuth, ROLES } from "../../context/AuthContext";
 import NotificationDrawer from "../notifications/NotificationDrawer";
 import "./Header.css";
 
-export default function Header({ onToggleSidebar, isSidebarOpen }) {
-  const { currentUser, setRole, theme, toggleTheme, language, setLanguage, logout, ROLES } = useAuth();
+export default function Header({ onToggleSidebar, isSidebarOpen, onRoleChange }) {
+  const { currentUser, setRole, theme, toggleTheme, language, setLanguage } = useAuth();
   const [showNotifs, setShowNotifs] = useState(false);
   const [showRoleMenu, setShowRoleMenu] = useState(false);
   const [showLangMenu, setShowLangMenu] = useState(false);
@@ -48,6 +48,8 @@ export default function Header({ onToggleSidebar, isSidebarOpen }) {
               setShowRoleMenu(false);
             }}
             title="Switch Language"
+            aria-expanded={showLangMenu}
+            aria-haspopup="menu"
           >
             <Globe size={14} />
             <span>{language.toUpperCase()}</span>
@@ -78,6 +80,8 @@ export default function Header({ onToggleSidebar, isSidebarOpen }) {
               setShowLangMenu(false);
             }}
             title="Switch Access Role"
+            aria-expanded={showRoleMenu}
+            aria-haspopup="menu"
           >
             <Shield size={14} />
             <span>{currentUser.role}</span>
@@ -90,7 +94,10 @@ export default function Header({ onToggleSidebar, isSidebarOpen }) {
                 <button
                   key={r}
                   className={`nec-role-menu-item ${currentUser.role === r ? "active" : ""}`}
-                  onClick={() => setRole(r)}
+                  onClick={() => {
+                    setRole(r);
+                    onRoleChange(r);
+                  }}
                 >
                   {r}
                 </button>

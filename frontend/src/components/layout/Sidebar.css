@@ -147,3 +147,14 @@
     z-index: 750;
   }
 }
+
+@media (max-width: 640px) {
+  .nec-sidebar {
+    top: 60px;
+    height: calc(100vh - 60px);
+  }
+
+  .nec-sidebar-overlay {
+    top: 60px;
+  }
+}

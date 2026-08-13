@@ -15,6 +15,23 @@
   overflow: hidden;
 }
 
+.nec-public-hero::after {
+  content: "";
+  position: absolute;
+  width: 320px;
+  height: 320px;
+  right: -110px;
+  top: -180px;
+  border: 48px solid rgba(229, 185, 72, 0.08);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.nec-hero-content {
+  position: relative;
+  z-index: 1;
+}
+
 .nec-hero-badge {
   display: inline-flex;
   align-items: center;
@@ -160,6 +177,48 @@
 @media (max-width: 900px) {
   .nec-home-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .nec-public-home {
+    gap: 20px;
+  }
+
+  .nec-public-hero {
+    padding: 28px 20px;
+    border-left-width: 4px;
+  }
+
+  .nec-hero-title {
+    font-size: 1.5rem;
+  }
+
+  .nec-hero-actions .nec-btn {
+    width: 100%;
+  }
+
+  .nec-section-header {
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .nec-section-header .nec-btn {
+    padding-inline: 8px;
+  }
+
+  .nec-live-card-sub {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .nec-tally-table-wrapper {
+    overflow-x: auto;
+  }
+
+  .nec-mini-tally {
+    min-width: 520px;
   }
 }
 

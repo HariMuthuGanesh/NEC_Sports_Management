@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { getAuthToken, setAuthToken, removeAuthToken } from "../utils/security";
 
 const AuthContext = createContext();
 
@@ -18,6 +19,8 @@ export function AuthProvider({ children }) {
       return { role: ROLES.PUBLIC, name: "Guest Visitor", dept: "All", id: null };
     }
   });
+
+  const [authToken, setTokenState] = useState(() => getAuthToken());
 
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem("nec_sports_theme") || "light";
@@ -51,23 +54,46 @@ export function AuthProvider({ children }) {
     } else {
       mockUser = { role: ROLES.PUBLIC, name: "Guest Visitor", dept: "All", id: null };
     }
+
+    // Generate mock JWT token for role preview
+    const dummyToken = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.${btoa(JSON.stringify(mockUser))}.signature`;
+    setTokenState(dummyToken);
+    setAuthToken(dummyToken);
+
     setCurrentUser(mockUser);
     localStorage.setItem("nec_sports_auth_user", JSON.stringify(mockUser));
   };
 
-  const login = (userData) => {
+  const login = (userData, token = null) => {
+    if (token) {
+      setTokenState(token);
+      setAuthToken(token);
+    }
     setCurrentUser(userData);
     localStorage.setItem("nec_sports_auth_user", JSON.stringify(userData));
   };
 
   const logout = () => {
+    removeAuthToken();
+    setTokenState(null);
     const publicUser = { role: ROLES.PUBLIC, name: "Guest Visitor", dept: "All", id: null };
     setCurrentUser(publicUser);
     localStorage.setItem("nec_sports_auth_user", JSON.stringify(publicUser));
   };
 
   return (
-    <AuthContext.Provider value={{ currentUser, setRole, login, logout, theme, toggleTheme, language, setLanguage, ROLES }}>
+    <AuthContext.Provider value={{
+      currentUser,
+      authToken,
+      setRole,
+      login,
+      logout,
+      theme,
+      toggleTheme,
+      language,
+      setLanguage,
+      ROLES
+    }}>
       {children}
     </AuthContext.Provider>
   );
