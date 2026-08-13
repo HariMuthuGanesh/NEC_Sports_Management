@@ -17,6 +17,8 @@ import SportsCatalog from "./pages/admin/SportsCatalog";
 import TournamentsManager from "./pages/admin/TournamentsManager";
 import EventsManager from "./pages/admin/EventsManager";
 import RegistrationsManager from "./pages/admin/RegistrationsManager";
+import TeamsManager from "./pages/admin/TeamsManager";
+import StudentManager from "./pages/admin/StudentManager";
 import MatchesManager from "./pages/admin/MatchesManager";
 import ReportsManager from "./pages/admin/ReportsManager";
 
@@ -84,9 +86,20 @@ function MainApp() {
           </ProtectedRoute>
         );
       case "admin_teams":
+        return (
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={() => setActiveNav("public_home")}>
+            <TeamsManager />
+          </ProtectedRoute>
+        );
+      case "admin_depts":
+      case "admin_students":
+        return (
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={() => setActiveNav("public_home")}>
+            <StudentManager />
+          </ProtectedRoute>
+        );
       case "admin_matches":
       case "admin_venues":
-      case "admin_depts":
         return (
           <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={() => setActiveNav("public_home")}>
             <MatchesManager />
