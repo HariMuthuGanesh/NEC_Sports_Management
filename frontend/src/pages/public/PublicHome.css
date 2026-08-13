@@ -67,6 +67,19 @@
   flex-wrap: wrap;
 }
 
+.nec-hero-actions .nec-btn-outline {
+  background-color: #ffffff;
+  color: var(--nec-navy);
+  border-color: #ffffff;
+  font-weight: 600;
+}
+
+.nec-hero-actions .nec-btn-outline:hover:not(:disabled) {
+  background-color: #f8fafc;
+  color: var(--nec-navy-dark);
+}
+
+
 .nec-section-block {
   display: flex;
   flex-direction: column;

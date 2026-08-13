@@ -42,7 +42,7 @@ export default function PublicHome({ onNavigate }) {
             <Button variant="secondary" icon={Radio} onClick={() => onNavigate("public_live")}>
               Watch Live Scores ({liveMatches.length})
             </Button>
-            <Button variant="outline" icon={Calendar} onClick={() => onNavigate("public_fixtures")}>
+            <Button variant="white" icon={Calendar} onClick={() => onNavigate("public_fixtures")}>
               View Fixtures & Schedule
             </Button>
           </div>
