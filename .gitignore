@@ -2,6 +2,8 @@
 # 1. Documentation & Markdown Files
 # ==========================================
 *.md
+Plan/
+
 
 # ==========================================
 # 2. Node & Package Dependencies
