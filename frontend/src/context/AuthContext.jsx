@@ -9,6 +9,7 @@ import {
   SecurityLogger,
 } from "../utils/security";
 import { TRANSLATIONS } from "../utils/translations";
+import { getTranslations, hasTranslationCache, LANG_CODES } from "../utils/liveTranslator";
 
 const AuthContext = createContext();
 
@@ -40,9 +41,16 @@ export function AuthProvider({ children }) {
   const [secondsUntilIdle, setSecondsUntilIdle] = useState(0);
 
   const [theme, setTheme] = useState(() => localStorage.getItem("nec_sports_theme") || "light");
-  const [language, setLanguage] = useState(() =>
+  const [language, setLanguageState] = useState(() =>
     localStorage.getItem("nec_sports_lang") || localStorage.getItem("sp-lang") || "en"
   );
+
+  // Live translation state
+  const [liveT, setLiveT] = useState(TRANSLATIONS.en);
+  const [transProgress, setTransProgress] = useState(null); // null = hidden
+  const [transDone, setTransDone] = useState(false);
+  const [transLangLabel, setTransLangLabel] = useState("");
+  const transAbortRef = useRef(null);
 
   const idleTimerRef = useRef(null);
   const idleWarningTimerRef = useRef(null);
@@ -54,12 +62,63 @@ export function AuthProvider({ children }) {
     localStorage.setItem("nec_sports_theme", theme);
   }, [theme]);
 
+  // ── Live Translation Loader ──────────────────────────────────
+  useEffect(() => {
+    // Cancel any in-flight translation request
+    if (transAbortRef.current) transAbortRef.current.abort();
+    const controller = new AbortController();
+    transAbortRef.current = controller;
+
+    if (language === "en") {
+      setLiveT(TRANSLATIONS.en);
+      setTransProgress(null);
+      return;
+    }
+
+    const LANG_LABELS = { ta: "Tamil", hi: "Hindi", fr: "French", de: "German" };
+    const label = LANG_LABELS[language] || language.toUpperCase();
+    setTransLangLabel(label);
+
+    // If we already have a cache, load instantly with no loading bar
+    if (hasTranslationCache(language)) {
+      getTranslations(language, { signal: controller.signal }).then(({ translations }) => {
+        if (!controller.signal.aborted) setLiveT(translations);
+      });
+      return;
+    }
+
+    // No cache → show progress bar and fetch from API
+    setTransProgress(0);
+    setTransDone(false);
+
+    getTranslations(language, {
+      signal: controller.signal,
+      onProgress: (pct) => setTransProgress(pct),
+      onDone: () => {
+        setTransDone(true);
+        // Hide bar after 2.5s
+        setTimeout(() => {
+          setTransProgress(null);
+          setTransDone(false);
+        }, 2500);
+      },
+    }).then(({ translations }) => {
+      if (!controller.signal.aborted) setLiveT(translations);
+    });
+
+    return () => controller.abort();
+  }, [language]);
+
   useEffect(() => {
     localStorage.setItem("nec_sports_lang", language);
     localStorage.setItem("sp-lang", language);
   }, [language]);
 
   const toggleTheme = () => setTheme(prev => prev === "light" ? "dark" : "light");
+
+  const setLanguage = (lang) => {
+    setLanguageState(lang);
+  };
 
   // ── Idle Timeout Logic ──────────────────────────────────────
 
@@ -191,7 +250,8 @@ export function AuthProvider({ children }) {
     setIdleWarning(false);
   }, [currentUser, resetIdleTimer]);
 
-  const t = TRANSLATIONS[language] || TRANSLATIONS.en;
+  // Use liveT (auto-translated) rather than static TRANSLATIONS[language]
+  const t = liveT;
 
   return (
     <AuthContext.Provider value={{
@@ -210,6 +270,10 @@ export function AuthProvider({ children }) {
       setLanguage,
       t,
       ROLES,
+      // Live translation status (used by TranslationLoadingBar)
+      transProgress,
+      transDone,
+      transLangLabel,
     }}>
       {children}
     </AuthContext.Provider>
