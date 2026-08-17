@@ -8,7 +8,7 @@ import { Users, Calendar, Bell, Trophy, Shield, CheckCircle } from "lucide-react
 import "./PlayerPortal.css";
 
 export default function PlayerDashboard() {
-  const { currentUser } = useAuth();
+  const { currentUser, t } = useAuth();
   const playerDept = currentUser.dept || "MECH";
   const playerName = currentUser.name || "Priya Patel";
 
@@ -53,10 +53,10 @@ export default function PlayerDashboard() {
   }, [currentUser]);
 
   const columns = [
-    { key: "sport", label: "Sport", width: "120px", render: (val) => <strong>{val}</strong> },
+    { key: "sport", label: t.sportsCatalog || "Sport", width: "120px", render: (val) => <strong>{val}</strong> },
     { key: "matchup", label: "Fixture", render: (_, row) => <span><strong>{row.teamA}</strong> vs <strong>{row.teamB}</strong></span> },
     { key: "date", label: "Date & Time", width: "160px", render: (_, row) => <span>📅 {row.date} • {row.time}</span> },
-    { key: "venue", label: "Venue", width: "180px", render: (val) => <span>📍 {val}</span> },
+    { key: "venue", label: t.venues || "Venue", width: "180px", render: (val) => <span>📍 {val}</span> },
     {
       key: "status",
       label: "Status",
@@ -81,14 +81,14 @@ export default function PlayerDashboard() {
   return (
     <div className="nec-portal-page">
       <div className="nec-page-header">
-        <h2 className="nec-page-title">Student Athlete Portal</h2>
+        <h2 className="nec-page-title">{t.playerDashboardTitle || "Student Athlete Portal"}</h2>
         <p className="nec-page-desc">Student Athlete: <strong>{playerName}</strong> | Department: <strong>{playerDept}</strong> | Roll No: <strong>{currentUser.id || "2114012"}</strong></p>
       </div>
 
       <div className="nec-stats-grid">
-        <StatCard title="My Squad" value={myTeam ? myTeam.name : "Mech Titans"} subtext={`${playerDept} Department Squad`} icon={Users} color="navy" />
-        <StatCard title="Next Match Fixture" value={nextMatch ? nextMatch.date : "Aug 14"} subtext={nextMatch ? `${nextMatch.time} at ${nextMatch.venue}` : "Scheduled Match"} icon={Calendar} color="gold" />
-        <StatCard title="My Attendance Rate" value={`${myPlayerInfo?.attendancePct || 95}%`} subtext="Verified Athlete Eligibility" icon={Trophy} />
+        <StatCard title={t.mySquad || "My Squad"} value={myTeam ? myTeam.name : "Mech Titans"} subtext={`${playerDept} Department Squad`} icon={Users} color="navy" />
+        <StatCard title={t.nextMatchFixture || "Next Match Fixture"} value={nextMatch ? nextMatch.date : "Aug 14"} subtext={nextMatch ? `${nextMatch.time} at ${nextMatch.venue}` : "Scheduled Match"} icon={Calendar} color="gold" />
+        <StatCard title={t.myAttendanceRate || "My Attendance Rate"} value={`${myPlayerInfo?.attendancePct || 95}%`} subtext="Verified Athlete Eligibility" icon={Trophy} />
       </div>
 
       <div className="nec-admin-main-grid">

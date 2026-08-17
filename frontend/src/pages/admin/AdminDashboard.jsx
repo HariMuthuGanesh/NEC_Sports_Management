@@ -4,10 +4,12 @@ import Button from "../../components/common/Button";
 import Badge from "../../components/common/Badge";
 import Table from "../../components/common/Table";
 import { tournamentsApi, teamsApi, matchesApi, sportsApi } from "../../services/api/apiServices";
+import { useAuth } from "../../context/AuthContext";
 import { Trophy, Calendar, CheckSquare, Users, Plus, Radio, ArrowRight, Activity, Award } from "lucide-react";
 import "./AdminPortal.css";
 
 export default function AdminDashboard({ onNavigate }) {
+  const { t } = useAuth();
   const [stats, setStats] = useState({
     tournamentsCount: 0,
     openRegsCount: 0,
@@ -64,13 +66,13 @@ export default function AdminDashboard({ onNavigate }) {
       <div className="nec-page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
         <div>
           <span style={{ fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.15em", color: "var(--nec-gold)", textTransform: "uppercase" }}>
-            OVERVIEW
+            {t.navOverview || "OVERVIEW"}
           </span>
-          <h1 className="nec-page-title" style={{ fontSize: "2rem", marginTop: "2px" }}>Director's Desk</h1>
+          <h1 className="nec-page-title" style={{ fontSize: "2rem", marginTop: "2px" }}>{t.directorsDesk || "Director's Desk"}</h1>
           <p className="nec-page-desc">Institutional overview of athletic programs, student participation metrics, and recent administrative actions across all departments.</p>
         </div>
         <Button variant="primary" icon={Plus} onClick={() => onNavigate("admin_events")}>
-          Create Event
+          {t.createEvent || "Create Event"}
         </Button>
       </div>
 
@@ -78,7 +80,7 @@ export default function AdminDashboard({ onNavigate }) {
       <div className="nec-stats-grid">
         <div className="nec-stat-card nec-stat-card-navy cursor-pointer" onClick={() => onNavigate("admin_sports")}>
           <div className="nec-stat-card-top">
-            <span className="nec-stat-title">Active Sports</span>
+            <span className="nec-stat-title">{t.activeSports || "Active Sports"}</span>
             <div className="nec-stat-icon-wrapper"><Trophy size={20} /></div>
           </div>
           <div className="nec-stat-value">12</div>
@@ -87,8 +89,8 @@ export default function AdminDashboard({ onNavigate }) {
 
         <div className="nec-stat-card cursor-pointer" style={{ background: "var(--nec-navy)", color: "#fff" }} onClick={() => onNavigate("admin_events")}>
           <div className="nec-stat-card-top">
-            <span className="nec-stat-title" style={{ color: "#cbd5e1" }}>Ongoing Events</span>
-            <Badge status="live">LIVE</Badge>
+            <span className="nec-stat-title" style={{ color: "#cbd5e1" }}>{t.ongoingEvents || "Ongoing Events"}</span>
+            <Badge status="live">{t.live || "LIVE"}</Badge>
           </div>
           <div className="nec-stat-value" style={{ color: "#fff" }}>5</div>
           <div className="nec-stat-subtext" style={{ color: "var(--nec-gold-light)" }}>Inter-Department Championships</div>
@@ -96,7 +98,7 @@ export default function AdminDashboard({ onNavigate }) {
 
         <div className="nec-stat-card cursor-pointer" onClick={() => onNavigate("admin_depts")}>
           <div className="nec-stat-card-top">
-            <span className="nec-stat-title">Registered Athletes</span>
+            <span className="nec-stat-title">{t.registeredAthletes || "Registered Athletes"}</span>
             <div className="nec-stat-icon-wrapper"><Users size={20} /></div>
           </div>
           <div className="nec-stat-value">450</div>
@@ -105,7 +107,7 @@ export default function AdminDashboard({ onNavigate }) {
 
         <div className="nec-stat-card cursor-pointer" onClick={() => onNavigate("admin_teams")}>
           <div className="nec-stat-card-top">
-            <span className="nec-stat-title">Competitive Teams</span>
+            <span className="nec-stat-title">{t.competitiveTeams || "Competitive Teams"}</span>
             <div className="nec-stat-icon-wrapper"><Activity size={20} /></div>
           </div>
           <div className="nec-stat-value">{stats.totalTeams || 24}</div>
@@ -116,7 +118,7 @@ export default function AdminDashboard({ onNavigate }) {
       {/* Stitch Split View Main Content */}
       <div className="nec-admin-main-grid" style={{ marginTop: "24px" }}>
         {/* Left Column: Participation by Discipline Bar Chart */}
-        <Card title="Participation by Discipline" subtitle="Active student roster distribution across major sports disciplines.">
+        <Card title={t.participationByDiscipline || "Participation by Discipline"} subtitle="Active student roster distribution across major sports disciplines.">
           <div style={{ display: "flex", alignItems: "flex-end", gap: "20px", height: "220px", padding: "20px 10px 10px 10px", borderBottom: "2px solid var(--nec-border-dark)" }}>
             {disciplineData.map(item => (
               <div key={item.sport} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "8px", height: "100%", justifyContent: "flex-end" }}>
@@ -137,7 +139,7 @@ export default function AdminDashboard({ onNavigate }) {
 
         {/* Right Column: Administrative Tasks & Quick Reviews */}
         <Card
-          title="Administrative Tasks"
+          title={t.administrativeTasks || "Administrative Tasks"}
           subtitle={`${stats.pendingApprovals} pending team requests require PT Sir approval`}
           action={
             <Button variant="ghost" size="sm" icon={ArrowRight} onClick={() => onNavigate("admin_regs")}>
