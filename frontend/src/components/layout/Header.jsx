@@ -96,7 +96,9 @@ export default function Header({ onToggleSidebar, isSidebarOpen, onRoleChange })
                   className={`nec-role-menu-item ${currentUser.role === r ? "active" : ""}`}
                   onClick={() => {
                     setRole(r);
-                    onRoleChange(r);
+                    if (typeof onRoleChange === "function") {
+                      onRoleChange(r);
+                    }
                   }}
                 >
                   {r}

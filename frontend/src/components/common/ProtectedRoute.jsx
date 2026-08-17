@@ -37,7 +37,7 @@ export default function ProtectedRoute({ allowedRoles = [], children, onRedirect
             <div style={{ display: "flex", justifyContent: "center", gap: "12px" }}>
               {onRedirectPublic && (
                 <Button variant="primary" icon={Lock} onClick={onRedirectPublic}>
-                  Return to Public Sports Portal
+                  Return to My Portal Dashboard
                 </Button>
               )}
             </div>
