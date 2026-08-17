@@ -62,6 +62,25 @@ export const sportsApi = {
   getVenues: async () => {
     await delay();
     return getStored("venues", INITIAL_VENUES);
+  },
+  addSport: async (sportData) => {
+    await delay(250);
+    const sports = getStored("sports", INITIAL_SPORTS);
+    const newSport = {
+      ...sportData,
+      name: sanitizeInput(sportData.name),
+      id: `sp_${sanitizeInput(sportData.name).toLowerCase().replace(/\s+/g, "_")}`
+    };
+    const updated = [newSport, ...sports];
+    setStored("sports", updated);
+    return newSport;
+  },
+  deleteSport: async (sportId) => {
+    await delay(200);
+    const sports = getStored("sports", INITIAL_SPORTS);
+    const updated = sports.filter(s => s.id !== sportId);
+    setStored("sports", updated);
+    return true;
   }
 };
 
@@ -90,6 +109,33 @@ export const tournamentsApi = {
     const updated = [newTournament, ...tournaments];
     setStored("tournaments", updated);
     return newTournament;
+  },
+  createEvent: async (eventData) => {
+    await delay(250);
+    const events = getStored("events", INITIAL_EVENTS);
+    const newEvent = {
+      ...eventData,
+      title: sanitizeInput(eventData.title),
+      id: `ev_${Date.now()}`,
+      registeredTeams: 0,
+      status: "Open"
+    };
+    const updated = [newEvent, ...events];
+    setStored("events", updated);
+    return newEvent;
+  },
+  toggleEventStatus: async (eventId) => {
+    await delay(200);
+    const events = getStored("events", INITIAL_EVENTS);
+    const updated = events.map(ev => {
+      if (ev.id === eventId) {
+        const isOpen = ev.status === "Open" || ev.status === "Registration Open";
+        return { ...ev, status: isOpen ? "Closed" : "Open" };
+      }
+      return ev;
+    });
+    setStored("events", updated);
+    return updated.find(e => e.id === eventId);
   }
 };
 
@@ -98,7 +144,7 @@ export const teamsApi = {
   getTeams: async (deptId = null) => {
     await delay();
     const teams = getStored("teams", INITIAL_TEAMS);
-    if (deptId) return teams.filter(t => t.deptId === deptId);
+    if (deptId) return teams.filter(t => t.deptId === deptId || t.deptCode === deptId);
     return teams;
   },
   registerTeam: async (teamData) => {
@@ -108,9 +154,10 @@ export const teamsApi = {
       ...teamData,
       name: sanitizeInput(teamData.name),
       captainName: sanitizeInput(teamData.captainName),
+      captainRoll: sanitizeInput(teamData.captainRoll || "2112000"),
       id: `tm_${Date.now()}`,
       status: "Pending",
-      memberCount: teamData.players ? teamData.players.length : 0
+      memberCount: teamData.players ? teamData.players.length : 1
     };
     const updated = [newTeam, ...teams];
     setStored("teams", updated);
@@ -144,6 +191,10 @@ export const playersApi = {
     const players = getStored("players", INITIAL_PLAYERS);
     return players.filter(p => p.teamId === teamId);
   },
+  getAllPlayers: async () => {
+    await delay();
+    return getStored("players", INITIAL_PLAYERS);
+  },
   addPlayerToRoster: async (teamId, playerData) => {
     await delay(250);
     const players = getStored("players", INITIAL_PLAYERS);
@@ -158,12 +209,50 @@ export const playersApi = {
     };
     const updated = [...players, newPlayer];
     setStored("players", updated);
+
+    // Update team member count
+    const teams = getStored("teams", INITIAL_TEAMS);
+    const updatedTeams = teams.map(t => {
+      if (t.id === teamId) {
+        return { ...t, memberCount: (t.memberCount || 0) + 1 };
+      }
+      return t;
+    });
+    setStored("teams", updatedTeams);
+
     return newPlayer;
   },
   removePlayer: async (playerId) => {
     await delay(200);
     const players = getStored("players", INITIAL_PLAYERS);
+    const targetPlayer = players.find(p => p.id === playerId);
     const updated = players.filter(p => p.id !== playerId);
+    setStored("players", updated);
+
+    if (targetPlayer) {
+      const teams = getStored("teams", INITIAL_TEAMS);
+      const updatedTeams = teams.map(t => {
+        if (t.id === targetPlayer.teamId && t.memberCount > 0) {
+          return { ...t, memberCount: t.memberCount - 1 };
+        }
+        return t;
+      });
+      setStored("teams", updatedTeams);
+    }
+    return true;
+  },
+  saveSquadAttendance: async (teamId, attendanceMap) => {
+    await delay(300);
+    const players = getStored("players", INITIAL_PLAYERS);
+    const updated = players.map(p => {
+      if (p.teamId === teamId) {
+        const isPresent = attendanceMap[p.id];
+        let currentPct = p.attendancePct || 90;
+        let newPct = isPresent ? Math.min(100, currentPct + 2) : Math.max(50, currentPct - 8);
+        return { ...p, attendancePct: newPct };
+      }
+      return p;
+    });
     setStored("players", updated);
     return true;
   }
@@ -190,6 +279,13 @@ export const matchesApi = {
     const updated = [newMatch, ...matches];
     setStored("matches", updated);
     return newMatch;
+  },
+  deleteMatch: async (matchId) => {
+    await delay(200);
+    const matches = getStored("matches", INITIAL_MATCHES);
+    const updated = matches.filter(m => m.id !== matchId);
+    setStored("matches", updated);
+    return true;
   },
   updateMatchScore: async (matchId, scoreA, scoreB, detailScore = "", isFinal = false) => {
     await delay(300);
@@ -239,12 +335,21 @@ export const announcementsApi = {
       ...data,
       title: sanitizeInput(data.title),
       content: sanitizeInput(data.content),
+      category: sanitizeInput(data.category || "General"),
+      author: sanitizeInput(data.author || "Physical Education Director"),
       id: `ann_${Date.now()}`,
       date: new Date().toISOString().split("T")[0]
     };
     const updated = [newItem, ...list];
     setStored("announcements", updated);
     return newItem;
+  },
+  deleteAnnouncement: async (id) => {
+    await delay(200);
+    const list = getStored("announcements", INITIAL_ANNOUNCEMENTS);
+    const updated = list.filter(a => a.id !== id);
+    setStored("announcements", updated);
+    return true;
   }
 };
 

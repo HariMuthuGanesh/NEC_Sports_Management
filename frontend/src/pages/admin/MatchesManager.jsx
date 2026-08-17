@@ -4,7 +4,7 @@ import Table from "../../components/common/Table";
 import Badge from "../../components/common/Badge";
 import Button from "../../components/common/Button";
 import { Modal } from "../../components/common/Modal";
-import { Calendar, Plus, MapPin, Clock } from "lucide-react";
+import { Calendar, Plus, MapPin, Clock, Trash2 } from "lucide-react";
 import "./AdminPortal.css";
 
 export default function MatchesManager() {
@@ -64,6 +64,12 @@ export default function MatchesManager() {
     });
   };
 
+  const handleDeleteMatch = (matchId) => {
+    matchesApi.deleteMatch(matchId).then(() => {
+      loadData();
+    });
+  };
+
   const columns = [
     { key: "sport", label: "Sport", width: "120px", render: (val) => <strong>{val}</strong> },
     { key: "matchup", label: "Match Teams", render: (_, row) => <span>{row.teamA} ({row.deptA}) vs {row.teamB} ({row.deptB})</span> },
@@ -78,6 +84,17 @@ export default function MatchesManager() {
         <Badge status={val === "Live" ? "live" : val === "Completed" ? "success" : "warning"}>
           {val}
         </Badge>
+      )
+    },
+    {
+      key: "actions",
+      label: "Actions",
+      width: "100px",
+      sortable: false,
+      render: (_, row) => (
+        <Button variant="danger" size="sm" icon={Trash2} onClick={() => handleDeleteMatch(row.id)}>
+          Cancel
+        </Button>
       )
     }
   ];

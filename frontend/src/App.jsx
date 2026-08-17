@@ -18,13 +18,14 @@ import TournamentsManager from "./pages/admin/TournamentsManager";
 import EventsManager from "./pages/admin/EventsManager";
 import RegistrationsManager from "./pages/admin/RegistrationsManager";
 import TeamsManager from "./pages/admin/TeamsManager";
-import StudentManager from "./pages/admin/StudentManager";
 import MatchesManager from "./pages/admin/MatchesManager";
 import ReportsManager from "./pages/admin/ReportsManager";
+import AnnouncementsManager from "./pages/admin/AnnouncementsManager";
 
 // Coordinator Pages
 import CoordinatorDashboard from "./pages/coordinator/CoordinatorDashboard";
 import RosterManager from "./pages/coordinator/RosterManager";
+import EventRegistration from "./pages/coordinator/EventRegistration";
 import ScoreEntry from "./pages/coordinator/ScoreEntry";
 import AttendanceMarker from "./pages/coordinator/AttendanceMarker";
 
@@ -106,7 +107,11 @@ function MainApp() {
           </ProtectedRoute>
         );
       case "admin_announcements":
-        return <PublicAnnouncements />;
+        return (
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={() => setActiveNav("public_home")}>
+            <AnnouncementsManager />
+          </ProtectedRoute>
+        );
       case "admin_reports":
         return (
           <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={() => setActiveNav("public_home")}>
@@ -122,10 +127,15 @@ function MainApp() {
           </ProtectedRoute>
         );
       case "coord_players":
-      case "coord_event_reg":
         return (
           <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.COORDINATOR]} onRedirectPublic={() => setActiveNav("public_home")}>
             <RosterManager />
+          </ProtectedRoute>
+        );
+      case "coord_event_reg":
+        return (
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.COORDINATOR]} onRedirectPublic={() => setActiveNav("public_home")}>
+            <EventRegistration />
           </ProtectedRoute>
         );
       case "coord_matches":

@@ -4,7 +4,7 @@ import Table from "../../components/common/Table";
 import Badge from "../../components/common/Badge";
 import Button from "../../components/common/Button";
 import { Modal } from "../../components/common/Modal";
-import { Plus, Trophy, Users } from "lucide-react";
+import { Plus, Trophy, Users, Trash2 } from "lucide-react";
 import "./AdminPortal.css";
 
 export default function SportsCatalog() {
@@ -33,18 +33,23 @@ export default function SportsCatalog() {
     e.preventDefault();
     if (!name.trim()) return;
 
-    const newSport = {
-      id: `sp_${name.toLowerCase().replace(/\s+/g, "_")}`,
+    sportsApi.addSport({
       name,
       type,
       minPlayers: Number(minPlayers),
       maxPlayers: Number(maxPlayers),
       icon: "Trophy"
-    };
+    }).then(() => {
+      setIsModalOpen(false);
+      setName("");
+      loadSports();
+    });
+  };
 
-    setSports(prev => [newSport, ...prev]);
-    setIsModalOpen(false);
-    setName("");
+  const handleRemoveSport = (sportId) => {
+    sportsApi.deleteSport(sportId).then(() => {
+      loadSports();
+    });
   };
 
   const columns = [
@@ -60,7 +65,18 @@ export default function SportsCatalog() {
       )
     },
     { key: "minPlayers", label: "Min Squad Size", width: "140px", render: (val) => <span>{val} Players</span> },
-    { key: "maxPlayers", label: "Max Roster Limit", width: "140px", render: (val) => <span>{val} Athletes</span> }
+    { key: "maxPlayers", label: "Max Roster Limit", width: "140px", render: (val) => <span>{val} Athletes</span> },
+    {
+      key: "actions",
+      label: "Actions",
+      width: "100px",
+      sortable: false,
+      render: (_, row) => (
+        <Button variant="danger" size="sm" icon={Trash2} onClick={() => handleRemoveSport(row.id)}>
+          Remove
+        </Button>
+      )
+    }
   ];
 
   return (
