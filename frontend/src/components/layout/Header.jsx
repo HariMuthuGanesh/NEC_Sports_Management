@@ -5,7 +5,7 @@ import NotificationDrawer from "../notifications/NotificationDrawer";
 import "./Header.css";
 
 export default function Header({ onToggleSidebar, isSidebarOpen, onRoleChange }) {
-  const { currentUser, setRole, theme, toggleTheme, language, setLanguage } = useAuth();
+  const { currentUser, setRole, theme, toggleTheme, language, setLanguage, t } = useAuth();
   const [showNotifs, setShowNotifs] = useState(false);
   const [showRoleMenu, setShowRoleMenu] = useState(false);
   const [showLangMenu, setShowLangMenu] = useState(false);
@@ -32,8 +32,8 @@ export default function Header({ onToggleSidebar, isSidebarOpen, onRoleChange })
             <Trophy size={20} className="nec-logo-icon" />
           </div>
           <div className="nec-brand-text">
-            <h1 className="nec-college-name">National Engineering College</h1>
-            <span className="nec-system-title">Sports Management System</span>
+            <h1 className="nec-college-name">{t.collegeName}</h1>
+            <span className="nec-system-title">{t.systemTitle}</span>
           </div>
         </div>
       </div>
@@ -47,7 +47,7 @@ export default function Header({ onToggleSidebar, isSidebarOpen, onRoleChange })
               setShowLangMenu(prev => !prev);
               setShowRoleMenu(false);
             }}
-            title="Switch Language"
+            title={t.switchLanguage}
             aria-expanded={showLangMenu}
             aria-haspopup="menu"
           >
@@ -57,7 +57,7 @@ export default function Header({ onToggleSidebar, isSidebarOpen, onRoleChange })
 
           {showLangMenu && (
             <div className="nec-role-menu" onClick={() => setShowLangMenu(false)}>
-              <div className="nec-role-menu-header">Select Language</div>
+              <div className="nec-role-menu-header">{t.selectLanguage}</div>
               {LANGUAGES.map(l => (
                 <button
                   key={l.code}
@@ -79,7 +79,7 @@ export default function Header({ onToggleSidebar, isSidebarOpen, onRoleChange })
               setShowRoleMenu(prev => !prev);
               setShowLangMenu(false);
             }}
-            title="Switch Access Role"
+            title={t.switchRole}
             aria-expanded={showRoleMenu}
             aria-haspopup="menu"
           >
@@ -89,7 +89,7 @@ export default function Header({ onToggleSidebar, isSidebarOpen, onRoleChange })
 
           {showRoleMenu && (
             <div className="nec-role-menu" onClick={() => setShowRoleMenu(false)}>
-              <div className="nec-role-menu-header">Select Access Role</div>
+              <div className="nec-role-menu-header">{t.selectRole}</div>
               {Object.values(ROLES).map(r => (
                 <button
                   key={r}

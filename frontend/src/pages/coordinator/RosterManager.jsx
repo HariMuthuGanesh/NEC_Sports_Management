@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { playersApi, studentLookupApi, teamsApi } from "../../services/api/apiServices";
+import { useAuth } from "../../context/AuthContext";
 import Table from "../../components/common/Table";
 import Button from "../../components/common/Button";
 import { Modal } from "../../components/common/Modal";
@@ -7,6 +8,7 @@ import { UserPlus, Search, Trash2, Shield } from "lucide-react";
 import "./CoordinatorPortal.css";
 
 export default function RosterManager() {
+  const { currentUser } = useAuth();
   const [teams, setTeams] = useState([]);
   const [selectedTeamId, setSelectedTeamId] = useState("");
   const [players, setPlayers] = useState([]);
@@ -25,12 +27,15 @@ export default function RosterManager() {
 
   useEffect(() => {
     teamsApi.getTeams().then(tList => {
-      setTeams(tList);
-      if (tList.length > 0) {
-        setSelectedTeamId(tList[0].id);
+      const myDept = currentUser.dept;
+      const filtered = (myDept && myDept !== "All") ? tList.filter(t => t.deptCode === myDept) : tList;
+      const finalTeams = filtered.length > 0 ? filtered : tList;
+      setTeams(finalTeams);
+      if (finalTeams.length > 0) {
+        setSelectedTeamId(finalTeams[0].id);
       }
     });
-  }, []);
+  }, [currentUser]);
 
   useEffect(() => {
     if (selectedTeamId) {

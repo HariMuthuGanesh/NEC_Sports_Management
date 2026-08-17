@@ -60,6 +60,21 @@
   border-color: var(--nec-navy);
 }
 
+.nec-btn-white {
+  background-color: #ffffff;
+  color: var(--nec-navy);
+  border: 1px solid #ffffff;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+.nec-btn-white:hover:not(:disabled) {
+  background-color: #f8fafc;
+  color: var(--nec-navy-dark);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+}
+
+
 .nec-btn-danger {
   background-color: var(--nec-danger);
   color: #fff;

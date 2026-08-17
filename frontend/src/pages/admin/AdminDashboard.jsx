@@ -4,7 +4,7 @@ import Button from "../../components/common/Button";
 import Badge from "../../components/common/Badge";
 import Table from "../../components/common/Table";
 import { tournamentsApi, teamsApi, matchesApi, sportsApi } from "../../services/api/apiServices";
-import { Trophy, Calendar, CheckSquare, Users, MapPin, AlertCircle, ArrowRight } from "lucide-react";
+import { Trophy, Calendar, CheckSquare, Users, Plus, Radio, ArrowRight, Activity, Award } from "lucide-react";
 import "./AdminPortal.css";
 
 export default function AdminDashboard({ onNavigate }) {
@@ -49,59 +49,99 @@ export default function AdminDashboard({ onNavigate }) {
     { key: "status", label: "Status", width: "110px", render: (val) => <Badge status="warning">Pending Review</Badge> }
   ];
 
+  const disciplineData = [
+    { sport: "Football", count: 120, height: "85%" },
+    { sport: "Cricket", count: 140, height: "100%" },
+    { sport: "Basketball", count: 80, height: "60%" },
+    { sport: "Volleyball", count: 95, height: "70%" },
+    { sport: "Badminton", count: 65, height: "45%" },
+    { sport: "Table Tennis", count: 40, height: "30%" }
+  ];
+
   return (
     <div className="nec-admin-dashboard">
-      <div className="nec-page-header">
-        <div className="nec-admin-welcome">
-          <h2 className="nec-page-title">Physical Education Director Dashboard (PT Sir)</h2>
-          <p className="nec-page-desc">National Engineering College Sports Management Operational Overview</p>
+      {/* Stitch Header Section */}
+      <div className="nec-page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+        <div>
+          <span style={{ fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.15em", color: "var(--nec-gold)", textTransform: "uppercase" }}>
+            OVERVIEW
+          </span>
+          <h1 className="nec-page-title" style={{ fontSize: "2rem", marginTop: "2px" }}>Director's Desk</h1>
+          <p className="nec-page-desc">Institutional overview of athletic programs, student participation metrics, and recent administrative actions across all departments.</p>
+        </div>
+        <Button variant="primary" icon={Plus} onClick={() => onNavigate("admin_events")}>
+          Create Event
+        </Button>
+      </div>
+
+      {/* Stitch Bento Grid Metrics */}
+      <div className="nec-stats-grid">
+        <div className="nec-stat-card nec-stat-card-navy cursor-pointer" onClick={() => onNavigate("admin_sports")}>
+          <div className="nec-stat-card-top">
+            <span className="nec-stat-title">Active Sports</span>
+            <div className="nec-stat-icon-wrapper"><Trophy size={20} /></div>
+          </div>
+          <div className="nec-stat-value">12</div>
+          <div className="nec-stat-subtext"><span className="nec-stat-trend up">+2 this year</span></div>
+        </div>
+
+        <div className="nec-stat-card cursor-pointer" style={{ background: "var(--nec-navy)", color: "#fff" }} onClick={() => onNavigate("admin_events")}>
+          <div className="nec-stat-card-top">
+            <span className="nec-stat-title" style={{ color: "#cbd5e1" }}>Ongoing Events</span>
+            <Badge status="live">LIVE</Badge>
+          </div>
+          <div className="nec-stat-value" style={{ color: "#fff" }}>5</div>
+          <div className="nec-stat-subtext" style={{ color: "var(--nec-gold-light)" }}>Inter-Department Championships</div>
+        </div>
+
+        <div className="nec-stat-card cursor-pointer" onClick={() => onNavigate("admin_depts")}>
+          <div className="nec-stat-card-top">
+            <span className="nec-stat-title">Registered Athletes</span>
+            <div className="nec-stat-icon-wrapper"><Users size={20} /></div>
+          </div>
+          <div className="nec-stat-value">450</div>
+          <div className="nec-stat-subtext"><span className="nec-stat-trend up">+15% vs LY</span></div>
+        </div>
+
+        <div className="nec-stat-card cursor-pointer" onClick={() => onNavigate("admin_teams")}>
+          <div className="nec-stat-card-top">
+            <span className="nec-stat-title">Competitive Teams</span>
+            <div className="nec-stat-icon-wrapper"><Activity size={20} /></div>
+          </div>
+          <div className="nec-stat-value">{stats.totalTeams || 24}</div>
+          <div className="nec-stat-subtext">Across 8 Departments</div>
         </div>
       </div>
 
-      {/* KPI Cards Grid */}
-      <div className="nec-stats-grid">
-        <StatCard
-          title="Active Tournaments"
-          value={stats.tournamentsCount}
-          subtext="Academic Year 2025-2026"
-          icon={Trophy}
-          color="navy"
-          onClick={() => onNavigate("admin_tournaments")}
-        />
-        <StatCard
-          title="Pending Approvals"
-          value={stats.pendingApprovals}
-          subtext="Action Required by PT Sir"
-          icon={CheckSquare}
-          color="gold"
-          trend={stats.pendingApprovals > 0 ? "+Action Required" : null}
-          onClick={() => onNavigate("admin_regs")}
-        />
-        <StatCard
-          title="Registered Teams"
-          value={stats.totalTeams}
-          subtext="Across All 8 Departments"
-          icon={Users}
-          onClick={() => onNavigate("admin_teams")}
-        />
-        <StatCard
-          title="Upcoming Matches"
-          value={stats.upcomingMatches}
-          subtext="Scheduled & Live Games"
-          icon={Calendar}
-          onClick={() => onNavigate("admin_matches")}
-        />
-      </div>
+      {/* Stitch Split View Main Content */}
+      <div className="nec-admin-main-grid" style={{ marginTop: "24px" }}>
+        {/* Left Column: Participation by Discipline Bar Chart */}
+        <Card title="Participation by Discipline" subtitle="Active student roster distribution across major sports disciplines.">
+          <div style={{ display: "flex", alignItems: "flex-end", gap: "20px", height: "220px", padding: "20px 10px 10px 10px", borderBottom: "2px solid var(--nec-border-dark)" }}>
+            {disciplineData.map(item => (
+              <div key={item.sport} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "8px", height: "100%", justifyContent: "flex-end" }}>
+                <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--nec-navy)" }}>{item.count}</span>
+                <div style={{
+                  width: "100%",
+                  maxWidth: "42px",
+                  height: item.height,
+                  backgroundColor: "var(--nec-navy)",
+                  borderRadius: "6px 6px 0 0",
+                  transition: "all 0.3s ease"
+                }} />
+                <span style={{ fontSize: "0.75rem", color: "var(--nec-text-muted)", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>{item.sport}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
 
-      {/* Main Admin Overview Grid */}
-      <div className="nec-admin-main-grid">
-        {/* Pending Team Registrations Review Queue */}
+        {/* Right Column: Administrative Tasks & Quick Reviews */}
         <Card
-          title="Pending Department Team Registrations"
-          subtitle="Review and approve team rosters before entry deadline"
-          headerAction={
-            <Button variant="ghost" size="sm" onClick={() => onNavigate("admin_regs")}>
-              Manage Approvals <ArrowRight size={14} />
+          title="Administrative Tasks"
+          subtitle={`${stats.pendingApprovals} pending team requests require PT Sir approval`}
+          action={
+            <Button variant="ghost" size="sm" icon={ArrowRight} onClick={() => onNavigate("admin_regs")}>
+              Review All
             </Button>
           }
         >
@@ -109,31 +149,9 @@ export default function AdminDashboard({ onNavigate }) {
             columns={pendingColumns}
             data={pendingTeams}
             loading={loading}
-            pageSize={5}
-            searchable={false}
-            emptyMessage="All department team registrations have been reviewed & approved."
+            pagination={false}
           />
         </Card>
-
-        {/* Quick Admin Actions & Operational Overview */}
-        <div className="nec-admin-side-col">
-          <Card title="Quick Management Controls" subtitle="Frequent PT Sir Actions">
-            <div className="nec-quick-actions-list">
-              <Button variant="primary" icon={Calendar} onClick={() => onNavigate("admin_tournaments")}>
-                Create New Tournament
-              </Button>
-              <Button variant="outline" icon={Users} onClick={() => onNavigate("admin_matches")}>
-                Schedule Match & Assign Venue
-              </Button>
-              <Button variant="outline" icon={CheckSquare} onClick={() => onNavigate("admin_regs")}>
-                Review Team Entries ({stats.pendingApprovals})
-              </Button>
-              <Button variant="ghost" icon={Trophy} onClick={() => onNavigate("admin_reports")}>
-                Generate Institutional Reports
-              </Button>
-            </div>
-          </Card>
-        </div>
       </div>
     </div>
   );

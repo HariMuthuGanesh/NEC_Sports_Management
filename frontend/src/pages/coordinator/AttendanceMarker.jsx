@@ -43,7 +43,10 @@ export default function AttendanceMarker() {
   };
 
   const handleSaveAttendance = () => {
-    alert("Matchday squad attendance saved successfully!");
+    if (!selectedTeamId) return;
+    playersApi.saveSquadAttendance(selectedTeamId, attendance).then(() => {
+      alert(`Matchday attendance recorded! ${presentCount} / ${players.length} athletes present.`);
+    });
   };
 
   const presentCount = Object.values(attendance).filter(Boolean).length;

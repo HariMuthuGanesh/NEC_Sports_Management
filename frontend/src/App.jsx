@@ -13,14 +13,19 @@ import PublicAnnouncements from "./pages/public/PublicAnnouncements";
 
 // Admin / Sports Administrator Pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import SportsCatalog from "./pages/admin/SportsCatalog";
 import TournamentsManager from "./pages/admin/TournamentsManager";
+import EventsManager from "./pages/admin/EventsManager";
 import RegistrationsManager from "./pages/admin/RegistrationsManager";
+import TeamsManager from "./pages/admin/TeamsManager";
 import MatchesManager from "./pages/admin/MatchesManager";
 import ReportsManager from "./pages/admin/ReportsManager";
+import AnnouncementsManager from "./pages/admin/AnnouncementsManager";
 
 // Coordinator Pages
 import CoordinatorDashboard from "./pages/coordinator/CoordinatorDashboard";
 import RosterManager from "./pages/coordinator/RosterManager";
+import EventRegistration from "./pages/coordinator/EventRegistration";
 import ScoreEntry from "./pages/coordinator/ScoreEntry";
 import AttendanceMarker from "./pages/coordinator/AttendanceMarker";
 
@@ -30,23 +35,9 @@ import PlayerDashboard from "./pages/player/PlayerDashboard";
 // Auth Page
 import LoginPage from "./pages/auth/LoginPage";
 
-function getDefaultRoute(role) {
-  const defaultRoute = {
-    [ROLES.ADMIN]: "admin_dash",
-    [ROLES.COORDINATOR]: "coord_dash",
-    [ROLES.PLAYER]: "player_dash",
-    [ROLES.PUBLIC]: "public_home"
-  };
-  return defaultRoute[role] || "public_home";
-}
-
 function MainApp() {
   const { currentUser, ROLES } = useAuth();
-  const [activeNav, setActiveNav] = useState(() => getDefaultRoute(currentUser.role));
-
-  const handleRoleChange = (role) => {
-    setActiveNav(getDefaultRoute(role));
-  };
+  const [activeNav, setActiveNav] = useState("public_home");
 
   const renderContent = () => {
     switch (activeNav) {
@@ -72,11 +63,21 @@ function MainApp() {
           </ProtectedRoute>
         );
       case "admin_sports":
+        return (
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={() => setActiveNav("public_home")}>
+            <SportsCatalog />
+          </ProtectedRoute>
+        );
       case "admin_tournaments":
-      case "admin_events":
         return (
           <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={() => setActiveNav("public_home")}>
             <TournamentsManager />
+          </ProtectedRoute>
+        );
+      case "admin_events":
+        return (
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={() => setActiveNav("public_home")}>
+            <EventsManager />
           </ProtectedRoute>
         );
       case "admin_regs":
@@ -86,16 +87,31 @@ function MainApp() {
           </ProtectedRoute>
         );
       case "admin_teams":
+        return (
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={() => setActiveNav("public_home")}>
+            <TeamsManager />
+          </ProtectedRoute>
+        );
+      case "admin_depts":
+      case "admin_students":
+        return (
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={() => setActiveNav("public_home")}>
+            <StudentManager />
+          </ProtectedRoute>
+        );
       case "admin_matches":
       case "admin_venues":
-      case "admin_depts":
         return (
           <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={() => setActiveNav("public_home")}>
             <MatchesManager />
           </ProtectedRoute>
         );
       case "admin_announcements":
-        return <PublicAnnouncements />;
+        return (
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={() => setActiveNav("public_home")}>
+            <AnnouncementsManager />
+          </ProtectedRoute>
+        );
       case "admin_reports":
         return (
           <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={() => setActiveNav("public_home")}>
@@ -111,10 +127,15 @@ function MainApp() {
           </ProtectedRoute>
         );
       case "coord_players":
-      case "coord_event_reg":
         return (
           <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.COORDINATOR]} onRedirectPublic={() => setActiveNav("public_home")}>
             <RosterManager />
+          </ProtectedRoute>
+        );
+      case "coord_event_reg":
+        return (
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.COORDINATOR]} onRedirectPublic={() => setActiveNav("public_home")}>
+            <EventRegistration />
           </ProtectedRoute>
         );
       case "coord_matches":
@@ -151,11 +172,7 @@ function MainApp() {
   };
 
   return (
-    <AppShell
-      activeNav={activeNav}
-      onSelectNav={(navId) => setActiveNav(navId)}
-      onRoleChange={handleRoleChange}
-    >
+    <AppShell activeNav={activeNav} onSelectNav={(navId) => setActiveNav(navId)}>
       {renderContent()}
     </AppShell>
   );

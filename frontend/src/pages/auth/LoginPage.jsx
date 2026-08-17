@@ -5,7 +5,7 @@ import { Trophy, ShieldCheck, UserCheck, Lock } from "lucide-react";
 import "./LoginPage.css";
 
 export default function LoginPage({ onLoginSuccess }) {
-  const { login, ROLES } = useAuth();
+  const { login, ROLES, t } = useAuth();
   const [role, setRole] = useState(ROLES.ADMIN);
   const [username, setUsername] = useState("2112045");
   const [password, setPassword] = useState("password123");
@@ -41,13 +41,13 @@ export default function LoginPage({ onLoginSuccess }) {
           <div className="nec-login-logo">
             <Trophy size={32} />
           </div>
-          <h2 className="nec-login-title">National Engineering College</h2>
-          <span className="nec-login-subtitle">Sports Management System</span>
+          <h2 className="nec-login-title">{t.collegeName}</h2>
+          <span className="nec-login-subtitle">{t.systemTitle}</span>
         </div>
 
         <form onSubmit={handleSubmit} className="nec-login-form">
           <div className="nec-form-group">
-            <label className="nec-form-label">Select Portal Role</label>
+            <label className="nec-form-label">{t.selectPortalRole}</label>
             <select
               className="nec-table-search-input"
               style={{ maxWidth: "100%" }}
@@ -61,37 +61,37 @@ export default function LoginPage({ onLoginSuccess }) {
           </div>
 
           <div className="nec-form-group">
-            <label className="nec-form-label">Roll Number / Staff ID</label>
+            <label className="nec-form-label">{t.rollOrStaffId}</label>
             <input
               type="text"
               required
               className="nec-table-search-input"
               style={{ maxWidth: "100%" }}
-              placeholder="Enter Roll No or Staff ID..."
+              placeholder={t.enterRollPlaceholder}
               value={username}
               onChange={(e) => setUsername(e.target.value)}
             />
           </div>
 
           <div className="nec-form-group">
-            <label className="nec-form-label">Password</label>
+            <label className="nec-form-label">{t.password}</label>
             <input
               type="password"
               required
               className="nec-table-search-input"
               style={{ maxWidth: "100%" }}
-              placeholder="Enter password..."
+              placeholder={t.enterPasswordPlaceholder}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
           </div>
 
           <Button type="submit" variant="primary" size="lg" icon={UserCheck}>
-            Sign In to NEC Sports System
+            {t.signInBtn}
           </Button>
 
           <div className="nec-login-footer-info">
-            <ShieldCheck size={14} /> Integrated with NEC Institutional Identity & Lakshmi Ammal Sports Academy
+            <ShieldCheck size={14} /> {t.integratedWithLasa}
           </div>
         </form>
       </div>
