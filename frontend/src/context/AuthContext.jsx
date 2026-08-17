@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { getAuthToken, setAuthToken, removeAuthToken } from "../utils/security";
+import { TRANSLATIONS } from "../utils/translations";
 
 const AuthContext = createContext();
 
@@ -27,7 +28,7 @@ export function AuthProvider({ children }) {
   });
 
   const [language, setLanguage] = useState(() => {
-    return localStorage.getItem("nec_sports_lang") || "en";
+    return localStorage.getItem("nec_sports_lang") || localStorage.getItem("sp-lang") || "en";
   });
 
   useEffect(() => {
@@ -37,6 +38,7 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     localStorage.setItem("nec_sports_lang", language);
+    localStorage.setItem("sp-lang", language);
   }, [language]);
 
   const toggleTheme = () => {
@@ -81,6 +83,8 @@ export function AuthProvider({ children }) {
     localStorage.setItem("nec_sports_auth_user", JSON.stringify(publicUser));
   };
 
+  const t = TRANSLATIONS[language] || TRANSLATIONS.en;
+
   return (
     <AuthContext.Provider value={{
       currentUser,
@@ -92,6 +96,7 @@ export function AuthProvider({ children }) {
       toggleTheme,
       language,
       setLanguage,
+      t,
       ROLES
     }}>
       {children}

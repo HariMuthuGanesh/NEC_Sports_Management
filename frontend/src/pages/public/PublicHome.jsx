@@ -4,9 +4,11 @@ import { matchesApi, leaderboardApi, announcementsApi } from "../../services/api
 import { Card, StatCard } from "../../components/common/Card";
 import Badge from "../../components/common/Badge";
 import Button from "../../components/common/Button";
+import { useAuth } from "../../context/AuthContext";
 import "./PublicHome.css";
 
 export default function PublicHome({ onNavigate }) {
+  const { t } = useAuth();
   const [liveMatches, setLiveMatches] = useState([]);
   const [leaderboard, setLeaderboard] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
@@ -32,18 +34,18 @@ export default function PublicHome({ onNavigate }) {
         <div className="nec-hero-content">
           <div className="nec-hero-badge">
             <ShieldCheck size={16} />
-            <span>Official NEC Campus Sports Portal</span>
+            <span>{t.officialPortal}</span>
           </div>
-          <h2 className="nec-hero-title">National Engineering College Sports & Games</h2>
+          <h2 className="nec-hero-title">{t.heroTitle}</h2>
           <p className="nec-hero-subtitle">
-            Promoting excellence, teamwork, and athletic mastery across all departments and Lakshmi Ammal Sports Academy.
+            {t.heroSubtitle}
           </p>
           <div className="nec-hero-actions">
             <Button variant="secondary" icon={Radio} onClick={() => onNavigate("public_live")}>
-              Watch Live Scores ({liveMatches.length})
+              {t.watchLiveScores} ({liveMatches.length})
             </Button>
             <Button variant="white" icon={Calendar} onClick={() => onNavigate("public_fixtures")}>
-              View Fixtures & Schedule
+              {t.viewFixturesSchedule}
             </Button>
           </div>
         </div>
@@ -54,16 +56,16 @@ export default function PublicHome({ onNavigate }) {
         <div className="nec-section-header">
           <div className="nec-section-title">
             <Radio size={20} className="nec-icon-live-spin" />
-            <h3>Live Action on Campus</h3>
+            <h3>{t.liveActionCampus}</h3>
           </div>
           <Button variant="ghost" size="sm" onClick={() => onNavigate("public_live")}>
-            View All Live Matches <ArrowRight size={14} />
+            {t.viewAllLiveMatches} <ArrowRight size={14} />
           </Button>
         </div>
 
         {liveMatches.length === 0 ? (
           <Card className="nec-no-live-card">
-            <p>No matches currently live. Check the fixture schedule for upcoming games today!</p>
+            <p>{t.noMatchesLive}</p>
           </Card>
         ) : (
           <div className="nec-live-cards-grid">
@@ -71,7 +73,7 @@ export default function PublicHome({ onNavigate }) {
               <Card key={m.id} className="nec-live-match-card">
                 <div className="nec-live-card-head">
                   <span className="nec-sport-tag">{m.sport} • {m.round}</span>
-                  <Badge status="live">LIVE</Badge>
+                  <Badge status="live">{t.live}</Badge>
                 </div>
                 <div className="nec-score-display">
                   <div className="nec-team-col">
@@ -98,11 +100,11 @@ export default function PublicHome({ onNavigate }) {
       <div className="nec-home-grid">
         <div className="nec-home-col">
           <Card
-            title="Inter-Department Medal Tally"
-            subtitle="Current Leaderboard Standings 2025-2026"
+            title={t.interDeptTally}
+            subtitle={t.currentLeaderboardStandings}
             headerAction={
               <Button variant="ghost" size="sm" onClick={() => onNavigate("public_leaderboard")}>
-                Full Tally <ArrowRight size={14} />
+                {t.fullTally} <ArrowRight size={14} />
               </Button>
             }
           >
@@ -110,12 +112,12 @@ export default function PublicHome({ onNavigate }) {
               <table className="nec-mini-tally">
                 <thead>
                   <tr>
-                    <th>Rank</th>
-                    <th>Department</th>
-                    <th>🥇 Gold</th>
-                    <th>🥈 Silver</th>
-                    <th>🥉 Bronze</th>
-                    <th>Points</th>
+                    <th>{t.rank}</th>
+                    <th>{t.department}</th>
+                    <th>🥇 {t.gold}</th>
+                    <th>🥈 {t.silver}</th>
+                    <th>🥉 {t.bronze}</th>
+                    <th>{t.points}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -137,11 +139,11 @@ export default function PublicHome({ onNavigate }) {
 
         <div className="nec-home-col">
           <Card
-            title="Official Sports Bulletin"
-            subtitle="Latest Campus Notices & Announcements"
+            title={t.officialBulletin}
+            subtitle={t.latestNotices}
             headerAction={
               <Button variant="ghost" size="sm" onClick={() => onNavigate("public_announcements")}>
-                All News <ArrowRight size={14} />
+                {t.allNews} <ArrowRight size={14} />
               </Button>
             }
           >
@@ -151,7 +153,7 @@ export default function PublicHome({ onNavigate }) {
                   <div className="nec-bulletin-date">{ann.date}</div>
                   <div className="nec-bulletin-title">{ann.title}</div>
                   <div className="nec-bulletin-desc">{ann.content}</div>
-                  <div className="nec-bulletin-by">Issued by {ann.author}</div>
+                  <div className="nec-bulletin-by">{t.issuedBy} {ann.author}</div>
                 </div>
               ))}
             </div>
