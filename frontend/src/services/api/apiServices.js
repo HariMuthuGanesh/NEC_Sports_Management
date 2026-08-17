@@ -26,8 +26,10 @@ const delay = (ms = 150) => new Promise((resolve) => setTimeout(resolve, ms));
 export const getSecurityHeaders = () => {
   const token = getAuthToken();
   return {
-    'Content-Type': 'application/json',
-    'Authorization': token ? `Bearer ${token}` : ''
+    "Content-Type": "application/json",
+    "Authorization": token ? `Bearer ${token}` : "",
+    "X-CSRF-Token": getCsrfNonce(),
+    "X-Client-Version": "1.0.0",
   };
 };
 

@@ -15,7 +15,8 @@ import {
   UserCheck,
   Edit3,
   Bell,
-  Home
+  Home,
+  Shield
 } from "lucide-react";
 import { useAuth, ROLES } from "../../context/AuthContext";
 import "./Sidebar.css";
@@ -50,7 +51,8 @@ export default function Sidebar({ activeNav, onSelectNav, isOpen, onCloseMobile 
             category: t.navCommReports,
             items: [
               { id: "admin_announcements", label: t.announcements, icon: Megaphone },
-              { id: "admin_reports", label: t.institutionalReports, icon: FileText }
+              { id: "admin_reports", label: t.institutionalReports, icon: FileText },
+              { id: "admin_audit", label: "Security Audit Log", icon: Shield }
             ]
           }
         ];

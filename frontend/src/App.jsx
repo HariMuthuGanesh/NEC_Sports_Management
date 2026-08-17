@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { AuthProvider, useAuth, ROLES } from "./context/AuthContext";
 import AppShell from "./components/layout/AppShell";
 import ProtectedRoute from "./components/common/ProtectedRoute";
+import SessionTimeoutBanner from "./components/security/SessionTimeoutBanner";
 
 // Public Pages
 import PublicHome from "./pages/public/PublicHome";
@@ -21,6 +22,8 @@ import TeamsManager from "./pages/admin/TeamsManager";
 import MatchesManager from "./pages/admin/MatchesManager";
 import ReportsManager from "./pages/admin/ReportsManager";
 import AnnouncementsManager from "./pages/admin/AnnouncementsManager";
+import AuditLog from "./pages/admin/AuditLog";
+import StudentManager from "./pages/admin/StudentManager";
 
 // Coordinator Pages
 import CoordinatorDashboard from "./pages/coordinator/CoordinatorDashboard";
@@ -195,6 +198,13 @@ function MainApp() {
           </ProtectedRoute>
         );
 
+      case "admin_audit":
+        return (
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={redirectNav} routeId="admin_audit">
+            <AuditLog />
+          </ProtectedRoute>
+        );
+
       default:
         return <PublicHome onNavigate={(nav) => setActiveNav(nav)} />;
     }
@@ -202,6 +212,7 @@ function MainApp() {
 
   return (
     <AppShell activeNav={activeNav} onSelectNav={(navId) => setActiveNav(navId)} onRoleChange={handleRoleChange}>
+      <SessionTimeoutBanner />
       {renderContent()}
     </AppShell>
   );
