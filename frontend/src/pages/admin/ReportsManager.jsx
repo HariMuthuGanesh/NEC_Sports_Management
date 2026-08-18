@@ -105,7 +105,7 @@ export default function ReportsManager() {
             <div ref={reportRef} style={{ padding: "20px", backgroundColor: "#fff" }}>
               <div style={{ textAlign: "center", marginBottom: "20px" }}>
                 <h3 style={{ margin: 0, color: "var(--nec-primary-dark)" }}>National Engineering College</h3>
-                <p style={{ margin: "4px 0", color: "#666" }}>Lakshmi Ammal Sports Academy (LASA)</p>
+                <p style={{ margin: "4px 0", color: "#666" }}>NEC Sports Council</p>
                 <h4 style={{ margin: "10px 0", borderBottom: "2px solid var(--nec-gold)", display: "inline-block", paddingBottom: "4px" }}>
                   Inter-Department Performance Report 2026
                 </h4>
@@ -185,7 +185,7 @@ export default function ReportsManager() {
                     (An Autonomous Institution, Kovilpatti)
                   </h3>
                   <p style={{ color: "var(--nec-gold)", fontWeight: "bold", fontSize: "1.1rem", margin: "10px 0" }}>
-                    LAKSHMI AMMAL SPORTS ACADEMY
+                    NEC SPORTS COUNCIL
                   </p>
                 </div>
                 

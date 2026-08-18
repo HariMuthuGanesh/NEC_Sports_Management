@@ -232,7 +232,7 @@ export default function SettingsPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
             {[
               { label: "System", value: "NEC Sports Management System" },
-              { label: "Academy", value: "Lakshmi Ammal Sports Academy (LASA)" },
+              { label: "Academy", value: "NEC Sports Academy" },
               { label: "College", value: "National Engineering College, Kovilpatti" },
               { label: "Version", value: "v1.2 — 18 Aug 2026" },
               { label: "Build", value: "React 18 + Vite · Vanilla CSS" },

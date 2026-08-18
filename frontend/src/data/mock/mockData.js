@@ -51,7 +51,7 @@ export const INITIAL_TOURNAMENTS = [
     endDate: "2026-09-20",
     status: "Registration Open",
     description: "Inter-collegiate and departmental invitations for Basketball and Badminton.",
-    organizer: "Lakshmi Ammal Sports Academy",
+    organizer: "NEC Sports Council",
     bannerImg: "https://images.unsplash.com/photo-1546519638-68e109498ffc?auto=format&fit=crop&w=800&q=80"
   },
   {

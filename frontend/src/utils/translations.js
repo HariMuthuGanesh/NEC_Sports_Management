@@ -4,7 +4,7 @@ export const TRANSLATIONS = {
     collegeName: "National Engineering College",
     systemTitle: "Sports Management System",
     sportsPortal: "Sports Portal",
-    lasaTag: "Lakshmi Ammal Sports Academy",
+    lasaTag: "NEC Sports Academy",
     lasaSub: "NEC Campus Ecosystem",
     mode: "Mode",
     switchLanguage: "Switch Language",
@@ -60,7 +60,7 @@ export const TRANSLATIONS = {
     // Public Home
     officialPortal: "Official NEC Campus Sports Portal",
     heroTitle: "National Engineering College Sports & Games",
-    heroSubtitle: "Promoting excellence, teamwork, and athletic mastery across all departments and Lakshmi Ammal Sports Academy.",
+    heroSubtitle: "Promoting excellence, teamwork, and athletic mastery across all departments.",
     watchLiveScores: "Watch Live Scores",
     viewFixturesSchedule: "View Fixtures & Schedule",
     liveActionCampus: "Live Action on Campus",
@@ -91,7 +91,7 @@ export const TRANSLATIONS = {
     enterPasswordPlaceholder: "Enter password...",
     signInBtn: "Sign In to NEC Sports System",
     login: "Login",
-    integratedWithLasa: "Integrated with NEC Institutional Identity & Lakshmi Ammal Sports Academy",
+    integratedWithLasa: "Integrated with NEC Institutional Identity",
 
     // General & Status
     live: "LIVE",

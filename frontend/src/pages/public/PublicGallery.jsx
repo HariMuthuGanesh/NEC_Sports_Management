@@ -19,7 +19,7 @@ export default function PublicGallery() {
     <div className="nec-portal-page">
       <div className="nec-page-header">
         <h2 className="nec-page-title">Campus Sports Photo & Media Gallery</h2>
-        <p className="nec-page-desc">Capturing athletic moments across NEC sports tournaments and Lakshmi Ammal Sports Academy.</p>
+        <p className="nec-page-desc">Capturing athletic moments across NEC sports tournaments.</p>
       </div>
 
       {loading ? (
