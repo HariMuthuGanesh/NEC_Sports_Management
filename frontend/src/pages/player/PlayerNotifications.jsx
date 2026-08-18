@@ -10,6 +10,8 @@ export default function PlayerNotifications() {
   const { t } = useAuth();
   const [notifs, setNotifs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 5;
 
   useEffect(() => {
     setLoading(true);
@@ -31,6 +33,9 @@ export default function PlayerNotifications() {
 
   const unreadCount = notifs.filter(n => !n.read).length;
 
+  const totalPages = Math.ceil(notifs.length / pageSize) || 1;
+  const paginatedNotifs = notifs.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
   return (
     <div className="nec-portal-page">
       <div className="nec-page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -45,7 +50,7 @@ export default function PlayerNotifications() {
 
       <Card title={`Inbox (${unreadCount} unread)`} loading={loading}>
         <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: "10px" }}>
-          {notifs.map(n => (
+          {paginatedNotifs.map(n => (
             <div 
               key={n.id} 
               style={{ 
@@ -77,6 +82,28 @@ export default function PlayerNotifications() {
           {notifs.length === 0 && (
             <div style={{ padding: "30px", textAlign: "center", color: "var(--nec-text-muted)" }}>
               No notifications at this time.
+            </div>
+          )}
+
+          {totalPages > 1 && (
+            <div className="nec-table-pagination" style={{ borderTop: "none", marginTop: "10px", padding: 0 }}>
+              <button
+                className="nec-page-btn"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(p => p - 1)}
+              >
+                Previous
+              </button>
+              <span className="nec-page-info">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                className="nec-page-btn"
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(p => p + 1)}
+              >
+                Next
+              </button>
             </div>
           )}
         </div>

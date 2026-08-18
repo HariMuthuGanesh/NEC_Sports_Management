@@ -9,6 +9,8 @@ import "./PublicPortal.css";
 export default function PublicAnnouncements() {
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 5;
 
   useEffect(() => {
     announcementsApi.getAnnouncements().then(data => {
@@ -28,7 +30,7 @@ export default function PublicAnnouncements() {
         <SkeletonLoader rows={3} />
       ) : (
         <div className="nec-ann-full-list">
-          {list.map(ann => (
+          {list.slice((currentPage - 1) * pageSize, currentPage * pageSize).map(ann => (
             <Card key={ann.id} className="nec-ann-card">
               <div className="nec-ann-head">
                 <div className="nec-ann-tag-row">
@@ -41,6 +43,28 @@ export default function PublicAnnouncements() {
               <p className="nec-ann-body">{ann.content}</p>
             </Card>
           ))}
+          
+          {Math.ceil(list.length / pageSize) > 1 && (
+            <div className="nec-table-pagination" style={{ marginTop: "20px", border: "1px solid var(--nec-border)", borderRadius: "8px" }}>
+              <button
+                className="nec-page-btn"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(p => p - 1)}
+              >
+                Previous
+              </button>
+              <span className="nec-page-info">
+                Page {currentPage} of {Math.ceil(list.length / pageSize)}
+              </span>
+              <button
+                className="nec-page-btn"
+                disabled={currentPage === Math.ceil(list.length / pageSize)}
+                onClick={() => setCurrentPage(p => p + 1)}
+              >
+                Next
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
