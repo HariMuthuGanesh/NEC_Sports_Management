@@ -1,29 +1,36 @@
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'nec_sports_super_secret_jwt_key_2026';
+export const protect = (req, res, next) => {
+    let token;
 
-export const verifyToken = (req, res, next) => {
-    const authHeader = req.headers.authorization;
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+        try {
+            // Get token from header
+            token = req.headers.authorization.split(' ')[1];
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({
-            success: false,
-            message: 'Access Denied: No security token provided in Authorization header.'
-        });
+            // Verify token
+            const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_for_mock_db');
+
+            // Set user in request
+            req.user = decoded;
+
+            next();
+        } catch (error) {
+            console.error('[AuthMiddleware] Token Verification Failed:', error.message);
+            res.status(401).json({ message: 'Not authorized, token failed' });
+        }
     }
 
-    const token = authHeader.split(' ')[1];
-
-    try {
-        const decoded = jwt.verify(token, JWT_SECRET);
-        req.user = decoded;
-        next();
-    } catch (err) {
-        return res.status(401).json({
-            success: false,
-            message: 'Access Denied: Invalid or expired security token.'
-        });
+    if (!token) {
+        res.status(401).json({ message: 'Not authorized, no token' });
     }
 };
 
-export const getJwtSecret = () => JWT_SECRET;
+export const authorize = (...roles) => {
+    return (req, res, next) => {
+        if (!req.user || !roles.includes(req.user.role)) {
+            return res.status(403).json({ message: 'User role not authorized to access this route' });
+        }
+        next();
+    };
+};
