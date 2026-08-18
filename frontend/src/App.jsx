@@ -10,7 +10,6 @@ import SettingsPage from "./pages/settings/SettingsPage";
 
 // Admin extra pages
 import VenuesManager from "./pages/admin/VenuesManager";
-import DepartmentsManager from "./pages/admin/DepartmentsManager";
 
 // Public Pages
 import PublicHome from "./pages/public/PublicHome";
@@ -137,12 +136,7 @@ function MainApp() {
             <TeamsManager />
           </ProtectedRoute>
         );
-      case "admin_depts":
-        return (
-          <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={redirectNav} routeId="admin_depts">
-            <DepartmentsManager />
-          </ProtectedRoute>
-        );
+
       case "admin_students":
         return (
           <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={redirectNav} routeId="admin_students">

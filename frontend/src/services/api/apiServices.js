@@ -19,8 +19,25 @@ import {
   EXTERNAL_STUDENT_DATABASE
 } from "../../data/mock/mockData";
 
-// Helper to simulate network latency
+// Helper to simulate network latency for legacy routes
 const delay = (ms = 150) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const API_URL = 'http://localhost:8000/api';
+
+const fetchApi = async (endpoint, options = {}) => {
+  const headers = getSecurityHeaders();
+  const response = await fetch(`${API_URL}${endpoint}`, {
+    ...options,
+    headers: {
+      ...headers,
+      ...options.headers,
+    }
+  });
+  if (!response.ok) {
+     throw new Error(`API Error: ${response.status}`);
+  }
+  return response.json();
+};
 
 // Helper for security header injection
 export const getSecurityHeaders = () => {
@@ -58,12 +75,10 @@ export const sportsApi = {
     return getStored("departments", INITIAL_DEPARTMENTS);
   },
   getSports: async () => {
-    await delay();
-    return getStored("sports", INITIAL_SPORTS);
+    return fetchApi('/sports');
   },
   getVenues: async () => {
-    await delay();
-    return getStored("venues", INITIAL_VENUES);
+    return fetchApi('/venues');
   },
   saveVenues: async (venues) => {
     await delay(150);
@@ -99,12 +114,10 @@ export const sportsApi = {
 /* --- Tournaments & Events API --- */
 export const tournamentsApi = {
   getTournaments: async () => {
-    await delay();
-    return getStored("tournaments", INITIAL_TOURNAMENTS);
+    return fetchApi('/tournaments');
   },
   getEvents: async (tournamentId = null) => {
-    await delay();
-    const events = getStored("events", INITIAL_EVENTS);
+    const events = await fetchApi('/events');
     if (tournamentId) return events.filter(e => e.tournamentId === tournamentId);
     return events;
   },
@@ -154,8 +167,7 @@ export const tournamentsApi = {
 /* --- Teams & Roster API --- */
 export const teamsApi = {
   getTeams: async (deptId = null) => {
-    await delay();
-    const teams = getStored("teams", INITIAL_TEAMS);
+    const teams = await fetchApi('/teams');
     if (deptId) return teams.filter(t => t.deptId === deptId || t.deptCode === deptId);
     return teams;
   },
@@ -199,13 +211,11 @@ export const studentLookupApi = {
 /* --- Players API --- */
 export const playersApi = {
   getPlayersByTeam: async (teamId) => {
-    await delay();
-    const players = getStored("players", INITIAL_PLAYERS);
+    const players = await fetchApi('/players');
     return players.filter(p => p.teamId === teamId);
   },
   getAllPlayers: async () => {
-    await delay();
-    return getStored("players", INITIAL_PLAYERS);
+    return fetchApi('/players');
   },
   addPlayerToRoster: async (teamId, playerData) => {
     await delay(250);
@@ -273,8 +283,7 @@ export const playersApi = {
 /* --- Matches & Scheduling API --- */
 export const matchesApi = {
   getMatches: async () => {
-    await delay();
-    return getStored("matches", INITIAL_MATCHES);
+    return fetchApi('/matches');
   },
   scheduleMatch: async (matchData) => {
     await delay(300);
@@ -329,16 +338,14 @@ export const matchesApi = {
 /* --- Leaderboard & Reports API --- */
 export const leaderboardApi = {
   getLeaderboard: async () => {
-    await delay();
-    return getStored("leaderboard", INITIAL_LEADERBOARD);
+    return fetchApi('/leaderboard');
   }
 };
 
 /* --- Announcements & Media API --- */
 export const announcementsApi = {
   getAnnouncements: async () => {
-    await delay();
-    return getStored("announcements", INITIAL_ANNOUNCEMENTS);
+    return fetchApi('/announcements');
   },
   createAnnouncement: async (data) => {
     await delay(250);
@@ -367,15 +374,13 @@ export const announcementsApi = {
 
 export const galleryApi = {
   getGallery: async () => {
-    await delay();
-    return getStored("gallery", INITIAL_GALLERY);
+    return fetchApi('/gallery');
   }
 };
 
 export const notificationsApi = {
   getNotifications: async () => {
-    await delay();
-    return getStored("notifications", INITIAL_NOTIFICATIONS);
+    return fetchApi('/notifications');
   },
   markAllRead: async () => {
     await delay(150);
