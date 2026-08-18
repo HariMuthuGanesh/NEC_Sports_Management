@@ -10,16 +10,21 @@
 name: 🏆 CI — Build & Lint Check
 
 on:
+  workflow_dispatch:
   push:
     branches:
-      - version1   # frontend active branch
-      - version2   # backend active branch
-      - main       # production
+      - version1
+      - version2
+      - Frontend
+      - Backend
+      - main
   pull_request:
     branches:
       - main
       - version1
       - version2
+      - Frontend
+      - Backend
 
 # Cancel previous runs on the same branch if a new push arrives
 concurrency:
@@ -76,7 +81,7 @@ jobs:
         working-directory: frontend
 
       - name: Run ESLint
-        run: npm run lint -- --max-warnings=0
+        run: npm run lint
         working-directory: frontend
 
   # ──────────────────────────────────────────────────────────

@@ -199,7 +199,7 @@ export function AuthProvider({ children }) {
 
   const setRole = (roleName) => {
     const prevRole = currentUser.role;
-    let mockUser = { role: roleName };
+    let mockUser;
     if (roleName === ROLES.ADMIN) {
       mockUser = { role: roleName, name: "Dr. K. Arumugam", title: "Director of Physical Education", dept: "Sports Office", id: "ADM01" };
     } else if (roleName === ROLES.COORDINATOR) {

@@ -2,7 +2,7 @@
    Includes JWT Authorization Headers, Request Input Sanitization, and Security Error Handlers.
 */
 
-import { getAuthToken, sanitizeInput } from "../../utils/security";
+import { getAuthToken, getCsrfNonce, sanitizeInput } from "../../utils/security";
 import {
   INITIAL_DEPARTMENTS,
   INITIAL_SPORTS,

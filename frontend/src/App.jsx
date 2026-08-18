@@ -135,17 +135,27 @@ function MainApp() {
           </ProtectedRoute>
         );
       case "admin_depts":
+        return (
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={redirectNav} routeId="admin_depts">
+            <DepartmentsManager />
+          </ProtectedRoute>
+        );
       case "admin_students":
         return (
-          <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={redirectNav}>
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={redirectNav} routeId="admin_students">
             <StudentManager />
           </ProtectedRoute>
         );
       case "admin_matches":
+        return (
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={redirectNav} routeId="admin_matches">
+            <MatchesManager />
+          </ProtectedRoute>
+        );
       case "admin_venues":
         return (
-          <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={redirectNav}>
-            <MatchesManager />
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={redirectNav} routeId="admin_venues">
+            <VenuesManager />
           </ProtectedRoute>
         );
       case "admin_announcements":
@@ -212,27 +222,6 @@ function MainApp() {
         return (
           <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={redirectNav} routeId="admin_audit">
             <AuditLog />
-          </ProtectedRoute>
-        );
-
-      case "admin_students":
-        return (
-          <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={redirectNav} routeId="admin_students">
-            <StudentManager />
-          </ProtectedRoute>
-        );
-
-      case "admin_venues":
-        return (
-          <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={redirectNav} routeId="admin_venues">
-            <VenuesManager />
-          </ProtectedRoute>
-        );
-
-      case "admin_depts":
-        return (
-          <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={redirectNav} routeId="admin_depts">
-            <DepartmentsManager />
           </ProtectedRoute>
         );
 
