@@ -13,16 +13,10 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - version1
-      - version2
       - Frontend
       - Backend
-      - main
   pull_request:
     branches:
-      - main
-      - version1
-      - version2
       - Frontend
       - Backend
 
