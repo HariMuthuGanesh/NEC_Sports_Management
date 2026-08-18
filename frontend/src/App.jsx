@@ -42,6 +42,9 @@ import AttendanceMarker from "./pages/coordinator/AttendanceMarker";
 
 // Player Pages
 import PlayerDashboard from "./pages/player/PlayerDashboard";
+import PlayerTeam from "./pages/player/PlayerTeam";
+import PlayerMatches from "./pages/player/PlayerMatches";
+import PlayerNotifications from "./pages/player/PlayerNotifications";
 
 // Auth Page
 import LoginPage from "./pages/auth/LoginPage";
@@ -209,12 +212,27 @@ function MainApp() {
 
       // Protected Player Routes
       case "player_dash":
+        return (
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.COORDINATOR, ROLES.PLAYER]} onRedirectPublic={redirectNav}>
+            <PlayerDashboard onNavigate={(nav) => setActiveNav(nav)} />
+          </ProtectedRoute>
+        );
       case "player_team":
+        return (
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.COORDINATOR, ROLES.PLAYER]} onRedirectPublic={redirectNav}>
+            <PlayerTeam />
+          </ProtectedRoute>
+        );
       case "player_matches":
+        return (
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.COORDINATOR, ROLES.PLAYER]} onRedirectPublic={redirectNav}>
+            <PlayerMatches />
+          </ProtectedRoute>
+        );
       case "player_notifs":
         return (
           <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.COORDINATOR, ROLES.PLAYER]} onRedirectPublic={redirectNav}>
-            <PlayerDashboard />
+            <PlayerNotifications />
           </ProtectedRoute>
         );
 
