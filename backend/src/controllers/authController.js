@@ -1,101 +1,37 @@
 import jwt from 'jsonwebtoken';
-import bcrypt from 'bcryptjs';
-import { getJwtSecret } from '../middleware/authMiddleware.js';
 
-// Pre-seeded secure users for demonstration
-const MOCK_USERS_DB = [
-    {
-        userId: 'ADM01',
-        name: 'Dr. K. Arumugam',
-        passwordHash: bcrypt.hashSync('admin123', 10),
-        role: 'Director of Physical Education',
-        department: 'Sports Office',
-        email: 'pe.director@nec.edu.in'
-    },
-    {
-        userId: '2112045',
-        name: 'Rahul Sharma',
-        passwordHash: bcrypt.hashSync('coord123', 10),
-        role: 'Department Sports Coordinator',
-        department: 'CSE',
-        email: 'rahul.21cse@nec.edu.in'
-    },
-    {
-        userId: '2114012',
-        name: 'Priya Patel',
-        passwordHash: bcrypt.hashSync('player123', 10),
-        role: 'Student Athlete',
-        department: 'MECH',
-        email: 'priya.21mech@nec.edu.in'
-    }
-];
+const generateToken = (id, role) => {
+    return jwt.sign({ id, role }, process.env.JWT_SECRET || 'fallback_secret_for_mock_db', {
+        expiresIn: '30d',
+    });
+};
 
-export const loginUser = async (req, res) => {
-    try {
-        const { userId, password, role } = req.body;
+export const loginUser = (req, res) => {
+    const { username, password } = req.body;
 
-        if (!userId || !password) {
-            return res.status(400).json({
-                success: false,
-                message: 'Validation Error: User ID and password are required.'
-            });
-        }
+    // Hardcoded mock users matching frontend behavior
+    const MOCK_USERS = [
+        { id: 'usr_admin1', username: 'admin', password: 'password123', role: 'admin', name: 'Dr. K. Arumugam' },
+        { id: 'usr_coord1', username: 'coord', password: 'password123', role: 'coordinator', name: 'Prof. Ramesh', department: 'CSE' },
+        { id: 'usr_player1', username: 'player', password: 'password123', role: 'player', name: 'Rahul Sharma', rollNo: '2112045' },
+    ];
 
-        const user = MOCK_USERS_DB.find(u => u.userId.toLowerCase() === String(userId).trim().toLowerCase());
+    const user = MOCK_USERS.find(u => u.username === username);
 
-        if (!user) {
-            return res.status(401).json({
-                success: false,
-                message: 'Invalid Credentials: User ID not found.'
-            });
-        }
-
-        const isMatch = await bcrypt.compare(password, user.passwordHash);
-
-        if (!isMatch) {
-            return res.status(401).json({
-                success: false,
-                message: 'Invalid Credentials: Incorrect password.'
-            });
-        }
-
-        const activeRole = role || user.role;
-
-        // Sign JWT Token with 24-hour expiration
-        const token = jwt.sign(
-            {
-                userId: user.userId,
-                name: user.name,
-                role: activeRole,
-                department: user.department
-            },
-            getJwtSecret(),
-            { expiresIn: '24h' }
-        );
-
-        return res.status(200).json({
-            success: true,
-            message: 'Authentication successful.',
-            token,
-            user: {
-                userId: user.userId,
-                name: user.name,
-                role: activeRole,
-                department: user.department,
-                email: user.email
-            }
+    if (user && user.password === password) {
+        // Strip password
+        const { password: _, ...userInfo } = user;
+        
+        res.json({
+            ...userInfo,
+            token: generateToken(user.id, user.role),
         });
-    } catch (error) {
-        return res.status(500).json({
-            success: false,
-            message: 'Internal server security error during authentication.'
-        });
+    } else {
+        res.status(401).json({ message: 'Invalid credentials' });
     }
 };
 
-export const getCurrentUser = async (req, res) => {
-    return res.status(200).json({
-        success: true,
-        user: req.user
-    });
+export const getCurrentUser = (req, res) => {
+    // The protect middleware sets req.user
+    res.json(req.user);
 };

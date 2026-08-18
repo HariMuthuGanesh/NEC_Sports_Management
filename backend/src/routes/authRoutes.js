@@ -1,6 +1,6 @@
 import express from 'express';
 import { loginUser, getCurrentUser } from '../controllers/authController.js';
-import { verifyToken } from '../middleware/authMiddleware.js';
+import { protect } from '../middleware/authMiddleware.js';
 import { loginRateLimiter } from '../middleware/rateLimiter.js';
 
 const router = express.Router();
@@ -9,6 +9,6 @@ const router = express.Router();
 router.post('/login', loginRateLimiter(), loginUser);
 
 // Protected user profile route
-router.get('/me', verifyToken, getCurrentUser);
+router.get('/me', protect, getCurrentUser);
 
 export default router;
