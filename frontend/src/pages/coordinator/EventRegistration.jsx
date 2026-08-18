@@ -109,7 +109,10 @@ export default function EventRegistration() {
                   alignItems: "center"
                 }}>
                   <div>
-                    <strong style={{ fontSize: "1rem" }}>{ev.title} ({ev.category})</strong>
+                    <strong style={{ fontSize: "1rem" }}>
+                      {ev.title} ({ev.category})
+                      {ev.eventCategory && <span style={{ marginLeft: "8px" }}><Badge status={ev.eventCategory === "Inter-College" ? "danger" : "info"}>{ev.eventCategory}</Badge></span>}
+                    </strong>
                     <div style={{ fontSize: "0.8rem", color: "var(--nec-text-muted)", marginTop: "2px" }}>
                       Deadline: 📅 {ev.regDeadline} | Registered: {ev.registeredTeams} / {ev.maxTeams} Teams
                     </div>

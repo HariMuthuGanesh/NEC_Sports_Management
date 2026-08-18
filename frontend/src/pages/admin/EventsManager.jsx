@@ -15,6 +15,7 @@ export default function EventsManager() {
   const [title, setTitle] = useState("");
   const [sportId, setSportId] = useState("sp_football");
   const [category, setCategory] = useState("Men");
+  const [eventCategory, setEventCategory] = useState("Inter-Department");
   const [maxTeams, setMaxTeams] = useState(8);
   const [regDeadline, setRegDeadline] = useState("2026-08-20");
 
@@ -49,6 +50,7 @@ export default function EventsManager() {
       tournamentId: "tn_2026_interdept",
       sportId,
       category,
+      eventCategory,
       title,
       maxTeams: Number(maxTeams),
       registeredTeams: 0,
@@ -63,6 +65,7 @@ export default function EventsManager() {
 
   const columns = [
     { key: "title", label: "Event Name", render: (val, row) => <div><strong>{val}</strong><br/><small style={{color: 'var(--nec-text-muted)'}}>{row.category} Category</small></div> },
+    { key: "eventCategory", label: "Event Category", width: "140px", render: (val) => <Badge status={val === "Inter-College" ? "danger" : "info"}>{val}</Badge> },
     { key: "sportId", label: "Sport", width: "130px", render: (val) => val.replace("sp_", "").toUpperCase() },
     { key: "teamsLimit", label: "Teams Registered", width: "150px", render: (_, row) => <span>{row.registeredTeams} / {row.maxTeams} Teams</span> },
     { key: "regDeadline", label: "Entry Deadline", width: "130px", render: (val) => <span>📅 {val}</span> },
@@ -156,7 +159,7 @@ export default function EventsManager() {
             </div>
 
             <div>
-              <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: "4px" }}>Category</label>
+              <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: "4px" }}>Gender Category</label>
               <select
                 className="nec-table-search-input"
                 style={{ maxWidth: "100%" }}
@@ -172,6 +175,21 @@ export default function EventsManager() {
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
             <div>
+              <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: "4px" }}>Event Category</label>
+              <select
+                className="nec-table-search-input"
+                style={{ maxWidth: "100%" }}
+                value={eventCategory}
+                onChange={(e) => setEventCategory(e.target.value)}
+              >
+                <option value="Inter-Department">Inter-Department</option>
+                <option value="Inter-College">Inter-College</option>
+                <option value="Zonal">Zonal</option>
+                <option value="National">National</option>
+              </select>
+            </div>
+            
+            <div>
               <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: "4px" }}>Max Teams Limit</label>
               <input
                 type="number"
@@ -182,7 +200,9 @@ export default function EventsManager() {
                 onChange={(e) => setMaxTeams(e.target.value)}
               />
             </div>
+          </div>
 
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
             <div>
               <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: "4px" }}>Registration Deadline</label>
               <input
