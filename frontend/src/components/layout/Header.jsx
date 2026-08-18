@@ -1,10 +1,10 @@
 import React, { useState } from "react";
-import { Sun, Moon, Bell, Menu, X, Shield, User, Trophy, Globe } from "lucide-react";
+import { Sun, Moon, Bell, Menu, X, Shield, User, Trophy, Globe, Settings } from "lucide-react";
 import { useAuth, ROLES } from "../../context/AuthContext";
 import NotificationDrawer from "../notifications/NotificationDrawer";
 import "./Header.css";
 
-export default function Header({ onToggleSidebar, isSidebarOpen, onRoleChange }) {
+export default function Header({ onToggleSidebar, isSidebarOpen, onRoleChange, onSelectNav }) {
   const { currentUser, setRole, theme, toggleTheme, language, setLanguage, t } = useAuth();
   const [showNotifs, setShowNotifs] = useState(false);
   const [showRoleMenu, setShowRoleMenu] = useState(false);
@@ -121,6 +121,16 @@ export default function Header({ onToggleSidebar, isSidebarOpen, onRoleChange })
 
           {showNotifs && <NotificationDrawer onClose={() => setShowNotifs(false)} />}
         </div>
+
+        {/* Settings Button */}
+        <button
+          className="nec-icon-btn"
+          onClick={() => onSelectNav?.("settings")}
+          title="Settings"
+          aria-label="Open settings"
+        >
+          <Settings size={18} />
+        </button>
 
         {/* Theme Toggle */}
         <button

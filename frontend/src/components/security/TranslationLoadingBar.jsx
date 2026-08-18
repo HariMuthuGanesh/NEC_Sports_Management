@@ -1,11 +1,17 @@
 import React from "react";
+import { useAuth } from "../../context/AuthContext";
 import { Languages, CheckCircle2 } from "lucide-react";
 
 /**
  * Thin progress bar + status badge shown while live translations
  * are being fetched from the API. Appears at the top of the page.
  */
-export default function TranslationLoadingBar({ progress, langLabel, done }) {
+export default function TranslationLoadingBar() {
+  const { transProgress, transDone, transLangLabel } = useAuth();
+  const progress = transProgress;
+  const langLabel = transLangLabel;
+  const done = transDone;
+
   if (progress === null || progress === undefined) return null;
 
   return (

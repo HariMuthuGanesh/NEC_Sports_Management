@@ -3,6 +3,14 @@ import { AuthProvider, useAuth, ROLES } from "./context/AuthContext";
 import AppShell from "./components/layout/AppShell";
 import ProtectedRoute from "./components/common/ProtectedRoute";
 import SessionTimeoutBanner from "./components/security/SessionTimeoutBanner";
+import TranslationLoadingBar from "./components/security/TranslationLoadingBar";
+
+// Settings Page
+import SettingsPage from "./pages/settings/SettingsPage";
+
+// Admin extra pages
+import VenuesManager from "./pages/admin/VenuesManager";
+import DepartmentsManager from "./pages/admin/DepartmentsManager";
 
 // Public Pages
 import PublicHome from "./pages/public/PublicHome";
@@ -57,6 +65,8 @@ function MainApp() {
 
   useEffect(() => {
     const role = currentUser?.role;
+    // Don't redirect away from shared routes accessible to all roles
+    if (activeNav === "settings") return;
     if (role === ROLES.ADMIN && !activeNav.startsWith("admin_") && !activeNav.startsWith("public_")) {
       setActiveNav("admin_dash");
     } else if (role === ROLES.COORDINATOR && !activeNav.startsWith("coord_") && !activeNav.startsWith("public_")) {
@@ -205,6 +215,31 @@ function MainApp() {
           </ProtectedRoute>
         );
 
+      case "admin_students":
+        return (
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={redirectNav} routeId="admin_students">
+            <StudentManager />
+          </ProtectedRoute>
+        );
+
+      case "admin_venues":
+        return (
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={redirectNav} routeId="admin_venues">
+            <VenuesManager />
+          </ProtectedRoute>
+        );
+
+      case "admin_depts":
+        return (
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={redirectNav} routeId="admin_depts">
+            <DepartmentsManager />
+          </ProtectedRoute>
+        );
+
+      // Settings — accessible to all logged-in roles
+      case "settings":
+        return <SettingsPage onNavigate={(nav) => setActiveNav(nav)} />;
+
       default:
         return <PublicHome onNavigate={(nav) => setActiveNav(nav)} />;
     }
@@ -212,6 +247,7 @@ function MainApp() {
 
   return (
     <AppShell activeNav={activeNav} onSelectNav={(navId) => setActiveNav(navId)} onRoleChange={handleRoleChange}>
+      <TranslationLoadingBar />
       <SessionTimeoutBanner />
       {renderContent()}
     </AppShell>

@@ -16,7 +16,8 @@ import {
   Edit3,
   Bell,
   Home,
-  Shield
+  Shield,
+  Settings
 } from "lucide-react";
 import { useAuth, ROLES } from "../../context/AuthContext";
 import "./Sidebar.css";
@@ -146,6 +147,15 @@ export default function Sidebar({ activeNav, onSelectNav, isOpen, onCloseMobile 
           </nav>
 
           <div className="nec-sidebar-footer">
+            {/* Settings link — all roles */}
+            <button
+              className={`nec-nav-item ${activeNav === "settings" ? "active" : ""}`}
+              onClick={() => { onSelectNav("settings"); onCloseMobile(); }}
+              style={{ width: "100%", marginBottom: "10px" }}
+            >
+              <Settings className="nec-nav-icon" size={18} />
+              <span className="nec-nav-label">Settings</span>
+            </button>
             <div className="nec-lasa-tag">
               <span>{t.lasaTag}</span>
               <span className="nec-tag-sub">{t.lasaSub}</span>

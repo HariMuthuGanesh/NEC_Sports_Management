@@ -65,6 +65,16 @@ export const sportsApi = {
     await delay();
     return getStored("venues", INITIAL_VENUES);
   },
+  saveVenues: async (venues) => {
+    await delay(150);
+    setStored("venues", venues);
+    return venues;
+  },
+  saveDepartments: async (depts) => {
+    await delay(150);
+    setStored("departments", depts);
+    return depts;
+  },
   addSport: async (sportData) => {
     await delay(250);
     const sports = getStored("sports", INITIAL_SPORTS);

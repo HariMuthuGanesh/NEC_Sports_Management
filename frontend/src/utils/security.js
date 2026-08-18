@@ -272,3 +272,13 @@ export const generateCsrfNonce = () => {
 };
 
 export const getCsrfNonce = () => sessionStorage.getItem(CSRF_KEY) || generateCsrfNonce();
+
+// ── 7. Settings page helpers ──────────────────────────────────
+
+/**
+ * Clear the cached translations for a given language code
+ * so that the next language switch re-fetches from the API.
+ */
+export const invalidateTranslationCache = (langCode) => {
+  localStorage.removeItem(`nec_live_trans_${langCode}`);
+};
