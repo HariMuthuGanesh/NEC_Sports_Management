@@ -215,6 +215,43 @@
   color: var(--nec-gold-light);
 }
 
+.nec-user-profile-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nec-header-signin-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, var(--nec-gold), #a77c18);
+  color: #001a2e;
+  border: none;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: var(--nec-radius-full);
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  transition: var(--nec-transition);
+}
+
+.nec-header-signin-btn:hover {
+  background: linear-gradient(135deg, var(--nec-gold-light), var(--nec-gold));
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(197, 155, 39, 0.35);
+}
+
+.nec-logout-btn {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.nec-logout-btn:hover {
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.2);
+}
+
 @media (max-width: 640px) {
   .nec-user-info, .nec-brand-text {
     display: none;
@@ -240,3 +277,4 @@
     display: none;
   }
 }
+

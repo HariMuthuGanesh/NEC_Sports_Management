@@ -68,7 +68,7 @@ function MainApp() {
   useEffect(() => {
     const role = currentUser?.role;
     // Don't redirect away from shared routes accessible to all roles
-    if (activeNav === "settings") return;
+    if (activeNav === "settings" || activeNav === "login") return;
     if (role === ROLES.ADMIN && !activeNav.startsWith("admin_") && !activeNav.startsWith("public_")) {
       setActiveNav("admin_dash");
     } else if (role === ROLES.COORDINATOR && !activeNav.startsWith("coord_") && !activeNav.startsWith("public_")) {
@@ -83,6 +83,23 @@ function MainApp() {
   const renderContent = () => {
     const defaultNav = getDefaultNav(currentUser?.role);
     const redirectNav = () => setActiveNav(defaultNav);
+
+    if (activeNav === "login") {
+      return (
+        <LoginPage
+          onLoginSuccess={() => {
+            try {
+              const saved = localStorage.getItem("nec_sports_auth_user");
+              const userObj = saved ? JSON.parse(saved) : currentUser;
+              setActiveNav(getDefaultNav(userObj?.role));
+            } catch {
+              setActiveNav(getDefaultNav(currentUser?.role));
+            }
+          }}
+          onNavigate={(nav) => setActiveNav(nav)}
+        />
+      );
+    }
 
     switch (activeNav) {
       // Public Portal Routes (Open Access)

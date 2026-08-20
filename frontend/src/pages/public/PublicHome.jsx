@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Radio, Calendar, Trophy, Megaphone, ArrowRight, ShieldCheck } from "lucide-react";
+import { Radio, Calendar, Trophy, Megaphone, ArrowRight, ShieldCheck, LogIn } from "lucide-react";
 import { matchesApi, leaderboardApi, announcementsApi } from "../../services/api/apiServices";
 import { Card, StatCard } from "../../components/common/Card";
 import Badge from "../../components/common/Badge";
@@ -46,6 +46,9 @@ export default function PublicHome({ onNavigate }) {
             </Button>
             <Button variant="white" icon={Calendar} onClick={() => onNavigate("public_fixtures")}>
               {t.viewFixturesSchedule}
+            </Button>
+            <Button variant="outline" icon={LogIn} onClick={() => onNavigate("login")} style={{ borderColor: "rgba(255,255,255,0.4)", color: "#fff" }}>
+              {t.login || "Portal Sign In"}
             </Button>
           </div>
         </div>

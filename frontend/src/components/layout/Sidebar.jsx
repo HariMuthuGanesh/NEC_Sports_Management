@@ -17,7 +17,8 @@ import {
   Bell,
   Home,
   Shield,
-  Settings
+  Settings,
+  LogIn
 } from "lucide-react";
 import { useAuth, ROLES } from "../../context/AuthContext";
 import "./Sidebar.css";
@@ -102,7 +103,8 @@ export default function Sidebar({ activeNav, onSelectNav, isOpen, onCloseMobile 
               { id: "public_fixtures", label: t.fixtures, icon: Calendar },
               { id: "public_leaderboard", label: t.leaderboard, icon: Trophy },
               { id: "public_gallery", label: t.gallery, icon: Image },
-              { id: "public_announcements", label: t.announcements, icon: Megaphone }
+              { id: "public_announcements", label: t.announcements, icon: Megaphone },
+              { id: "login", label: t.login || "Portal Sign In", icon: LogIn }
             ]
           }
         ];
