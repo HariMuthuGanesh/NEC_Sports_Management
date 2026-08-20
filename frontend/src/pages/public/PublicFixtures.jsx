@@ -20,6 +20,7 @@ export default function PublicFixtures() {
 
   const columns = [
     { key: "sport", label: t.sportsCatalog || "Sport", width: "120px", render: (val) => <strong>{val}</strong> },
+    { key: "eventCategory", label: "Category", width: "120px", render: (val) => <Badge status={val === "Inter-College" ? "danger" : "info"}>{val}</Badge> },
     { key: "teams", label: t.teamsCatalog || "Match Teams", render: (_, row) => <span>{row.teamA} ({row.deptA}) vs {row.teamB} ({row.deptB})</span> },
     { key: "date", label: "Date & Time", width: "160px", render: (_, row) => <span>📅 {row.date} • {row.time}</span> },
     { key: "venue", label: t.venues || "Venue", width: "200px", render: (val) => <span>📍 {val}</span> },

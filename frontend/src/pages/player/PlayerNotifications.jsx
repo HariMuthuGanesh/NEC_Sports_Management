@@ -3,6 +3,7 @@ import { Card } from "../../components/common/Card";
 import Button from "../../components/common/Button";
 import { useAuth } from "../../context/AuthContext";
 import { notificationsApi } from "../../services/api/apiServices";
+import Pagination from "../../components/common/Pagination";
 import { Bell, CheckSquare } from "lucide-react";
 import "./PlayerPortal.css";
 
@@ -86,25 +87,12 @@ export default function PlayerNotifications() {
           )}
 
           {totalPages > 1 && (
-            <div className="nec-table-pagination" style={{ borderTop: "none", marginTop: "10px", padding: 0 }}>
-              <button
-                className="nec-page-btn"
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage(p => p - 1)}
-              >
-                Previous
-              </button>
-              <span className="nec-page-info">
-                Page {currentPage} of {totalPages}
-              </span>
-              <button
-                className="nec-page-btn"
-                disabled={currentPage === totalPages}
-                onClick={() => setCurrentPage(p => p + 1)}
-              >
-                Next
-              </button>
-            </div>
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              style={{ borderTop: "none", marginTop: "10px", padding: 0 }}
+            />
           )}
         </div>
       </Card>

@@ -3,6 +3,7 @@ import { announcementsApi } from "../../services/api/apiServices";
 import { Card } from "../../components/common/Card";
 import Badge from "../../components/common/Badge";
 import SkeletonLoader from "../../components/common/SkeletonLoader";
+import Pagination from "../../components/common/Pagination";
 import { Megaphone, Calendar } from "lucide-react";
 import "./PublicPortal.css";
 
@@ -45,25 +46,12 @@ export default function PublicAnnouncements() {
           ))}
           
           {Math.ceil(list.length / pageSize) > 1 && (
-            <div className="nec-table-pagination" style={{ marginTop: "20px", border: "1px solid var(--nec-border)", borderRadius: "8px" }}>
-              <button
-                className="nec-page-btn"
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage(p => p - 1)}
-              >
-                Previous
-              </button>
-              <span className="nec-page-info">
-                Page {currentPage} of {Math.ceil(list.length / pageSize)}
-              </span>
-              <button
-                className="nec-page-btn"
-                disabled={currentPage === Math.ceil(list.length / pageSize)}
-                onClick={() => setCurrentPage(p => p + 1)}
-              >
-                Next
-              </button>
-            </div>
+            <Pagination
+              currentPage={currentPage}
+              totalPages={Math.ceil(list.length / pageSize)}
+              onPageChange={setCurrentPage}
+              style={{ marginTop: "20px", border: "1px solid var(--nec-border)", borderRadius: "8px" }}
+            />
           )}
         </div>
       )}

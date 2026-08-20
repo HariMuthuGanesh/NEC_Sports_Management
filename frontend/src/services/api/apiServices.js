@@ -283,7 +283,17 @@ export const playersApi = {
 /* --- Matches & Scheduling API --- */
 export const matchesApi = {
   getMatches: async () => {
-    return fetchApi('/matches');
+    const matches = await fetchApi('/matches');
+    const events = await fetchApi('/events');
+    
+    // Map event category to matches
+    return matches.map(match => {
+      const event = events.find(e => e.id === match.eventId);
+      return {
+        ...match,
+        eventCategory: event ? event.eventCategory : "Unknown"
+      };
+    });
   },
   scheduleMatch: async (matchData) => {
     await delay(300);

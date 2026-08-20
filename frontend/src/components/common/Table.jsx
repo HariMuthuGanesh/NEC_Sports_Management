@@ -2,6 +2,7 @@ import React, { useState, useMemo } from "react";
 import { Search, ChevronUp, ChevronDown } from "lucide-react";
 import EmptyState from "./EmptyState";
 import SkeletonLoader from "./SkeletonLoader";
+import Pagination from "./Pagination";
 import "./Table.css";
 
 export default function Table({
@@ -124,25 +125,11 @@ export default function Table({
           </div>
 
           {totalPages > 1 && (
-            <div className="nec-table-pagination">
-              <button
-                className="nec-page-btn"
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage(p => p - 1)}
-              >
-                Previous
-              </button>
-              <span className="nec-page-info">
-                Page {currentPage} of {totalPages}
-              </span>
-              <button
-                className="nec-page-btn"
-                disabled={currentPage === totalPages}
-                onClick={() => setCurrentPage(p => p + 1)}
-              >
-                Next
-              </button>
-            </div>
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
           )}
         </>
       )}
