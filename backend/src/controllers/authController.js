@@ -1,37 +1,99 @@
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
+import { JWT_SECRET, revokeToken } from '../config/securityConfig.js';
 
-const generateToken = (id, role) => {
-    return jwt.sign({ id, role }, process.env.JWT_SECRET || 'fallback_secret_for_mock_db', {
-        expiresIn: '30d',
+const generateToken = (id, role, dept = 'All') => {
+    return jwt.sign({ id, role, dept }, JWT_SECRET, {
+        expiresIn: '24h',
+        algorithm: 'HS256'
     });
 };
 
-export const loginUser = (req, res) => {
-    const { username, password } = req.body;
+// Pre-hashed demo credentials (bcrypt work factor 10)
+const SALT = bcrypt.genSaltSync(10);
+const DUMMY_HASH = bcrypt.hashSync('DummyPassword123!', SALT); // For timing-attack neutralization
 
-    // Hardcoded mock users matching frontend behavior
-    const MOCK_USERS = [
-        { id: 'usr_admin1', username: 'admin', password: 'password123', role: 'admin', name: 'Dr. K. Arumugam' },
-        { id: 'usr_coord1', username: 'coord', password: 'password123', role: 'coordinator', name: 'Prof. Ramesh', department: 'CSE' },
-        { id: 'usr_player1', username: 'player', password: 'password123', role: 'player', name: 'Rahul Sharma', rollNo: '2112045' },
-    ];
-
-    const user = MOCK_USERS.find(u => u.username === username);
-
-    if (user && user.password === password) {
-        // Strip password
-        const { password: _, ...userInfo } = user;
-        
-        res.json({
-            ...userInfo,
-            token: generateToken(user.id, user.role),
-        });
-    } else {
-        res.status(401).json({ message: 'Invalid credentials' });
+const MOCK_USERS = [
+    {
+        id: 'ADM01',
+        username: 'admin',
+        userId: 'ADM01',
+        passwordHash: bcrypt.hashSync('Admin@123', SALT),
+        role: 'admin',
+        name: 'Dr. K. Arumugam',
+        department: 'Sports Office',
+        title: 'Director of Physical Education'
+    },
+    {
+        id: '2112045',
+        username: 'coord',
+        userId: '2112045',
+        passwordHash: bcrypt.hashSync('Coord@456', SALT),
+        role: 'coordinator',
+        name: 'Rahul Sharma',
+        department: 'CSE',
+        title: 'CSE Sports Coordinator'
+    },
+    {
+        id: '2114012',
+        username: 'player',
+        userId: '2114012',
+        passwordHash: bcrypt.hashSync('Player@789', SALT),
+        role: 'player',
+        name: 'Priya Patel',
+        department: 'MECH',
+        title: 'Student Athlete'
     }
+];
+
+export const loginUser = async (req, res) => {
+    const { username, userId, password } = req.body || {};
+    const identifier = (userId || username || '').trim();
+
+    const user = MOCK_USERS.find(u => 
+        u.username.toLowerCase() === identifier.toLowerCase() || 
+        u.userId.toLowerCase() === identifier.toLowerCase() ||
+        u.id.toLowerCase() === identifier.toLowerCase()
+    );
+
+    // Timing-attack defense: always run bcrypt comparison even if user doesn't exist
+    const hashToCompare = user ? user.passwordHash : DUMMY_HASH;
+    const isPasswordValid = bcrypt.compareSync(password, hashToCompare);
+
+    if (user && isPasswordValid) {
+        // Strip sensitive password hash before returning
+        const { passwordHash: _, ...userInfo } = user;
+        const token = generateToken(user.id, user.role, user.department);
+        
+        return res.json({
+            success: true,
+            data: {
+                ...userInfo,
+                token
+            }
+        });
+    }
+
+    // Uniform failure message prevents user enumeration
+    return res.status(401).json({ 
+        success: false, 
+        error: { code: 'INVALID_CREDENTIALS', message: 'Invalid credentials provided.' } 
+    });
+};
+
+export const logoutUser = (req, res) => {
+    if (req.token && req.user) {
+        revokeToken(req.token, req.user.exp);
+    }
+    return res.json({ 
+        success: true, 
+        message: 'Successfully logged out and session revoked.' 
+    });
 };
 
 export const getCurrentUser = (req, res) => {
-    // The protect middleware sets req.user
-    res.json(req.user);
+    return res.json({
+        success: true,
+        data: req.user
+    });
 };
