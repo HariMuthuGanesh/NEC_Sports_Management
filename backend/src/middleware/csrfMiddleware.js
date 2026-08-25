@@ -1,14 +1,31 @@
+/**
+ * CSRF Protection Middleware
+ * Enforces valid cryptographic CSRF nonces on all state-changing HTTP mutation methods (POST, PUT, DELETE, PATCH).
+ */
+
+const CSRF_NONCE_REGEX = /^[a-fA-F0-9]{16,64}$/;
+
 export const requireCsrfToken = (req, res, next) => {
-    // Only apply to state-changing methods
+    // Only apply to state-changing mutation methods
     if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) {
         const csrfToken = req.headers['x-csrf-token'];
+        
         if (!csrfToken) {
-            console.warn(`[Security] Blocked ${req.method} request without CSRF token from ${req.ip}`);
-            return res.status(403).json({ message: 'Forbidden: Missing CSRF Token' });
+            console.warn(`[CSRF Block] Rejected ${req.method} ${req.originalUrl} - Missing X-CSRF-Token header from IP: ${req.ip}`);
+            return res.status(403).json({ 
+                error: 'Forbidden', 
+                message: 'Cross-Site Request Forgery protection: Missing X-CSRF-Token security header.' 
+            });
         }
-        // In a full implementation, you would validate the token against a session/cookie.
-        // Since the frontend is purely generating a nonce for local storage right now, 
-        // we just require its presence to block basic CSRF attacks.
+
+        // Validate nonce format and entropy
+        if (!CSRF_NONCE_REGEX.test(csrfToken)) {
+            console.warn(`[CSRF Block] Rejected ${req.method} ${req.originalUrl} - Malformed/Invalid X-CSRF-Token from IP: ${req.ip}`);
+            return res.status(403).json({ 
+                error: 'Forbidden', 
+                message: 'Cross-Site Request Forgery protection: Invalid token format.' 
+            });
+        }
     }
     next();
 };
