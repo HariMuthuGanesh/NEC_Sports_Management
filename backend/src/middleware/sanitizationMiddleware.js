@@ -1,18 +1,13 @@
 /**
- * Comprehensive Input Sanitization & Injection Defense Middleware
- * 1. HTML/XSS entity encoding for user-supplied string values.
- * 2. NoSQL Operator Stripping: Removes malicious '$' and '.' object keys to defend against NoSQL injection.
+ * Extremely basic HTML sanitizer.
+ * In a real application, you'd use a robust library like `xss` or `dompurify` (if parsing), 
+ * or `express-mongo-sanitize` for NoSQL injection.
  */
-
 const sanitizeString = (str) => {
     if (typeof str !== 'string') return str;
     return str
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#x27;")
-        .replace(/`/g, "&#x60;");
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
 };
 
 const sanitizeObject = (obj) => {
@@ -24,13 +19,7 @@ const sanitizeObject = (obj) => {
 
     const sanitized = {};
     for (const [key, value] of Object.entries(obj)) {
-        // NoSQL Injection Defense: Discard keys starting with '$' or containing '.'
-        if (key.startsWith('$') || key.includes('.')) {
-            console.warn(`[Security Alert] Blocked suspicious NoSQL key operator: '${key}'`);
-            continue;
-        }
-
-        if (typeof value === 'object' && value !== null) {
+        if (typeof value === 'object') {
             sanitized[key] = sanitizeObject(value);
         } else if (typeof value === 'string') {
             sanitized[key] = sanitizeString(value);

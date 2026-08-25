@@ -16,37 +16,15 @@ app.use(auditLogger);
 
 // 1. Universal Security Headers (OWASP standards via Helmet)
 app.use(helmet({
-    contentSecurityPolicy: {
-        directives: {
-            defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "'unsafe-inline'"],
-            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-            fontSrc: ["'self'", "https://fonts.gstatic.com"],
-            imgSrc: ["'self'", "data:", "https://images.unsplash.com", "https://*.nec.edu.in"],
-            connectSrc: ["'self'", "http://localhost:*", "https://api.mymemory.translated.net", "https://*.nec.edu.in"],
-            frameAncestors: ["'none'"], // Prevent clickjacking
-            objectSrc: ["'none'"],
-            upgradeInsecureRequests: [],
-        }
-    },
-    crossOriginEmbedderPolicy: false,
-    hsts: {
-        maxAge: 31536000, // 1 year HSTS
-        includeSubDomains: true,
-        preload: true
-    },
-    frameguard: { action: 'deny' },
-    noSniff: true,
-    hidePoweredBy: true
+    contentSecurityPolicy: false, // Customized for API / frontend integration
+    crossOriginEmbedderPolicy: false
 }));
 
 // 2. Restricted CORS Configuration
 app.use(cors({
-    origin: ['http://localhost:5173', 'http://localhost:3000', 'https://nec.edu.in', 'https://*.nec.edu.in'],
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token', 'X-Client-Version'],
-    credentials: true,
-    maxAge: 86400 // Cache preflight for 24 hours
+    origin: ['http://localhost:5173', 'http://localhost:3000', 'https://nec.edu.in'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token']
 }));
 
 // 3. Payload Limit Protection (Defend against Denial-of-Service / Buffer Payload attacks)
@@ -74,7 +52,7 @@ app.use('/api', apiRoutes);
 app.get('/', (req, res) => {
     res.json({
         system: 'NEC Sports Management System API',
-        security: 'OWASP Compliant Security Headers, CSRF & JWT Enabled',
+        security: 'OWASP Compliant Security Headers & JWT Enabled',
         status: 'Active'
     });
 });

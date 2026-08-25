@@ -1,16 +1,18 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import { JWT_SECRET } from '../config/securityConfig.js';
+import { JWT_SECRET, revokeToken } from '../config/securityConfig.js';
 
 const generateToken = (id, role, dept = 'All') => {
     return jwt.sign({ id, role, dept }, JWT_SECRET, {
-        expiresIn: '24h', // Reduced from 30d to 24h for enhanced security
+        expiresIn: '24h',
         algorithm: 'HS256'
     });
 };
 
 // Pre-hashed demo credentials (bcrypt work factor 10)
 const SALT = bcrypt.genSaltSync(10);
+const DUMMY_HASH = bcrypt.hashSync('DummyPassword123!', SALT); // For timing-attack neutralization
+
 const MOCK_USERS = [
     {
         id: 'ADM01',
@@ -44,13 +46,9 @@ const MOCK_USERS = [
     }
 ];
 
-export const loginUser = (req, res) => {
-    const { username, userId, password } = req.body;
+export const loginUser = async (req, res) => {
+    const { username, userId, password } = req.body || {};
     const identifier = (userId || username || '').trim();
-
-    if (!identifier || !password) {
-        return res.status(400).json({ message: 'User ID and password are required.' });
-    }
 
     const user = MOCK_USERS.find(u => 
         u.username.toLowerCase() === identifier.toLowerCase() || 
@@ -58,19 +56,44 @@ export const loginUser = (req, res) => {
         u.id.toLowerCase() === identifier.toLowerCase()
     );
 
-    if (user && bcrypt.compareSync(password, user.passwordHash)) {
-        // Strip password hash before returning user info
+    // Timing-attack defense: always run bcrypt comparison even if user doesn't exist
+    const hashToCompare = user ? user.passwordHash : DUMMY_HASH;
+    const isPasswordValid = bcrypt.compareSync(password, hashToCompare);
+
+    if (user && isPasswordValid) {
+        // Strip sensitive password hash before returning
         const { passwordHash: _, ...userInfo } = user;
+        const token = generateToken(user.id, user.role, user.department);
         
-        res.json({
-            ...userInfo,
-            token: generateToken(user.id, user.role, user.department),
+        return res.json({
+            success: true,
+            data: {
+                ...userInfo,
+                token
+            }
         });
-    } else {
-        res.status(401).json({ message: 'Invalid credentials' });
     }
+
+    // Uniform failure message prevents user enumeration
+    return res.status(401).json({ 
+        success: false, 
+        error: { code: 'INVALID_CREDENTIALS', message: 'Invalid credentials provided.' } 
+    });
+};
+
+export const logoutUser = (req, res) => {
+    if (req.token && req.user) {
+        revokeToken(req.token, req.user.exp);
+    }
+    return res.json({ 
+        success: true, 
+        message: 'Successfully logged out and session revoked.' 
+    });
 };
 
 export const getCurrentUser = (req, res) => {
-    res.json(req.user);
+    return res.json({
+        success: true,
+        data: req.user
+    });
 };

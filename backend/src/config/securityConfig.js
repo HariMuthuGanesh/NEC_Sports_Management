@@ -18,3 +18,33 @@ if (!runtimeSecret || runtimeSecret === 'fallback_secret_for_mock_db') {
 
 export const JWT_SECRET = runtimeSecret;
 export const getJwtSecret = () => JWT_SECRET;
+
+// Token Revocation / Blacklist Store (In-Memory with TTL cleanup)
+const revokedTokens = new Map(); // tokenHash -> expiryTimestamp
+
+export const revokeToken = (token, exp) => {
+  if (!token) return;
+  const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+  const expiryTime = exp ? exp * 1000 : Date.now() + 24 * 60 * 60 * 1000;
+  revokedTokens.set(tokenHash, expiryTime);
+};
+
+export const isTokenRevoked = (token) => {
+  if (!token) return true;
+  const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+  const expiry = revokedTokens.get(tokenHash);
+  if (!expiry) return false;
+  if (Date.now() > expiry) {
+    revokedTokens.delete(tokenHash);
+    return false;
+  }
+  return true;
+};
+
+// Periodic garbage collection for revoked tokens (every 30 minutes)
+setInterval(() => {
+  const now = Date.now();
+  for (const [hash, exp] of revokedTokens.entries()) {
+    if (now > exp) revokedTokens.delete(hash);
+  }
+}, 30 * 60 * 1000).unref();
