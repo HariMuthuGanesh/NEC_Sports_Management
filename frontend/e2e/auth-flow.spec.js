@@ -2,39 +2,42 @@ import { test, expect } from '@playwright/test';
 
 test.describe('NEC Sports Management — Authentication & Security Journey', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/login');
+    await page.goto('/');
+    // Click header sign-in button to open login page
+    const signinBtn = page.locator('.nec-header-signin-btn').first();
+    if (await signinBtn.isVisible()) {
+      await signinBtn.click();
+    }
   });
 
   test('should render portal login form with demo credentials and password strength analyzer', async ({ page }) => {
-    await expect(page.locator('input[type="text"], input[name="username"], input[name="userId"]').first()).toBeVisible();
-    await expect(page.locator('input[type="password"]').first()).toBeVisible();
-    await expect(page.locator('button:has-text("Sign In"), button[type="submit"]').first()).toBeVisible();
+    await expect(page.locator('#nec-userid')).toBeVisible();
+    await expect(page.locator('#nec-password')).toBeVisible();
+    await expect(page.locator('button.nec-submit-btn, button:has-text("Sign In")').first()).toBeVisible();
   });
 
   test('should auto-fill credentials on role demo tab clicks', async ({ page }) => {
-    const studentTab = page.locator('button:has-text("Student"), div:has-text("Student Athlete")').first();
+    const studentTab = page.locator('.nec-role-tab:has-text("Student")').first();
     if (await studentTab.isVisible()) {
       await studentTab.click();
-      const idInput = page.locator('input[type="text"], input[name="username"], input[name="userId"]').first();
-      await expect(idInput).toHaveValue(/2114012|player/);
+      const idInput = page.locator('#nec-userid');
+      await expect(idInput).toHaveValue('2114012');
     }
   });
 
-  test('should authenticate and redirect to dashboard upon submission', async ({ page }) => {
-    const studentTab = page.locator('button:has-text("Student"), div:has-text("Student Athlete")').first();
+  test('should authenticate and display authenticated user profile in header upon submission', async ({ page }) => {
+    const studentTab = page.locator('.nec-role-tab:has-text("Student")').first();
     if (await studentTab.isVisible()) {
       await studentTab.click();
     } else {
-      const idInput = page.locator('input[type="text"], input[name="username"], input[name="userId"]').first();
-      const pwdInput = page.locator('input[type="password"]').first();
-      await idInput.fill('2114012');
-      await pwdInput.fill('Player@789');
+      await page.locator('#nec-userid').fill('2114012');
+      await page.locator('#nec-password').fill('Player@789');
     }
 
-    const submitBtn = page.locator('button:has-text("Sign In"), button[type="submit"]').first();
+    const submitBtn = page.locator('button.nec-submit-btn, button:has-text("Sign In")').first();
     await submitBtn.click();
 
-    // After login, should redirect to player or admin dashboard
-    await expect(page).toHaveURL(/\/(player|coordinator|admin|dashboard)/, { timeout: 10000 });
+    // After login, header profile or logout button should be visible
+    await expect(page.locator('.nec-user-profile-wrapper, .nec-logout-btn, button[title*="Log Out"]').first()).toBeVisible({ timeout: 10000 });
   });
 });

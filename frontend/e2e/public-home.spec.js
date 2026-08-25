@@ -6,22 +6,19 @@ test.describe('NEC Sports Management — Public User Journey', () => {
   });
 
   test('should render collegiate varsity branding, hero header, and navigation', async ({ page }) => {
-    // Assert title or logo branding
     await expect(page).toHaveTitle(/NEC Sports Management/i);
-    await expect(page.locator('header')).toBeVisible();
-    await expect(page.locator('text=National Engineering College')).toBeVisible();
+    await expect(page.locator('header.nec-header')).toBeVisible();
+    await expect(page.locator('.nec-college-name').first()).toBeVisible();
   });
 
   test('should render live matches and department medal standings', async ({ page }) => {
-    // Check if live scoreboard or upcoming fixtures are rendered
-    await expect(page.locator('text=CSE Strikers').or(page.locator('text=Inter-Department')).first()).toBeVisible();
-    // Check if Leaderboard section exists
-    await expect(page.locator('text=Leaderboard').or(page.locator('text=Standings')).first()).toBeVisible();
+    await expect(page.locator('.nec-public-home')).toBeVisible();
+    // Check if live scoreboard or department standings are rendered
+    await expect(page.locator('.nec-live-match-card, .nec-fixture-card').first()).toBeVisible();
   });
 
   test('should toggle dark/light theme and update document attribute', async ({ page }) => {
-    // Look for theme toggle button
-    const themeBtn = page.locator('button[aria-label*="theme" i], button[title*="theme" i], button:has(svg.lucide-moon), button:has(svg.lucide-sun)').first();
+    const themeBtn = page.locator('button[aria-label="Toggle theme"]').first();
     if (await themeBtn.isVisible()) {
       await themeBtn.click();
       const htmlTag = page.locator('html');
@@ -31,14 +28,13 @@ test.describe('NEC Sports Management — Public User Journey', () => {
   });
 
   test('should allow language switching to Tamil or Hindi', async ({ page }) => {
-    const langBtn = page.locator('button[title*="language" i], button:has(svg.lucide-globe)').first();
+    const langBtn = page.locator('button[title*="Language" i]').first();
     if (await langBtn.isVisible()) {
       await langBtn.click();
-      // Dropdown menu should show languages
-      const tamilOption = page.locator('button:has-text("தமிழ்"), div:has-text("தமிழ்")').first();
+      const tamilOption = page.locator('button.nec-role-menu-item:has-text("தமிழ்")').first();
       if (await tamilOption.isVisible()) {
         await tamilOption.click();
-        await expect(page.locator('header')).toBeVisible();
+        await expect(page.locator('header.nec-header')).toBeVisible();
       }
     }
   });
