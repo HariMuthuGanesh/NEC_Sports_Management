@@ -1,101 +1,99 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import { getJwtSecret } from '../middleware/authMiddleware.js';
+import { JWT_SECRET, revokeToken } from '../config/securityConfig.js';
 
-// Pre-seeded secure users for demonstration
-const MOCK_USERS_DB = [
+const generateToken = (id, role, dept = 'All') => {
+    return jwt.sign({ id, role, dept }, JWT_SECRET, {
+        expiresIn: '24h',
+        algorithm: 'HS256'
+    });
+};
+
+// Pre-hashed demo credentials (bcrypt work factor 10)
+const SALT = bcrypt.genSaltSync(10);
+const DUMMY_HASH = bcrypt.hashSync('DummyPassword123!', SALT); // For timing-attack neutralization
+
+const MOCK_USERS = [
     {
+        id: 'ADM01',
+        username: 'admin',
         userId: 'ADM01',
+        passwordHash: bcrypt.hashSync('Admin@123', SALT),
+        role: 'admin',
         name: 'Dr. K. Arumugam',
-        passwordHash: bcrypt.hashSync('admin123', 10),
-        role: 'Director of Physical Education',
         department: 'Sports Office',
-        email: 'pe.director@nec.edu.in'
+        title: 'Director of Physical Education'
     },
     {
+        id: '2112045',
+        username: 'coord',
         userId: '2112045',
+        passwordHash: bcrypt.hashSync('Coord@456', SALT),
+        role: 'coordinator',
         name: 'Rahul Sharma',
-        passwordHash: bcrypt.hashSync('coord123', 10),
-        role: 'Department Sports Coordinator',
         department: 'CSE',
-        email: 'rahul.21cse@nec.edu.in'
+        title: 'CSE Sports Coordinator'
     },
     {
+        id: '2114012',
+        username: 'player',
         userId: '2114012',
+        passwordHash: bcrypt.hashSync('Player@789', SALT),
+        role: 'player',
         name: 'Priya Patel',
-        passwordHash: bcrypt.hashSync('player123', 10),
-        role: 'Student Athlete',
         department: 'MECH',
-        email: 'priya.21mech@nec.edu.in'
+        title: 'Student Athlete'
     }
 ];
 
 export const loginUser = async (req, res) => {
-    try {
-        const { userId, password, role } = req.body;
+    const { username, userId, password } = req.body || {};
+    const identifier = (userId || username || '').trim();
 
-        if (!userId || !password) {
-            return res.status(400).json({
-                success: false,
-                message: 'Validation Error: User ID and password are required.'
-            });
-        }
+    const user = MOCK_USERS.find(u => 
+        u.username.toLowerCase() === identifier.toLowerCase() || 
+        u.userId.toLowerCase() === identifier.toLowerCase() ||
+        u.id.toLowerCase() === identifier.toLowerCase()
+    );
 
-        const user = MOCK_USERS_DB.find(u => u.userId.toLowerCase() === String(userId).trim().toLowerCase());
+    // Timing-attack defense: always run bcrypt comparison even if user doesn't exist
+    const hashToCompare = user ? user.passwordHash : DUMMY_HASH;
+    const isPasswordValid = bcrypt.compareSync(password, hashToCompare);
 
-        if (!user) {
-            return res.status(401).json({
-                success: false,
-                message: 'Invalid Credentials: User ID not found.'
-            });
-        }
-
-        const isMatch = await bcrypt.compare(password, user.passwordHash);
-
-        if (!isMatch) {
-            return res.status(401).json({
-                success: false,
-                message: 'Invalid Credentials: Incorrect password.'
-            });
-        }
-
-        const activeRole = role || user.role;
-
-        // Sign JWT Token with 24-hour expiration
-        const token = jwt.sign(
-            {
-                userId: user.userId,
-                name: user.name,
-                role: activeRole,
-                department: user.department
-            },
-            getJwtSecret(),
-            { expiresIn: '24h' }
-        );
-
-        return res.status(200).json({
+    if (user && isPasswordValid) {
+        // Strip sensitive password hash before returning
+        const { passwordHash: _, ...userInfo } = user;
+        const token = generateToken(user.id, user.role, user.department);
+        
+        return res.json({
             success: true,
-            message: 'Authentication successful.',
-            token,
-            user: {
-                userId: user.userId,
-                name: user.name,
-                role: activeRole,
-                department: user.department,
-                email: user.email
+            data: {
+                ...userInfo,
+                token
             }
         });
-    } catch (error) {
-        return res.status(500).json({
-            success: false,
-            message: 'Internal server security error during authentication.'
-        });
     }
+
+    // Uniform failure message prevents user enumeration
+    return res.status(401).json({ 
+        success: false, 
+        error: { code: 'INVALID_CREDENTIALS', message: 'Invalid credentials provided.' } 
+    });
 };
 
-export const getCurrentUser = async (req, res) => {
-    return res.status(200).json({
+export const logoutUser = (req, res) => {
+    if (req.token && req.user) {
+        revokeToken(req.token, req.user.exp);
+    }
+    return res.json({ 
+        success: true, 
+        message: 'Successfully logged out and session revoked.' 
+    });
+};
+
+export const getCurrentUser = (req, res) => {
+    return res.json({
         success: true,
-        user: req.user
+        data: req.user
     });
 };

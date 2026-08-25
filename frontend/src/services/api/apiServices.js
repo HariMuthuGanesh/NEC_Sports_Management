@@ -1,8 +1,9 @@
 /* API Service Abstraction Layer for NEC Sports Management System
-   Includes JWT Authorization Headers, Request Input Sanitization, and Security Error Handlers.
+   Provides LocalStorage Mock Database Layer with fallback, JWT Authorization, 
+   Input Sanitization, and Category enrichment.
 */
 
-import { getAuthToken, sanitizeInput } from "../../utils/security";
+import { getAuthToken, getCsrfNonce, sanitizeInput } from "../../utils/security";
 import {
   INITIAL_DEPARTMENTS,
   INITIAL_SPORTS,
@@ -19,23 +20,31 @@ import {
   EXTERNAL_STUDENT_DATABASE
 } from "../../data/mock/mockData";
 
-// Helper to simulate network latency
-const delay = (ms = 150) => new Promise((resolve) => setTimeout(resolve, ms));
+// Helper to simulate smooth local network latency
+const delay = (ms = 120) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const API_URL = 'http://localhost:8000/api';
 
 // Helper for security header injection
 export const getSecurityHeaders = () => {
   const token = getAuthToken();
   return {
-    'Content-Type': 'application/json',
-    'Authorization': token ? `Bearer ${token}` : ''
+    "Content-Type": "application/json",
+    "Authorization": token ? `Bearer ${token}` : "",
+    "X-CSRF-Token": getCsrfNonce(),
+    "X-Client-Version": "1.0.0",
   };
 };
 
-// Helper for local storage persistence fallback
+// Helper for local storage persistence
 const getStored = (key, fallback) => {
   try {
     const item = localStorage.getItem(`nec_sports_${key}`);
-    return item ? JSON.parse(item) : fallback;
+    if (!item) {
+      localStorage.setItem(`nec_sports_${key}`, JSON.stringify(fallback));
+      return fallback;
+    }
+    return JSON.parse(item);
   } catch (e) {
     return fallback;
   }
@@ -48,6 +57,60 @@ const setStored = (key, value) => {
     console.error("Storage error:", e);
   }
 };
+
+// Safe API fetcher with graceful Mock DB fallback
+const safeFetchWithFallback = async (endpoint, storageKey, fallbackData) => {
+  try {
+    const headers = getSecurityHeaders();
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 1200); // 1.2s timeout
+
+    const response = await fetch(`${API_URL}${endpoint}`, {
+      headers,
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+
+    if (response.ok) {
+      const data = await response.json();
+      if (Array.isArray(data) && data.length > 0) {
+        setStored(storageKey, data);
+        return data;
+      }
+    }
+  } catch (err) {
+    // Graceful offline / mock mode fallback
+  }
+  return getStored(storageKey, fallbackData);
+};
+
+/* --- Global Mock DB Initializer / Reset --- */
+export const initializeMockDatabase = (forceReset = false) => {
+  const collections = [
+    { key: "departments", data: INITIAL_DEPARTMENTS },
+    { key: "sports", data: INITIAL_SPORTS },
+    { key: "venues", data: INITIAL_VENUES },
+    { key: "tournaments", data: INITIAL_TOURNAMENTS },
+    { key: "events", data: INITIAL_EVENTS },
+    { key: "teams", data: INITIAL_TEAMS },
+    { key: "players", data: INITIAL_PLAYERS },
+    { key: "matches", data: INITIAL_MATCHES },
+    { key: "leaderboard", data: INITIAL_LEADERBOARD },
+    { key: "announcements", data: INITIAL_ANNOUNCEMENTS },
+    { key: "notifications", data: INITIAL_NOTIFICATIONS },
+    { key: "gallery", data: INITIAL_GALLERY },
+    { key: "student_registry", data: EXTERNAL_STUDENT_DATABASE }
+  ];
+
+  collections.forEach(({ key, data }) => {
+    if (forceReset || !localStorage.getItem(`nec_sports_${key}`)) {
+      localStorage.setItem(`nec_sports_${key}`, JSON.stringify(data));
+    }
+  });
+};
+
+// Auto-initialize mock database upon module load
+initializeMockDatabase(false);
 
 /* --- Sports & Departments API --- */
 export const sportsApi = {
@@ -63,8 +126,18 @@ export const sportsApi = {
     await delay();
     return getStored("venues", INITIAL_VENUES);
   },
+  saveVenues: async (venues) => {
+    await delay(150);
+    setStored("venues", venues);
+    return venues;
+  },
+  saveDepartments: async (depts) => {
+    await delay(150);
+    setStored("departments", depts);
+    return depts;
+  },
   addSport: async (sportData) => {
-    await delay(250);
+    await delay(200);
     const sports = getStored("sports", INITIAL_SPORTS);
     const newSport = {
       ...sportData,
@@ -76,7 +149,7 @@ export const sportsApi = {
     return newSport;
   },
   deleteSport: async (sportId) => {
-    await delay(200);
+    await delay(150);
     const sports = getStored("sports", INITIAL_SPORTS);
     const updated = sports.filter(s => s.id !== sportId);
     setStored("sports", updated);
@@ -97,7 +170,7 @@ export const tournamentsApi = {
     return events;
   },
   createTournament: async (tournamentData) => {
-    await delay(300);
+    await delay(200);
     const tournaments = getStored("tournaments", INITIAL_TOURNAMENTS);
     const newTournament = {
       ...tournamentData,
@@ -111,7 +184,7 @@ export const tournamentsApi = {
     return newTournament;
   },
   createEvent: async (eventData) => {
-    await delay(250);
+    await delay(200);
     const events = getStored("events", INITIAL_EVENTS);
     const newEvent = {
       ...eventData,
@@ -125,7 +198,7 @@ export const tournamentsApi = {
     return newEvent;
   },
   toggleEventStatus: async (eventId) => {
-    await delay(200);
+    await delay(150);
     const events = getStored("events", INITIAL_EVENTS);
     const updated = events.map(ev => {
       if (ev.id === eventId) {
@@ -148,7 +221,7 @@ export const teamsApi = {
     return teams;
   },
   registerTeam: async (teamData) => {
-    await delay(300);
+    await delay(200);
     const teams = getStored("teams", INITIAL_TEAMS);
     const newTeam = {
       ...teamData,
@@ -164,7 +237,7 @@ export const teamsApi = {
     return newTeam;
   },
   updateTeamStatus: async (teamId, status) => {
-    await delay(200);
+    await delay(150);
     const teams = getStored("teams", INITIAL_TEAMS);
     const updated = teams.map(t => t.id === teamId ? { ...t, status: sanitizeInput(status) } : t);
     setStored("teams", updated);
@@ -175,10 +248,11 @@ export const teamsApi = {
 /* --- External Student Lookup Boundary API (Simulating NEC IMS Student Data) --- */
 export const studentLookupApi = {
   searchStudent: async (studentIdOrName) => {
-    await delay(200);
+    await delay(150);
+    const registry = getStored("student_registry", EXTERNAL_STUDENT_DATABASE);
     const query = sanitizeInput(String(studentIdOrName)).trim().toLowerCase();
     if (!query) return [];
-    return EXTERNAL_STUDENT_DATABASE.filter(
+    return registry.filter(
       s => s.studentId.toLowerCase().includes(query) || s.name.toLowerCase().includes(query)
     );
   }
@@ -196,7 +270,7 @@ export const playersApi = {
     return getStored("players", INITIAL_PLAYERS);
   },
   addPlayerToRoster: async (teamId, playerData) => {
-    await delay(250);
+    await delay(200);
     const players = getStored("players", INITIAL_PLAYERS);
     const newPlayer = {
       ...playerData,
@@ -223,7 +297,7 @@ export const playersApi = {
     return newPlayer;
   },
   removePlayer: async (playerId) => {
-    await delay(200);
+    await delay(150);
     const players = getStored("players", INITIAL_PLAYERS);
     const targetPlayer = players.find(p => p.id === playerId);
     const updated = players.filter(p => p.id !== playerId);
@@ -242,7 +316,7 @@ export const playersApi = {
     return true;
   },
   saveSquadAttendance: async (teamId, attendanceMap) => {
-    await delay(300);
+    await delay(200);
     const players = getStored("players", INITIAL_PLAYERS);
     const updated = players.map(p => {
       if (p.teamId === teamId) {
@@ -262,10 +336,20 @@ export const playersApi = {
 export const matchesApi = {
   getMatches: async () => {
     await delay();
-    return getStored("matches", INITIAL_MATCHES);
+    const matches = getStored("matches", INITIAL_MATCHES);
+    const events = getStored("events", INITIAL_EVENTS);
+    
+    // Map event category to matches
+    return matches.map(match => {
+      const event = events.find(e => e.id === match.eventId);
+      return {
+        ...match,
+        eventCategory: event ? event.eventCategory : (match.eventCategory || "Inter-Department")
+      };
+    });
   },
   scheduleMatch: async (matchData) => {
-    await delay(300);
+    await delay(200);
     const matches = getStored("matches", INITIAL_MATCHES);
     const newMatch = {
       ...matchData,
@@ -281,14 +365,14 @@ export const matchesApi = {
     return newMatch;
   },
   deleteMatch: async (matchId) => {
-    await delay(200);
+    await delay(150);
     const matches = getStored("matches", INITIAL_MATCHES);
     const updated = matches.filter(m => m.id !== matchId);
     setStored("matches", updated);
     return true;
   },
   updateMatchScore: async (matchId, scoreA, scoreB, detailScore = "", isFinal = false) => {
-    await delay(300);
+    await delay(200);
     const matches = getStored("matches", INITIAL_MATCHES);
     const updated = matches.map(m => {
       if (m.id === matchId) {
@@ -329,7 +413,7 @@ export const announcementsApi = {
     return getStored("announcements", INITIAL_ANNOUNCEMENTS);
   },
   createAnnouncement: async (data) => {
-    await delay(250);
+    await delay(200);
     const list = getStored("announcements", INITIAL_ANNOUNCEMENTS);
     const newItem = {
       ...data,
@@ -345,7 +429,7 @@ export const announcementsApi = {
     return newItem;
   },
   deleteAnnouncement: async (id) => {
-    await delay(200);
+    await delay(150);
     const list = getStored("announcements", INITIAL_ANNOUNCEMENTS);
     const updated = list.filter(a => a.id !== id);
     setStored("announcements", updated);
@@ -366,7 +450,7 @@ export const notificationsApi = {
     return getStored("notifications", INITIAL_NOTIFICATIONS);
   },
   markAllRead: async () => {
-    await delay(150);
+    await delay(100);
     const notifs = getStored("notifications", INITIAL_NOTIFICATIONS);
     const updated = notifs.map(n => ({ ...n, read: true }));
     setStored("notifications", updated);

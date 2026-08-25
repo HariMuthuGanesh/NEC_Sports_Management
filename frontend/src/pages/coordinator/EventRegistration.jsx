@@ -6,6 +6,7 @@ import Badge from "../../components/common/Badge";
 import Button from "../../components/common/Button";
 import { Modal } from "../../components/common/Modal";
 import { Card } from "../../components/common/Card";
+import Pagination from "../../components/common/Pagination";
 import { CheckSquare, Plus, Trophy, Calendar, Users, Send } from "lucide-react";
 import "./CoordinatorPortal.css";
 
@@ -17,6 +18,9 @@ export default function EventRegistration() {
   const [deptTeams, setDeptTeams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 4;
 
   const [selectedEventId, setSelectedEventId] = useState("");
   const [teamName, setTeamName] = useState("");
@@ -98,36 +102,49 @@ export default function EventRegistration() {
             {openEvents.length === 0 ? (
               <p>No open event registrations available right now.</p>
             ) : (
-              openEvents.map(ev => (
-                <div key={ev.id} style={{
-                  padding: "14px",
-                  borderRadius: "8px",
-                  border: "1px solid var(--nec-border)",
-                  backgroundColor: "var(--nec-surface-raised)",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center"
-                }}>
-                  <div>
-                    <strong style={{ fontSize: "1rem" }}>{ev.title} ({ev.category})</strong>
-                    <div style={{ fontSize: "0.8rem", color: "var(--nec-text-muted)", marginTop: "2px" }}>
-                      Deadline: 📅 {ev.regDeadline} | Registered: {ev.registeredTeams} / {ev.maxTeams} Teams
+              <>
+                {openEvents.slice((currentPage - 1) * pageSize, currentPage * pageSize).map(ev => (
+                  <div key={ev.id} style={{
+                    padding: "14px",
+                    borderRadius: "8px",
+                    border: "1px solid var(--nec-border)",
+                    backgroundColor: "var(--nec-surface-raised)",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center"
+                  }}>
+                    <div>
+                      <strong style={{ fontSize: "1rem" }}>
+                        {ev.title} ({ev.category})
+                        {ev.eventCategory && <span style={{ marginLeft: "8px" }}><Badge status={ev.eventCategory === "Inter-College" ? "danger" : "info"}>{ev.eventCategory}</Badge></span>}
+                      </strong>
+                      <div style={{ fontSize: "0.8rem", color: "var(--nec-text-muted)", marginTop: "2px" }}>
+                        Deadline: 📅 {ev.regDeadline} | Registered: {ev.registeredTeams} / {ev.maxTeams} Teams
+                      </div>
                     </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      icon={Send}
+                      onClick={() => {
+                        setSelectedEventId(ev.id);
+                        setTeamName(`${myDept} ${ev.sportId.replace("sp_", "").toUpperCase()}`);
+                        setIsModalOpen(true);
+                      }}
+                    >
+                      Enter Team
+                    </Button>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    icon={Send}
-                    onClick={() => {
-                      setSelectedEventId(ev.id);
-                      setTeamName(`${myDept} ${ev.sportId.replace("sp_", "").toUpperCase()}`);
-                      setIsModalOpen(true);
-                    }}
-                  >
-                    Enter Team
-                  </Button>
-                </div>
-              ))
+                ))}
+                {Math.ceil(openEvents.length / pageSize) > 1 && (
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={Math.ceil(openEvents.length / pageSize)}
+                    onPageChange={setCurrentPage}
+                    style={{ marginTop: "10px", border: "1px solid var(--nec-border)", borderRadius: "8px" }}
+                  />
+                )}
+              </>
             )}
           </div>
         </Card>

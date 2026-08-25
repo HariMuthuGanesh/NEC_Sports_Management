@@ -15,7 +15,10 @@ import {
   UserCheck,
   Edit3,
   Bell,
-  Home
+  Home,
+  Shield,
+  Settings,
+  LogIn
 } from "lucide-react";
 import { useAuth, ROLES } from "../../context/AuthContext";
 import "./Sidebar.css";
@@ -42,15 +45,15 @@ export default function Sidebar({ activeNav, onSelectNav, isOpen, onCloseMobile 
               { id: "admin_regs", label: t.teamApprovals, icon: CheckSquare },
               { id: "admin_teams", label: t.teamsCatalog, icon: Users },
               { id: "admin_matches", label: t.matchScheduler, icon: Calendar },
-              { id: "admin_venues", label: t.venues, icon: MapPin },
-              { id: "admin_depts", label: t.departments, icon: Building2 }
+              { id: "admin_venues", label: t.venues, icon: MapPin }
             ]
           },
           {
             category: t.navCommReports,
             items: [
               { id: "admin_announcements", label: t.announcements, icon: Megaphone },
-              { id: "admin_reports", label: t.institutionalReports, icon: FileText }
+              { id: "admin_reports", label: t.institutionalReports, icon: FileText },
+              { id: "admin_audit", label: "Security Audit Log", icon: Shield }
             ]
           }
         ];
@@ -100,7 +103,8 @@ export default function Sidebar({ activeNav, onSelectNav, isOpen, onCloseMobile 
               { id: "public_fixtures", label: t.fixtures, icon: Calendar },
               { id: "public_leaderboard", label: t.leaderboard, icon: Trophy },
               { id: "public_gallery", label: t.gallery, icon: Image },
-              { id: "public_announcements", label: t.announcements, icon: Megaphone }
+              { id: "public_announcements", label: t.announcements, icon: Megaphone },
+              { id: "login", label: t.login || "Portal Sign In", icon: LogIn }
             ]
           }
         ];
@@ -144,6 +148,15 @@ export default function Sidebar({ activeNav, onSelectNav, isOpen, onCloseMobile 
           </nav>
 
           <div className="nec-sidebar-footer">
+            {/* Settings link — all roles */}
+            <button
+              className={`nec-nav-item ${activeNav === "settings" ? "active" : ""}`}
+              onClick={() => { onSelectNav("settings"); onCloseMobile(); }}
+              style={{ width: "100%", marginBottom: "10px" }}
+            >
+              <Settings className="nec-nav-icon" size={18} />
+              <span className="nec-nav-label">Settings</span>
+            </button>
             <div className="nec-lasa-tag">
               <span>{t.lasaTag}</span>
               <span className="nec-tag-sub">{t.lasaSub}</span>

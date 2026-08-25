@@ -1,84 +1,872 @@
-.nec-login-container {
+/* ==========================================================================
+   National Engineering College (NEC) — Sports Authentication Portal
+   Institutional Theme with Deep Navy, Academic Gold & Responsive Glassmorphism
+   ========================================================================== */
+
+.nec-auth-portal {
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--nec-bg);
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(0, 43, 73, 0.08) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(197, 155, 39, 0.08) 0px, transparent 50%);
+  color: var(--nec-text-main);
+  font-family: var(--nec-font);
+  position: relative;
+  overflow-x: hidden;
+}
+
+[data-theme="dark"] .nec-auth-portal {
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(0, 64, 112, 0.25) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(197, 155, 39, 0.12) 0px, transparent 50%);
+}
+
+/* ── Top Utility Bar ── */
+.nec-auth-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  width: 100%;
+  max-width: 1300px;
+  margin: 0 auto;
+  z-index: 10;
+}
+
+.nec-auth-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--nec-surface);
+  border: 1px solid var(--nec-border);
+  color: var(--nec-text-main);
+  padding: 8px 14px;
+  border-radius: var(--nec-radius-full);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--nec-shadow-sm);
+  transition: var(--nec-transition);
+}
+
+.nec-auth-back-btn:hover {
+  background: var(--nec-surface-hover);
+  border-color: var(--nec-gold);
+  transform: translateY(-1px);
+}
+
+.nec-auth-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.nec-auth-lang-pills {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--nec-surface);
+  border: 1px solid var(--nec-border);
+  padding: 4px 6px;
+  border-radius: var(--nec-radius-full);
+  box-shadow: var(--nec-shadow-sm);
+}
+
+.nec-auth-pill-btn {
+  background: transparent;
+  border: none;
+  color: var(--nec-text-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: var(--nec-radius-full);
+  cursor: pointer;
+  transition: var(--nec-transition);
+}
+
+.nec-auth-pill-btn:hover {
+  color: var(--nec-text-main);
+}
+
+.nec-auth-pill-btn.active {
+  background: var(--nec-navy);
+  color: #ffffff;
+}
+
+[data-theme="dark"] .nec-auth-pill-btn.active {
+  background: var(--nec-gold);
+  color: #001a2e;
+}
+
+.nec-auth-theme-btn {
+  background: var(--nec-surface);
+  border: 1px solid var(--nec-border);
+  color: var(--nec-text-main);
+  width: 36px;
+  height: 36px;
+  border-radius: var(--nec-radius-full);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--nec-navy-dark), var(--nec-navy));
-  padding: 20px;
+  cursor: pointer;
+  box-shadow: var(--nec-shadow-sm);
+  transition: var(--nec-transition);
 }
 
-.nec-login-card {
+.nec-auth-theme-btn:hover {
+  background: var(--nec-surface-hover);
+  border-color: var(--nec-gold);
+  transform: rotate(15deg);
+}
+
+/* ── Main Layout Container ── */
+.nec-auth-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 24px 36px;
+}
+
+.nec-auth-grid {
   width: 100%;
-  max-width: 440px;
+  max-width: 1200px;
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 32px;
+  align-items: stretch;
+}
+
+/* ── Left Column: Institutional College Showcase ── */
+.nec-auth-showcase {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.nec-showcase-glass {
+  background: linear-gradient(145deg, var(--nec-navy-dark), var(--nec-navy));
+  border-radius: var(--nec-radius-lg);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 40px;
+  color: #ffffff;
+  box-shadow: 0 20px 40px -15px rgba(0, 27, 46, 0.4);
+  position: relative;
+  overflow: hidden;
+}
+
+.nec-showcase-glass::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle, rgba(197, 155, 39, 0.15) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.nec-showcase-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.nec-pill-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--nec-radius-full);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.nec-gold-pill {
+  background: rgba(197, 155, 39, 0.2);
+  color: var(--nec-gold-light);
+  border: 1px solid rgba(197, 155, 39, 0.4);
+}
+
+.nec-navy-pill {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.nec-showcase-branding {
+  margin-bottom: 28px;
+}
+
+.nec-showcase-logo {
+  width: 64px;
+  height: 64px;
+  background: linear-gradient(135deg, var(--nec-gold), #9a7314);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #001a2e;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  margin-bottom: 16px;
+}
+
+.nec-showcase-title {
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1.2;
+  margin: 0 0 6px;
+  color: #ffffff;
+}
+
+.nec-showcase-academy {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--nec-gold-light);
+  margin: 0 0 12px;
+}
+
+.nec-showcase-motto {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.8);
+  font-style: italic;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Stats Counter Grid */
+.nec-showcase-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.nec-stat-box {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--nec-radius-md);
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.nec-stat-num {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--nec-gold-light);
+}
+
+.nec-stat-lbl {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.75);
+  margin-top: 2px;
+}
+
+/* Bulletin Box */
+.nec-showcase-bulletin {
+  background: rgba(0, 0, 0, 0.25);
+  border-left: 3px solid var(--nec-gold);
+  border-radius: 0 var(--nec-radius-md) var(--nec-radius-md) 0;
+  padding: 12px 16px;
+  margin-bottom: 24px;
+}
+
+.nec-bulletin-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--nec-gold-light);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.nec-pulse-dot {
+  color: var(--nec-gold);
+  animation: necPulse 2s infinite ease-in-out;
+}
+
+@keyframes necPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.15); }
+}
+
+.nec-bulletin-text {
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.85);
+  margin: 0;
+}
+
+.nec-showcase-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.6);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 16px;
+}
+
+/* ── Right Column: Login Card & Persona Switcher ── */
+.nec-auth-form-panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.nec-auth-card {
   background-color: var(--nec-surface);
   border: 1px solid var(--nec-border);
   border-radius: var(--nec-radius-lg);
   box-shadow: var(--nec-shadow-lg);
-  overflow: hidden;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  position: relative;
 }
 
-.nec-login-header {
-  padding: 32px 24px 20px 24px;
-  background-color: var(--nec-navy);
-  color: #fff;
-  text-align: center;
+.nec-auth-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.nec-card-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--nec-text-main);
+  margin: 0 0 4px;
+}
+
+.nec-card-desc {
+  font-size: 0.85rem;
+  color: var(--nec-text-muted);
+  margin: 0;
+}
+
+/* ── Role Persona Tabs ── */
+.nec-role-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  background: var(--nec-surface-raised);
+  padding: 6px;
+  border-radius: var(--nec-radius-md);
+  border: 1px solid var(--nec-border);
+}
+
+.nec-role-tab {
   display: flex;
   flex-direction: column;
   align-items: center;
-  border-bottom: 3px solid var(--nec-gold);
+  justify-content: center;
+  gap: 4px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--nec-text-muted);
+  padding: 10px 4px;
+  border-radius: var(--nec-radius-sm);
+  cursor: pointer;
+  transition: var(--nec-transition);
+  text-align: center;
 }
 
-.nec-login-logo {
-  width: 56px;
-  height: 56px;
-  background: linear-gradient(135deg, var(--nec-gold), #b3861b);
-  border-radius: 12px;
-  color: #000;
+.nec-role-tab:hover {
+  background: var(--nec-surface-hover);
+  color: var(--nec-text-main);
+}
+
+.nec-role-tab.active {
+  background: var(--nec-surface);
+  color: var(--nec-navy);
+  border-color: var(--nec-border);
+  box-shadow: var(--nec-shadow-sm);
+  font-weight: 700;
+}
+
+[data-theme="dark"] .nec-role-tab.active {
+  color: var(--nec-gold);
+  border-color: var(--nec-border-dark);
+}
+
+.nec-tab-icon {
+  flex-shrink: 0;
+}
+
+.nec-role-tab.active .nec-tab-icon {
+  color: var(--nec-gold);
+}
+
+.nec-tab-label {
+  font-size: 0.72rem;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* ── Quick Demo Assist Bar ── */
+.nec-quick-assist-bar {
   display: flex;
   align-items: center;
-  justify-content: center;
-  margin-bottom: 12px;
+  justify-content: space-between;
+  background: var(--nec-gold-subtle);
+  border: 1px solid rgba(197, 155, 39, 0.3);
+  padding: 8px 12px;
+  border-radius: var(--nec-radius-md);
+  font-size: 0.8rem;
 }
 
-.nec-login-title {
-  font-size: 1.25rem;
+.nec-assist-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--nec-text-main);
+}
+
+.nec-gold-icon {
+  color: var(--nec-gold);
+}
+
+.nec-quick-fill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--nec-navy);
+  color: #ffffff;
+  border: none;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: var(--nec-radius-full);
+  cursor: pointer;
+  transition: var(--nec-transition);
+}
+
+.nec-quick-fill-btn:hover {
+  background: var(--nec-navy-light);
+  transform: translateX(1px);
+}
+
+/* ── Lockout Banner ── */
+.nec-lockout-banner {
+  background: var(--nec-danger-bg);
+  border: 1px solid var(--nec-danger);
+  border-radius: var(--nec-radius-md);
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--nec-danger-text);
+}
+
+.nec-lockout-icon {
+  flex-shrink: 0;
+  color: var(--nec-danger);
+}
+
+.nec-lockout-title {
+  display: block;
+  font-size: 0.88rem;
+}
+
+.nec-lockout-desc {
+  font-size: 0.8rem;
+  margin-top: 2px;
+}
+
+.nec-countdown-timer {
+  font-variant-numeric: tabular-nums;
   font-weight: 700;
-  margin: 0;
-  color: #fff;
 }
 
-.nec-login-subtitle {
-  font-size: 0.8125rem;
-  color: var(--nec-gold-light);
-  margin-top: 4px;
-}
-
-.nec-login-form {
-  padding: 28px 24px;
+/* ── Form Inputs ── */
+.nec-auth-form {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-.nec-form-group {
+.nec-input-group {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.nec-form-label {
+.nec-input-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   font-size: 0.8125rem;
   font-weight: 600;
   color: var(--nec-text-main);
 }
 
-.nec-login-footer-info {
+.nec-label-hint {
+  font-size: 0.75rem;
+  color: var(--nec-text-muted);
+  font-weight: 400;
+}
+
+.nec-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.nec-forgot-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--nec-blue);
+  cursor: pointer;
+}
+
+.nec-forgot-link:hover {
+  text-decoration: underline;
+}
+
+.nec-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.nec-input-icon {
+  position: absolute;
+  left: 12px;
+  color: var(--nec-text-muted);
+  pointer-events: none;
+}
+
+.nec-form-control {
+  width: 100%;
+  height: 44px;
+  background: var(--nec-surface-raised);
+  border: 1px solid var(--nec-border);
+  border-radius: var(--nec-radius-md);
+  padding: 0 14px 0 38px;
+  font-size: 0.9rem;
+  color: var(--nec-text-main);
+  transition: var(--nec-transition);
+}
+
+.nec-form-control:focus {
+  outline: none;
+  border-color: var(--nec-gold);
+  background: var(--nec-surface);
+  box-shadow: 0 0 0 3px rgba(197, 155, 39, 0.2);
+}
+
+.nec-form-control.nec-pw-field {
+  padding-right: 44px;
+}
+
+.nec-pw-toggle {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  padding: 4px;
+  color: var(--nec-text-muted);
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  font-size: 0.725rem;
+  transition: var(--nec-transition);
+}
+
+.nec-pw-toggle:hover {
+  color: var(--nec-text-main);
+}
+
+/* Password Strength */
+.nec-pw-strength-box {
+  margin-top: 6px;
+}
+
+.nec-strength-bars {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.nec-strength-bar {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  transition: background-color 0.3s ease;
+}
+
+.nec-strength-caption {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+}
+
+.nec-strength-tip {
   color: var(--nec-text-muted);
+}
+
+/* ── Options Row ── */
+.nec-options-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.8125rem;
+}
+
+.nec-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--nec-text-main);
+  cursor: pointer;
+  user-select: none;
+}
+
+.nec-checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--nec-navy);
+  cursor: pointer;
+}
+
+.nec-support-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  color: var(--nec-text-muted);
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 4px 0;
+  transition: var(--nec-transition);
+}
+
+.nec-support-btn:hover {
+  color: var(--nec-text-main);
+}
+
+/* ── Error Alert ── */
+.nec-error-alert {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--nec-danger-bg);
+  border: 1px solid var(--nec-danger);
+  color: var(--nec-danger-text);
+  padding: 10px 14px;
+  border-radius: var(--nec-radius-md);
+  font-size: 0.8125rem;
+}
+
+.nec-error-icon {
+  flex-shrink: 0;
+  color: var(--nec-danger);
+}
+
+.nec-submit-btn {
+  width: 100%;
+  margin-top: 4px;
+}
+
+/* ── Card Footer ── */
+.nec-auth-card-footer {
+  border-top: 1px solid var(--nec-border);
+  padding-top: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
   text-align: center;
-  margin-top: 10px;
+}
+
+.nec-footer-text {
+  font-size: 0.8rem;
+  color: var(--nec-text-muted);
+}
+
+.nec-guest-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: var(--nec-blue);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--nec-transition);
+}
+
+.nec-guest-link:hover {
+  color: var(--nec-navy);
+  transform: translateX(2px);
+}
+
+/* ── Help Modal Styling ── */
+.nec-help-content {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.nec-help-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border-bottom: 1px solid var(--nec-border);
+  padding-bottom: 12px;
+}
+
+.nec-help-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--nec-text-main);
+}
+
+.nec-help-subtitle {
+  font-size: 0.8125rem;
+  color: var(--nec-text-muted);
+  margin: 2px 0 0;
+}
+
+.nec-help-details {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.nec-help-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 0.85rem;
+}
+
+.nec-help-icon {
+  color: var(--nec-navy);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+[data-theme="dark"] .nec-help-icon {
+  color: var(--nec-gold);
+}
+
+.nec-help-item strong {
+  display: block;
+  color: var(--nec-text-main);
+}
+
+.nec-help-item p {
+  margin: 2px 0 0;
+  color: var(--nec-text-muted);
+}
+
+.nec-help-demo-card {
+  background: var(--nec-surface-raised);
+  border: 1px solid var(--nec-border);
+  border-radius: var(--nec-radius-md);
+  padding: 12px;
+}
+
+.nec-help-demo-card h4 {
+  margin: 0 0 8px;
+  font-size: 0.8rem;
+  color: var(--nec-text-main);
+}
+
+.nec-demo-tags {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nec-demo-tag {
+  font-size: 0.78rem;
+  color: var(--nec-text-muted);
+}
+
+.nec-demo-tag code {
+  background: var(--nec-surface);
+  border: 1px solid var(--nec-border);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--nec-navy);
+  font-weight: 600;
+}
+
+[data-theme="dark"] .nec-demo-tag code {
+  color: var(--nec-gold);
+}
+
+.nec-help-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+/* ── Responsive Queries ── */
+@media (max-width: 900px) {
+  .nec-auth-grid {
+    grid-template-columns: 1fr;
+    max-width: 520px;
+    gap: 24px;
+  }
+
+  .nec-showcase-glass {
+    padding: 24px;
+  }
+
+  .nec-showcase-title {
+    font-size: 1.5rem;
+  }
+
+  .nec-auth-card {
+    padding: 24px;
+  }
+
+  .nec-role-tabs {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .nec-auth-topbar {
+    padding: 12px 16px;
+  }
+
+  .nec-auth-main {
+    padding: 8px 12px 24px;
+  }
+
+  .nec-showcase-stats {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .nec-role-tab {
+    padding: 8px 2px;
+  }
+
+  .nec-tab-label {
+    font-size: 0.68rem;
+  }
 }

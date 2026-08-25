@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { sportsApi } from "../../services/api/apiServices";
+import { useAuth } from "../../context/AuthContext";
 import Table from "../../components/common/Table";
 import Badge from "../../components/common/Badge";
 import Button from "../../components/common/Button";
@@ -8,6 +9,7 @@ import { Plus, Trophy, Users, Trash2 } from "lucide-react";
 import "./AdminPortal.css";
 
 export default function SportsCatalog() {
+  const { t } = useAuth();
   const [sports, setSports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -64,16 +66,16 @@ export default function SportsCatalog() {
         </Badge>
       )
     },
-    { key: "minPlayers", label: "Min Squad Size", width: "140px", render: (val) => <span>{val} Players</span> },
-    { key: "maxPlayers", label: "Max Roster Limit", width: "140px", render: (val) => <span>{val} Athletes</span> },
+    { key: "minPlayers", label: t.minSquadSize || "Min Squad Size", width: "140px", render: (val) => <span>{val} Players</span> },
+    { key: "maxPlayers", label: t.maxRosterLimit || "Max Roster Limit", width: "140px", render: (val) => <span>{val} Athletes</span> },
     {
       key: "actions",
-      label: "Actions",
+      label: t.actions || "Actions",
       width: "100px",
       sortable: false,
       render: (_, row) => (
         <Button variant="danger" size="sm" icon={Trash2} onClick={() => handleRemoveSport(row.id)}>
-          Remove
+          {t.delete || "Remove"}
         </Button>
       )
     }
@@ -83,11 +85,11 @@ export default function SportsCatalog() {
     <div className="nec-portal-page">
       <div className="nec-page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
-          <h2 className="nec-page-title">NEC Sports Catalog</h2>
+          <h2 className="nec-page-title">{t.necSportsCatalog || "NEC Sports Catalog"}</h2>
           <p className="nec-page-desc">Manage institutional sports catalog, squad rules, and roster size limits.</p>
         </div>
         <Button variant="primary" icon={Plus} onClick={() => setIsModalOpen(true)}>
-          Add New Sport
+          {t.addNewSport || "Add New Sport"}
         </Button>
       </div>
 

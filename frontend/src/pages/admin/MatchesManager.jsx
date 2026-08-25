@@ -72,6 +72,7 @@ export default function MatchesManager() {
 
   const columns = [
     { key: "sport", label: "Sport", width: "120px", render: (val) => <strong>{val}</strong> },
+    { key: "eventCategory", label: "Category", width: "120px", render: (val) => <Badge status={val === "Inter-College" ? "danger" : "info"}>{val}</Badge> },
     { key: "matchup", label: "Match Teams", render: (_, row) => <span>{row.teamA} ({row.deptA}) vs {row.teamB} ({row.deptB})</span> },
     { key: "schedule", label: "Date & Time", width: "180px", render: (_, row) => <span>📅 {row.date} • {row.time}</span> },
     { key: "venue", label: "Venue", width: "200px", render: (val) => <span>📍 {val}</span> },

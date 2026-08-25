@@ -1,0 +1,279 @@
+# ============================================================
+#  NEC Sports Management — CI Quality Gate
+#  Runs on every push and pull request to catch:
+#    • Build errors (broken imports, missing files, syntax)
+#    • ESLint violations and hook rule breaks
+#    • Backend syntax / module resolution errors
+#    • Cross-file breakage (vite build catches cascading issues)
+# ============================================================
+
+name: 🏆 CI — Build & Lint Check
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - Frontend
+      - Backend
+  pull_request:
+    branches:
+      - Frontend
+      - Backend
+
+# Cancel previous runs on the same branch if a new push arrives
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+
+  # ──────────────────────────────────────────────────────────
+  #  JOB 1: Detect which parts of the codebase changed
+  # ──────────────────────────────────────────────────────────
+  detect-changes:
+    name: 🔍 Detect Changed Paths
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend }}
+      backend:  ${{ steps.filter.outputs.backend }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Filter changed paths
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            frontend:
+              - 'frontend/**'
+            backend:
+              - 'backend/**'
+
+  # ──────────────────────────────────────────────────────────
+  #  JOB 2: Frontend — ESLint
+  # ──────────────────────────────────────────────────────────
+  frontend-lint:
+    name: 🧹 Frontend — ESLint
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.frontend == 'true'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: frontend
+
+      - name: Run ESLint
+        run: npm run lint
+        working-directory: frontend
+
+  # ──────────────────────────────────────────────────────────
+  #  JOB 3: Frontend — Vite Build
+  #  This is the most powerful check — catches:
+  #    • Missing imports / deleted files still referenced
+  #    • Circular dependencies that cause runtime errors
+  #    • Broken component props cascading across files
+  #    • CSS import errors
+  # ──────────────────────────────────────────────────────────
+  frontend-build:
+    name: 🏗️ Frontend — Vite Build
+    runs-on: ubuntu-latest
+    needs: [detect-changes, frontend-lint]
+    if: needs.detect-changes.outputs.frontend == 'true'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: frontend
+
+      - name: Vite Production Build
+        run: npm run build
+        working-directory: frontend
+
+      - name: Check build output exists
+        run: |
+          if [ ! -d "frontend/dist" ]; then
+            echo "❌ Build output (dist/) not found!"
+            exit 1
+          fi
+          echo "✅ Build output verified at frontend/dist/"
+          du -sh frontend/dist/
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: frontend-dist-${{ github.sha }}
+          path: frontend/dist/
+          retention-days: 3
+
+  # ──────────────────────────────────────────────────────────
+  #  JOB 4: Frontend — Import Integrity Check
+  #  Scans for imports pointing to files that don't exist
+  # ──────────────────────────────────────────────────────────
+  frontend-import-check:
+    name: 🔗 Frontend — Import Integrity
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.frontend == 'true'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for broken relative imports
+        run: |
+          echo "🔍 Scanning for broken relative imports in src/..."
+          ERRORS=0
+          while IFS= read -r file; do
+            dir=$(dirname "$file")
+            while IFS= read -r import_path; do
+              # Skip non-relative imports (node_modules, aliases)
+              if [[ "$import_path" != ./* && "$import_path" != ../* ]]; then
+                continue
+              fi
+              # Strip query/hash and quotes
+              clean=$(echo "$import_path" | tr -d '"'"'" | cut -d'?' -f1 | cut -d'#' -f1)
+              resolved="$dir/$clean"
+              # Check with common extensions
+              found=false
+              for ext in "" ".js" ".jsx" ".ts" ".tsx" ".css" ".json"; do
+                if [ -f "${resolved}${ext}" ]; then
+                  found=true
+                  break
+                fi
+              done
+              if [ "$found" = false ]; then
+                echo "❌ Broken import in $file: '$clean'"
+                ERRORS=$((ERRORS + 1))
+              fi
+            done < <(grep -oP "(?<=from ['\"])[^'\"]+(?=['\"])" "$file" 2>/dev/null || true)
+          done < <(find frontend/src -name "*.jsx" -o -name "*.js" | grep -v node_modules)
+
+          if [ "$ERRORS" -gt 0 ]; then
+            echo ""
+            echo "❌ Found $ERRORS broken import(s). Fix these before merging."
+            exit 1
+          else
+            echo "✅ All relative imports are valid."
+          fi
+
+  # ──────────────────────────────────────────────────────────
+  #  JOB 5: Backend — Syntax & Module Check
+  # ──────────────────────────────────────────────────────────
+  backend-check:
+    name: 🖥️ Backend — Syntax & Module Check
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.backend == 'true'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        run: npm ci
+        working-directory: backend
+
+      - name: Syntax check all backend JS files
+        run: |
+          echo "🔍 Checking backend files for syntax errors..."
+          ERRORS=0
+          for file in $(find src -name "*.js" | grep -v node_modules); do
+            node --input-type=module --check < "$file" 2>&1 && true
+            if [ $? -ne 0 ]; then
+              echo "❌ Syntax error in $file"
+              ERRORS=$((ERRORS + 1))
+            fi
+          done
+          if [ "$ERRORS" -gt 0 ]; then
+            exit 1
+          else
+            echo "✅ All backend files passed syntax check."
+          fi
+        working-directory: backend
+
+      - name: Verify required backend files exist
+        run: |
+          echo "🔍 Checking required backend files..."
+          REQUIRED=(
+            "src/index.js"
+            "src/app.js"
+            "src/config/db.js"
+            "src/middleware/authMiddleware.js"
+            "src/middleware/roleMiddleware.js"
+            "src/routes/authRoutes.js"
+          )
+          MISSING=0
+          for f in "${REQUIRED[@]}"; do
+            if [ ! -f "backend/$f" ]; then
+              echo "❌ Missing required file: backend/$f"
+              MISSING=$((MISSING + 1))
+            else
+              echo "✅ $f"
+            fi
+          done
+          if [ "$MISSING" -gt 0 ]; then exit 1; fi
+
+  # ──────────────────────────────────────────────────────────
+  #  JOB 6: Summary Report
+  # ──────────────────────────────────────────────────────────
+  ci-summary:
+    name: 📋 CI Summary
+    runs-on: ubuntu-latest
+    needs: [frontend-lint, frontend-build, frontend-import-check, backend-check]
+    if: always()
+
+    steps:
+      - name: Report results
+        run: |
+          echo "================================================"
+          echo "  NEC Sports Management — CI Results"
+          echo "================================================"
+          echo ""
+          echo "  Commit:   ${{ github.sha }}"
+          echo "  Branch:   ${{ github.ref_name }}"
+          echo "  Trigger:  ${{ github.event_name }}"
+          echo "  By:       ${{ github.actor }}"
+          echo ""
+          echo "  Frontend Lint:         ${{ needs.frontend-lint.result }}"
+          echo "  Frontend Build:        ${{ needs.frontend-build.result }}"
+          echo "  Frontend Imports:      ${{ needs.frontend-import-check.result }}"
+          echo "  Backend Syntax:        ${{ needs.backend-check.result }}"
+          echo ""
+
+          # Fail if any non-skipped job failed
+          if [[ "${{ needs.frontend-lint.result }}"         == "failure" ||
+                "${{ needs.frontend-build.result }}"        == "failure" ||
+                "${{ needs.frontend-import-check.result }}" == "failure" ||
+                "${{ needs.backend-check.result }}"         == "failure" ]]; then
+            echo "  ❌ CI FAILED — fix the errors above before pushing."
+            exit 1
+          else
+            echo "  ✅ All checks passed! Safe to merge."
+          fi

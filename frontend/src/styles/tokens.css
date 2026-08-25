@@ -1,28 +1,51 @@
 /* National Engineering College (NEC) Design Tokens & Institutional Styling */
+/* Aesthetic Direction: Prestigious Collegiate Athletic Heritage & Modern Varsity Editorial */
 
 :root {
-  /* Brand Colors - NEC Primary Palette */
+  /* Brand Colors - NEC Primary Heritage Palette */
   --nec-navy: #002b49;
   --nec-navy-dark: #001a2e;
+  --nec-navy-deep: #00111e;
   --nec-navy-light: #004070;
+  --nec-navy-soft: #0a4d80;
   --nec-blue: #005691;
+  --nec-blue-accent: #0284c7;
+
+  /* Championship Trophy Gold Palette */
   --nec-gold: #c59b27;
   --nec-gold-light: #e5b948;
+  --nec-gold-bright: #fbbf24;
+  --nec-gold-dark: #967416;
   --nec-gold-subtle: #fcf8e8;
+  --nec-gold-glow: rgba(197, 155, 39, 0.25);
+
+  /* Gradients */
+  --nec-gradient-navy: linear-gradient(135deg, #001a2e 0%, #002b49 55%, #004070 100%);
+  --nec-gradient-gold: linear-gradient(135deg, #967416 0%, #c59b27 50%, #e5b948 100%);
+  --nec-gradient-gold-soft: linear-gradient(135deg, rgba(197, 155, 39, 0.16) 0%, rgba(229, 185, 72, 0.04) 100%);
+  --nec-gradient-card: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  --nec-gradient-hero: linear-gradient(140deg, #001524 0%, #002b49 60%, #003c66 100%);
 
   /* Neutral Colors (Light Theme Defaults) */
-  --nec-bg: #f4f6f9;
+  --nec-bg: #f3f6fa;
   --nec-surface: #ffffff;
   --nec-surface-raised: #f8fafc;
   --nec-surface-hover: #edf2f7;
   --nec-border: #e2e8f0;
   --nec-border-dark: #cbd5e1;
+  --nec-border-gold: rgba(197, 155, 39, 0.35);
+
+  /* Glassmorphism */
+  --nec-glass-bg: rgba(255, 255, 255, 0.88);
+  --nec-glass-border: rgba(255, 255, 255, 0.7);
+  --nec-glass-backdrop: blur(12px);
 
   /* Typography Colors */
-  --nec-text-main: #1e293b;
+  --nec-text-main: #0f172a;
   --nec-text-muted: #64748b;
   --nec-text-light: #94a3b8;
   --nec-text-on-navy: #ffffff;
+  --nec-text-gold: #b48817;
 
   /* Status & Messaging Tokens */
   --nec-success: #10b981;
@@ -37,41 +60,58 @@
   --nec-danger-bg: #fef2f2;
   --nec-danger-text: #991b1b;
 
-  --nec-info: #3b82f6;
-  --nec-info-bg: #eff6ff;
-  --nec-info-text: #1e40af;
+  --nec-info: #0284c7;
+  --nec-info-bg: #f0f9ff;
+  --nec-info-text: #0369a1;
 
   --nec-live: #dc2626;
   --nec-live-bg: #fef2f2;
+  --nec-live-pulse: rgba(220, 38, 38, 0.4);
 
   /* Layout & Elevations */
-  --nec-radius-sm: 4px;
-  --nec-radius-md: 8px;
-  --nec-radius-lg: 12px;
+  --nec-radius-xs: 4px;
+  --nec-radius-sm: 6px;
+  --nec-radius-md: 10px;
+  --nec-radius-lg: 16px;
+  --nec-radius-xl: 22px;
   --nec-radius-full: 9999px;
 
-  --nec-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1);
-  --nec-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
-  --nec-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
+  --nec-shadow-sm: 0 1px 3px rgba(0, 43, 73, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --nec-shadow-md: 0 4px 12px -2px rgba(0, 43, 73, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
+  --nec-shadow-lg: 0 12px 24px -4px rgba(0, 43, 73, 0.12), 0 4px 10px -2px rgba(0, 0, 0, 0.04);
+  --nec-shadow-gold: 0 4px 20px -2px rgba(197, 155, 39, 0.3);
+  --nec-shadow-navy: 0 10px 30px -5px rgba(0, 43, 73, 0.35);
 
-  --nec-transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  --nec-font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --nec-transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  --nec-transition-fast: all 0.15s ease-out;
+
+  /* Institutional Typography System */
+  --nec-font-display: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --nec-font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --nec-font: var(--nec-font-body);
 }
 
-/* Dark Theme Overrides */
+/* Dark Theme Overrides (Collegiate Midnight & Championship Gold) */
 [data-theme="dark"] {
-  --nec-bg: #0b1120;
-  --nec-surface: #1e293b;
-  --nec-surface-raised: #334155;
-  --nec-surface-hover: #475569;
-  --nec-border: #334155;
-  --nec-border-dark: #475569;
+  --nec-bg: #070d18;
+  --nec-surface: #0f1a2e;
+  --nec-surface-raised: #18263f;
+  --nec-surface-hover: #223455;
+  --nec-border: #1e304f;
+  --nec-border-dark: #2c436b;
+  --nec-border-gold: rgba(229, 185, 72, 0.4);
+
+  --nec-gradient-card: linear-gradient(180deg, #0f1a2e 0%, #0a1322 100%);
+  --nec-glass-bg: rgba(15, 26, 46, 0.85);
+  --nec-glass-border: rgba(255, 255, 255, 0.08);
 
   --nec-text-main: #f8fafc;
   --nec-text-muted: #94a3b8;
   --nec-text-light: #64748b;
+  --nec-text-gold: #e5b948;
 
-  --nec-gold-subtle: #2d2615;
+  --nec-gold-subtle: #241c09;
+  --nec-gold-glow: rgba(229, 185, 72, 0.3);
 
   --nec-success-bg: #064e3b;
   --nec-success-text: #a7f3d0;
@@ -82,12 +122,15 @@
   --nec-danger-bg: #7f1d1d;
   --nec-danger-text: #fecaca;
 
-  --nec-info-bg: #1e3a8a;
-  --nec-info-text: #bfdbfe;
+  --nec-info-bg: #0c4a6e;
+  --nec-info-text: #bae6fd;
 
-  --nec-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
-  --nec-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.5);
-  --nec-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.6);
+  --nec-live-bg: #450a0a;
+
+  --nec-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
+  --nec-shadow-md: 0 4px 14px rgba(0, 0, 0, 0.6);
+  --nec-shadow-lg: 0 12px 30px rgba(0, 0, 0, 0.7);
+  --nec-shadow-gold: 0 4px 20px -2px rgba(229, 185, 72, 0.25);
 }
 
 /* Global Reset & Utility Styling */
@@ -98,20 +141,29 @@
 body {
   margin: 0;
   padding: 0;
-  font-family: var(--nec-font);
+  font-family: var(--nec-font-body);
   background-color: var(--nec-bg);
   color: var(--nec-text-main);
-  line-height: 1.5;
+  line-height: 1.55;
   -webkit-font-smoothing: antialiased;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.3s cubic-bezier(0.16, 1, 0.3, 1), color 0.3s ease;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--nec-font-display);
+  letter-spacing: -0.02em;
+  font-weight: 700;
 }
 
 a {
   color: var(--nec-blue);
   text-decoration: none;
+  transition: var(--nec-transition-fast);
 }
 a:hover {
-  text-decoration: underline;
+  color: var(--nec-gold);
+  text-decoration: none;
 }
 
 button, input, select, textarea {
@@ -127,9 +179,23 @@ button, input, select, textarea, a {
   outline-offset: 3px;
 }
 
-button:focus-visible, a:focus-visible {
-  position: relative;
-  z-index: 1;
+/* Institutional Athletic Crest Utilities */
+.nec-crest-gold {
+  color: var(--nec-gold);
+  filter: drop-shadow(0 2px 6px var(--nec-gold-glow));
+}
+
+.nec-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: var(--nec-radius-full);
+  font-family: var(--nec-font-display);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 /* Scrollbar Styling */
@@ -145,5 +211,5 @@ button:focus-visible, a:focus-visible {
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--nec-text-muted);
+  background: var(--nec-gold);
 }

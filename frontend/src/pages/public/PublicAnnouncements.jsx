@@ -3,12 +3,15 @@ import { announcementsApi } from "../../services/api/apiServices";
 import { Card } from "../../components/common/Card";
 import Badge from "../../components/common/Badge";
 import SkeletonLoader from "../../components/common/SkeletonLoader";
+import Pagination from "../../components/common/Pagination";
 import { Megaphone, Calendar } from "lucide-react";
 import "./PublicPortal.css";
 
 export default function PublicAnnouncements() {
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 5;
 
   useEffect(() => {
     announcementsApi.getAnnouncements().then(data => {
@@ -28,7 +31,7 @@ export default function PublicAnnouncements() {
         <SkeletonLoader rows={3} />
       ) : (
         <div className="nec-ann-full-list">
-          {list.map(ann => (
+          {list.slice((currentPage - 1) * pageSize, currentPage * pageSize).map(ann => (
             <Card key={ann.id} className="nec-ann-card">
               <div className="nec-ann-head">
                 <div className="nec-ann-tag-row">
@@ -41,6 +44,15 @@ export default function PublicAnnouncements() {
               <p className="nec-ann-body">{ann.content}</p>
             </Card>
           ))}
+          
+          {Math.ceil(list.length / pageSize) > 1 && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={Math.ceil(list.length / pageSize)}
+              onPageChange={setCurrentPage}
+              style={{ marginTop: "20px", border: "1px solid var(--nec-border)", borderRadius: "8px" }}
+            />
+          )}
         </div>
       )}
     </div>
