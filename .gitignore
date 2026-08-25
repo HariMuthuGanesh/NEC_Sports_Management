@@ -99,6 +99,12 @@ coverage/
 **/coverage/
 .nyc_output/
 junit.xml
+playwright-report/
+**/playwright-report/
+test-results/
+**/test-results/
+blob-report/
+**/blob-report/
 
 # ==========================================
 # 10. Database & Storage Files
