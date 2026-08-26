@@ -5,7 +5,6 @@ import { Card } from "../../components/common/Card";
 import Badge from "../../components/common/Badge";
 import SkeletonLoader from "../../components/common/SkeletonLoader";
 import EmptyState from "../../components/common/EmptyState";
-import { Radio } from "lucide-react";
 import "./PublicPortal.css";
 
 export default function PublicLiveScores() {
