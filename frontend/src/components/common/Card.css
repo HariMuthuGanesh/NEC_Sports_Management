@@ -50,7 +50,7 @@
 
 /* StatCard styles */
 .nec-stat-card {
-  background: var(--nec-gradient-card);
+  background-color: var(--nec-surface);
   border: 1px solid var(--nec-border);
   border-radius: var(--nec-radius-lg);
   padding: 22px;
@@ -68,18 +68,18 @@
   left: 0;
   right: 0;
   height: 3px;
-  background: var(--nec-navy);
+  background-color: var(--nec-navy);
   transition: var(--nec-transition-fast);
 }
 
 .nec-stat-card-gold::before {
-  background: var(--nec-gradient-gold);
+  background-color: var(--nec-blue-accent);
 }
 
 .nec-stat-card:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--nec-shadow-lg);
-  border-color: var(--nec-border-gold);
+  transform: translateY(-2px);
+  box-shadow: var(--nec-shadow-md);
+  border-color: var(--nec-blue-accent);
 }
 
 .nec-stat-card-top {
@@ -111,19 +111,19 @@
 }
 
 [data-theme="dark"] .nec-stat-icon-wrapper {
-  color: var(--nec-gold-light);
+  color: var(--nec-accent-light);
 }
 
 .nec-stat-card:hover .nec-stat-icon-wrapper {
-  transform: scale(1.08);
-  background: var(--nec-gradient-gold);
-  color: #001a2e;
+  transform: scale(1.05);
+  background-color: var(--nec-navy);
+  color: #ffffff;
 }
 
 .nec-stat-card-gold .nec-stat-icon-wrapper {
-  background: var(--nec-gradient-gold-soft);
-  color: var(--nec-gold);
-  border: 1px solid var(--nec-border-gold);
+  background-color: var(--nec-info-bg);
+  color: var(--nec-blue-accent);
+  border: 1px solid var(--nec-border-accent);
 }
 
 .nec-stat-value {

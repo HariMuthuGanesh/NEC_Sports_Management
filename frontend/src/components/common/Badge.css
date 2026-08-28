@@ -17,20 +17,20 @@
 }
 
 .nec-badge-navy {
-  background: var(--nec-gradient-navy);
+  background-color: var(--nec-navy);
   color: #ffffff;
-  border: 1px solid rgba(229, 185, 72, 0.4);
+  border: 1px solid var(--nec-navy-light);
 }
 
 .nec-badge-gold {
-  background: var(--nec-gradient-gold-soft);
-  color: var(--nec-gold-dark);
-  border: 1px solid var(--nec-border-gold);
+  background-color: var(--nec-info-bg);
+  color: var(--nec-blue-accent);
+  border: 1px solid var(--nec-border-accent);
 }
 
 [data-theme="dark"] .nec-badge-gold {
-  color: var(--nec-gold-light);
-  background: rgba(197, 155, 39, 0.15);
+  color: var(--nec-accent-light);
+  background-color: rgba(2, 132, 199, 0.15);
 }
 
 .nec-badge-success {

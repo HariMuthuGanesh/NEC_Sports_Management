@@ -26,8 +26,8 @@
 
 .nec-sidebar-header-badge {
   padding: 8px 12px;
-  background: var(--nec-gradient-gold-soft);
-  border: 1px solid var(--nec-border-gold);
+  background-color: var(--nec-surface-raised);
+  border: 1px solid var(--nec-border);
   border-radius: var(--nec-radius-md);
   font-family: var(--nec-font-display);
   font-size: 0.75rem;
@@ -41,8 +41,8 @@
 }
 
 [data-theme="dark"] .nec-sidebar-header-badge {
-  color: var(--nec-gold-light);
-  background: rgba(197, 155, 39, 0.12);
+  color: var(--nec-accent-light);
+  background-color: var(--nec-surface-raised);
 }
 
 .nec-sidebar-nav {
@@ -90,19 +90,18 @@
 .nec-nav-item:hover {
   background-color: var(--nec-surface-hover);
   color: var(--nec-navy);
-  transform: translateX(3px);
 }
 
 [data-theme="dark"] .nec-nav-item:hover {
-  color: var(--nec-gold-light);
+  color: var(--nec-accent-light);
 }
 
 .nec-nav-item.active {
-  background: var(--nec-gradient-navy);
+  background-color: var(--nec-navy);
   color: var(--nec-text-on-navy);
   font-weight: 700;
-  box-shadow: var(--nec-shadow-md);
-  border-color: rgba(229, 185, 72, 0.3);
+  box-shadow: var(--nec-shadow-sm);
+  border-color: var(--nec-navy-dark);
 }
 
 .nec-nav-item.active::before {
@@ -112,12 +111,12 @@
   top: 15%;
   height: 70%;
   width: 4px;
-  background: var(--nec-gold);
+  background-color: var(--nec-blue-accent);
   border-radius: 0 4px 4px 0;
 }
 
 .nec-nav-item.active .nec-nav-icon {
-  color: var(--nec-gold-light);
+  color: var(--nec-accent-light);
 }
 
 .nec-nav-icon {
@@ -127,7 +126,7 @@
 }
 
 .nec-nav-item:hover .nec-nav-icon {
-  color: var(--nec-gold);
+  color: var(--nec-blue-accent);
 }
 
 .nec-sidebar-footer {

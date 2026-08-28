@@ -39,27 +39,27 @@
 
 /* Variants */
 .nec-btn-primary {
-  background: var(--nec-gradient-navy);
+  background-color: var(--nec-navy);
   color: var(--nec-text-on-navy);
-  border-color: rgba(229, 185, 72, 0.2);
+  border-color: var(--nec-navy-dark);
   box-shadow: var(--nec-shadow-sm);
 }
 .nec-btn-primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, #002b49 0%, #004070 100%);
-  border-color: var(--nec-gold);
+  background-color: var(--nec-navy-light);
+  border-color: var(--nec-blue);
   box-shadow: var(--nec-shadow-md);
   transform: translateY(-1px);
 }
 
 .nec-btn-secondary, .nec-btn-gold {
-  background: var(--nec-gradient-gold);
-  color: #001a2e;
-  border-color: rgba(255, 255, 255, 0.3);
-  box-shadow: var(--nec-shadow-gold);
+  background-color: var(--nec-blue-accent);
+  color: #ffffff;
+  border-color: var(--nec-blue);
+  box-shadow: var(--nec-shadow-accent);
 }
 .nec-btn-secondary:hover:not(:disabled), .nec-btn-gold:hover:not(:disabled) {
-  background: linear-gradient(135deg, #e5b948 0%, #c59b27 100%);
-  box-shadow: 0 6px 20px rgba(197, 155, 39, 0.4);
+  background-color: #0369a1;
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.3);
   transform: translateY(-1px);
 }
 
@@ -75,8 +75,8 @@
 }
 
 [data-theme="dark"] .nec-btn-outline:hover:not(:disabled) {
-  border-color: var(--nec-gold);
-  color: var(--nec-gold-light);
+  border-color: var(--nec-blue-accent);
+  color: var(--nec-accent-light);
 }
 
 .nec-btn-white {

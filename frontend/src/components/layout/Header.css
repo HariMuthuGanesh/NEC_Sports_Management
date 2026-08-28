@@ -3,7 +3,7 @@
 
 .nec-header {
   height: 68px;
-  background: var(--nec-gradient-navy);
+  background-color: var(--nec-navy-dark);
   color: var(--nec-text-on-navy);
   display: flex;
   align-items: center;
@@ -13,9 +13,7 @@
   position: sticky;
   top: 0;
   z-index: 900;
-  border-bottom: 2px solid var(--nec-gold);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 2px solid var(--nec-blue-accent);
 }
 
 .nec-header-left, .nec-header-right {
@@ -37,13 +35,13 @@
 
 .nec-menu-toggle-btn:hover {
   background: rgba(255, 255, 255, 0.18);
-  border-color: var(--nec-gold-light);
+  border-color: var(--nec-blue-accent);
 }
 
 .nec-menu-toggle-btn:focus-visible,
 .nec-icon-btn:focus-visible,
 .nec-role-badge-btn:focus-visible {
-  outline: 2px solid var(--nec-gold-light);
+  outline: 2px solid var(--nec-blue-accent);
   outline-offset: 2px;
 }
 
@@ -64,20 +62,19 @@
 .nec-logo-emblem {
   width: 40px;
   height: 40px;
-  background: var(--nec-gradient-gold);
-  border-radius: 10px;
+  background-color: var(--nec-blue);
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #001a2e;
-  box-shadow: 0 4px 12px rgba(197, 155, 39, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   transition: var(--nec-transition);
 }
 
 .nec-brand:hover .nec-logo-emblem {
-  transform: rotate(-4deg) scale(1.05);
-  box-shadow: 0 6px 16px rgba(197, 155, 39, 0.55);
+  background-color: var(--nec-blue-accent);
 }
 
 .nec-logo-icon {
@@ -103,7 +100,7 @@
 .nec-system-title {
   font-family: var(--nec-font-body);
   font-size: 0.75rem;
-  color: var(--nec-gold-light);
+  color: var(--nec-accent-light);
   font-weight: 600;
   letter-spacing: 0.03em;
 }
@@ -125,8 +122,7 @@
 
 .nec-icon-btn:hover {
   background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(229, 185, 72, 0.4);
-  transform: translateY(-1px);
+  border-color: var(--nec-blue-accent);
 }
 
 .nec-icon-btn:active {
@@ -143,10 +139,9 @@
   right: 6px;
   width: 8px;
   height: 8px;
-  background: var(--nec-gold-bright);
+  background-color: var(--nec-blue-accent);
   border-radius: 50%;
   border: 2px solid var(--nec-navy-dark);
-  box-shadow: 0 0 8px var(--nec-gold-bright);
 }
 
 .nec-role-switcher-dropdown {
@@ -154,9 +149,9 @@
 }
 
 .nec-role-badge-btn {
-  background: var(--nec-gradient-gold-soft);
-  border: 1px solid var(--nec-border-gold);
-  color: var(--nec-gold-light);
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #ffffff;
   padding: 6px 14px;
   border-radius: var(--nec-radius-full);
   font-family: var(--nec-font-display);
@@ -168,14 +163,11 @@
   gap: 7px;
   cursor: pointer;
   transition: var(--nec-transition);
-  backdrop-filter: blur(8px);
 }
 
 .nec-role-badge-btn:hover {
-  background: rgba(197, 155, 39, 0.28);
-  border-color: var(--nec-gold);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(197, 155, 39, 0.25);
+  background-color: var(--nec-blue-accent);
+  border-color: var(--nec-blue-accent);
 }
 
 .nec-role-menu {
@@ -189,18 +181,6 @@
   min-width: 220px;
   overflow: hidden;
   z-index: 1000;
-  animation: necFadeDown 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-@keyframes necFadeDown {
-  from {
-    opacity: 0;
-    transform: translateY(-6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 .nec-role-menu-header {
@@ -234,18 +214,18 @@
 }
 
 [data-theme="dark"] .nec-role-menu-item:hover {
-  color: var(--nec-gold-light);
+  color: var(--nec-accent-light);
 }
 
 .nec-role-menu-item.active {
   font-weight: 700;
-  color: var(--nec-navy);
+  color: var(--nec-blue-accent);
   background-color: var(--nec-surface-hover);
-  border-left: 3px solid var(--nec-gold);
+  border-left: 3px solid var(--nec-blue-accent);
 }
 
 [data-theme="dark"] .nec-role-menu-item.active {
-  color: var(--nec-gold-light);
+  color: var(--nec-accent-light);
 }
 
 .nec-user-profile {
@@ -260,14 +240,13 @@
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  background: var(--nec-gradient-gold);
-  color: #001a2e;
+  background-color: var(--nec-blue);
+  color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .nec-user-info {
@@ -284,7 +263,7 @@
 
 .nec-user-dept {
   font-size: 0.7rem;
-  color: var(--nec-gold-light);
+  color: var(--nec-accent-light);
   font-weight: 600;
 }
 

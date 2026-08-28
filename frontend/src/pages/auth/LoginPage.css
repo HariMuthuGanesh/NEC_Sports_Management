@@ -8,9 +8,6 @@
   display: flex;
   flex-direction: column;
   background-color: var(--nec-bg);
-  background-image: 
-    radial-gradient(at 0% 0%, rgba(0, 43, 73, 0.08) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(197, 155, 39, 0.08) 0px, transparent 50%);
   color: var(--nec-text-main);
   font-family: var(--nec-font);
   position: relative;
@@ -18,9 +15,7 @@
 }
 
 [data-theme="dark"] .nec-auth-portal {
-  background-image: 
-    radial-gradient(at 0% 0%, rgba(0, 64, 112, 0.25) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(197, 155, 39, 0.12) 0px, transparent 50%);
+  background-color: #070d18;
 }
 
 /* ── Top Utility Bar ── */
@@ -53,7 +48,7 @@
 
 .nec-auth-back-btn:hover {
   background: var(--nec-surface-hover);
-  border-color: var(--nec-gold);
+  border-color: var(--nec-blue-accent);
   transform: translateY(-1px);
 }
 
@@ -96,8 +91,8 @@
 }
 
 [data-theme="dark"] .nec-auth-pill-btn.active {
-  background: var(--nec-gold);
-  color: #001a2e;
+  background: var(--nec-blue-accent);
+  color: #ffffff;
 }
 
 .nec-auth-theme-btn {
@@ -117,8 +112,7 @@
 
 .nec-auth-theme-btn:hover {
   background: var(--nec-surface-hover);
-  border-color: var(--nec-gold);
-  transform: rotate(15deg);
+  border-color: var(--nec-blue-accent);
 }
 
 /* ── Main Layout Container ── */
@@ -147,25 +141,14 @@
 }
 
 .nec-showcase-glass {
-  background: linear-gradient(145deg, var(--nec-navy-dark), var(--nec-navy));
+  background-color: var(--nec-navy-dark);
   border-radius: var(--nec-radius-lg);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--nec-navy-light);
   padding: 40px;
   color: #ffffff;
-  box-shadow: 0 20px 40px -15px rgba(0, 27, 46, 0.4);
+  box-shadow: var(--nec-shadow-navy);
   position: relative;
   overflow: hidden;
-}
-
-.nec-showcase-glass::before {
-  content: "";
-  position: absolute;
-  top: -50%;
-  right: -50%;
-  width: 100%;
-  height: 100%;
-  background: radial-gradient(circle, rgba(197, 155, 39, 0.15) 0%, transparent 70%);
-  pointer-events: none;
 }
 
 .nec-showcase-badges {
@@ -188,9 +171,9 @@
 }
 
 .nec-gold-pill {
-  background: rgba(197, 155, 39, 0.2);
-  color: var(--nec-gold-light);
-  border: 1px solid rgba(197, 155, 39, 0.4);
+  background: rgba(2, 132, 199, 0.2);
+  color: var(--nec-accent-light);
+  border: 1px solid var(--nec-blue-accent);
 }
 
 .nec-navy-pill {
@@ -206,13 +189,13 @@
 .nec-showcase-logo {
   width: 64px;
   height: 64px;
-  background: linear-gradient(135deg, var(--nec-gold), #9a7314);
-  border-radius: 16px;
+  background-color: var(--nec-blue);
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #001a2e;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   margin-bottom: 16px;
 }
 
@@ -227,7 +210,7 @@
 .nec-showcase-academy {
   font-size: 1.125rem;
   font-weight: 600;
-  color: var(--nec-gold-light);
+  color: var(--nec-accent-light);
   margin: 0 0 12px;
 }
 
