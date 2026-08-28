@@ -2,49 +2,49 @@
 /* Aesthetic Direction: Prestigious Collegiate Athletic Heritage & Modern Varsity Editorial */
 
 :root {
-  /* Brand Colors - NEC Primary Heritage Palette (Flat & Solid) */
-  --nec-navy: #002b49;
-  --nec-navy-dark: #001a2e;
-  --nec-navy-deep: #00111e;
-  --nec-navy-light: #004070;
-  --nec-navy-soft: #0a4d80;
-  --nec-blue: #005691;
-  --nec-blue-accent: #0284c7;
+  /* Official NEC College Brand Colors (Plain Solid Palette from nec.edu.in) */
+  --nec-navy: #0b2c5d;
+  --nec-navy-dark: #081f42;
+  --nec-navy-deep: #05142b;
+  --nec-navy-light: #134080;
+  --nec-navy-soft: #184c94;
+  --nec-blue: #0274be;
+  --nec-blue-accent: #0274be;
 
-  /* Primary Accent & Highlight Palette (Solid Collegiate Blue - Gold Removed) */
-  --nec-accent: #0284c7;
-  --nec-accent-light: #38bdf8;
-  --nec-accent-dark: #0369a1;
-  --nec-accent-subtle: #f0f9ff;
-  --nec-accent-glow: rgba(2, 132, 199, 0.15);
+  /* Plain Accent & Highlight Tokens (Single Royal Blue Accent) */
+  --nec-accent: #0274be;
+  --nec-accent-light: #e8f2f9;
+  --nec-accent-dark: #01568e;
+  --nec-accent-subtle: #f0f7fc;
+  --nec-accent-glow: transparent;
 
-  /* Solid Color Tokens (Gradients Removed per Design Directive) */
-  --nec-solid-navy: #002b49;
-  --nec-solid-navy-dark: #001a2e;
-  --nec-solid-accent: #005691;
+  /* Solid Color Tokens (Plain Flat Color Scheme - No Gradients) */
+  --nec-solid-navy: #0b2c5d;
+  --nec-solid-navy-dark: #081f42;
+  --nec-solid-accent: #0274be;
   --nec-solid-card: #ffffff;
-  --nec-solid-hero: #001a2e;
+  --nec-solid-hero: #0b2c5d;
 
-  /* Neutral Colors (Light Theme Defaults) */
-  --nec-bg: #f3f6fa;
+  /* Plain Neutral Colors (Clean Light Theme Defaults) */
+  --nec-bg: #f4f6f9;
   --nec-surface: #ffffff;
   --nec-surface-raised: #f8fafc;
   --nec-surface-hover: #edf2f7;
-  --nec-border: #e2e8f0;
-  --nec-border-dark: #cbd5e1;
-  --nec-border-accent: #0284c7;
+  --nec-border: #e5e7eb;
+  --nec-border-dark: #d1d5db;
+  --nec-border-accent: #0274be;
 
-  /* Flat Surface Backdrop */
+  /* Plain Backdrop */
   --nec-glass-bg: #ffffff;
-  --nec-glass-border: #e2e8f0;
+  --nec-glass-border: #e5e7eb;
   --nec-glass-backdrop: none;
 
   /* Typography Colors */
-  --nec-text-main: #0f172a;
-  --nec-text-muted: #64748b;
-  --nec-text-light: #94a3b8;
+  --nec-text-main: #1f2937;
+  --nec-text-muted: #6b7280;
+  --nec-text-light: #9ca3af;
   --nec-text-on-navy: #ffffff;
-  --nec-text-accent: #005691;
+  --nec-text-accent: #0274be;
 
   /* Status & Messaging Tokens */
   --nec-success: #10b981;
@@ -59,9 +59,9 @@
   --nec-danger-bg: #fef2f2;
   --nec-danger-text: #991b1b;
 
-  --nec-info: #0284c7;
-  --nec-info-bg: #f0f9ff;
-  --nec-info-text: #0369a1;
+  --nec-info: #0274be;
+  --nec-info-bg: #e8f2f9;
+  --nec-info-text: #01568e;
 
   --nec-live: #dc2626;
   --nec-live-bg: #fef2f2;
@@ -69,48 +69,48 @@
 
   /* Layout & Elevations */
   --nec-radius-xs: 4px;
-  --nec-radius-sm: 6px;
-  --nec-radius-md: 8px;
-  --nec-radius-lg: 12px;
-  --nec-radius-xl: 16px;
+  --nec-radius-sm: 4px;
+  --nec-radius-md: 6px;
+  --nec-radius-lg: 8px;
+  --nec-radius-xl: 12px;
   --nec-radius-full: 9999px;
 
-  --nec-shadow-sm: 0 1px 3px rgba(0, 43, 73, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
-  --nec-shadow-md: 0 4px 12px -2px rgba(0, 43, 73, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
-  --nec-shadow-lg: 0 12px 24px -4px rgba(0, 43, 73, 0.12), 0 4px 10px -2px rgba(0, 0, 0, 0.04);
-  --nec-shadow-accent: 0 4px 14px -2px rgba(2, 132, 199, 0.2);
-  --nec-shadow-navy: 0 8px 24px -4px rgba(0, 43, 73, 0.25);
+  --nec-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --nec-shadow-md: 0 2px 4px rgba(0, 0, 0, 0.06);
+  --nec-shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --nec-shadow-accent: none;
+  --nec-shadow-navy: 0 2px 6px rgba(11, 44, 93, 0.15);
 
-  --nec-transition: all 0.2s ease-out;
-  --nec-transition-fast: all 0.12s ease-out;
+  --nec-transition: all 0.15s ease;
+  --nec-transition-fast: all 0.1s ease;
 
-  /* Institutional Typography System */
+  /* Typography System */
   --nec-font-display: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --nec-font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --nec-font: var(--nec-font-body);
 }
 
-/* Dark Theme Overrides (Collegiate Flat Dark) */
+/* Dark Theme Overrides (Plain Solid Dark) */
 [data-theme="dark"] {
-  --nec-bg: #070d18;
-  --nec-surface: #0f1a2e;
-  --nec-surface-raised: #18263f;
-  --nec-surface-hover: #223455;
-  --nec-border: #1e304f;
-  --nec-border-dark: #2c436b;
-  --nec-border-accent: #0284c7;
+  --nec-bg: #091322;
+  --nec-surface: #0f1c30;
+  --nec-surface-raised: #162640;
+  --nec-surface-hover: #1e3252;
+  --nec-border: #1e3252;
+  --nec-border-dark: #2b456e;
+  --nec-border-accent: #0274be;
 
-  --nec-solid-card: #0f1a2e;
-  --nec-glass-bg: #0f1a2e;
-  --nec-glass-border: #1e304f;
+  --nec-solid-card: #0f1c30;
+  --nec-glass-bg: #0f1c30;
+  --nec-glass-border: #1e3252;
 
-  --nec-text-main: #f8fafc;
-  --nec-text-muted: #94a3b8;
-  --nec-text-light: #64748b;
-  --nec-text-accent: #38bdf8;
+  --nec-text-main: #f3f4f6;
+  --nec-text-muted: #9ca3af;
+  --nec-text-light: #6b7280;
+  --nec-text-accent: #60a5fa;
 
-  --nec-accent-subtle: #0c4a6e;
-  --nec-accent-glow: rgba(56, 189, 248, 0.2);
+  --nec-accent-subtle: #1e3252;
+  --nec-accent-glow: transparent;
 
   --nec-success-bg: #064e3b;
   --nec-success-text: #a7f3d0;
@@ -121,15 +121,15 @@
   --nec-danger-bg: #7f1d1d;
   --nec-danger-text: #fecaca;
 
-  --nec-info-bg: #0c4a6e;
-  --nec-info-text: #bae6fd;
+  --nec-info-bg: #1e3252;
+  --nec-info-text: #93c5fd;
 
   --nec-live-bg: #450a0a;
 
-  --nec-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
-  --nec-shadow-md: 0 4px 14px rgba(0, 0, 0, 0.5);
-  --nec-shadow-lg: 0 12px 30px rgba(0, 0, 0, 0.6);
-  --nec-shadow-accent: 0 4px 14px rgba(2, 132, 199, 0.2);
+  --nec-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --nec-shadow-md: 0 2px 6px rgba(0, 0, 0, 0.5);
+  --nec-shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.6);
+  --nec-shadow-accent: none;
 }
 
 /* Global Reset & Utility Styling */

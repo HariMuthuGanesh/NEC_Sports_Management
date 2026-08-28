@@ -2,18 +2,18 @@
 /* Theme: Collegiate Heritage & Modern Varsity Editorial */
 
 .nec-header {
-  height: 68px;
-  background-color: var(--nec-navy-dark);
+  height: 64px;
+  background-color: var(--nec-navy);
   color: var(--nec-text-on-navy);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 24px;
-  box-shadow: var(--nec-shadow-navy);
+  box-shadow: 0 2px 6px rgba(11, 44, 93, 0.15);
   position: sticky;
   top: 0;
   z-index: 900;
-  border-bottom: 2px solid var(--nec-blue-accent);
+  border-bottom: 2px solid var(--nec-blue);
 }
 
 .nec-header-left, .nec-header-right {
