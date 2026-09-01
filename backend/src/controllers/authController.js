@@ -1,12 +1,12 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { JWT_SECRET, revokeToken } from '../config/securityConfig.js';
-import { 
-    findUserByUsernameOrEmail, 
-    findUserById, 
-    createUser, 
-    linkGoogleAccount, 
-    updateLastLogin 
+import {
+    findUserByUsernameOrEmail,
+    findUserById,
+    createUser,
+    linkGoogleAccount,
+    updateLastLogin
 } from '../models/sql/userSqlModel.js';
 import { getStudentByUserId } from '../models/sql/studentSqlModel.js';
 
