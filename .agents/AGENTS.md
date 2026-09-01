@@ -51,6 +51,7 @@ docs: update PROJECT_MEMORY.md
 3. **PowerShell**: Use `;` to chain commands, NOT `&&`
 4. **CI**: GitHub Actions will auto-run on every push — check the Actions tab for errors
 5. **Confirmation Rule (GitHub & Notion)**: ALWAYS ask for explicit user confirmation in chat before executing any `git push` command or creating/updating any Notion page.
+6. **Secret Protection**: NEVER hardcode Notion tokens (`ntn_...`) or API secrets in documentation or markdown files. Always use `$env:NOTION_API_KEY` or placeholders to satisfy GitHub push protection.
 
 ---
 

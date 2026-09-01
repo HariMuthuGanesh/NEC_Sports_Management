@@ -205,6 +205,12 @@ $body = Get-Content "payload.json" -Raw
 Invoke-RestMethod -Uri "https://api.notion.com/v1/pages" -Method POST -Headers $headers -Body $body
 ```
 
+## 🗄️ MySQL Database Standards (`feature/mysql-backend`)
+- **Query Engine**: `mysql2/promise` raw queries with parameterized statement bounds (`?`). Zero ORMs.
+- **Connection Pool**: Connection pool exported from `backend/src/config/db.js`.
+- **Schema DDL**: Single migration file at `backend/src/data/schema.sql` (14 relational tables).
+- **Authentication**: Single `users` table (`role`: `'Admin'`, `'Coordinator'`, `'Player'`); manual signup first, with optional Google sign-in setting `google_linked = 1`.
+
 ---
 
 ## 📌 Key Rules (from AGENTS.md)
