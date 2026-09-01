@@ -2,9 +2,7 @@
 # 1. Documentation & Markdown Files
 # ==========================================
 *.md
-!.agents/**/*.md
-!.agents/*.md
-!.github/**/*.md
+.agents/
 Plan/
 
 
