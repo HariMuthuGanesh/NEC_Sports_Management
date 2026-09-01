@@ -47,9 +47,10 @@ docs: update PROJECT_MEMORY.md
 ## 📋 Core Rules
 
 1. **Build check**: Run `npm run build` in `d:\Sports_Management\frontend` before every frontend push
-2. **Notion update**: After every push → create a child page inside the Sports Management System Notion page
+2. **Notion update**: After every approved push → create a child page inside the Sports Management System Notion page (requires explicit user confirmation first)
 3. **PowerShell**: Use `;` to chain commands, NOT `&&`
 4. **CI**: GitHub Actions will auto-run on every push — check the Actions tab for errors
+5. **Confirmation Rule (GitHub & Notion)**: ALWAYS ask for explicit user confirmation in chat before executing any `git push` command or creating/updating any Notion page.
 
 ---
 
