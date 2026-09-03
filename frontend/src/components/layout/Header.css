@@ -277,23 +277,24 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: var(--nec-gradient-gold);
-  color: #001a2e;
+  background-color: var(--nec-blue);
+  color: #ffffff;
   border: 1px solid rgba(255, 255, 255, 0.4);
   font-family: var(--nec-font-display);
   font-size: 0.8125rem;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0.02em;
   padding: 8px 18px;
   border-radius: var(--nec-radius-full);
   cursor: pointer;
-  box-shadow: var(--nec-shadow-gold);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   transition: var(--nec-transition);
 }
 
 .nec-header-signin-btn:hover {
+  background-color: var(--nec-blue-accent);
   transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgba(197, 155, 39, 0.45);
+  box-shadow: 0 4px 12px rgba(2, 116, 190, 0.4);
 }
 
 .nec-header-signin-btn:active {

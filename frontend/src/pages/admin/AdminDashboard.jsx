@@ -96,7 +96,7 @@ export default function AdminDashboard({ onNavigate }) {
           <div className="nec-stat-subtext" style={{ color: "var(--nec-gold-light)" }}>Inter-Department Championships</div>
         </div>
 
-        <div className="nec-stat-card cursor-pointer" onClick={() => onNavigate("admin_depts")}>
+        <div className="nec-stat-card cursor-pointer" onClick={() => onNavigate("admin_students")}>
           <div className="nec-stat-card-top">
             <span className="nec-stat-title">{t.registeredAthletes || "Registered Athletes"}</span>
             <div className="nec-stat-icon-wrapper"><Users size={20} /></div>

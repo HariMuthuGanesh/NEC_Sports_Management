@@ -8,7 +8,7 @@ import { useAuth } from "../../context/AuthContext";
 import "./PublicHome.css";
 
 export default function PublicHome({ onNavigate }) {
-  const { t } = useAuth();
+  const { t, currentUser, ROLES } = useAuth();
   const [liveMatches, setLiveMatches] = useState([]);
   const [leaderboard, setLeaderboard] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
@@ -47,9 +47,15 @@ export default function PublicHome({ onNavigate }) {
             <Button variant="white" icon={Calendar} onClick={() => onNavigate("public_fixtures")}>
               {t.viewFixturesSchedule}
             </Button>
-            <Button variant="outline" icon={LogIn} onClick={() => onNavigate("login")} style={{ borderColor: "rgba(255,255,255,0.4)", color: "#fff" }}>
-              {t.login || "Portal Sign In"}
-            </Button>
+            {currentUser.role === ROLES.PUBLIC ? (
+              <Button variant="primary" icon={LogIn} onClick={() => onNavigate("login")}>
+                {t.login || "Portal Sign In"}
+              </Button>
+            ) : (
+              <Button variant="primary" onClick={() => onNavigate(currentUser.role === ROLES.ADMIN ? "admin_dash" : currentUser.role === ROLES.COORDINATOR ? "coord_dash" : "player_dash")}>
+                Go to Dashboard
+              </Button>
+            )}
           </div>
         </div>
       </div>
