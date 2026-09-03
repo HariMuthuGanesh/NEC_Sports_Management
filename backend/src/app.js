@@ -6,8 +6,8 @@ import authRoutes from './routes/authRoutes.js';
 import apiRoutes from './routes/apiRoutes.js';
 import { auditLogger } from './middleware/auditMiddleware.js';
 import { sanitizeData } from './middleware/sanitizationMiddleware.js';
-import { requireCsrfToken } from './middleware/csrfMiddleware.js';
 import { notFound, errorHandler } from './middleware/errorHandler.js';
+
 
 const app = express();
 
@@ -24,16 +24,15 @@ app.use(helmet({
 app.use(cors({
     origin: ['http://localhost:5173', 'http://localhost:3000', 'https://nec.edu.in'],
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token']
+    allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 // 3. Payload Limit Protection (Defend against Denial-of-Service / Buffer Payload attacks)
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
-// 3.5. Architectural Security (Sanitization & CSRF)
+// 3.5. Input Sanitization
 app.use(sanitizeData);
-app.use(requireCsrfToken);
 
 // 4. Rate Limiting (DDoS Protection)
 const apiLimiter = rateLimit({

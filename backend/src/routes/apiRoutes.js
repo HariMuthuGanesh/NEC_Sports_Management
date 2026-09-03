@@ -8,6 +8,7 @@ import {
     getDepartments, 
     getAnnouncements 
 } from '../controllers/sportsController.js';
+import { updateScore } from '../controllers/matchController.js';
 
 const router = express.Router();
 
@@ -18,6 +19,10 @@ router.get('/venues', getVenues);
 router.get('/departments', getDepartments);
 router.get('/announcements', getAnnouncements);
 router.get('/matches', getMatches);
+
+// Match score update — Admin and Coordinator only, winner resolved server-side
+router.put('/matches/:id/score', protect, authorize('Admin', 'Coordinator'), updateScore);
+
 
 // Protected endpoints (require login)
 router.get('/teams', protect, (req, res) => res.json({ success: true, data: [] }));

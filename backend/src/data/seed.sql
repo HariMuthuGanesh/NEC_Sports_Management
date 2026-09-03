@@ -1,7 +1,5 @@
 -- NEC Sports Management System — Seed Data Script for MySQL Database
 
-USE nec_sports_db;
-
 -- Disable foreign key checks for clean seeding
 SET FOREIGN_KEY_CHECKS = 0;
 TRUNCATE TABLE gallery;
