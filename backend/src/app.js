@@ -6,8 +6,8 @@ import authRoutes from './routes/authRoutes.js';
 import apiRoutes from './routes/apiRoutes.js';
 import { auditLogger } from './middleware/auditMiddleware.js';
 import { sanitizeData } from './middleware/sanitizationMiddleware.js';
-import { requireCsrfToken } from './middleware/csrfMiddleware.js';
 import { notFound, errorHandler } from './middleware/errorHandler.js';
+
 
 const app = express();
 
@@ -31,9 +31,8 @@ app.use(cors({
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
-// 3.5. Architectural Security (Sanitization & CSRF)
+// 3.5. Input Sanitization
 app.use(sanitizeData);
-app.use(requireCsrfToken);
 
 // 4. Rate Limiting (DDoS Protection)
 const apiLimiter = rateLimit({

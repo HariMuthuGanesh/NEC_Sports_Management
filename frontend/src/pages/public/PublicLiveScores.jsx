@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { matchesApi } from "../../services/api/apiServices";
+import { useAuth } from "../../context/AuthContext";
 import { Card } from "../../components/common/Card";
 import Badge from "../../components/common/Badge";
 import SkeletonLoader from "../../components/common/SkeletonLoader";
 import EmptyState from "../../components/common/EmptyState";
-import { Radio } from "lucide-react";
 import "./PublicPortal.css";
 
 export default function PublicLiveScores() {
+  const { t } = useAuth();
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -24,23 +25,23 @@ export default function PublicLiveScores() {
   return (
     <div className="nec-portal-page">
       <div className="nec-page-header">
-        <h2 className="nec-page-title">Campus Live Scores & Results</h2>
+        <h2 className="nec-page-title">{t.liveScores || "Campus Live Scores & Results"}</h2>
         <p className="nec-page-desc">Real-time match scores and completed game results across all NEC sports venues.</p>
       </div>
 
       <div className="nec-portal-section">
-        <h3 className="nec-sub-title">🔴 Matches In Progress</h3>
+        <h3 className="nec-sub-title">🔴 {t.liveActionCampus || "Matches In Progress"}</h3>
         {loading ? (
           <SkeletonLoader rows={2} type="cards" />
         ) : liveList.length === 0 ? (
-          <EmptyState title="No Live Matches Currently" message="Check the fixtures tab for upcoming scheduled games today." />
+          <EmptyState title={t.noMatchesLive || "No Live Matches Currently"} message="Check the fixtures tab for upcoming scheduled games today." />
         ) : (
           <div className="nec-matches-grid">
             {liveList.map(m => (
               <Card key={m.id} className="nec-score-card live">
                 <div className="nec-score-head">
                   <span>{m.sport} • {m.round}</span>
-                  <Badge status="live">LIVE SCORE</Badge>
+                  <Badge status="live">{t.live || "LIVE SCORE"}</Badge>
                 </div>
                 <div className="nec-score-main">
                   <div className="nec-score-team">

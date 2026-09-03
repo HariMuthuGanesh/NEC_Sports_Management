@@ -1,3 +1,6 @@
+/* National Engineering College (NEC) Header Component Styles */
+/* Theme: Collegiate Heritage & Modern Varsity Editorial */
+
 .nec-header {
   height: 64px;
   background-color: var(--nec-navy);
@@ -5,12 +8,12 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 20px;
-  box-shadow: var(--nec-shadow-md);
+  padding: 0 24px;
+  box-shadow: 0 2px 6px rgba(11, 44, 93, 0.15);
   position: sticky;
   top: 0;
   z-index: 900;
-  border-bottom: 2px solid var(--nec-gold);
+  border-bottom: 2px solid var(--nec-blue);
 }
 
 .nec-header-left, .nec-header-right {
@@ -21,18 +24,25 @@
 
 .nec-menu-toggle-btn {
   display: none;
-  background: none;
-  border: none;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   color: #fff;
   cursor: pointer;
-  padding: 6px;
-  border-radius: var(--nec-radius-sm);
+  padding: 8px;
+  border-radius: var(--nec-radius-md);
+  transition: var(--nec-transition-fast);
+}
+
+.nec-menu-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: var(--nec-blue-accent);
 }
 
 .nec-menu-toggle-btn:focus-visible,
 .nec-icon-btn:focus-visible,
 .nec-role-badge-btn:focus-visible {
-  outline-color: var(--nec-gold-light);
+  outline: 2px solid var(--nec-blue-accent);
+  outline-offset: 2px;
 }
 
 @media (max-width: 900px) {
@@ -44,19 +54,31 @@
 .nec-brand {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
+  text-decoration: none;
+  cursor: pointer;
 }
 
 .nec-logo-emblem {
-  width: 36px;
-  height: 36px;
-  background: linear-gradient(135deg, var(--nec-gold), #b3861b);
+  width: 40px;
+  height: 40px;
+  background-color: var(--nec-blue);
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #000;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: var(--nec-transition);
+}
+
+.nec-brand:hover .nec-logo-emblem {
+  background-color: var(--nec-blue-accent);
+}
+
+.nec-logo-icon {
+  stroke-width: 2.2;
 }
 
 .nec-brand-text {
@@ -66,26 +88,30 @@
 
 .nec-college-name {
   margin: 0;
-  font-size: 0.95rem;
-  font-weight: 700;
-  letter-spacing: 0.5px;
+  font-family: var(--nec-font-display);
+  font-size: 1.02rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
   color: #ffffff;
-  line-height: 1.1;
+  line-height: 1.15;
+  text-transform: uppercase;
 }
 
 .nec-system-title {
+  font-family: var(--nec-font-body);
   font-size: 0.75rem;
-  color: var(--nec-gold-light);
-  font-weight: 500;
+  color: var(--nec-accent-light);
+  font-weight: 600;
+  letter-spacing: 0.03em;
 }
 
 .nec-icon-btn {
-  background: rgba(255, 255, 255, 0.1);
-  border: none;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   color: #fff;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--nec-radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -96,6 +122,11 @@
 
 .nec-icon-btn:hover {
   background: rgba(255, 255, 255, 0.2);
+  border-color: var(--nec-blue-accent);
+}
+
+.nec-icon-btn:active {
+  transform: translateY(0);
 }
 
 .nec-notif-wrapper {
@@ -108,9 +139,9 @@
   right: 6px;
   width: 8px;
   height: 8px;
-  background-color: var(--nec-gold);
+  background-color: var(--nec-blue-accent);
   border-radius: 50%;
-  border: 1px solid var(--nec-navy);
+  border: 2px solid var(--nec-navy-dark);
 }
 
 .nec-role-switcher-dropdown {
@@ -118,84 +149,104 @@
 }
 
 .nec-role-badge-btn {
-  background: rgba(197, 155, 39, 0.2);
-  border: 1px solid var(--nec-gold);
-  color: var(--nec-gold-light);
-  padding: 4px 10px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  padding: 6px 14px;
   border-radius: var(--nec-radius-full);
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-family: var(--nec-font-display);
+  font-size: 0.775rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   cursor: pointer;
   transition: var(--nec-transition);
 }
 
 .nec-role-badge-btn:hover {
-  background: rgba(197, 155, 39, 0.35);
+  background-color: var(--nec-blue-accent);
+  border-color: var(--nec-blue-accent);
 }
 
 .nec-role-menu {
   position: absolute;
   right: 0;
-  top: 110%;
+  top: calc(100% + 8px);
   background-color: var(--nec-surface);
   border: 1px solid var(--nec-border);
-  border-radius: var(--nec-radius-md);
+  border-radius: var(--nec-radius-lg);
   box-shadow: var(--nec-shadow-lg);
-  min-width: 200px;
+  min-width: 220px;
   overflow: hidden;
   z-index: 1000;
 }
 
 .nec-role-menu-header {
-  padding: 8px 12px;
+  padding: 10px 16px;
+  font-family: var(--nec-font-display);
   font-size: 0.725rem;
   text-transform: uppercase;
+  letter-spacing: 0.06em;
   color: var(--nec-text-muted);
-  font-weight: 700;
+  font-weight: 800;
   background-color: var(--nec-surface-raised);
+  border-bottom: 1px solid var(--nec-border);
 }
 
 .nec-role-menu-item {
   width: 100%;
   text-align: left;
-  padding: 10px 14px;
+  padding: 11px 16px;
   background: none;
   border: none;
   color: var(--nec-text-main);
-  font-size: 0.8125rem;
+  font-size: 0.85rem;
+  font-weight: 500;
   cursor: pointer;
+  transition: var(--nec-transition-fast);
 }
 
 .nec-role-menu-item:hover {
   background-color: var(--nec-surface-hover);
+  color: var(--nec-navy);
+}
+
+[data-theme="dark"] .nec-role-menu-item:hover {
+  color: var(--nec-accent-light);
 }
 
 .nec-role-menu-item.active {
   font-weight: 700;
-  color: var(--nec-navy);
+  color: var(--nec-blue-accent);
   background-color: var(--nec-surface-hover);
+  border-left: 3px solid var(--nec-blue-accent);
+}
+
+[data-theme="dark"] .nec-role-menu-item.active {
+  color: var(--nec-accent-light);
 }
 
 .nec-user-profile {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding-left: 8px;
-  border-left: 1px solid rgba(255, 255, 255, 0.15);
+  padding-left: 10px;
+  border-left: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .nec-avatar {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
-  background: var(--nec-gold);
-  color: #000;
+  background-color: var(--nec-blue);
+  color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .nec-user-info {
@@ -204,15 +255,59 @@
 }
 
 .nec-user-name {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: #fff;
-  line-height: 1.1;
+  font-size: 0.825rem;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.15;
 }
 
 .nec-user-dept {
   font-size: 0.7rem;
-  color: var(--nec-gold-light);
+  color: var(--nec-accent-light);
+  font-weight: 600;
+}
+
+.nec-user-profile-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nec-header-signin-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--nec-gradient-gold);
+  color: #001a2e;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  font-family: var(--nec-font-display);
+  font-size: 0.8125rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  padding: 8px 18px;
+  border-radius: var(--nec-radius-full);
+  cursor: pointer;
+  box-shadow: var(--nec-shadow-gold);
+  transition: var(--nec-transition);
+}
+
+.nec-header-signin-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(197, 155, 39, 0.45);
+}
+
+.nec-header-signin-btn:active {
+  transform: translateY(0);
+}
+
+.nec-logout-btn {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.nec-logout-btn:hover {
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.25);
+  border-color: rgba(239, 68, 68, 0.4);
 }
 
 @media (max-width: 640px) {
@@ -221,12 +316,12 @@
   }
 
   .nec-header {
-    height: 60px;
-    padding: 0 12px;
+    height: 62px;
+    padding: 0 14px;
   }
 
   .nec-header-left, .nec-header-right {
-    gap: 8px;
+    gap: 10px;
   }
 
   .nec-user-profile {

@@ -51,7 +51,7 @@ export const INITIAL_TOURNAMENTS = [
     endDate: "2026-09-20",
     status: "Registration Open",
     description: "Inter-collegiate and departmental invitations for Basketball and Badminton.",
-    organizer: "Lakshmi Ammal Sports Academy",
+    organizer: "NEC Sports Council",
     bannerImg: "https://images.unsplash.com/photo-1546519638-68e109498ffc?auto=format&fit=crop&w=800&q=80"
   },
   {
@@ -68,12 +68,12 @@ export const INITIAL_TOURNAMENTS = [
 ];
 
 export const INITIAL_EVENTS = [
-  { id: "ev_101", tournamentId: "tn_2026_interdept", sportId: "sp_football", category: "Men", title: "Men's Football Championship", maxTeams: 8, registeredTeams: 8, status: "Ongoing", regDeadline: "2026-07-28" },
-  { id: "ev_102", tournamentId: "tn_2026_interdept", sportId: "sp_basketball", category: "Men", title: "Men's Basketball Cup", maxTeams: 8, registeredTeams: 6, status: "Ongoing", regDeadline: "2026-07-28" },
-  { id: "ev_103", tournamentId: "tn_2026_interdept", sportId: "sp_badminton", category: "Women", title: "Women's Badminton Singles", maxTeams: 16, registeredTeams: 14, status: "Open", regDeadline: "2026-08-15" },
-  { id: "ev_104", tournamentId: "tn_monsoon_cricket", sportId: "sp_cricket", category: "Men", title: "Monsoon T20 Cricket", maxTeams: 8, registeredTeams: 8, status: "Ongoing", regDeadline: "2026-08-02" },
-  { id: "ev_105", tournamentId: "tn_2026_interdept", sportId: "sp_athletics", category: "Open", title: "100m Sprint Finals", maxTeams: 16, registeredTeams: 12, status: "Upcoming", regDeadline: "2026-08-18" },
-  { id: "ev_106", tournamentId: "tn_2026_interdept", sportId: "sp_chess", category: "Open", title: "Inter-Dept Blitz Chess", maxTeams: 32, registeredTeams: 20, status: "Open", regDeadline: "2026-08-20" }
+  { id: "ev_101", tournamentId: "tn_2026_interdept", sportId: "sp_football", category: "Men", eventCategory: "Inter-Department", title: "Men's Football Championship", maxTeams: 8, registeredTeams: 8, status: "Ongoing", regDeadline: "2026-07-28" },
+  { id: "ev_102", tournamentId: "tn_2026_interdept", sportId: "sp_basketball", category: "Men", eventCategory: "Inter-Department", title: "Men's Basketball Cup", maxTeams: 8, registeredTeams: 6, status: "Ongoing", regDeadline: "2026-07-28" },
+  { id: "ev_103", tournamentId: "tn_2026_interdept", sportId: "sp_badminton", category: "Women", eventCategory: "Inter-Department", title: "Women's Badminton Singles", maxTeams: 16, registeredTeams: 14, status: "Open", regDeadline: "2026-08-15" },
+  { id: "ev_104", tournamentId: "tn_monsoon_cricket", sportId: "sp_cricket", category: "Men", eventCategory: "Inter-College", title: "Monsoon T20 Cricket", maxTeams: 8, registeredTeams: 8, status: "Ongoing", regDeadline: "2026-08-02" },
+  { id: "ev_105", tournamentId: "tn_2026_interdept", sportId: "sp_athletics", category: "Open", eventCategory: "Inter-Department", title: "100m Sprint Finals", maxTeams: 16, registeredTeams: 12, status: "Upcoming", regDeadline: "2026-08-18" },
+  { id: "ev_106", tournamentId: "tn_2026_interdept", sportId: "sp_chess", category: "Open", eventCategory: "Inter-College", title: "Inter-Dept Blitz Chess", maxTeams: 32, registeredTeams: 20, status: "Open", regDeadline: "2026-08-20" }
 ];
 
 export const INITIAL_TEAMS = [

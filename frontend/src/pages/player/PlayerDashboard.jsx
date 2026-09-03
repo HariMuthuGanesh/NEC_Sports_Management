@@ -1,73 +1,65 @@
 import React, { useEffect, useState } from "react";
 import { Card, StatCard } from "../../components/common/Card";
-import Badge from "../../components/common/Badge";
-import Table from "../../components/common/Table";
+import Button from "../../components/common/Button";
 import { useAuth } from "../../context/AuthContext";
-import { matchesApi, playersApi } from "../../services/api/apiServices";
-import { Users, Calendar, Bell, Trophy, Shield } from "lucide-react";
+import { matchesApi, teamsApi, playersApi } from "../../services/api/apiServices";
+import { Users, Calendar, Trophy, ArrowRight } from "lucide-react";
 import "./PlayerPortal.css";
 
-export default function PlayerDashboard() {
-  const { currentUser } = useAuth();
+export default function PlayerDashboard({ onNavigate }) {
+  const { currentUser, t } = useAuth();
+  const playerDept = currentUser.dept || "MECH";
+  const playerName = currentUser.name || "Priya Patel";
+
   const [myTeam, setMyTeam] = useState(null);
-  const [myMatches, setMyMatches] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [myPlayerInfo, setMyPlayerInfo] = useState(null);
+  const [nextMatch, setNextMatch] = useState(null);
 
   useEffect(() => {
-    Promise.all([matchesApi.getMatches()]).then(([matches]) => {
-      // Player personal view simulation
-      setMyMatches(matches.slice(0, 4));
-      setLoading(false);
-    });
-  }, []);
+    Promise.all([
+      teamsApi.getTeams(),
+      playersApi.getAllPlayers(),
+      matchesApi.getMatches()
+    ]).then(([teams, players, matches]) => {
+      const playerObj = players.find(p => p.name.toLowerCase().includes(playerName.toLowerCase()) || p.studentId === currentUser.id) || players[0];
+      setMyPlayerInfo(playerObj);
 
-  const columns = [
-    { key: "sport", label: "Sport", width: "120px", render: (val) => <strong>{val}</strong> },
-    { key: "matchup", label: "Fixture", render: (_, row) => <span>{row.teamA} vs {row.teamB}</span> },
-    { key: "date", label: "Date & Time", width: "160px", render: (_, row) => <span>📅 {row.date} • {row.time}</span> },
-    { key: "venue", label: "Venue", width: "180px", render: (val) => <span>📍 {val}</span> },
-    {
-      key: "status",
-      label: "Status",
-      width: "120px",
-      render: (val) => (
-        <Badge status={val === "Live" ? "live" : val === "Completed" ? "success" : "warning"}>
-          {val}
-        </Badge>
-      )
-    }
-  ];
+      const teamObj = teams.find(t => t.id === playerObj?.teamId || t.deptCode === playerDept) || teams[0];
+      setMyTeam(teamObj);
+
+      const filteredMatches = matches.filter(m => 
+        (teamObj && (m.teamA === teamObj.name || m.teamB === teamObj.name)) ||
+        m.deptA === playerDept || m.deptB === playerDept
+      );
+      setNextMatch(filteredMatches.find(m => m.status === "Scheduled" || m.status === "Live") || filteredMatches[0]);
+    });
+  }, [currentUser, playerDept, playerName]);
 
   return (
     <div className="nec-portal-page">
       <div className="nec-page-header">
-        <h2 className="nec-page-title">Student Athlete Dashboard</h2>
-        <p className="nec-page-desc">Student Athlete: <strong>{currentUser.name}</strong> | Department: <strong>{currentUser.dept || "MECH"}</strong></p>
+        <h2 className="nec-page-title">{t.playerDashboardTitle || "Student Athlete Portal"}</h2>
+        <p className="nec-page-desc">Student Athlete: <strong>{playerName}</strong> | Department: <strong>{playerDept}</strong></p>
       </div>
 
       <div className="nec-stats-grid">
-        <StatCard title="My Squad" value="Mech Titans" subtext="Department Team" icon={Users} color="navy" />
-        <StatCard title="Next Match" value="Aug 14" subtext="09:30 AM at Basketball Arena" icon={Calendar} color="gold" />
-        <StatCard title="Attendance Rate" value="100%" subtext="Verified Athlete Status" icon={Trophy} />
+        <StatCard title={t.mySquad || "My Squad"} value={myTeam ? myTeam.name : "Loading..."} subtext={`${playerDept} Department Squad`} icon={Users} color="navy" />
+        <StatCard title={t.nextMatchFixture || "Next Match Fixture"} value={nextMatch ? nextMatch.date : "TBD"} subtext={nextMatch ? `${nextMatch.time} at ${nextMatch.venue}` : "Check Schedule"} icon={Calendar} color="gold" />
+        <StatCard title={t.myAttendanceRate || "My Attendance Rate"} value={`${myPlayerInfo?.attendancePct || 95}%`} subtext="Verified Athlete Eligibility" icon={Trophy} color="success" />
       </div>
 
-      <div className="nec-admin-main-grid">
-        <Card title="My Fixtures & Game Schedule">
-          <Table
-            columns={columns}
-            data={myMatches}
-            loading={loading}
-            searchable={false}
-          />
-        </Card>
-
-        <Card title="My Squad Details">
+      <div className="nec-admin-main-grid" style={{ marginTop: "20px" }}>
+        <Card title="Quick Links">
           <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-            <div><strong>Team Name:</strong> Mech Titans</div>
-            <div><strong>Sport:</strong> Football / Badminton</div>
-            <div><strong>Captain:</strong> Priya Patel</div>
-            <div><strong>Jersey Number:</strong> #4</div>
-            <div><strong>Verified Status:</strong> <Badge status="success">Approved Athlete</Badge></div>
+            <Button variant="outline" onClick={() => onNavigate && onNavigate("player_team")} style={{ justifyContent: "space-between" }}>
+              View My Full Roster & Coach Notes <ArrowRight size={16} />
+            </Button>
+            <Button variant="outline" onClick={() => onNavigate && onNavigate("player_matches")} style={{ justifyContent: "space-between" }}>
+              My Match Schedule & Results <ArrowRight size={16} />
+            </Button>
+            <Button variant="outline" onClick={() => onNavigate && onNavigate("player_notifs")} style={{ justifyContent: "space-between" }}>
+              Inbox & Official Circulars <ArrowRight size={16} />
+            </Button>
           </div>
         </Card>
       </div>

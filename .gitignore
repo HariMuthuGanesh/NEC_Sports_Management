@@ -2,6 +2,7 @@
 # 1. Documentation & Markdown Files
 # ==========================================
 *.md
+.agents/
 Plan/
 
 

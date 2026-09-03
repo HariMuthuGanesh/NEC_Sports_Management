@@ -81,6 +81,11 @@ export default function ScoreEntry() {
                     <strong>{m.teamA}</strong> vs <strong>{m.teamB}</strong>
                     <br />
                     <small style={{ color: "var(--nec-text-muted)" }}>{m.sport} • {m.venue}</small>
+                    {m.eventCategory && (
+                      <div style={{ marginTop: "4px" }}>
+                        <Badge status={m.eventCategory === "Inter-College" ? "danger" : "info"}>{m.eventCategory}</Badge>
+                      </div>
+                    )}
                   </div>
                   <Badge status={m.status === "Live" ? "live" : "warning"}>{m.status}</Badge>
                 </div>

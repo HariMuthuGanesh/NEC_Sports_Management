@@ -1,129 +1,180 @@
+/* National Engineering College (NEC) Public Home Page Styles */
+/* Aesthetic Direction: Prestigious Collegiate Athletic Editorial */
+
 .nec-public-home {
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: 32px;
+  max-width: 1300px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 .nec-public-hero {
-  background: linear-gradient(135deg, var(--nec-navy), var(--nec-navy-dark));
-  border-radius: var(--nec-radius-lg);
-  padding: 36px 32px;
+  background-color: var(--nec-navy-dark);
+  border-radius: var(--nec-radius-xl);
+  padding: 44px 40px;
   color: #fff;
-  border-left: 6px solid var(--nec-gold);
-  box-shadow: var(--nec-shadow-md);
+  border-left: 6px solid var(--nec-blue-accent);
+  border-top: 1px solid var(--nec-navy-light);
+  box-shadow: var(--nec-shadow-navy);
   position: relative;
   overflow: hidden;
-}
-
-.nec-public-hero::after {
-  content: "";
-  position: absolute;
-  width: 320px;
-  height: 320px;
-  right: -110px;
-  top: -180px;
-  border: 48px solid rgba(229, 185, 72, 0.08);
-  border-radius: 50%;
-  pointer-events: none;
 }
 
 .nec-hero-content {
   position: relative;
   z-index: 1;
+  max-width: 800px;
 }
 
 .nec-hero-badge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  background: rgba(197, 155, 39, 0.2);
-  border: 1px solid var(--nec-gold);
-  color: var(--nec-gold-light);
-  padding: 4px 12px;
+  gap: 8px;
+  background-color: var(--nec-blue);
+  border: 1px solid var(--nec-blue-accent);
+  color: #ffffff;
+  padding: 6px 14px;
   border-radius: var(--nec-radius-full);
-  font-size: 0.775rem;
-  font-weight: 600;
-  margin-bottom: 12px;
+  font-family: var(--nec-font-display);
+  font-size: 0.8125rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .nec-hero-title {
-  font-size: 1.8rem;
-  font-weight: 700;
-  margin: 0 0 8px 0;
+  font-family: var(--nec-font-display);
+  font-size: 2.25rem;
+  font-weight: 800;
+  margin: 0 0 12px 0;
   color: #ffffff;
-  line-height: 1.2;
+  line-height: 1.18;
+  letter-spacing: -0.02em;
 }
 
 .nec-hero-subtitle {
-  font-size: 0.95rem;
+  font-family: var(--nec-font-body);
+  font-size: 1.05rem;
   color: #cbd5e1;
-  max-width: 680px;
-  margin: 0 0 24px 0;
+  line-height: 1.6;
+  margin: 0 0 28px 0;
 }
 
 .nec-hero-actions {
   display: flex;
-  gap: 14px;
+  gap: 16px;
   flex-wrap: wrap;
+}
+
+.nec-hero-actions .nec-btn-gold,
+.nec-hero-actions .nec-btn-secondary {
+  background-color: var(--nec-blue-accent);
+  color: #ffffff;
+  font-weight: 800;
+  box-shadow: var(--nec-shadow-accent);
+}
+
+.nec-hero-actions .nec-btn-gold:hover,
+.nec-hero-actions .nec-btn-secondary:hover {
+  background-color: #0369a1;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(2, 132, 199, 0.35);
+}
+
+.nec-hero-actions .nec-btn-outline {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.3);
+  font-weight: 700;
+}
+
+.nec-hero-actions .nec-btn-outline:hover:not(:disabled) {
+  background-color: #ffffff;
+  color: var(--nec-navy-dark);
+  border-color: #ffffff;
+  transform: translateY(-2px);
 }
 
 .nec-section-block {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
 }
 
 .nec-section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  border-bottom: 2px solid var(--nec-border);
+  padding-bottom: 10px;
 }
 
 .nec-section-title {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   color: var(--nec-text-main);
 }
+
 .nec-section-title h3 {
   margin: 0;
-  font-size: 1.2rem;
-  font-weight: 700;
+  font-family: var(--nec-font-display);
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
 }
 
 .nec-icon-live-spin {
   color: var(--nec-live);
+  animation: pulseLive 1.5s infinite;
 }
 
 .nec-live-cards-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 20px;
 }
 
 .nec-live-match-card {
-  border-left: 4px solid var(--nec-live);
+  border-left: 5px solid var(--nec-live);
+  background-color: var(--nec-surface);
+  transition: var(--nec-transition);
+}
+
+.nec-live-match-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--nec-shadow-lg);
 }
 
 .nec-live-card-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .nec-sport-tag {
+  font-family: var(--nec-font-display);
   font-size: 0.775rem;
-  font-weight: 600;
-  color: var(--nec-text-muted);
+  font-weight: 800;
+  color: var(--nec-blue-accent);
+  letter-spacing: 0.05em;
   text-transform: uppercase;
+  background-color: var(--nec-info-bg);
+  padding: 3px 8px;
+  border-radius: var(--nec-radius-xs);
+  border: 1px solid var(--nec-border-accent);
 }
 
 .nec-score-display {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 0;
+  padding: 14px 0;
   border-top: 1px solid var(--nec-border);
   border-bottom: 1px solid var(--nec-border);
 }
@@ -137,8 +188,9 @@
 }
 
 .nec-team-code {
-  font-size: 1.1rem;
-  font-weight: 700;
+  font-family: var(--nec-font-display);
+  font-size: 1.25rem;
+  font-weight: 800;
   color: var(--nec-navy);
 }
 
@@ -147,34 +199,39 @@
 }
 
 .nec-team-name {
-  font-size: 0.75rem;
+  font-size: 0.775rem;
   color: var(--nec-text-muted);
+  font-weight: 500;
 }
 
 .nec-score-val {
-  font-size: 1.75rem;
-  font-weight: 800;
+  font-family: var(--nec-font-display);
+  font-size: 2rem;
+  font-weight: 900;
   color: var(--nec-live);
   background-color: var(--nec-live-bg);
-  padding: 4px 14px;
+  padding: 6px 16px;
   border-radius: var(--nec-radius-md);
+  border: 1px solid rgba(220, 38, 38, 0.25);
+  box-shadow: inset 0 2px 4px rgba(220, 38, 38, 0.1);
 }
 
 .nec-live-card-sub {
-  margin-top: 10px;
-  font-size: 0.775rem;
+  margin-top: 12px;
+  font-size: 0.8rem;
   color: var(--nec-text-muted);
   display: flex;
   justify-content: space-between;
+  font-weight: 500;
 }
 
 .nec-home-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 24px;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 960px) {
   .nec-home-grid {
     grid-template-columns: 1fr;
   }
@@ -182,16 +239,17 @@
 
 @media (max-width: 640px) {
   .nec-public-home {
-    gap: 20px;
+    gap: 22px;
   }
 
   .nec-public-hero {
-    padding: 28px 20px;
-    border-left-width: 4px;
+    padding: 32px 24px;
+    border-left-width: 6px;
+    border-radius: var(--nec-radius-lg);
   }
 
   .nec-hero-title {
-    font-size: 1.5rem;
+    font-size: 1.65rem;
   }
 
   .nec-hero-actions .nec-btn {
@@ -200,17 +258,7 @@
 
   .nec-section-header {
     align-items: flex-start;
-    gap: 8px;
-  }
-
-  .nec-section-header .nec-btn {
-    padding-inline: 8px;
-  }
-
-  .nec-live-card-sub {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 4px;
+    gap: 10px;
   }
 
   .nec-tally-table-wrapper {
@@ -218,64 +266,103 @@
   }
 
   .nec-mini-tally {
-    min-width: 520px;
+    min-width: 480px;
   }
 }
 
 .nec-mini-tally {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
 }
 
-.nec-mini-tally th, .nec-mini-tally td {
-  padding: 10px 8px;
-  border-bottom: 1px solid var(--nec-border);
+.nec-mini-tally th {
+  font-family: var(--nec-font-display);
+  padding: 12px 10px;
+  background: var(--nec-surface-raised);
+  border-bottom: 2px solid var(--nec-border);
+  color: var(--nec-text-muted);
+  font-weight: 800;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
   text-align: center;
 }
+
+.nec-mini-tally td {
+  padding: 12px 10px;
+  border-bottom: 1px solid var(--nec-border);
+  text-align: center;
+  font-weight: 600;
+}
+
 .nec-mini-tally th:first-child, .nec-mini-tally td:first-child {
   text-align: left;
 }
+
 .nec-mini-tally td.nec-dept-cell {
   text-align: left;
+  font-family: var(--nec-font-display);
+  font-weight: 700;
+  color: var(--nec-navy);
+}
+
+[data-theme="dark"] .nec-mini-tally td.nec-dept-cell {
+  color: var(--nec-gold-light);
 }
 
 .nec-bulletin-list {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
 }
 
 .nec-bulletin-item {
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--nec-border);
+  padding: 14px 16px;
+  background: var(--nec-surface-raised);
+  border: 1px solid var(--nec-border);
+  border-radius: var(--nec-radius-md);
+  border-left: 4px solid var(--nec-gold);
+  transition: var(--nec-transition);
 }
-.nec-bulletin-item:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
+
+.nec-bulletin-item:hover {
+  transform: translateX(4px);
+  border-color: var(--nec-gold);
+  box-shadow: var(--nec-shadow-sm);
 }
 
 .nec-bulletin-date {
-  font-size: 0.725rem;
-  font-weight: 600;
-  color: var(--nec-gold);
+  font-family: var(--nec-font-display);
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--nec-gold-dark);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+[data-theme="dark"] .nec-bulletin-date {
+  color: var(--nec-gold-light);
 }
 
 .nec-bulletin-title {
-  font-size: 0.9rem;
-  font-weight: 600;
+  font-family: var(--nec-font-display);
+  font-size: 1rem;
+  font-weight: 700;
   color: var(--nec-text-main);
-  margin: 2px 0;
+  margin: 4px 0;
 }
 
 .nec-bulletin-desc {
-  font-size: 0.8rem;
+  font-family: var(--nec-font-body);
+  font-size: 0.85rem;
   color: var(--nec-text-muted);
+  line-height: 1.5;
 }
 
 .nec-bulletin-by {
-  font-size: 0.7rem;
+  font-size: 0.725rem;
   color: var(--nec-text-light);
-  margin-top: 4px;
+  margin-top: 6px;
   font-style: italic;
 }

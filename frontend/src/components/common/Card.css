@@ -1,43 +1,49 @@
 .nec-card {
-  background-color: var(--nec-surface);
+  background: var(--nec-surface);
   border: 1px solid var(--nec-border);
   border-radius: var(--nec-radius-lg);
   box-shadow: var(--nec-shadow-sm);
   transition: var(--nec-transition);
   overflow: hidden;
+  position: relative;
 }
 
 .nec-card:hover {
   box-shadow: var(--nec-shadow-md);
+  border-color: var(--nec-border-dark);
 }
 
 .nec-card-header {
-  padding: 16px 20px;
+  padding: 18px 24px;
   border-bottom: 1px solid var(--nec-border);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  background: var(--nec-surface-raised);
 }
 
 .nec-card-title {
   margin: 0;
-  font-size: 1.1rem;
-  font-weight: 600;
+  font-family: var(--nec-font-display);
+  font-size: 1.15rem;
+  font-weight: 700;
   color: var(--nec-text-main);
+  letter-spacing: -0.01em;
 }
 
 .nec-card-subtitle {
-  margin: 2px 0 0 0;
+  margin: 3px 0 0 0;
+  font-family: var(--nec-font-body);
   font-size: 0.8125rem;
   color: var(--nec-text-muted);
 }
 
 .nec-card-body {
-  padding: 20px;
+  padding: 24px;
 }
 
 .nec-card-footer {
-  padding: 12px 20px;
+  padding: 14px 24px;
   background-color: var(--nec-surface-raised);
   border-top: 1px solid var(--nec-border);
 }
@@ -47,16 +53,33 @@
   background-color: var(--nec-surface);
   border: 1px solid var(--nec-border);
   border-radius: var(--nec-radius-lg);
-  padding: 20px;
+  padding: 22px;
   box-shadow: var(--nec-shadow-sm);
   transition: var(--nec-transition);
   position: relative;
   overflow: hidden;
+  cursor: pointer;
+}
+
+.nec-stat-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background-color: var(--nec-navy);
+  transition: var(--nec-transition-fast);
+}
+
+.nec-stat-card-gold::before {
+  background-color: var(--nec-blue-accent);
 }
 
 .nec-stat-card:hover {
   transform: translateY(-2px);
   box-shadow: var(--nec-shadow-md);
+  border-color: var(--nec-blue-accent);
 }
 
 .nec-stat-card-top {
@@ -66,36 +89,55 @@
 }
 
 .nec-stat-title {
+  font-family: var(--nec-font-display);
   font-size: 0.875rem;
-  font-weight: 500;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   color: var(--nec-text-muted);
 }
 
 .nec-stat-icon-wrapper {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: var(--nec-radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
   background-color: var(--nec-surface-raised);
   color: var(--nec-navy);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: var(--nec-transition);
+}
+
+[data-theme="dark"] .nec-stat-icon-wrapper {
+  color: var(--nec-accent-light);
+}
+
+.nec-stat-card:hover .nec-stat-icon-wrapper {
+  transform: scale(1.05);
+  background-color: var(--nec-navy);
+  color: #ffffff;
 }
 
 .nec-stat-card-gold .nec-stat-icon-wrapper {
-  background-color: var(--nec-gold-subtle);
-  color: var(--nec-gold);
+  background-color: var(--nec-info-bg);
+  color: var(--nec-blue-accent);
+  border: 1px solid var(--nec-border-accent);
 }
 
 .nec-stat-value {
-  font-size: 2rem;
-  font-weight: 700;
+  font-family: var(--nec-font-display);
+  font-size: 2.25rem;
+  font-weight: 800;
   color: var(--nec-text-main);
-  margin: 12px 0 4px 0;
+  margin: 14px 0 6px 0;
   line-height: 1;
+  letter-spacing: -0.03em;
 }
 
 .nec-stat-subtext {
+  font-family: var(--nec-font-body);
   font-size: 0.775rem;
   color: var(--nec-text-muted);
   display: flex;
@@ -105,9 +147,9 @@
 
 .nec-stat-trend.up {
   color: var(--nec-success);
-  font-weight: 600;
+  font-weight: 700;
 }
 .nec-stat-trend.down {
   color: var(--nec-danger);
-  font-weight: 600;
+  font-weight: 700;
 }

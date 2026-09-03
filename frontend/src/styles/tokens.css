@@ -1,28 +1,50 @@
 /* National Engineering College (NEC) Design Tokens & Institutional Styling */
+/* Aesthetic Direction: Prestigious Collegiate Athletic Heritage & Modern Varsity Editorial */
 
 :root {
-  /* Brand Colors - NEC Primary Palette */
-  --nec-navy: #002b49;
-  --nec-navy-dark: #001a2e;
-  --nec-navy-light: #004070;
-  --nec-blue: #005691;
-  --nec-gold: #c59b27;
-  --nec-gold-light: #e5b948;
-  --nec-gold-subtle: #fcf8e8;
+  /* Official NEC College Brand Colors (Plain Solid Palette from nec.edu.in) */
+  --nec-navy: #0b2c5d;
+  --nec-navy-dark: #081f42;
+  --nec-navy-deep: #05142b;
+  --nec-navy-light: #134080;
+  --nec-navy-soft: #184c94;
+  --nec-blue: #0274be;
+  --nec-blue-accent: #0274be;
 
-  /* Neutral Colors (Light Theme Defaults) */
+  /* Plain Accent & Highlight Tokens (Single Royal Blue Accent) */
+  --nec-accent: #0274be;
+  --nec-accent-light: #e8f2f9;
+  --nec-accent-dark: #01568e;
+  --nec-accent-subtle: #f0f7fc;
+  --nec-accent-glow: transparent;
+
+  /* Solid Color Tokens (Plain Flat Color Scheme - No Gradients) */
+  --nec-solid-navy: #0b2c5d;
+  --nec-solid-navy-dark: #081f42;
+  --nec-solid-accent: #0274be;
+  --nec-solid-card: #ffffff;
+  --nec-solid-hero: #0b2c5d;
+
+  /* Plain Neutral Colors (Clean Light Theme Defaults) */
   --nec-bg: #f4f6f9;
   --nec-surface: #ffffff;
   --nec-surface-raised: #f8fafc;
   --nec-surface-hover: #edf2f7;
-  --nec-border: #e2e8f0;
-  --nec-border-dark: #cbd5e1;
+  --nec-border: #e5e7eb;
+  --nec-border-dark: #d1d5db;
+  --nec-border-accent: #0274be;
+
+  /* Plain Backdrop */
+  --nec-glass-bg: #ffffff;
+  --nec-glass-border: #e5e7eb;
+  --nec-glass-backdrop: none;
 
   /* Typography Colors */
-  --nec-text-main: #1e293b;
-  --nec-text-muted: #64748b;
-  --nec-text-light: #94a3b8;
+  --nec-text-main: #1f2937;
+  --nec-text-muted: #6b7280;
+  --nec-text-light: #9ca3af;
   --nec-text-on-navy: #ffffff;
+  --nec-text-accent: #0274be;
 
   /* Status & Messaging Tokens */
   --nec-success: #10b981;
@@ -37,41 +59,58 @@
   --nec-danger-bg: #fef2f2;
   --nec-danger-text: #991b1b;
 
-  --nec-info: #3b82f6;
-  --nec-info-bg: #eff6ff;
-  --nec-info-text: #1e40af;
+  --nec-info: #0274be;
+  --nec-info-bg: #e8f2f9;
+  --nec-info-text: #01568e;
 
   --nec-live: #dc2626;
   --nec-live-bg: #fef2f2;
+  --nec-live-pulse: rgba(220, 38, 38, 0.4);
 
   /* Layout & Elevations */
+  --nec-radius-xs: 4px;
   --nec-radius-sm: 4px;
-  --nec-radius-md: 8px;
-  --nec-radius-lg: 12px;
+  --nec-radius-md: 6px;
+  --nec-radius-lg: 8px;
+  --nec-radius-xl: 12px;
   --nec-radius-full: 9999px;
 
-  --nec-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1);
-  --nec-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
-  --nec-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
+  --nec-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --nec-shadow-md: 0 2px 4px rgba(0, 0, 0, 0.06);
+  --nec-shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --nec-shadow-accent: none;
+  --nec-shadow-navy: 0 2px 6px rgba(11, 44, 93, 0.15);
 
-  --nec-transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  --nec-font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --nec-transition: all 0.15s ease;
+  --nec-transition-fast: all 0.1s ease;
+
+  /* Typography System */
+  --nec-font-display: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --nec-font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --nec-font: var(--nec-font-body);
 }
 
-/* Dark Theme Overrides */
+/* Dark Theme Overrides (Plain Solid Dark) */
 [data-theme="dark"] {
-  --nec-bg: #0b1120;
-  --nec-surface: #1e293b;
-  --nec-surface-raised: #334155;
-  --nec-surface-hover: #475569;
-  --nec-border: #334155;
-  --nec-border-dark: #475569;
+  --nec-bg: #091322;
+  --nec-surface: #0f1c30;
+  --nec-surface-raised: #162640;
+  --nec-surface-hover: #1e3252;
+  --nec-border: #1e3252;
+  --nec-border-dark: #2b456e;
+  --nec-border-accent: #0274be;
 
-  --nec-text-main: #f8fafc;
-  --nec-text-muted: #94a3b8;
-  --nec-text-light: #64748b;
+  --nec-solid-card: #0f1c30;
+  --nec-glass-bg: #0f1c30;
+  --nec-glass-border: #1e3252;
 
-  --nec-gold-subtle: #2d2615;
+  --nec-text-main: #f3f4f6;
+  --nec-text-muted: #9ca3af;
+  --nec-text-light: #6b7280;
+  --nec-text-accent: #60a5fa;
+
+  --nec-accent-subtle: #1e3252;
+  --nec-accent-glow: transparent;
 
   --nec-success-bg: #064e3b;
   --nec-success-text: #a7f3d0;
@@ -82,12 +121,15 @@
   --nec-danger-bg: #7f1d1d;
   --nec-danger-text: #fecaca;
 
-  --nec-info-bg: #1e3a8a;
-  --nec-info-text: #bfdbfe;
+  --nec-info-bg: #1e3252;
+  --nec-info-text: #93c5fd;
 
-  --nec-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
-  --nec-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.5);
-  --nec-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.6);
+  --nec-live-bg: #450a0a;
+
+  --nec-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --nec-shadow-md: 0 2px 6px rgba(0, 0, 0, 0.5);
+  --nec-shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.6);
+  --nec-shadow-accent: none;
 }
 
 /* Global Reset & Utility Styling */
@@ -98,20 +140,29 @@
 body {
   margin: 0;
   padding: 0;
-  font-family: var(--nec-font);
+  font-family: var(--nec-font-body);
   background-color: var(--nec-bg);
   color: var(--nec-text-main);
-  line-height: 1.5;
+  line-height: 1.55;
   -webkit-font-smoothing: antialiased;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.3s cubic-bezier(0.16, 1, 0.3, 1), color 0.3s ease;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--nec-font-display);
+  letter-spacing: -0.02em;
+  font-weight: 700;
 }
 
 a {
   color: var(--nec-blue);
   text-decoration: none;
+  transition: var(--nec-transition-fast);
 }
 a:hover {
-  text-decoration: underline;
+  color: var(--nec-gold);
+  text-decoration: none;
 }
 
 button, input, select, textarea {
@@ -127,9 +178,23 @@ button, input, select, textarea, a {
   outline-offset: 3px;
 }
 
-button:focus-visible, a:focus-visible {
-  position: relative;
-  z-index: 1;
+/* Institutional Athletic Crest Utilities */
+.nec-crest-gold {
+  color: var(--nec-gold);
+  filter: drop-shadow(0 2px 6px var(--nec-gold-glow));
+}
+
+.nec-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: var(--nec-radius-full);
+  font-family: var(--nec-font-display);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 /* Scrollbar Styling */
@@ -145,5 +210,5 @@ button:focus-visible, a:focus-visible {
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--nec-text-muted);
+  background: var(--nec-gold);
 }

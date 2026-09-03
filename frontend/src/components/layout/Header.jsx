@@ -1,11 +1,11 @@
 import React, { useState } from "react";
-import { Sun, Moon, Bell, Menu, X, Shield, User, Trophy, Globe } from "lucide-react";
+import { Sun, Moon, Bell, Menu, X, Shield, User, Trophy, Globe, Settings, LogIn, LogOut } from "lucide-react";
 import { useAuth, ROLES } from "../../context/AuthContext";
 import NotificationDrawer from "../notifications/NotificationDrawer";
 import "./Header.css";
 
-export default function Header({ onToggleSidebar, isSidebarOpen, onRoleChange }) {
-  const { currentUser, setRole, theme, toggleTheme, language, setLanguage } = useAuth();
+export default function Header({ onToggleSidebar, isSidebarOpen, onRoleChange, onSelectNav }) {
+  const { currentUser, setRole, logout, theme, toggleTheme, language, setLanguage, t } = useAuth();
   const [showNotifs, setShowNotifs] = useState(false);
   const [showRoleMenu, setShowRoleMenu] = useState(false);
   const [showLangMenu, setShowLangMenu] = useState(false);
@@ -32,8 +32,8 @@ export default function Header({ onToggleSidebar, isSidebarOpen, onRoleChange })
             <Trophy size={20} className="nec-logo-icon" />
           </div>
           <div className="nec-brand-text">
-            <h1 className="nec-college-name">National Engineering College</h1>
-            <span className="nec-system-title">Sports Management System</span>
+            <h1 className="nec-college-name">{t.collegeName}</h1>
+            <span className="nec-system-title">{t.systemTitle}</span>
           </div>
         </div>
       </div>
@@ -47,7 +47,7 @@ export default function Header({ onToggleSidebar, isSidebarOpen, onRoleChange })
               setShowLangMenu(prev => !prev);
               setShowRoleMenu(false);
             }}
-            title="Switch Language"
+            title={t.switchLanguage}
             aria-expanded={showLangMenu}
             aria-haspopup="menu"
           >
@@ -57,7 +57,7 @@ export default function Header({ onToggleSidebar, isSidebarOpen, onRoleChange })
 
           {showLangMenu && (
             <div className="nec-role-menu" onClick={() => setShowLangMenu(false)}>
-              <div className="nec-role-menu-header">Select Language</div>
+              <div className="nec-role-menu-header">{t.selectLanguage}</div>
               {LANGUAGES.map(l => (
                 <button
                   key={l.code}
@@ -79,7 +79,7 @@ export default function Header({ onToggleSidebar, isSidebarOpen, onRoleChange })
               setShowRoleMenu(prev => !prev);
               setShowLangMenu(false);
             }}
-            title="Switch Access Role"
+            title={t.switchRole}
             aria-expanded={showRoleMenu}
             aria-haspopup="menu"
           >
@@ -89,14 +89,16 @@ export default function Header({ onToggleSidebar, isSidebarOpen, onRoleChange })
 
           {showRoleMenu && (
             <div className="nec-role-menu" onClick={() => setShowRoleMenu(false)}>
-              <div className="nec-role-menu-header">Select Access Role</div>
+              <div className="nec-role-menu-header">{t.selectRole}</div>
               {Object.values(ROLES).map(r => (
                 <button
                   key={r}
                   className={`nec-role-menu-item ${currentUser.role === r ? "active" : ""}`}
                   onClick={() => {
                     setRole(r);
-                    onRoleChange(r);
+                    if (typeof onRoleChange === "function") {
+                      onRoleChange(r);
+                    }
                   }}
                 >
                   {r}
@@ -120,6 +122,16 @@ export default function Header({ onToggleSidebar, isSidebarOpen, onRoleChange })
           {showNotifs && <NotificationDrawer onClose={() => setShowNotifs(false)} />}
         </div>
 
+        {/* Settings Button */}
+        <button
+          className="nec-icon-btn"
+          onClick={() => onSelectNav?.("settings")}
+          title="Settings"
+          aria-label="Open settings"
+        >
+          <Settings size={18} />
+        </button>
+
         {/* Theme Toggle */}
         <button
           className="nec-icon-btn"
@@ -130,16 +142,40 @@ export default function Header({ onToggleSidebar, isSidebarOpen, onRoleChange })
           {theme === "light" ? <Moon size={18} /> : <Sun size={18} />}
         </button>
 
-        {/* User Profile Pill */}
-        <div className="nec-user-profile">
-          <div className="nec-avatar">
-            <User size={16} />
+        {/* Portal Sign In for Guest or User Profile Pill */}
+        {currentUser.role === ROLES.PUBLIC ? (
+          <button
+            className="nec-header-signin-btn"
+            onClick={() => onSelectNav?.("login")}
+            title="Sign In to Sports Portal"
+          >
+            <LogIn size={15} />
+            <span>{t.login || "Sign In"}</span>
+          </button>
+        ) : (
+          <div className="nec-user-profile-wrapper">
+            <div className="nec-user-profile">
+              <div className="nec-avatar">
+                <User size={16} />
+              </div>
+              <div className="nec-user-info">
+                <span className="nec-user-name">{currentUser.name}</span>
+                <span className="nec-user-dept">{currentUser.dept || "NEC"}</span>
+              </div>
+            </div>
+            <button
+              className="nec-icon-btn nec-logout-btn"
+              onClick={() => {
+                logout();
+                onSelectNav?.("public_home");
+              }}
+              title="Log Out / Return to Guest"
+              aria-label="Log out"
+            >
+              <LogOut size={16} />
+            </button>
           </div>
-          <div className="nec-user-info">
-            <span className="nec-user-name">{currentUser.name}</span>
-            <span className="nec-user-dept">{currentUser.dept || "NEC"}</span>
-          </div>
-        </div>
+        )}
       </div>
     </header>
   );

@@ -15,76 +15,79 @@ import {
   UserCheck,
   Edit3,
   Bell,
-  Home
+  Home,
+  Shield,
+  Settings,
+  LogIn
 } from "lucide-react";
 import { useAuth, ROLES } from "../../context/AuthContext";
 import "./Sidebar.css";
 
 export default function Sidebar({ activeNav, onSelectNav, isOpen, onCloseMobile }) {
-  const { currentUser } = useAuth();
+  const { currentUser, t } = useAuth();
 
   const getNavItems = () => {
     switch (currentUser.role) {
       case ROLES.ADMIN:
         return [
-          { category: "OVERVIEW", items: [{ id: "admin_dash", label: "Dashboard", icon: LayoutDashboard }] },
+          { category: t.navOverview, items: [{ id: "admin_dash", label: t.dashboard, icon: LayoutDashboard }] },
           {
-            category: "SPORTS",
+            category: t.navSports,
             items: [
-              { id: "admin_sports", label: "Sports Catalog", icon: Trophy },
-              { id: "admin_tournaments", label: "Tournaments", icon: Calendar },
-              { id: "admin_events", label: "Events", icon: Award }
+              { id: "admin_sports", label: t.sportsCatalog, icon: Trophy },
+              { id: "admin_tournaments", label: t.tournaments, icon: Calendar },
+              { id: "admin_events", label: t.events, icon: Award }
             ]
           },
           {
-            category: "MANAGEMENT",
+            category: t.navManagement,
             items: [
-              { id: "admin_regs", label: "Team Approvals", icon: CheckSquare },
-              { id: "admin_teams", label: "Teams Catalog", icon: Users },
-              { id: "admin_matches", label: "Match Scheduler", icon: Calendar },
-              { id: "admin_venues", label: "Venues", icon: MapPin },
-              { id: "admin_depts", label: "Departments", icon: Building2 }
+              { id: "admin_regs", label: t.teamApprovals, icon: CheckSquare },
+              { id: "admin_teams", label: t.teamsCatalog, icon: Users },
+              { id: "admin_matches", label: t.matchScheduler, icon: Calendar },
+              { id: "admin_venues", label: t.venues, icon: MapPin }
             ]
           },
           {
-            category: "COMMUNICATION & REPORTS",
+            category: t.navCommReports,
             items: [
-              { id: "admin_announcements", label: "Announcements", icon: Megaphone },
-              { id: "admin_reports", label: "Institutional Reports", icon: FileText }
+              { id: "admin_announcements", label: t.announcements, icon: Megaphone },
+              { id: "admin_reports", label: t.institutionalReports, icon: FileText },
+              { id: "admin_audit", label: "Security Audit Log", icon: Shield }
             ]
           }
         ];
 
       case ROLES.COORDINATOR:
         return [
-          { category: "COORDINATOR PORTAL", items: [{ id: "coord_dash", label: "Dashboard", icon: LayoutDashboard }] },
+          { category: t.navCoordPortal, items: [{ id: "coord_dash", label: t.dashboard, icon: LayoutDashboard }] },
           {
-            category: "SQUAD & EVENTS",
+            category: t.navSquadEvents,
             items: [
-              { id: "coord_players", label: "Player Roster", icon: Users },
-              { id: "coord_event_reg", label: "Event Registration", icon: CheckSquare },
-              { id: "coord_matches", label: "Department Matches", icon: Calendar }
+              { id: "coord_players", label: t.playerRoster, icon: Users },
+              { id: "coord_event_reg", label: t.eventRegistration, icon: CheckSquare },
+              { id: "coord_matches", label: t.departmentMatches, icon: Calendar }
             ]
           },
           {
-            category: "MATCH DAY ACTIONS",
+            category: t.navMatchDayActions,
             items: [
-              { id: "coord_score_entry", label: "Score Entry", icon: Edit3 },
-              { id: "coord_attendance", label: "Squad Attendance", icon: UserCheck },
-              { id: "coord_media", label: "Media Upload", icon: Image }
+              { id: "coord_score_entry", label: t.scoreEntry, icon: Edit3 },
+              { id: "coord_attendance", label: t.squadAttendance, icon: UserCheck },
+              { id: "coord_media", label: t.mediaUpload, icon: Image }
             ]
           }
         ];
 
       case ROLES.PLAYER:
         return [
-          { category: "PLAYER PORTAL", items: [{ id: "player_dash", label: "Dashboard", icon: LayoutDashboard }] },
+          { category: t.navPlayerPortal, items: [{ id: "player_dash", label: t.dashboard, icon: LayoutDashboard }] },
           {
-            category: "MY SPORTS",
+            category: t.navMySports,
             items: [
-              { id: "player_team", label: "My Team", icon: Users },
-              { id: "player_matches", label: "My Fixtures", icon: Calendar },
-              { id: "player_notifs", label: "Notifications", icon: Bell }
+              { id: "player_team", label: t.myTeam, icon: Users },
+              { id: "player_matches", label: t.myFixtures, icon: Calendar },
+              { id: "player_notifs", label: t.notifications, icon: Bell }
             ]
           }
         ];
@@ -93,14 +96,15 @@ export default function Sidebar({ activeNav, onSelectNav, isOpen, onCloseMobile 
       default:
         return [
           {
-            category: "PUBLIC SPORTS PORTAL",
+            category: t.navPublicPortal,
             items: [
-              { id: "public_home", label: "Home", icon: Home },
-              { id: "public_live", label: "Live Scores", icon: Radio },
-              { id: "public_fixtures", label: "Fixtures", icon: Calendar },
-              { id: "public_leaderboard", label: "Leaderboard", icon: Trophy },
-              { id: "public_gallery", label: "Gallery", icon: Image },
-              { id: "public_announcements", label: "Announcements", icon: Megaphone }
+              { id: "public_home", label: t.home, icon: Home },
+              { id: "public_live", label: t.liveScores, icon: Radio },
+              { id: "public_fixtures", label: t.fixtures, icon: Calendar },
+              { id: "public_leaderboard", label: t.leaderboard, icon: Trophy },
+              { id: "public_gallery", label: t.gallery, icon: Image },
+              { id: "public_announcements", label: t.announcements, icon: Megaphone },
+              { id: "login", label: t.login || "Portal Sign In", icon: LogIn }
             ]
           }
         ];
@@ -115,7 +119,7 @@ export default function Sidebar({ activeNav, onSelectNav, isOpen, onCloseMobile 
       <aside className={`nec-sidebar ${isOpen ? "open" : ""}`}>
         <div className="nec-sidebar-inner">
           <div className="nec-sidebar-header-badge">
-            <span>Mode: {currentUser.role}</span>
+            <span>{t.mode}: {currentUser.role}</span>
           </div>
 
           <nav className="nec-sidebar-nav">
@@ -144,9 +148,18 @@ export default function Sidebar({ activeNav, onSelectNav, isOpen, onCloseMobile 
           </nav>
 
           <div className="nec-sidebar-footer">
+            {/* Settings link — all roles */}
+            <button
+              className={`nec-nav-item ${activeNav === "settings" ? "active" : ""}`}
+              onClick={() => { onSelectNav("settings"); onCloseMobile(); }}
+              style={{ width: "100%", marginBottom: "10px" }}
+            >
+              <Settings className="nec-nav-icon" size={18} />
+              <span className="nec-nav-label">Settings</span>
+            </button>
             <div className="nec-lasa-tag">
-              <span>Lakshmi Ammal Sports Academy</span>
-              <span className="nec-tag-sub">NEC Campus Ecosystem</span>
+              <span>{t.lasaTag}</span>
+              <span className="nec-tag-sub">{t.lasaSub}</span>
             </div>
           </div>
         </div>

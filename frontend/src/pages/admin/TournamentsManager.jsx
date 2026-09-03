@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { tournamentsApi } from "../../services/api/apiServices";
+import { useAuth } from "../../context/AuthContext";
 import Table from "../../components/common/Table";
 import Badge from "../../components/common/Badge";
 import Button from "../../components/common/Button";
@@ -8,6 +9,7 @@ import { Plus, Calendar, Trophy } from "lucide-react";
 import "./AdminPortal.css";
 
 export default function TournamentsManager() {
+  const { t } = useAuth();
   const [tournaments, setTournaments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -66,11 +68,11 @@ export default function TournamentsManager() {
     <div className="nec-portal-page">
       <div className="nec-page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
-          <h2 className="nec-page-title">Tournaments Management</h2>
+          <h2 className="nec-page-title">{t.tournamentsManagement || "Tournaments Management"}</h2>
           <p className="nec-page-desc">Create and manage inter-department and inter-collegiate tournament series.</p>
         </div>
         <Button variant="primary" icon={Plus} onClick={() => setIsModalOpen(true)}>
-          Create Tournament
+          {t.createTournament || "Create Tournament"}
         </Button>
       </div>
 

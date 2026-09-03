@@ -1,10 +1,10 @@
-import dotenv from 'dotenv';
+import 'dotenv/config';
 import app from './app.js';
-
-dotenv.config();
+import { testConnection } from './config/db.js';
 
 const port = process.env.PORT || 8000;
 
-app.listen(port, () => {
-    console.log(`[Server] NEC Sports Management API running on port ${port} (Mock DB Mode)`);
+app.listen(port, async () => {
+    console.log(`[Server] NEC Sports Management API running on port ${port} (MySQL Database Mode)`);
+    await testConnection();
 });

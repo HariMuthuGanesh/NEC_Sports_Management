@@ -1,47 +1,67 @@
 .nec-badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 3px 8px;
+  gap: 5px;
+  padding: 4px 10px;
   border-radius: var(--nec-radius-full);
+  font-family: var(--nec-font-display);
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: 0.03em;
   line-height: 1;
   white-space: nowrap;
 }
 
 .nec-badge-symbol {
-  font-size: 0.8em;
+  font-size: 0.85em;
+}
+
+.nec-badge-navy {
+  background-color: var(--nec-navy);
+  color: #ffffff;
+  border: 1px solid var(--nec-navy-light);
+}
+
+.nec-badge-gold {
+  background-color: var(--nec-info-bg);
+  color: var(--nec-blue-accent);
+  border: 1px solid var(--nec-border-accent);
+}
+
+[data-theme="dark"] .nec-badge-gold {
+  color: var(--nec-accent-light);
+  background-color: rgba(2, 132, 199, 0.15);
 }
 
 .nec-badge-success {
   background-color: var(--nec-success-bg);
   color: var(--nec-success-text);
-  border: 1px solid var(--nec-success);
+  border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
 .nec-badge-warning {
   background-color: var(--nec-warning-bg);
   color: var(--nec-warning-text);
-  border: 1px solid var(--nec-warning);
+  border: 1px solid rgba(245, 158, 11, 0.3);
 }
 
 .nec-badge-danger {
   background-color: var(--nec-danger-bg);
   color: var(--nec-danger-text);
-  border: 1px solid var(--nec-danger);
+  border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
 .nec-badge-info {
   background-color: var(--nec-info-bg);
   color: var(--nec-info-text);
-  border: 1px solid var(--nec-info);
+  border: 1px solid rgba(2, 132, 199, 0.3);
 }
 
 .nec-badge-live {
   background-color: var(--nec-live-bg);
   color: var(--nec-live);
   border: 1px solid var(--nec-live);
+  box-shadow: 0 0 10px var(--nec-live-pulse);
   animation: pulseLive 1.5s infinite;
 }
 
@@ -52,7 +72,7 @@
 }
 
 @keyframes pulseLive {
-  0% { opacity: 1; }
-  50% { opacity: 0.6; }
-  100% { opacity: 1; }
+  0% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(0.98); }
+  100% { opacity: 1; transform: scale(1); }
 }

@@ -9,7 +9,7 @@ import { Users, Calendar, CheckSquare, Edit3, UserCheck, ArrowRight } from "luci
 import "./CoordinatorPortal.css";
 
 export default function CoordinatorDashboard({ onNavigate }) {
-  const { currentUser } = useAuth();
+  const { currentUser, t } = useAuth();
   const [deptTeams, setDeptTeams] = useState([]);
   const [deptMatches, setDeptMatches] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -45,15 +45,15 @@ export default function CoordinatorDashboard({ onNavigate }) {
   return (
     <div className="nec-portal-page">
       <div className="nec-page-header">
-        <h2 className="nec-page-title">Department Sports Coordinator Portal</h2>
+        <h2 className="nec-page-title">{t.coordPortalTitle || "Department Sports Coordinator Portal"}</h2>
         <p className="nec-page-desc">Department: <strong>{currentUser.dept || "CSE"}</strong> | Coordinator: <strong>{currentUser.name}</strong></p>
       </div>
 
       <div className="nec-stats-grid">
-        <StatCard title="My Department Teams" value={deptTeams.length} subtext="Registered Sports Squads" icon={Users} color="navy" onClick={() => onNavigate("coord_players")} />
-        <StatCard title="Upcoming Matches" value={deptMatches.filter(m => m.status !== "Completed").length} subtext="Assigned Fixtures" icon={Calendar} color="gold" onClick={() => onNavigate("coord_matches")} />
-        <StatCard title="Quick Attendance" value="Squad Ready" subtext="Mark Matchday Attendance" icon={UserCheck} onClick={() => onNavigate("coord_attendance")} />
-        <StatCard title="Score Submission" value="Match Day" subtext="Record Final Scores" icon={Edit3} onClick={() => onNavigate("coord_score_entry")} />
+        <StatCard title={t.myDeptTeams || "My Department Teams"} value={deptTeams.length} subtext="Registered Sports Squads" icon={Users} color="navy" onClick={() => onNavigate("coord_players")} />
+        <StatCard title={t.upcomingMatches || "Upcoming Matches"} value={deptMatches.filter(m => m.status !== "Completed").length} subtext="Assigned Fixtures" icon={Calendar} color="gold" onClick={() => onNavigate("coord_matches")} />
+        <StatCard title={t.quickAttendance || "Quick Attendance"} value="Squad Ready" subtext="Mark Matchday Attendance" icon={UserCheck} onClick={() => onNavigate("coord_attendance")} />
+        <StatCard title={t.scoreSubmission || "Score Submission"} value="Match Day" subtext="Record Final Scores" icon={Edit3} onClick={() => onNavigate("coord_score_entry")} />
       </div>
 
       <div className="nec-admin-main-grid">

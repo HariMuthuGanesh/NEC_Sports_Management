@@ -15,8 +15,12 @@ const userSchema = new mongoose.Schema({
     },
     password: {
         type: String,
-        required: [true, 'Password is required'],
         minlength: 6
+    },
+    authProvider: {
+        type: String,
+        enum: ['LOCAL', 'GOOGLE'],
+        default: 'LOCAL'
     },
     role: {
         type: String,
@@ -41,7 +45,7 @@ const userSchema = new mongoose.Schema({
 
 // Pre-save hook to hash password securely with bcrypt salt
 userSchema.pre('save', async function (next) {
-    if (!this.isModified('password')) return next();
+    if (!this.isModified('password') || !this.password) return next();
     try {
         const salt = await bcrypt.genSalt(10);
         this.password = await bcrypt.hash(this.password, salt);
