@@ -7,7 +7,6 @@ import "./Header.css";
 export default function Header({ onToggleSidebar, isSidebarOpen, onRoleChange, onSelectNav }) {
   const { currentUser, setRole, logout, theme, toggleTheme, language, setLanguage, t } = useAuth();
   const [showNotifs, setShowNotifs] = useState(false);
-  const [showRoleMenu, setShowRoleMenu] = useState(false);
   const [showLangMenu, setShowLangMenu] = useState(false);
 
   const LANGUAGES = [
@@ -71,56 +70,23 @@ export default function Header({ onToggleSidebar, isSidebarOpen, onRoleChange, o
           )}
         </div>
 
-        {/* Role Switcher Pill for demo */}
-        <div className="nec-role-switcher-dropdown">
-          <button
-            className="nec-role-badge-btn"
-            onClick={() => {
-              setShowRoleMenu(prev => !prev);
-              setShowLangMenu(false);
-            }}
-            title={t.switchRole}
-            aria-expanded={showRoleMenu}
-            aria-haspopup="menu"
-          >
-            <Shield size={14} />
-            <span>{currentUser.role}</span>
-          </button>
 
-          {showRoleMenu && (
-            <div className="nec-role-menu" onClick={() => setShowRoleMenu(false)}>
-              <div className="nec-role-menu-header">{t.selectRole}</div>
-              {Object.values(ROLES).map(r => (
-                <button
-                  key={r}
-                  className={`nec-role-menu-item ${currentUser.role === r ? "active" : ""}`}
-                  onClick={() => {
-                    setRole(r);
-                    if (typeof onRoleChange === "function") {
-                      onRoleChange(r);
-                    }
-                  }}
-                >
-                  {r}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
 
-        {/* Notifications Icon */}
-        <div className="nec-notif-wrapper">
-          <button
-            className="nec-icon-btn"
-            onClick={() => setShowNotifs(prev => !prev)}
-            aria-label="Notifications"
-          >
-            <Bell size={18} />
-            <span className="nec-notif-dot" />
-          </button>
+        {/* Notifications Icon (Only for authenticated users, hidden for Guests) */}
+        {currentUser.role !== ROLES.PUBLIC && (
+          <div className="nec-notif-wrapper">
+            <button
+              className="nec-icon-btn"
+              onClick={() => setShowNotifs(prev => !prev)}
+              aria-label="Notifications"
+            >
+              <Bell size={18} />
+              <span className="nec-notif-dot" />
+            </button>
 
-          {showNotifs && <NotificationDrawer onClose={() => setShowNotifs(false)} />}
-        </div>
+            {showNotifs && <NotificationDrawer onClose={() => setShowNotifs(false)} />}
+          </div>
+        )}
 
         {/* Settings Button */}
         <button

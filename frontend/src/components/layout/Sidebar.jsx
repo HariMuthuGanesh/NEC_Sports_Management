@@ -44,6 +44,7 @@ export default function Sidebar({ activeNav, onSelectNav, isOpen, onCloseMobile 
             items: [
               { id: "admin_regs", label: t.teamApprovals, icon: CheckSquare },
               { id: "admin_teams", label: t.teamsCatalog, icon: Users },
+              { id: "admin_students", label: "Student Registry", icon: UserCheck },
               { id: "admin_matches", label: t.matchScheduler, icon: Calendar },
               { id: "admin_venues", label: t.venues, icon: MapPin }
             ]

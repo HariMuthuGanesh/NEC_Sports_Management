@@ -3,7 +3,7 @@
    Input Sanitization, and Category enrichment.
 */
 
-import { getAuthToken, getCsrfNonce, sanitizeInput } from "../../utils/security";
+import { getAuthToken, sanitizeInput } from "../../utils/security";
 import {
   INITIAL_DEPARTMENTS,
   INITIAL_SPORTS,
@@ -23,7 +23,7 @@ import {
 // Helper to simulate smooth local network latency
 const delay = (ms = 120) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const API_URL = 'http://localhost:8000/api';
+const API_URL = 'http://localhost:5000/api';
 
 // Helper for security header injection
 export const getSecurityHeaders = () => {
@@ -31,7 +31,6 @@ export const getSecurityHeaders = () => {
   return {
     "Content-Type": "application/json",
     "Authorization": token ? `Bearer ${token}` : "",
-    "X-CSRF-Token": getCsrfNonce(),
     "X-Client-Version": "1.0.0",
   };
 };
@@ -58,12 +57,12 @@ const setStored = (key, value) => {
   }
 };
 
-// Safe API fetcher with graceful Mock DB fallback
+// Safe API fetcher: Primary GET to backend API with graceful offline localStorage fallback
 const safeFetchWithFallback = async (endpoint, storageKey, fallbackData) => {
   try {
     const headers = getSecurityHeaders();
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 1200); // 1.2s timeout
+    const timeoutId = setTimeout(() => controller.abort(), 2000); // 2s timeout
 
     const response = await fetch(`${API_URL}${endpoint}`, {
       headers,
@@ -72,14 +71,17 @@ const safeFetchWithFallback = async (endpoint, storageKey, fallbackData) => {
     clearTimeout(timeoutId);
 
     if (response.ok) {
-      const data = await response.json();
-      if (Array.isArray(data) && data.length > 0) {
-        setStored(storageKey, data);
-        return data;
+      const resJson = await response.json();
+      const payload = resJson.data !== undefined ? resJson.data : resJson;
+      if (Array.isArray(payload) && payload.length > 0) {
+        setStored(storageKey, payload);
+        return payload;
+      } else if (payload && typeof payload === "object" && !Array.isArray(payload)) {
+        return payload;
       }
     }
   } catch (err) {
-    // Graceful offline / mock mode fallback
+    // Graceful offline fallback to localStorage
   }
   return getStored(storageKey, fallbackData);
 };
@@ -115,16 +117,13 @@ initializeMockDatabase(false);
 /* --- Sports & Departments API --- */
 export const sportsApi = {
   getDepartments: async () => {
-    await delay();
-    return getStored("departments", INITIAL_DEPARTMENTS);
+    return safeFetchWithFallback("/departments", "departments", INITIAL_DEPARTMENTS);
   },
   getSports: async () => {
-    await delay();
-    return getStored("sports", INITIAL_SPORTS);
+    return safeFetchWithFallback("/sports", "sports", INITIAL_SPORTS);
   },
   getVenues: async () => {
-    await delay();
-    return getStored("venues", INITIAL_VENUES);
+    return safeFetchWithFallback("/venues", "venues", INITIAL_VENUES);
   },
   saveVenues: async (venues) => {
     await delay(150);
@@ -160,8 +159,7 @@ export const sportsApi = {
 /* --- Tournaments & Events API --- */
 export const tournamentsApi = {
   getTournaments: async () => {
-    await delay();
-    return getStored("tournaments", INITIAL_TOURNAMENTS);
+    return safeFetchWithFallback("/tournaments", "tournaments", INITIAL_TOURNAMENTS);
   },
   getEvents: async (tournamentId = null) => {
     await delay();
@@ -212,6 +210,7 @@ export const tournamentsApi = {
   }
 };
 
+// TODO: Pending backend implementation - currently using local mock data
 /* --- Teams & Roster API --- */
 export const teamsApi = {
   getTeams: async (deptId = null) => {
@@ -258,6 +257,7 @@ export const studentLookupApi = {
   }
 };
 
+// TODO: Pending backend implementation - currently using local mock data
 /* --- Players API --- */
 export const playersApi = {
   getPlayersByTeam: async (teamId) => {
@@ -335,8 +335,7 @@ export const playersApi = {
 /* --- Matches & Scheduling API --- */
 export const matchesApi = {
   getMatches: async () => {
-    await delay();
-    const matches = getStored("matches", INITIAL_MATCHES);
+    const matches = await safeFetchWithFallback("/matches", "matches", INITIAL_MATCHES);
     const events = getStored("events", INITIAL_EVENTS);
     
     // Map event category to matches
@@ -371,30 +370,23 @@ export const matchesApi = {
     setStored("matches", updated);
     return true;
   },
-  updateMatchScore: async (matchId, scoreA, scoreB, detailScore = "", isFinal = false) => {
-    await delay(200);
-    const matches = getStored("matches", INITIAL_MATCHES);
-    const updated = matches.map(m => {
-      if (m.id === matchId) {
-        let winner = null;
-        if (isFinal) {
-          if (Number(scoreA) > Number(scoreB)) winner = m.teamA;
-          else if (Number(scoreB) > Number(scoreA)) winner = m.teamB;
-          else winner = "Draw";
-        }
-        return {
-          ...m,
-          scoreA: Number(scoreA),
-          scoreB: Number(scoreB),
-          detailScore: sanitizeInput(detailScore),
-          status: isFinal ? "Completed" : "Live",
-          winner
-        };
+  // Winner is resolved server-side. Frontend sends raw scores and isFinal flag.
+  updateMatchScore: async (matchId, scoreA, scoreB, detailScore = '', isFinal = false) => {
+    try {
+      const response = await fetch(`${API_URL}/matches/${matchId}/score`, {
+        method: 'PUT',
+        headers: getSecurityHeaders(),
+        body: JSON.stringify({ scoreA, scoreB, detailScore, isFinal })
+      });
+      const resJson = await response.json();
+      if (response.ok && resJson.success) {
+        return resJson.data; // { matchId, scoreA, scoreB, status, winner, winnerTeamId, isFinal }
       }
-      return m;
-    });
-    setStored("matches", updated);
-    return updated.find(m => m.id === matchId);
+      throw new Error(resJson.error?.message || 'Score update failed');
+    } catch (err) {
+      console.error('[matchesApi] updateMatchScore error:', err.message);
+      throw err; // Propagate — caller must handle and show error to user
+    }
   }
 };
 
@@ -409,8 +401,7 @@ export const leaderboardApi = {
 /* --- Announcements & Media API --- */
 export const announcementsApi = {
   getAnnouncements: async () => {
-    await delay();
-    return getStored("announcements", INITIAL_ANNOUNCEMENTS);
+    return safeFetchWithFallback("/announcements", "announcements", INITIAL_ANNOUNCEMENTS);
   },
   createAnnouncement: async (data) => {
     await delay(200);
@@ -444,6 +435,8 @@ export const galleryApi = {
   }
 };
 
+// TODO: Pending backend implementation - currently using local mock data
+/* --- Notifications API --- */
 export const notificationsApi = {
   getNotifications: async () => {
     await delay();
