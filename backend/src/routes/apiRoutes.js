@@ -6,9 +6,13 @@ import {
     getVenues, 
     getMatches, 
     getDepartments, 
-    getAnnouncements 
+    getAnnouncements,
+    createSport,
+    updateSport,
+    deleteSport
 } from '../controllers/sportsController.js';
 import { updateScore } from '../controllers/matchController.js';
+import { getTeams, createTeam, updateTeamStatus, deleteTeam } from '../controllers/teamController.js';
 
 const router = express.Router();
 
@@ -25,13 +29,17 @@ router.put('/matches/:id/score', protect, authorize('Admin', 'Coordinator'), upd
 
 
 // Protected endpoints (require login)
-router.get('/teams', protect, (req, res) => res.json({ success: true, data: [] }));
+router.get('/teams', protect, getTeams);
 router.get('/players', protect, (req, res) => res.json({ success: true, data: [] }));
 router.get('/notifications', protect, (req, res) => res.json({ success: true, data: [] }));
 
 // Admin only endpoints
-router.post('/sports', protect, authorize('Admin'), (req, res) => {
-    res.status(501).json({ success: false, error: { code: 'NOT_IMPLEMENTED', message: 'Admin sport creation endpoint' } });
-});
+router.post('/sports', protect, authorize('Admin'), createSport);
+router.put('/sports/:id', protect, authorize('Admin'), updateSport);
+router.delete('/sports/:id', protect, authorize('Admin'), deleteSport);
+
+router.post('/teams', protect, authorize('Admin', 'Coordinator'), createTeam);
+router.put('/teams/:id/status', protect, authorize('Admin', 'Coordinator'), updateTeamStatus);
+router.delete('/teams/:id', protect, authorize('Admin', 'Coordinator'), deleteTeam);
 
 export default router;

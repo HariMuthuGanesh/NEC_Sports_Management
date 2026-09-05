@@ -20,3 +20,44 @@ export const getSportById = async (sportId) => {
     const [rows] = await pool.execute(sql, [sportId]);
     return rows[0] || null;
 };
+
+export const createSport = async (sportData) => {
+    const sql = `
+        INSERT INTO sports (name, category, min_players, max_players, points_rule)
+        VALUES (?, ?, ?, ?, ?)
+    `;
+    const [result] = await pool.execute(sql, [
+        sportData.name,
+        sportData.category,
+        sportData.min_players,
+        sportData.max_players,
+        sportData.points_rule
+    ]);
+    return result.insertId;
+};
+
+export const updateSport = async (sportId, sportData) => {
+    const sql = `
+        UPDATE sports
+        SET name = ?, category = ?, min_players = ?, max_players = ?, points_rule = ?
+        WHERE sport_id = ?
+    `;
+    const [result] = await pool.execute(sql, [
+        sportData.name,
+        sportData.category,
+        sportData.min_players,
+        sportData.max_players,
+        sportData.points_rule,
+        sportId
+    ]);
+    return result.affectedRows > 0;
+};
+
+export const deleteSport = async (sportId) => {
+    const sql = `
+        DELETE FROM sports
+        WHERE sport_id = ?
+    `;
+    const [result] = await pool.execute(sql, [sportId]);
+    return result.affectedRows > 0;
+};
