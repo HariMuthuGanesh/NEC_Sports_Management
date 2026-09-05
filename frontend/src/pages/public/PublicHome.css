@@ -22,6 +22,15 @@
   overflow: hidden;
 }
 
+[data-theme="dark"] .nec-public-hero {
+  padding: 32px 32px;
+  background-color: var(--nec-solid-card);
+  border: 1px solid var(--nec-border);
+  border-left: none;
+  border-top: 1px solid var(--nec-border);
+  box-shadow: var(--nec-shadow-md);
+}
+
 .nec-hero-content {
   position: relative;
   z-index: 1;
@@ -56,12 +65,20 @@
   letter-spacing: -0.02em;
 }
 
+[data-theme="dark"] .nec-hero-title {
+  font-size: 1.85rem;
+}
+
 .nec-hero-subtitle {
   font-family: var(--nec-font-body);
   font-size: 1.05rem;
   color: #cbd5e1;
   line-height: 1.6;
   margin: 0 0 28px 0;
+}
+
+[data-theme="dark"] .nec-hero-subtitle {
+  margin: 0 0 20px 0;
 }
 
 .nec-hero-actions {
@@ -145,6 +162,10 @@
   transition: var(--nec-transition);
 }
 
+[data-theme="dark"] .nec-live-match-card {
+  border-left: 1px solid var(--nec-border);
+}
+
 .nec-live-match-card:hover {
   transform: translateY(-3px);
   box-shadow: var(--nec-shadow-lg);
@@ -177,6 +198,11 @@
   padding: 14px 0;
   border-top: 1px solid var(--nec-border);
   border-bottom: 1px solid var(--nec-border);
+}
+
+[data-theme="dark"] .nec-score-display {
+  justify-content: center;
+  gap: 24px;
 }
 
 .nec-team-col {
@@ -308,7 +334,15 @@
 }
 
 [data-theme="dark"] .nec-mini-tally td.nec-dept-cell {
-  color: var(--nec-gold-light);
+  color: var(--nec-text-main);
+}
+
+[data-theme="dark"] .nec-mini-tally tbody tr {
+  transition: var(--nec-transition);
+}
+
+[data-theme="dark"] .nec-mini-tally tbody tr:hover {
+  background-color: var(--nec-surface-hover);
 }
 
 .nec-bulletin-list {
@@ -332,6 +366,17 @@
   box-shadow: var(--nec-shadow-sm);
 }
 
+[data-theme="dark"] .nec-bulletin-item {
+  background: var(--nec-surface);
+  border-left: 4px solid var(--nec-accent);
+}
+
+[data-theme="dark"] .nec-bulletin-item:hover {
+  border-color: var(--nec-accent);
+  box-shadow: var(--nec-shadow-md);
+  transform: translateY(-2px);
+}
+
 .nec-bulletin-date {
   font-family: var(--nec-font-display);
   font-size: 0.75rem;
@@ -342,7 +387,7 @@
 }
 
 [data-theme="dark"] .nec-bulletin-date {
-  color: var(--nec-gold-light);
+  color: var(--nec-text-muted);
 }
 
 .nec-bulletin-title {

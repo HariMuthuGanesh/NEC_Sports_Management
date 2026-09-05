@@ -15,9 +15,9 @@ const AuthContext = createContext();
 
 export const ROLES = {
   PUBLIC: "Public Guest Portal",
-  ADMIN: "Director of Physical Education",
-  COORDINATOR: "Department Sports Coordinator",
-  PLAYER: "Student Athlete",
+  ADMIN: "Admin",
+  COORDINATOR: "Coordinator",
+  PLAYER: "Player",
 };
 
 // Idle timeout: 30 minutes of inactivity → auto-logout

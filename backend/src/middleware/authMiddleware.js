@@ -56,38 +56,3 @@ export const authorize = (...roles) => {
     };
 };
 
-/**
- * Object-Level Authorization Guard (BOLA Defense - OWASP API1:2023)
- * Ensures department coordinators can only view/modify their own department's data.
- * Administrators have universal access across all departments.
- */
-export const authorizeDepartment = (paramDeptField = 'dept') => {
-    return (req, res, next) => {
-        if (!req.user) {
-            return res.status(401).json({ 
-                success: false,
-                error: { code: 'UNAUTHORIZED', message: 'Not authorized.' } 
-            });
-        }
-
-        // Admin has global institutional clearance
-        if (req.user.role === 'admin' || req.user.role === 'Director of Physical Education') {
-            return next();
-        }
-
-        const targetDept = req.body?.[paramDeptField] || req.query?.[paramDeptField] || req.params?.[paramDeptField];
-
-        // If target department is specified, check against coordinator's assigned department
-        if (targetDept && req.user.dept && req.user.dept !== 'All' && targetDept.toUpperCase() !== req.user.dept.toUpperCase()) {
-            return res.status(403).json({ 
-                success: false,
-                error: { 
-                    code: 'DEPT_FORBIDDEN', 
-                    message: `Forbidden: You can only manage sports records for your assigned department (${req.user.dept}).` 
-                }
-            });
-        }
-
-        next();
-    };
-};

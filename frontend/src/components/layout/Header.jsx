@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Sun, Moon, Bell, Menu, X, Shield, User, Trophy, Globe, Settings, LogIn, LogOut } from "lucide-react";
 import { useAuth, ROLES } from "../../context/AuthContext";
 import NotificationDrawer from "../notifications/NotificationDrawer";
@@ -8,6 +8,20 @@ export default function Header({ onToggleSidebar, isSidebarOpen, onRoleChange, o
   const { currentUser, setRole, logout, theme, toggleTheme, language, setLanguage, t } = useAuth();
   const [showNotifs, setShowNotifs] = useState(false);
   const [showLangMenu, setShowLangMenu] = useState(false);
+  
+  const notifRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (notifRef.current && !notifRef.current.contains(event.target)) {
+        setShowNotifs(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const LANGUAGES = [
     { code: "en", label: "English" },
@@ -74,7 +88,7 @@ export default function Header({ onToggleSidebar, isSidebarOpen, onRoleChange, o
 
         {/* Notifications Icon (Only for authenticated users, hidden for Guests) */}
         {currentUser.role !== ROLES.PUBLIC && (
-          <div className="nec-notif-wrapper">
+          <div className="nec-notif-wrapper" ref={notifRef}>
             <button
               className="nec-icon-btn"
               onClick={() => setShowNotifs(prev => !prev)}

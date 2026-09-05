@@ -79,26 +79,23 @@ const safeFetchWithFallback = async (endpoint, storageKey, fallbackData) => {
       } else if (payload && typeof payload === "object" && !Array.isArray(payload)) {
         return payload;
       }
+      return payload;
+    } else {
+      throw new Error(`Server returned ${response.status}: ${response.statusText}`);
     }
   } catch (err) {
-    // Graceful offline fallback to localStorage
+    console.error(`[API Error] Failed to fetch ${endpoint}:`, err.message);
+    throw new Error("Cannot reach server. Please check your connection and try again.");
   }
-  return getStored(storageKey, fallbackData);
 };
 
 /* --- Global Mock DB Initializer / Reset --- */
 export const initializeMockDatabase = (forceReset = false) => {
   const collections = [
-    { key: "departments", data: INITIAL_DEPARTMENTS },
-    { key: "sports", data: INITIAL_SPORTS },
-    { key: "venues", data: INITIAL_VENUES },
-    { key: "tournaments", data: INITIAL_TOURNAMENTS },
     { key: "events", data: INITIAL_EVENTS },
     { key: "teams", data: INITIAL_TEAMS },
     { key: "players", data: INITIAL_PLAYERS },
-    { key: "matches", data: INITIAL_MATCHES },
     { key: "leaderboard", data: INITIAL_LEADERBOARD },
-    { key: "announcements", data: INITIAL_ANNOUNCEMENTS },
     { key: "notifications", data: INITIAL_NOTIFICATIONS },
     { key: "gallery", data: INITIAL_GALLERY },
     { key: "student_registry", data: EXTERNAL_STUDENT_DATABASE }

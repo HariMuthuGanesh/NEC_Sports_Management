@@ -8,9 +8,19 @@
   position: relative;
 }
 
+[data-theme="dark"] .nec-card {
+  background: var(--nec-solid-card);
+  border-radius: var(--nec-radius-xl);
+  box-shadow: var(--nec-shadow-lg);
+}
+
 .nec-card:hover {
   box-shadow: var(--nec-shadow-md);
   border-color: var(--nec-border-dark);
+}
+
+[data-theme="dark"] .nec-card:hover {
+  transform: translateY(-2px);
 }
 
 .nec-card-header {
@@ -61,6 +71,12 @@
   cursor: pointer;
 }
 
+[data-theme="dark"] .nec-stat-card {
+  background-color: var(--nec-solid-card);
+  border-radius: var(--nec-radius-xl);
+  box-shadow: var(--nec-shadow-lg);
+}
+
 .nec-stat-card::before {
   content: "";
   position: absolute;
@@ -80,6 +96,10 @@
   transform: translateY(-2px);
   box-shadow: var(--nec-shadow-md);
   border-color: var(--nec-blue-accent);
+}
+
+[data-theme="dark"] .nec-stat-card:hover {
+  border-color: var(--nec-border-dark);
 }
 
 .nec-stat-card-top {

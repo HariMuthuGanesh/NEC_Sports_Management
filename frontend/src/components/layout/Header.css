@@ -16,6 +16,14 @@
   border-bottom: 2px solid var(--nec-blue);
 }
 
+[data-theme="dark"] .nec-header {
+  background-color: var(--nec-glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: none;
+  border-bottom: 1px solid var(--nec-glass-border);
+}
+
 .nec-header-left, .nec-header-right {
   display: flex;
   align-items: center;

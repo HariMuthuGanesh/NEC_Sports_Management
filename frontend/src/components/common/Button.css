@@ -51,6 +51,19 @@
   transform: translateY(-1px);
 }
 
+[data-theme="dark"] .nec-btn-primary {
+  background-color: var(--nec-accent);
+  color: #fff;
+  border-color: var(--nec-accent);
+}
+
+[data-theme="dark"] .nec-btn-primary:hover:not(:disabled) {
+  background-color: var(--nec-accent-hover);
+  border-color: var(--nec-accent-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(29, 155, 240, 0.3);
+}
+
 .nec-btn-secondary, .nec-btn-gold {
   background-color: var(--nec-blue-accent);
   color: #ffffff;
@@ -74,9 +87,15 @@
   color: var(--nec-navy);
 }
 
+[data-theme="dark"] .nec-btn-outline {
+  border-color: var(--nec-border);
+}
+
 [data-theme="dark"] .nec-btn-outline:hover:not(:disabled) {
-  border-color: var(--nec-blue-accent);
-  color: var(--nec-accent-light);
+  border-color: var(--nec-accent);
+  color: var(--nec-accent);
+  background-color: var(--nec-accent-subtle);
+  transform: translateY(-2px);
 }
 
 .nec-btn-white {
