@@ -133,23 +133,37 @@ export const sportsApi = {
     return depts;
   },
   addSport: async (sportData) => {
-    await delay(200);
-    const sports = getStored("sports", INITIAL_SPORTS);
-    const newSport = {
-      ...sportData,
-      name: sanitizeInput(sportData.name),
-      id: `sp_${sanitizeInput(sportData.name).toLowerCase().replace(/\s+/g, "_")}`
-    };
-    const updated = [newSport, ...sports];
-    setStored("sports", updated);
-    return newSport;
+    try {
+      const response = await fetch(`${API_URL}/sports`, {
+        method: 'POST',
+        headers: getSecurityHeaders(),
+        body: JSON.stringify(sportData)
+      });
+      const resJson = await response.json();
+      if (response.ok && resJson.success) {
+        return resJson.data;
+      }
+      throw new Error(resJson.error?.message || 'Failed to add sport');
+    } catch (err) {
+      console.error('[sportsApi] addSport error:', err.message);
+      throw err;
+    }
   },
   deleteSport: async (sportId) => {
-    await delay(150);
-    const sports = getStored("sports", INITIAL_SPORTS);
-    const updated = sports.filter(s => s.id !== sportId);
-    setStored("sports", updated);
-    return true;
+    try {
+      const response = await fetch(`${API_URL}/sports/${sportId}`, {
+        method: 'DELETE',
+        headers: getSecurityHeaders()
+      });
+      const resJson = await response.json();
+      if (response.ok && resJson.success) {
+        return true;
+      }
+      throw new Error(resJson.error?.message || 'Failed to delete sport');
+    } catch (err) {
+      console.error('[sportsApi] deleteSport error:', err.message);
+      throw err;
+    }
   }
 };
 
@@ -207,37 +221,52 @@ export const tournamentsApi = {
   }
 };
 
-// TODO: Pending backend implementation - currently using local mock data
+// Team Management API wired to MySQL backend
 /* --- Teams & Roster API --- */
 export const teamsApi = {
   getTeams: async (deptId = null) => {
-    await delay();
-    const teams = getStored("teams", INITIAL_TEAMS);
-    if (deptId) return teams.filter(t => t.deptId === deptId || t.deptCode === deptId);
-    return teams;
+    try {
+      const teams = await safeFetchWithFallback("/teams", "teams", []);
+      if (deptId) return teams.filter(t => t.dept_id === deptId);
+      return teams;
+    } catch (err) {
+      console.error('[teamsApi] getTeams error:', err.message);
+      throw err;
+    }
   },
   registerTeam: async (teamData) => {
-    await delay(200);
-    const teams = getStored("teams", INITIAL_TEAMS);
-    const newTeam = {
-      ...teamData,
-      name: sanitizeInput(teamData.name),
-      captainName: sanitizeInput(teamData.captainName),
-      captainRoll: sanitizeInput(teamData.captainRoll || "2112000"),
-      id: `tm_${Date.now()}`,
-      status: "Pending",
-      memberCount: teamData.players ? teamData.players.length : 1
-    };
-    const updated = [newTeam, ...teams];
-    setStored("teams", updated);
-    return newTeam;
+    try {
+      const response = await fetch(`${API_URL}/teams`, {
+        method: 'POST',
+        headers: getSecurityHeaders(),
+        body: JSON.stringify(teamData)
+      });
+      const resJson = await response.json();
+      if (response.ok && resJson.success) {
+        return resJson.data;
+      }
+      throw new Error(resJson.error?.message || 'Failed to register team');
+    } catch (err) {
+      console.error('[teamsApi] registerTeam error:', err.message);
+      throw err;
+    }
   },
   updateTeamStatus: async (teamId, status) => {
-    await delay(150);
-    const teams = getStored("teams", INITIAL_TEAMS);
-    const updated = teams.map(t => t.id === teamId ? { ...t, status: sanitizeInput(status) } : t);
-    setStored("teams", updated);
-    return updated.find(t => t.id === teamId);
+    try {
+      const response = await fetch(`${API_URL}/teams/${teamId}/status`, {
+        method: 'PUT',
+        headers: getSecurityHeaders(),
+        body: JSON.stringify({ status })
+      });
+      const resJson = await response.json();
+      if (response.ok && resJson.success) {
+        return resJson.data;
+      }
+      throw new Error(resJson.error?.message || 'Failed to update team status');
+    } catch (err) {
+      console.error('[teamsApi] updateTeamStatus error:', err.message);
+      throw err;
+    }
   }
 };
 
