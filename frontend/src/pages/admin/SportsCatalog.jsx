@@ -15,7 +15,7 @@ export default function SportsCatalog() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [name, setName] = useState("");
-  const [type, setType] = useState("Team");
+  const [category, setCategory] = useState("Team");
   const [minPlayers, setMinPlayers] = useState(11);
   const [maxPlayers, setMaxPlayers] = useState(18);
 
@@ -37,27 +37,32 @@ export default function SportsCatalog() {
 
     sportsApi.addSport({
       name,
-      type,
-      minPlayers: Number(minPlayers),
-      maxPlayers: Number(maxPlayers),
-      icon: "Trophy"
+      category,
+      min_players: Number(minPlayers),
+      max_players: Number(maxPlayers),
+      points_rule: "Standard"
     }).then(() => {
       setIsModalOpen(false);
       setName("");
       loadSports();
+    }).catch(err => {
+      alert("Failed to add sport: " + err.message);
     });
   };
 
   const handleRemoveSport = (sportId) => {
+    if (!window.confirm("Are you sure you want to delete this sport?")) return;
     sportsApi.deleteSport(sportId).then(() => {
       loadSports();
+    }).catch(err => {
+      alert("Failed to delete sport: " + err.message);
     });
   };
 
   const columns = [
     { key: "name", label: "Sport Name", render: (val) => <strong>🏆 {val}</strong> },
     {
-      key: "type",
+      key: "category",
       label: "Sport Category",
       width: "180px",
       render: (val) => (
@@ -66,15 +71,15 @@ export default function SportsCatalog() {
         </Badge>
       )
     },
-    { key: "minPlayers", label: t.minSquadSize || "Min Squad Size", width: "140px", render: (val) => <span>{val} Players</span> },
-    { key: "maxPlayers", label: t.maxRosterLimit || "Max Roster Limit", width: "140px", render: (val) => <span>{val} Athletes</span> },
+    { key: "min_players", label: t.minSquadSize || "Min Squad Size", width: "140px", render: (val) => <span>{val} Players</span> },
+    { key: "max_players", label: t.maxRosterLimit || "Max Roster Limit", width: "140px", render: (val) => <span>{val} Athletes</span> },
     {
       key: "actions",
       label: t.actions || "Actions",
       width: "100px",
       sortable: false,
       render: (_, row) => (
-        <Button variant="danger" size="sm" icon={Trash2} onClick={() => handleRemoveSport(row.id)}>
+        <Button variant="danger" size="sm" icon={Trash2} onClick={() => handleRemoveSport(row.sport_id)}>
           {t.delete || "Remove"}
         </Button>
       )
@@ -124,8 +129,8 @@ export default function SportsCatalog() {
             <select
               className="nec-table-search-input"
               style={{ maxWidth: "100%" }}
-              value={type}
-              onChange={(e) => setType(e.target.value)}
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
             >
               <option value="Team">Team Sport</option>
               <option value="Individual / Doubles">Individual / Doubles</option>

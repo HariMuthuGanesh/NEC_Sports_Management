@@ -28,9 +28,17 @@ export default function TeamsManager() {
 
   const handleViewRoster = (team) => {
     setSelectedTeam(team);
-    playersApi.getPlayersByTeam(team.id).then(players => {
+    playersApi.getPlayersByTeam(team.team_id).then(players => {
       setTeamRoster(players);
       setRosterModalOpen(true);
+    });
+  };
+
+  const handleUpdateStatus = (teamId, status) => {
+    teamsApi.updateTeamStatus(teamId, status).then(() => {
+      loadTeams();
+    }).catch(err => {
+      alert("Failed to update status: " + err.message);
     });
   };
 
@@ -55,7 +63,7 @@ export default function TeamsManager() {
           <div>
             <strong style={{ fontSize: "0.95rem" }}>{val}</strong>
             <div style={{ fontSize: "0.75rem", color: "var(--nec-text-muted)" }}>
-              {row.deptCode} • {row.sportId.replace("sp_", "").toUpperCase()}
+              {row.deptCode} • {row.sportName}
             </div>
           </div>
         </div>
@@ -106,9 +114,16 @@ export default function TeamsManager() {
       width: "110px",
       sortable: false,
       render: (_, row) => (
-        <Button variant="ghost" size="sm" icon={Eye} onClick={() => handleViewRoster(row)}>
-          Roster
-        </Button>
+        <div style={{ display: "flex", gap: "8px" }}>
+          {row.status === "Pending" && (
+            <Button variant="outline" size="sm" onClick={() => handleUpdateStatus(row.team_id, "Approved")}>
+              Approve
+            </Button>
+          )}
+          <Button variant="ghost" size="sm" icon={Eye} onClick={() => handleViewRoster(row)}>
+            Roster
+          </Button>
+        </div>
       )
     }
   ];
