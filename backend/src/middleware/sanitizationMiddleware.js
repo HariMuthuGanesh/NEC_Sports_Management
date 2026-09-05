@@ -35,9 +35,23 @@ const sanitizeObject = (obj) => {
 };
 
 export const sanitizeData = (req, res, next) => {
-    if (req.body) req.body = sanitizeObject(req.body);
-    if (req.query) req.query = sanitizeObject(req.query);
-    if (req.params) req.params = sanitizeObject(req.params);
+    if (req.body) {
+        req.body = sanitizeObject(req.body);
+    }
+    
+    if (req.query) {
+        const sanitized = sanitizeObject(req.query);
+        for (const key of Object.keys(req.query)) {
+            req.query[key] = sanitized[key];
+        }
+    }
+    
+    if (req.params) {
+        const sanitized = sanitizeObject(req.params);
+        for (const key of Object.keys(req.params)) {
+            req.params[key] = sanitized[key];
+        }
+    }
     
     next();
 };

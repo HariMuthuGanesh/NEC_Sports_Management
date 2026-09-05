@@ -44,6 +44,7 @@ export default function Sidebar({ activeNav, onSelectNav, isOpen, onCloseMobile 
             items: [
               { id: "admin_regs", label: t.teamApprovals, icon: CheckSquare },
               { id: "admin_teams", label: t.teamsCatalog, icon: Users },
+              { id: "admin_students", label: "Student Registry", icon: UserCheck },
               { id: "admin_matches", label: t.matchScheduler, icon: Calendar },
               { id: "admin_venues", label: t.venues, icon: MapPin }
             ]
@@ -148,15 +149,17 @@ export default function Sidebar({ activeNav, onSelectNav, isOpen, onCloseMobile 
           </nav>
 
           <div className="nec-sidebar-footer">
-            {/* Settings link — all roles */}
-            <button
-              className={`nec-nav-item ${activeNav === "settings" ? "active" : ""}`}
-              onClick={() => { onSelectNav("settings"); onCloseMobile(); }}
-              style={{ width: "100%", marginBottom: "10px" }}
-            >
-              <Settings className="nec-nav-icon" size={18} />
-              <span className="nec-nav-label">Settings</span>
-            </button>
+            {/* Settings link — hidden for public guests */}
+            {currentUser.role !== ROLES.PUBLIC && (
+              <button
+                className={`nec-nav-item ${activeNav === "settings" ? "active" : ""}`}
+                onClick={() => { onSelectNav("settings"); onCloseMobile(); }}
+                style={{ width: "100%", marginBottom: "10px" }}
+              >
+                <Settings className="nec-nav-icon" size={18} />
+                <span className="nec-nav-label">Settings</span>
+              </button>
+            )}
             <div className="nec-lasa-tag">
               <span>{t.lasaTag}</span>
               <span className="nec-tag-sub">{t.lasaSub}</span>

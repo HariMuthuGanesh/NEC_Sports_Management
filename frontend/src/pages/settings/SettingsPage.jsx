@@ -85,87 +85,9 @@ export default function SettingsPage() {
           )}
         </Card>
 
-        {/* ── Appearance ── */}
-        <Card title="Appearance" icon={theme === "dark" ? <Moon size={16} /> : <Sun size={16} />}>
-          <p style={{ fontSize: "0.87rem", color: "var(--nec-text-muted)", marginBottom: "16px" }}>
-            Choose between light and dark mode for the portal interface.
-          </p>
-          <div className="nec-settings-theme-toggle">
-            {["light", "dark"].map(mode => (
-              <button
-                key={mode}
-                className={`nec-settings-theme-btn ${theme === mode ? "active" : ""}`}
-                onClick={() => { if (theme !== mode) toggleTheme(); }}
-              >
-                {mode === "light" ? <Sun size={16} /> : <Moon size={16} />}
-                {mode.charAt(0).toUpperCase() + mode.slice(1)} Mode
-              </button>
-            ))}
-          </div>
-          <div className="nec-settings-theme-preview" data-theme-preview={theme}>
-            <div className="nec-settings-theme-preview-bar" />
-            <div className="nec-settings-theme-preview-content">
-              <div className="nec-settings-theme-preview-block" />
-              <div className="nec-settings-theme-preview-block short" />
-            </div>
-          </div>
-        </Card>
 
-        {/* ── Language ── */}
-        <Card title="Language" icon={<Globe size={16} />}>
-          <p style={{ fontSize: "0.87rem", color: "var(--nec-text-muted)", marginBottom: "16px" }}>
-            Select your preferred language. Non-English languages are fetched live and cached for 7 days.
-          </p>
-          <div className="nec-settings-lang-grid">
-            {LANGUAGES.map(lang => {
-              const cacheInfo = getTranslationCacheInfo(lang.code);
-              const isActive = language === lang.code;
-              return (
-                <button
-                  key={lang.code}
-                  className={`nec-settings-lang-btn ${isActive ? "active" : ""}`}
-                  onClick={() => setLanguage(lang.code)}
-                >
-                  <span className="nec-settings-lang-flag">{lang.flag}</span>
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: "0.9rem" }}>{lang.label}</div>
-                    <div style={{ fontSize: "0.75rem", opacity: 0.7 }}>{lang.native}</div>
-                  </div>
-                  {isActive && <CheckCircle2 size={15} style={{ marginLeft: "auto", color: "var(--nec-navy)" }} />}
-                  {lang.code !== "en" && cacheInfo?.cached && (
-                    <span style={{ marginLeft: isActive ? "4px" : "auto", fontSize: "0.7rem", background: "#dcfce7", color: "#16a34a", padding: "1px 6px", borderRadius: "8px" }}>
-                      Cached
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-          {/* Translation cache management */}
-          <div style={{ marginTop: "14px", paddingTop: "14px", borderTop: "1px solid var(--nec-border-light)" }}>
-            <div style={{ fontSize: "0.8rem", color: "var(--nec-text-muted)", marginBottom: "8px", fontWeight: 600 }}>
-              Translation Cache
-            </div>
-            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-              {["ta", "hi"].map(code => {
-                const info = getTranslationCacheInfo(code);
-                const label = code === "ta" ? "Tamil" : "Hindi";
-                return (
-                  <Button
-                    key={code}
-                    variant="ghost"
-                    size="sm"
-                    icon={RefreshCw}
-                    onClick={() => handleClearTransCache(code)}
-                  >
-                    {cacheCleared ? "Cleared!" : `Refresh ${label}`}
-                    {info?.cached && <span style={{ marginLeft: "4px", fontSize: "0.7rem", opacity: 0.6 }}>({info.ageHours}h old)</span>}
-                  </Button>
-                );
-              })}
-            </div>
-          </div>
-        </Card>
+
+
 
         {/* ── Session ── */}
         <Card title="Session Info" icon={<ShieldCheck size={16} />}>
@@ -200,32 +122,7 @@ export default function SettingsPage() {
           </div>
         </Card>
 
-        {/* ── Data Management ── */}
-        <Card title="Data Management" icon={<Database size={16} />}>
-          <p style={{ fontSize: "0.87rem", color: "var(--nec-text-muted)", marginBottom: "16px" }}>
-            All application data is stored locally in your browser. You can reset it to factory defaults at any time.
-          </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-            <div style={{ padding: "12px", background: "var(--nec-bg-alt)", borderRadius: "8px", fontSize: "0.82rem", color: "var(--nec-text-muted)", display: "flex", justifyContent: "space-between" }}>
-              <span>Sports Catalog, Teams, Matches, Announcements, Audit Log</span>
-              <span style={{ fontWeight: 700, color: "var(--nec-text-main)" }}>
-                {Math.round(new Blob([JSON.stringify(localStorage)]).size / 1024)}kb
-              </span>
-            </div>
-            <Button
-              variant={resetConfirm ? "danger" : "ghost"}
-              icon={Trash2}
-              onClick={handleResetData}
-            >
-              {resetConfirm ? "⚠️ Click again to confirm reset" : "Reset All Data to Defaults"}
-            </Button>
-            {resetConfirm && (
-              <p style={{ fontSize: "0.78rem", color: "#dc2626" }}>
-                This will delete all local changes and reload the page. This cannot be undone.
-              </p>
-            )}
-          </div>
-        </Card>
+
 
         {/* ── About ── */}
         <Card title="About" icon={<Info size={16} />}>

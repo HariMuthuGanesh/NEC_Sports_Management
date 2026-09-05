@@ -78,7 +78,7 @@ function MainApp() {
     } else if (role === ROLES.PUBLIC && !activeNav.startsWith("public_")) {
       setActiveNav("public_home");
     }
-  }, [currentUser?.role]);
+  }, [currentUser?.role, activeNav]);
 
   const renderContent = () => {
     const defaultNav = getDefaultNav(currentUser?.role);

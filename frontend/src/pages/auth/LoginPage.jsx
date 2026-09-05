@@ -12,18 +12,11 @@ import {
   AlertTriangle,
   CheckCircle2,
   ShieldAlert,
-  GraduationCap,
-  Users,
-  Award,
   ArrowRight,
   HelpCircle,
-  Sparkles,
   Building,
   KeyRound,
-  Globe,
-  Sun,
-  Moon,
-  ChevronRight,
+  Award,
   Radio,
   Phone,
   Mail,
@@ -37,97 +30,18 @@ import {
   recordFailedAttempt,
   clearRateLimit,
   SecurityLogger,
+  setAuthToken,
 } from "../../utils/security";
 import "./LoginPage.css";
-
-// ── Credential dictionary (mock — aligned with NEC Institutional Directory) ──
-const MOCK_CREDENTIALS = {
-  "ADM01": {
-    password: "Admin@123",
-    role: "Director of Physical Education",
-    name: "Dr. K. Arumugam",
-    dept: "Sports Office",
-    title: "Director of Physical Education",
-    roleType: "admin",
-    badge: "Sports Directorate"
-  },
-  "2112045": {
-    password: "Coord@456",
-    role: "Department Sports Coordinator",
-    name: "Rahul Sharma",
-    dept: "CSE",
-    title: "CSE Sports Coordinator",
-    roleType: "coordinator",
-    badge: "Faculty / Staff"
-  },
-  "2114012": {
-    password: "Player@789",
-    role: "Student Athlete",
-    name: "Priya Patel",
-    dept: "MECH",
-    title: "Student Athlete",
-    roleType: "player",
-    badge: "Student Roster"
-  },
-  "guest": {
-    password: "Guest@000",
-    role: "Public Guest Portal",
-    name: "Guest Visitor",
-    dept: "All",
-    title: "Guest",
-    roleType: "public",
-    badge: "Public Access"
-  },
-};
-
-const ROLES_INFO = [
-  {
-    id: "player",
-    label: "Student Athlete",
-    icon: GraduationCap,
-    desc: "Register for events, track fixtures & personal stats",
-    defaultId: "2114012",
-    defaultPw: "Player@789",
-    userPreview: "Priya Patel (Mech)",
-  },
-  {
-    id: "coordinator",
-    label: "Dept Coordinator",
-    icon: Users,
-    desc: "Manage rosters, submit live scores & mark attendance",
-    defaultId: "2112045",
-    defaultPw: "Coord@456",
-    userPreview: "Rahul Sharma (CSE)",
-  },
-  {
-    id: "admin",
-    label: "Sports Director",
-    icon: Award,
-    desc: "Approve teams, manage tournaments & full audit logs",
-    defaultId: "ADM01",
-    defaultPw: "Admin@123",
-    userPreview: "Dr. K. Arumugam (Director)",
-  },
-  {
-    id: "public",
-    label: "Guest Explorer",
-    icon: Trophy,
-    desc: "Browse live scores, fixtures & sports gallery",
-    defaultId: "guest",
-    defaultPw: "Guest@000",
-    userPreview: "Public Visitor",
-  }
-];
 
 // Password strength colors
 const STRENGTH_COLORS = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#16a34a"];
 
 export default function LoginPage({ onLoginSuccess, onNavigate }) {
-  const { login, setRole, ROLES, theme, toggleTheme, language, setLanguage, t } = useAuth();
+  const { login, t } = useAuth();
 
-  const [selectedRoleTab, setSelectedRoleTab] = useState("player");
-  const [userId, setUserId] = useState(() => localStorage.getItem("nec_remembered_userid") || "2114012");
-  const [password, setPassword] = useState("Player@789");
+  const [userId, setUserId] = useState(() => localStorage.getItem("nec_remembered_userid") || "");
+  const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
@@ -164,16 +78,7 @@ export default function LoginPage({ onLoginSuccess, onNavigate }) {
     }
   }, []);
 
-  // Update fields when selecting a role tab
-  const handleRoleTabClick = (roleTab) => {
-    setSelectedRoleTab(roleTab.id);
-    setUserId(roleTab.defaultId);
-    setPassword(roleTab.defaultPw);
-    setError("");
-    if (roleTab.defaultPw) {
-      setPwStrength(validatePasswordStrength(roleTab.defaultPw));
-    }
-  };
+
 
   const handlePasswordChange = (e) => {
     const val = e.target.value;
@@ -201,13 +106,58 @@ export default function LoginPage({ onLoginSuccess, onNavigate }) {
 
     setLoading(true);
 
-    // Network latency simulation
-    await new Promise((r) => setTimeout(r, 450));
+    try {
+      const response = await fetch("http://localhost:5000/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: cleanId, password: cleanPw })
+      });
 
-    const credential = MOCK_CREDENTIALS[cleanId];
-    if (!credential || credential.password !== cleanPw) {
+      const resData = await response.json();
+
+      if (response.ok && resData.success && resData.data?.token) {
+        const userData = resData.data;
+        const jwtToken = userData.token;
+
+        // Store JWT in nec_sports_jwt_token via security utility
+        setAuthToken(jwtToken);
+
+        if (rememberMe) {
+          localStorage.setItem("nec_remembered_userid", cleanId);
+        } else {
+          localStorage.removeItem("nec_remembered_userid");
+        }
+
+        clearRateLimit();
+
+        login(
+          {
+            role: userData.role,
+            name: userData.username,
+            email: userData.email,
+            dept: userData.studentProfile?.department_code || "Sports Office",
+            title: userData.role,
+            id: userData.username || cleanId
+          },
+          jwtToken
+        );
+
+        setLoading(false);
+        if (typeof onLoginSuccess === "function") {
+          onLoginSuccess();
+        }
+        return;
+      }
+
+      if (response.status === 403 || resData.error?.code === "ACCOUNT_DISABLED") {
+        setError(resData.error?.message || "Your account is disabled.");
+        setLoading(false);
+        return;
+      }
+
+      // Invalid credentials or status 401
       const result = recordFailedAttempt();
-      SecurityLogger.logFailedLogin(cleanId, "Invalid credentials");
+      SecurityLogger.logFailedLogin(cleanId, resData.error?.message || "Invalid credentials");
       if (result.locked) {
         setLocked(true);
         setLockCountdown(getLockoutRemainingSeconds());
@@ -215,31 +165,10 @@ export default function LoginPage({ onLoginSuccess, onNavigate }) {
       } else {
         setError(`Invalid credentials. ${5 - result.attempts} attempt${5 - result.attempts === 1 ? "" : "s"} remaining before security lockout.`);
       }
+    } catch (err) {
+      setError("Unable to connect to authentication server. Please check your backend connection.");
+    } finally {
       setLoading(false);
-      return;
-    }
-
-    // Save remembered ID if requested
-    if (rememberMe) {
-      localStorage.setItem("nec_remembered_userid", cleanId);
-    } else {
-      localStorage.removeItem("nec_remembered_userid");
-    }
-
-    // Clear rate limits upon successful login
-    clearRateLimit();
-
-    login({
-      role: credential.role,
-      name: credential.name,
-      dept: credential.dept,
-      title: credential.title,
-      id: cleanId
-    });
-
-    setLoading(false);
-    if (typeof onLoginSuccess === "function") {
-      onLoginSuccess();
     }
   };
 
@@ -248,12 +177,6 @@ export default function LoginPage({ onLoginSuccess, onNavigate }) {
     executeLogin(userId, password);
   };
 
-  const handleQuickDemoLogin = (roleInfo) => {
-    setSelectedRoleTab(roleInfo.id);
-    setUserId(roleInfo.defaultId);
-    setPassword(roleInfo.defaultPw);
-    executeLogin(roleInfo.defaultId, roleInfo.defaultPw);
-  };
 
   const formatCountdown = (secs) => {
     const m = Math.floor(secs / 60).toString().padStart(2, "0");
@@ -261,55 +184,9 @@ export default function LoginPage({ onLoginSuccess, onNavigate }) {
     return `${m}:${s}`;
   };
 
-  const LANGUAGES = [
-    { code: "en", label: "English" },
-    { code: "ta", label: "தமிழ்" },
-    { code: "hi", label: "हिंदी" }
-  ];
 
   return (
     <div className="nec-auth-portal">
-      {/* ── Top Utility Bar ── */}
-      <header className="nec-auth-topbar">
-        <div className="nec-auth-topbar-left">
-          <button
-            type="button"
-            className="nec-auth-back-btn"
-            onClick={() => onNavigate ? onNavigate("public_home") : null}
-          >
-            <Trophy size={16} className="nec-gold-icon" />
-            <span>{t.home || "Public Portal"}</span>
-          </button>
-        </div>
-
-        <div className="nec-auth-topbar-right">
-          {/* Language Switcher */}
-          <div className="nec-auth-lang-pills">
-            <Globe size={14} className="nec-text-muted" />
-            {LANGUAGES.map((l) => (
-              <button
-                key={l.code}
-                type="button"
-                className={`nec-auth-pill-btn ${language === l.code ? "active" : ""}`}
-                onClick={() => setLanguage(l.code)}
-              >
-                {l.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Theme Toggle */}
-          <button
-            type="button"
-            className="nec-auth-theme-btn"
-            onClick={toggleTheme}
-            title={`Switch to ${theme === "light" ? "Dark" : "Light"} Mode`}
-            aria-label="Toggle theme"
-          >
-            {theme === "light" ? <Moon size={16} /> : <Sun size={16} />}
-          </button>
-        </div>
-      </header>
 
       {/* ── Main Split-Layout Container ── */}
       <main className="nec-auth-main">
@@ -392,48 +269,9 @@ export default function LoginPage({ onLoginSuccess, onNavigate }) {
               {/* Form Header */}
               <div className="nec-auth-card-header">
                 <div className="nec-header-text">
-                  <h2 className="nec-card-title">{t.signInTitle || "Sign In to NEC Sports Portal"}</h2>
-                  <p className="nec-card-desc">Select your portal role or enter your institutional credentials</p>
+                  <h2 className="nec-card-title">Sign In to Sports Portal</h2>
+                  <p className="nec-card-desc">Enter your Roll Number or Staff ID to log in</p>
                 </div>
-              </div>
-
-              {/* Role Persona Tabs */}
-              <div className="nec-role-tabs" role="tablist" aria-label="Portal Roles">
-                {ROLES_INFO.map((r) => {
-                  const Icon = r.icon;
-                  const isActive = selectedRoleTab === r.id;
-                  return (
-                    <button
-                      key={r.id}
-                      type="button"
-                      role="tab"
-                      aria-selected={isActive}
-                      className={`nec-role-tab ${isActive ? "active" : ""}`}
-                      onClick={() => handleRoleTabClick(r)}
-                    >
-                      <Icon size={18} className="nec-tab-icon" />
-                      <span className="nec-tab-label">{r.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Quick Demo Assist Banner */}
-              <div className="nec-quick-assist-bar">
-                <div className="nec-assist-info">
-                  <Sparkles size={14} className="nec-gold-icon" />
-                  <span>
-                    Selected: <strong>{ROLES_INFO.find(r => r.id === selectedRoleTab)?.userPreview}</strong>
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  className="nec-quick-fill-btn"
-                  onClick={() => handleQuickDemoLogin(ROLES_INFO.find(r => r.id === selectedRoleTab))}
-                  disabled={locked || loading}
-                >
-                  Quick Sign In <ChevronRight size={14} />
-                </button>
               </div>
 
               {/* ── Security Lockout Banner ── */}
@@ -456,18 +294,8 @@ export default function LoginPage({ onLoginSuccess, onNavigate }) {
                 {/* User ID / Roll Number */}
                 <div className="nec-input-group">
                   <label className="nec-input-label" htmlFor="nec-userid">
-                    <span className="nec-label-text">
-                      {selectedRoleTab === "admin"
-                        ? "Director / Staff ID"
-                        : selectedRoleTab === "coordinator"
-                        ? "Faculty Coordinator ID"
-                        : selectedRoleTab === "public"
-                        ? "Visitor Identifier"
-                        : (t.rollOrStaffId || "Student Roll Number")}
-                    </span>
-                    <span className="nec-label-hint">
-                      {selectedRoleTab === "admin" ? "e.g. ADM01" : selectedRoleTab === "coordinator" ? "e.g. 2112045" : "e.g. 2114012"}
-                    </span>
+                    <span className="nec-label-text">Roll Number / Staff ID</span>
+                    <span className="nec-label-hint">e.g. 2114012, ADM01</span>
                   </label>
                   <div className="nec-input-wrapper">
                     <Building size={18} className="nec-input-icon" />
@@ -477,13 +305,7 @@ export default function LoginPage({ onLoginSuccess, onNavigate }) {
                       required
                       disabled={locked}
                       className="nec-form-control"
-                      placeholder={
-                        selectedRoleTab === "admin"
-                          ? "Enter Staff ID (e.g. ADM01)"
-                          : selectedRoleTab === "coordinator"
-                          ? "Enter Coordinator ID (e.g. 2112045)"
-                          : "Enter Roll Number (e.g. 2114012)"
-                      }
+                      placeholder="Enter your Roll Number or Staff ID (e.g. 2114012, ADM01)"
                       value={userId}
                       onChange={(e) => setUserId(e.target.value)}
                       autoComplete="username"
@@ -496,7 +318,7 @@ export default function LoginPage({ onLoginSuccess, onNavigate }) {
                 <div className="nec-input-group">
                   <div className="nec-label-row">
                     <label className="nec-input-label" htmlFor="nec-password">
-                      <span className="nec-label-text">{t.password || "Password"}</span>
+                      <span className="nec-label-text">Password</span>
                     </label>
                     <button
                       type="button"
@@ -515,7 +337,7 @@ export default function LoginPage({ onLoginSuccess, onNavigate }) {
                       required
                       disabled={locked}
                       className="nec-form-control nec-pw-field"
-                      placeholder={t.enterPasswordPlaceholder || "Enter your password..."}
+                      placeholder="Enter your account password"
                       value={password}
                       onChange={handlePasswordChange}
                       autoComplete="current-password"
@@ -615,10 +437,10 @@ export default function LoginPage({ onLoginSuccess, onNavigate }) {
                   type="button"
                   className="nec-guest-link"
                   onClick={() => {
-                    handleQuickDemoLogin(ROLES_INFO.find(r => r.id === "public"));
+                    if (typeof onNavigate === "function") onNavigate("public_home");
                   }}
                 >
-                  Continue as Guest Explorer <ArrowRight size={14} />
+                  Continue as Guest <ArrowRight size={14} />
                 </button>
               </div>
 
@@ -669,20 +491,6 @@ export default function LoginPage({ onLoginSuccess, onNavigate }) {
             </div>
           </div>
 
-          <div className="nec-help-demo-card">
-            <h4>Quick Reference Demo Accounts:</h4>
-            <div className="nec-demo-tags">
-              <div className="nec-demo-tag">
-                <strong>Student:</strong> <code>2114012</code> / <code>Player@789</code>
-              </div>
-              <div className="nec-demo-tag">
-                <strong>Coordinator:</strong> <code>2112045</code> / <code>Coord@456</code>
-              </div>
-              <div className="nec-demo-tag">
-                <strong>Director / Admin:</strong> <code>ADM01</code> / <code>Admin@123</code>
-              </div>
-            </div>
-          </div>
 
           <div className="nec-help-actions">
             <Button variant="primary" onClick={() => setShowHelpModal(false)}>

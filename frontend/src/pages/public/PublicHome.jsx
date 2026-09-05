@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Radio, Calendar, Trophy, Megaphone, ArrowRight, ShieldCheck, LogIn } from "lucide-react";
+import { Radio, Calendar, Trophy, Megaphone, ArrowRight, ShieldCheck, LogIn, Users, Activity } from "lucide-react";
 import { matchesApi, leaderboardApi, announcementsApi } from "../../services/api/apiServices";
 import { Card, StatCard } from "../../components/common/Card";
 import Badge from "../../components/common/Badge";
@@ -8,7 +8,7 @@ import { useAuth } from "../../context/AuthContext";
 import "./PublicHome.css";
 
 export default function PublicHome({ onNavigate }) {
-  const { t } = useAuth();
+  const { t, currentUser, ROLES } = useAuth();
   const [liveMatches, setLiveMatches] = useState([]);
   const [leaderboard, setLeaderboard] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
@@ -47,11 +47,25 @@ export default function PublicHome({ onNavigate }) {
             <Button variant="white" icon={Calendar} onClick={() => onNavigate("public_fixtures")}>
               {t.viewFixturesSchedule}
             </Button>
-            <Button variant="outline" icon={LogIn} onClick={() => onNavigate("login")} style={{ borderColor: "rgba(255,255,255,0.4)", color: "#fff" }}>
-              {t.login || "Portal Sign In"}
-            </Button>
+            {currentUser.role === ROLES.PUBLIC ? (
+              <Button variant="primary" icon={LogIn} onClick={() => onNavigate("login")}>
+                {t.login || "Portal Sign In"}
+              </Button>
+            ) : (
+              <Button variant="primary" onClick={() => onNavigate(currentUser.role === ROLES.ADMIN ? "admin_dash" : currentUser.role === ROLES.COORDINATOR ? "coord_dash" : "player_dash")}>
+                Go to Dashboard
+              </Button>
+            )}
           </div>
         </div>
+      </div>
+
+      {/* Public Dashboard Statistics */}
+      <div className="nec-home-stats-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "20px" }}>
+        <StatCard title="Sports" value="8+" icon={Trophy} subtext="Active Disciplines" color="gold" />
+        <StatCard title="Athletes" value="500+" icon={Users} subtext="Registered Players" color="navy" />
+        <StatCard title="Live Matches" value={liveMatches.length} icon={Radio} subtext="Currently Playing" color="navy" trend={liveMatches.length > 0 ? "+ Active" : undefined} />
+        <StatCard title="Announcements" value={announcements.length} icon={Megaphone} subtext="Recent Notices" color="navy" />
       </div>
 
       {/* Live Matches Section */}

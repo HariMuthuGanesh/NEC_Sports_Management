@@ -17,6 +17,7 @@ export default function NotificationDrawer({ onClose }) {
   const handleMarkAllRead = () => {
     notificationsApi.markAllRead().then(data => {
       setNotifications(data);
+      if (onClose) onClose();
     });
   };
 
