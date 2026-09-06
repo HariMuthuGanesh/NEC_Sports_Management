@@ -142,3 +142,10 @@ export const notificationsApi = {
   getNotifications: () => apiFetch("/notifications"),
   markAsRead: (id) => apiFetch(`/notifications/${id}/read`, "PATCH")
 };
+
+/* --- Development Demo Data API --- */
+export const devApi = {
+  loadDemoData: () => apiFetch("/dev/load-demo-data", "POST"),
+  clearDemoData: () => apiFetch("/dev/clear-demo-data", "POST")
+};
+

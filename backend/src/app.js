@@ -51,6 +51,16 @@ app.use('/api/auth', authRoutes);
 app.use('/api/gallery', galleryRoutes);
 app.use('/api', apiRoutes);
 
+// 5.1 Isolated Development-only Demo Data Utilities
+if (process.env.NODE_ENV !== 'production') {
+    try {
+        const devModule = await import('./dev-tools/devRoutes.js');
+        app.use('/api/dev', devModule.default);
+    } catch (err) {
+        console.info('[DevTools] Demo routes module omitted or unavailable:', err.message);
+    }
+}
+
 // 5.5 Serve static uploads
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
