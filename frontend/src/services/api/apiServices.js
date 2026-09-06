@@ -123,7 +123,9 @@ export const leaderboardApi = {
 /* --- Announcements API --- */
 export const announcementsApi = {
   getAnnouncements: () => apiFetch("/announcements"),
+  getAll: () => apiFetch("/announcements"),
   addAnnouncement: (data) => apiFetch("/announcements", "POST", data),
+  createAnnouncement: (data) => apiFetch("/announcements", "POST", data),
   deleteAnnouncement: (id) => apiFetch(`/announcements/${id}`, "DELETE")
 };
 

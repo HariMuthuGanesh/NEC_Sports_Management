@@ -5,7 +5,7 @@ import mysql from 'mysql2/promise';
 const pool = mysql.createPool({
     host: process.env.MYSQL_HOST || 'localhost',
     user: process.env.MYSQL_USER || 'root',
-    password: process.env.MYSQL_PASSWORD || '',
+    password: (process.env.MYSQL_PASSWORD || '').trim(),
     database: process.env.MYSQL_DATABASE || 'nec_sports_db',
     port: parseInt(process.env.MYSQL_PORT || '3306', 10),
     waitForConnections: true,
@@ -23,7 +23,8 @@ export const testConnection = async () => {
         connection.release();
         return true;
     } catch (error) {
-        console.error('MySQL Database Connection Failed:', error.message);
+        const errDetail = error.code || (error.errors && error.errors[0]?.message) || error.message || error;
+        console.error('MySQL Database Connection Failed:', errDetail);
         return false;
     }
 };

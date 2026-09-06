@@ -54,20 +54,25 @@ export default function PublicAnnouncements() {
         <SkeletonLoader rows={3} />
       ) : (
         <div className="nec-ann-full-list">
-          {list.slice((currentPage - 1) * pageSize, currentPage * pageSize).map(ann => (
-            <Card key={ann.id} className="nec-ann-card">
-              <div className="nec-ann-top">
-                <Badge status={ann.isImportant ? "danger" : "info"}>
-                  {ann.isImportant ? "IMPORTANT" : "NOTICE"}
-                </Badge>
-                <span className="nec-ann-date">
-                  <Calendar size={14} /> {new Date(ann.postedDate).toLocaleDateString()}
-                </span>
-              </div>
-              <h3 className="nec-ann-title">{ann.title}</h3>
-              <p className="nec-ann-content">{ann.content}</p>
-            </Card>
-          ))}
+          {list.slice((currentPage - 1) * pageSize, currentPage * pageSize).map((ann, idx) => {
+            const isImp = ann.isImportant || ann.priority === 'HIGH' || ann.priority === 'CRITICAL';
+            const rawDate = ann.postedDate || ann.created_at;
+            const dateStr = rawDate ? new Date(rawDate).toLocaleDateString() : 'Recent';
+            return (
+              <Card key={ann.id || ann.announcement_id || idx} className="nec-ann-card">
+                <div className="nec-ann-top">
+                  <Badge status={isImp ? "danger" : "info"}>
+                    {isImp ? "IMPORTANT" : "NOTICE"}
+                  </Badge>
+                  <span className="nec-ann-date">
+                    <Calendar size={14} /> {dateStr}
+                  </span>
+                </div>
+                <h3 className="nec-ann-title">{ann.title}</h3>
+                <p className="nec-ann-content">{ann.content}</p>
+              </Card>
+            );
+          })}
 
           {totalPages > 1 && (
             <div className="nec-pagination">

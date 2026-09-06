@@ -209,15 +209,20 @@ export default function PublicHome({ onNavigate }) {
                 />
               ) : (
                 <div className="nec-ann-mini-list">
-                  {announcements.slice(0, 3).map(ann => (
-                    <div key={ann.id} className="nec-ann-mini-item">
-                      <Badge status={ann.isImportant ? "danger" : "info"}>
-                        {ann.isImportant ? "IMPORTANT" : "NOTICE"}
-                      </Badge>
-                      <h4 className="nec-ann-mini-title">{ann.title}</h4>
-                      <span className="nec-ann-mini-date">{new Date(ann.postedDate).toLocaleDateString()}</span>
-                    </div>
-                  ))}
+                  {announcements.slice(0, 3).map((ann, idx) => {
+                    const isImp = ann.isImportant || ann.priority === 'HIGH' || ann.priority === 'CRITICAL';
+                    const rawDate = ann.postedDate || ann.created_at;
+                    const dateStr = rawDate ? new Date(rawDate).toLocaleDateString() : 'Recent';
+                    return (
+                      <div key={ann.id || ann.announcement_id || idx} className="nec-ann-mini-item">
+                        <Badge status={isImp ? "danger" : "info"}>
+                          {isImp ? "IMPORTANT" : "NOTICE"}
+                        </Badge>
+                        <h4 className="nec-ann-mini-title">{ann.title}</h4>
+                        <span className="nec-ann-mini-date">{dateStr}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
