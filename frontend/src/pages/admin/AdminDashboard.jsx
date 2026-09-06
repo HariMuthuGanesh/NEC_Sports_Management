@@ -95,7 +95,7 @@ export default function AdminDashboard({ onNavigate }) {
   const pendingColumns = [
     { key: "deptCode", label: "Dept", width: "90px", render: (val) => <strong>{val}</strong> },
     { key: "name", label: "Team Name", render: (val) => <strong>{val}</strong> },
-    { key: "sportId", label: "Sport", width: "120px", render: (val) => val.replace("sp_", "").toUpperCase() },
+    { key: "sportId", label: "Sport", width: "120px", render: (val, row) => String(val || row.sportName || "").replace("sp_", "").toUpperCase() },
     { key: "captainName", label: "Captain", render: (val, row) => <span>{val} ({row.captainRoll})</span> },
     { key: "status", label: "Status", width: "110px", render: (val) => <Badge status="warning">Pending Review</Badge> }
   ];

@@ -45,3 +45,34 @@ export const createStudent = async (studentData) => {
     ]);
     return result.insertId;
 };
+
+export const searchStudents = async (query) => {
+    const q = `%${query}%`;
+    const sql = `
+        SELECT 
+            s.student_id,
+            s.student_id AS id,
+            s.user_id,
+            s.student_name,
+            s.student_name AS name,
+            s.register_number,
+            s.register_number AS rollNo,
+            s.department_id,
+            s.department_id AS deptId,
+            s.batch,
+            s.section,
+            s.personal_email,
+            s.personal_phone,
+            d.name AS department_name,
+            d.code AS department_code,
+            d.code AS deptCode
+        FROM students s
+        JOIN departments d ON s.department_id = d.id
+        WHERE s.student_name LIKE ? OR s.register_number LIKE ?
+        ORDER BY s.student_name ASC
+        LIMIT 25
+    `;
+    const [rows] = await pool.execute(sql, [q, q]);
+    return rows;
+};
+

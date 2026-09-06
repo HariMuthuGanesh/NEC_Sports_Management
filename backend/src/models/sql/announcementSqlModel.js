@@ -19,3 +19,20 @@ export const getAllAnnouncements = async () => {
     const [rows] = await pool.execute(sql);
     return rows;
 };
+
+export const createAnnouncement = async (data) => {
+    const { title, content, priority = 'Low', target_department_id = null, author_user_id = 1 } = data;
+    const sql = `
+        INSERT INTO announcements (title, content, priority, target_department_id, author_user_id)
+        VALUES (?, ?, ?, ?, ?)
+    `;
+    const [result] = await pool.execute(sql, [title, content, priority, target_department_id, author_user_id]);
+    return result.insertId;
+};
+
+export const deleteAnnouncement = async (id) => {
+    const sql = `DELETE FROM announcements WHERE announcement_id = ?`;
+    const [result] = await pool.execute(sql, [id]);
+    return result.affectedRows > 0;
+};
+

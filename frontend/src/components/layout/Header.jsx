@@ -58,7 +58,6 @@ export default function Header({ onToggleSidebar, isSidebarOpen, onRoleChange, o
             className="nec-role-badge-btn"
             onClick={() => {
               setShowLangMenu(prev => !prev);
-              setShowRoleMenu(false);
             }}
             title={t.switchLanguage}
             aria-expanded={showLangMenu}

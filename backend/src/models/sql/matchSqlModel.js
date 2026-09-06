@@ -3,11 +3,34 @@ import pool from '../../config/db.js';
 export const getAllMatches = async () => {
     const sql = `
         SELECT 
-            m.match_id, m.tournament_id, m.sport_id, m.scheduled_time, m.round,
-            m.score_a, m.score_b, m.status, m.detail_score,
-            t1.name AS team_a_name, d1.code AS dept_a_code,
-            t2.name AS team_b_name, d2.code AS dept_b_code,
-            v.name AS venue_name, s.name AS sport_name
+            m.match_id,
+            m.match_id AS id,
+            m.tournament_id,
+            m.tournament_id AS tournamentId,
+            m.sport_id,
+            m.sport_id AS sportId,
+            m.scheduled_time,
+            m.scheduled_time AS date,
+            m.round,
+            m.score_a,
+            m.score_a AS scoreA,
+            m.score_b,
+            m.score_b AS scoreB,
+            m.status,
+            m.detail_score,
+            m.detail_score AS detailScore,
+            t1.name AS team_a_name,
+            t1.name AS teamA,
+            d1.code AS dept_a_code,
+            d1.code AS deptA,
+            t2.name AS team_b_name,
+            t2.name AS teamB,
+            d2.code AS dept_b_code,
+            d2.code AS deptB,
+            v.name AS venue_name,
+            v.name AS venue,
+            s.name AS sport_name,
+            s.name AS sport
         FROM matches m
         JOIN teams t1 ON m.team_a_id = t1.team_id
         JOIN departments d1 ON t1.department_id = d1.id

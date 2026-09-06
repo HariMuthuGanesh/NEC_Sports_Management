@@ -1,8 +1,17 @@
-import { getAllTeams, createTeam as createTeamSql, updateTeamStatus as updateTeamStatusSql, deleteTeam as deleteTeamSql } from '../models/sql/teamSqlModel.js';
+import { getAllTeams, getPlayersByTeam, createTeam as createTeamSql, updateTeamStatus as updateTeamStatusSql, deleteTeam as deleteTeamSql } from '../models/sql/teamSqlModel.js';
 
 export const getTeams = async (req, res, next) => {
     try {
         const data = await getAllTeams();
+        return res.json({ success: true, data });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const getTeamPlayers = async (req, res, next) => {
+    try {
+        const data = await getPlayersByTeam(req.params.id);
         return res.json({ success: true, data });
     } catch (err) {
         next(err);

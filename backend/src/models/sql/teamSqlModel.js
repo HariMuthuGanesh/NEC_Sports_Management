@@ -4,19 +4,53 @@ export const getAllTeams = async () => {
     const sql = `
         SELECT 
             t.team_id, 
+            t.team_id AS id,
             t.name, 
             t.status, 
-            d.code as deptCode, 
-            s.name as sportName,
+            t.department_id AS dept_id,
+            t.department_id AS deptId,
+            d.code AS deptCode, 
+            d.name AS deptName,
+            t.sport_id AS sportId,
+            s.name AS sportName,
             t.created_at,
-            (SELECT COUNT(*) FROM team_members tm WHERE tm.team_id = t.team_id) as memberCount,
-            (SELECT st.student_name FROM team_members tm JOIN students st ON tm.student_id = st.student_id WHERE tm.team_id = t.team_id AND tm.role = 'Captain' LIMIT 1) as captainName
+            (SELECT COUNT(*) FROM team_members tm WHERE tm.team_id = t.team_id) AS memberCount,
+            (SELECT st.student_name FROM team_members tm JOIN students st ON tm.student_id = st.student_id WHERE tm.team_id = t.team_id AND tm.role = 'Captain' LIMIT 1) AS captainName,
+            (SELECT st.register_number FROM team_members tm JOIN students st ON tm.student_id = st.student_id WHERE tm.team_id = t.team_id AND tm.role = 'Captain' LIMIT 1) AS captainRoll
         FROM teams t
         LEFT JOIN departments d ON t.department_id = d.id
         LEFT JOIN sports s ON t.sport_id = s.sport_id
         ORDER BY t.created_at DESC
     `;
     const [rows] = await pool.execute(sql);
+    return rows;
+};
+
+export const getPlayersByTeam = async (teamId) => {
+    const sql = `
+        SELECT 
+            tm.member_id,
+            tm.member_id AS id,
+            tm.team_id,
+            tm.student_id,
+            tm.role,
+            tm.jersey_number,
+            tm.medical_clearance,
+            s.student_name,
+            s.student_name AS name,
+            s.register_number,
+            s.register_number AS rollNo,
+            s.personal_email,
+            s.personal_phone,
+            s.blood_group,
+            d.code AS dept_code
+        FROM team_members tm
+        JOIN students s ON tm.student_id = s.student_id
+        JOIN departments d ON s.department_id = d.id
+        WHERE tm.team_id = ?
+        ORDER BY tm.role = 'Captain' DESC, tm.jersey_number ASC
+    `;
+    const [rows] = await pool.execute(sql, [teamId]);
     return rows;
 };
 
