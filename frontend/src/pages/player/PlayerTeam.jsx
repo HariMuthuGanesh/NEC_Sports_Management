@@ -3,6 +3,7 @@ import { Card, StatCard } from "../../components/common/Card";
 import Table from "../../components/common/Table";
 import { useAuth } from "../../context/AuthContext";
 import { playersApi, teamsApi } from "../../services/api/apiServices";
+import ErrorState from "../../components/common/ErrorState";
 import { Users, Shield, UserCircle, Star } from "lucide-react";
 import "./PlayerPortal.css";
 
@@ -15,9 +16,11 @@ export default function PlayerTeam() {
   const [myPlayerInfo, setMyPlayerInfo] = useState(null);
   const [teammates, setTeammates] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  useEffect(() => {
+  const loadData = () => {
     setLoading(true);
+    setError(null);
     Promise.all([
       teamsApi.getTeams(),
       playersApi.getAllPlayers()
@@ -33,7 +36,15 @@ export default function PlayerTeam() {
       }
 
       setLoading(false);
+    }).catch(err => {
+      console.error(err);
+      setError(err.message);
+      setLoading(false);
     });
+  };
+
+  useEffect(() => {
+    loadData();
   }, [currentUser, playerDept, playerName]);
 
   const teammateColumns = [
@@ -50,31 +61,40 @@ export default function PlayerTeam() {
         <p className="nec-page-desc">View your teammates, coach notes, and team statistics.</p>
       </div>
 
-      <div className="nec-stats-grid">
-        <StatCard title="Team Name" value={myTeam ? myTeam.name : "Loading..."} subtext={`${playerDept} Department`} icon={Users} color="navy" />
-        <StatCard title="Coach / Coordinator" value={myTeam?.coordinatorId || "Assigned by HOD"} subtext="Primary Contact" icon={UserCircle} color="gold" />
-        <StatCard title="My Position" value={myPlayerInfo?.position || "Player"} subtext={`Jersey #${myPlayerInfo?.jerseyNo || "00"}`} icon={Star} color="success" />
-      </div>
-
-      <Card title="Team Roster" subtitle={`Team: ${myTeam?.name || "Department Team"} (${teammates.length} Athletes)`}>
-        <Table
-          columns={teammateColumns}
-          data={teammates}
-          loading={loading}
-          searchable={true}
-          pagination={false}
-        />
-      </Card>
-      
-      <div style={{ marginTop: "24px" }}>
-        <Card title="Coach Notes & Strategies" icon={Shield}>
-          <div style={{ padding: "16px", backgroundColor: "var(--nec-surface-raised)", borderRadius: "8px", fontStyle: "italic", color: "var(--nec-text-muted)" }}>
-            "Focus on stamina building this week. Evening practice starts at 5:00 PM strictly. Ensure adequate hydration."
-            <br /><br />
-            - <strong>{myTeam?.coordinatorId || "Team Coach"}</strong>
+      {error ? (
+        <div style={{ padding: "40px" }}>
+          <ErrorState onRetry={loadData} />
+        </div>
+      ) : (
+        <>
+          <div className="nec-stats-grid">
+            <StatCard title="Team Name" value={myTeam ? myTeam.name : "Loading..."} subtext={`${playerDept} Department`} icon={Users} color="navy" />
+            <StatCard title="Coach / Coordinator" value={myTeam?.coordinatorId || "Assigned by HOD"} subtext="Primary Contact" icon={UserCircle} color="gold" />
+            <StatCard title="My Position" value={myPlayerInfo?.position || "Player"} subtext={`Jersey #${myPlayerInfo?.jerseyNo || "00"}`} icon={Star} color="success" />
           </div>
-        </Card>
-      </div>
+
+          <Card title="Team Roster" subtitle={`Team: ${myTeam?.name || "Department Team"} (${teammates.length} Athletes)`}>
+            <Table
+              columns={teammateColumns}
+              data={teammates}
+              loading={loading}
+              searchable={true}
+              pagination={false}
+              emptyMessage="No teammates found in your roster."
+            />
+          </Card>
+          
+          <div style={{ marginTop: "24px" }}>
+            <Card title="Coach Notes & Strategies" icon={Shield}>
+              <div style={{ padding: "16px", backgroundColor: "var(--nec-surface-raised)", borderRadius: "8px", fontStyle: "italic", color: "var(--nec-text-muted)" }}>
+                "Focus on stamina building this week. Evening practice starts at 5:00 PM strictly. Ensure adequate hydration."
+                <br /><br />
+                - <strong>{myTeam?.coordinatorId || "Team Coach"}</strong>
+              </div>
+            </Card>
+          </div>
+        </>
+      )}
     </div>
   );
 }

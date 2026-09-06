@@ -52,6 +52,7 @@ export default function Sidebar({ activeNav, onSelectNav, isOpen, onCloseMobile 
           {
             category: t.navCommReports,
             items: [
+              { id: "admin_gallery", label: "Gallery Manager", icon: Image },
               { id: "admin_announcements", label: t.announcements, icon: Megaphone },
               { id: "admin_reports", label: t.institutionalReports, icon: FileText },
               { id: "admin_audit", label: "Security Audit Log", icon: Shield }

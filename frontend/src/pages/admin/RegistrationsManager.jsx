@@ -4,28 +4,36 @@ import Table from "../../components/common/Table";
 import Badge from "../../components/common/Badge";
 import Button from "../../components/common/Button";
 import { Modal, ConfirmDialog } from "../../components/common/Modal";
+import ErrorState from "../../components/common/ErrorState";
+import EmptyState from "../../components/common/EmptyState";
 import { Check, X, Eye } from "lucide-react";
 import "./AdminPortal.css";
 
 export default function RegistrationsManager() {
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [teamRoster, setTeamRoster] = useState([]);
   const [rosterModalOpen, setRosterModalOpen] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState({ open: false, teamId: null, action: null });
 
-  useEffect(() => {
-    loadTeams();
-  }, []);
-
   const loadTeams = () => {
     setLoading(true);
+    setError(null);
     teamsApi.getTeams().then(data => {
       setTeams(data);
       setLoading(false);
+    }).catch(err => {
+      console.error(err);
+      setError(err.message);
+      setLoading(false);
     });
   };
+
+  useEffect(() => {
+    loadTeams();
+  }, []);
 
   const handleViewRoster = (team) => {
     setSelectedTeam(team);
@@ -103,12 +111,19 @@ export default function RegistrationsManager() {
         <p className="nec-page-desc">Review submitted department team rosters, verify player details, and approve tournament entries.</p>
       </div>
 
-      <Table
-        columns={columns}
-        data={teams}
-        loading={loading}
-        searchPlaceholder="Search by team, department, captain..."
-      />
+      {error ? (
+        <div style={{ padding: "40px" }}>
+          <ErrorState onRetry={loadTeams} />
+        </div>
+      ) : (
+        <Table
+          columns={columns}
+          data={teams}
+          loading={loading}
+          searchPlaceholder="Search by team, department, captain..."
+          emptyMessage="No registrations received yet."
+        />
+      )}
 
       {/* Roster Preview Modal */}
       <Modal

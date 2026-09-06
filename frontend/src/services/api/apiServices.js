@@ -1,27 +1,9 @@
 /* API Service Abstraction Layer for NEC Sports Management System
-   Provides LocalStorage Mock Database Layer with fallback, JWT Authorization, 
-   Input Sanitization, and Category enrichment.
+   Provides JWT Authorization, Input Sanitization, and Category enrichment.
+   STRICTLY BACKEND API ONLY - NO MOCK DATA OR LOCAL STORAGE FALLBACKS.
 */
 
 import { getAuthToken, sanitizeInput } from "../../utils/security";
-import {
-  INITIAL_DEPARTMENTS,
-  INITIAL_SPORTS,
-  INITIAL_VENUES,
-  INITIAL_TOURNAMENTS,
-  INITIAL_EVENTS,
-  INITIAL_TEAMS,
-  INITIAL_PLAYERS,
-  INITIAL_MATCHES,
-  INITIAL_LEADERBOARD,
-  INITIAL_ANNOUNCEMENTS,
-  INITIAL_NOTIFICATIONS,
-  INITIAL_GALLERY,
-  EXTERNAL_STUDENT_DATABASE
-} from "../../data/mock/mockData";
-
-// Helper to simulate smooth local network latency
-const delay = (ms = 120) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const API_URL = 'http://localhost:5000/api';
 
@@ -35,444 +17,125 @@ export const getSecurityHeaders = () => {
   };
 };
 
-// Helper for local storage persistence
-const getStored = (key, fallback) => {
-  try {
-    const item = localStorage.getItem(`nec_sports_${key}`);
-    if (!item) {
-      localStorage.setItem(`nec_sports_${key}`, JSON.stringify(fallback));
-      return fallback;
-    }
-    return JSON.parse(item);
-  } catch (e) {
-    return fallback;
-  }
-};
-
-const setStored = (key, value) => {
-  try {
-    localStorage.setItem(`nec_sports_${key}`, JSON.stringify(value));
-  } catch (e) {
-    console.error("Storage error:", e);
-  }
-};
-
-// Safe API fetcher: Primary GET to backend API with graceful offline localStorage fallback
-const safeFetchWithFallback = async (endpoint, storageKey, fallbackData) => {
+// Strict API fetcher: Primary fetch to backend API with NO fallback
+const apiFetch = async (endpoint, method = 'GET', body = null) => {
   try {
     const headers = getSecurityHeaders();
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 2000); // 2s timeout
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
 
-    const response = await fetch(`${API_URL}${endpoint}`, {
+    const options = {
+      method,
       headers,
       signal: controller.signal
-    });
+    };
+
+    if (body) {
+      if (body instanceof FormData) {
+        options.body = body;
+        delete options.headers["Content-Type"]; // Let browser set multipart/form-data with boundary
+      } else {
+        options.body = JSON.stringify(body);
+      }
+    }
+
+    const response = await fetch(`${API_URL}${endpoint}`, options);
     clearTimeout(timeoutId);
 
     if (response.ok) {
       const resJson = await response.json();
-      const payload = resJson.data !== undefined ? resJson.data : resJson;
-      if (Array.isArray(payload) && payload.length > 0) {
-        setStored(storageKey, payload);
-        return payload;
-      } else if (payload && typeof payload === "object" && !Array.isArray(payload)) {
-        return payload;
-      }
-      return payload;
+      return resJson.data !== undefined ? resJson.data : resJson;
     } else {
-      throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+      const errorJson = await response.json().catch(() => null);
+      throw new Error(errorJson?.error?.message || `Server returned ${response.status}: ${response.statusText}`);
     }
   } catch (err) {
     console.error(`[API Error] Failed to fetch ${endpoint}:`, err.message);
-    throw new Error("Cannot reach server. Please check your connection and try again.");
+    throw new Error(err.message || "Cannot reach server. Please check your connection and try again.", { cause: err });
   }
 };
-
-/* --- Global Mock DB Initializer / Reset --- */
-export const initializeMockDatabase = (forceReset = false) => {
-  const collections = [
-    { key: "events", data: INITIAL_EVENTS },
-    { key: "teams", data: INITIAL_TEAMS },
-    { key: "players", data: INITIAL_PLAYERS },
-    { key: "leaderboard", data: INITIAL_LEADERBOARD },
-    { key: "notifications", data: INITIAL_NOTIFICATIONS },
-    { key: "gallery", data: INITIAL_GALLERY },
-    { key: "student_registry", data: EXTERNAL_STUDENT_DATABASE }
-  ];
-
-  collections.forEach(({ key, data }) => {
-    if (forceReset || !localStorage.getItem(`nec_sports_${key}`)) {
-      localStorage.setItem(`nec_sports_${key}`, JSON.stringify(data));
-    }
-  });
-};
-
-// Auto-initialize mock database upon module load
-initializeMockDatabase(false);
 
 /* --- Sports & Departments API --- */
 export const sportsApi = {
-  getDepartments: async () => {
-    return safeFetchWithFallback("/departments", "departments", INITIAL_DEPARTMENTS);
-  },
-  getSports: async () => {
-    return safeFetchWithFallback("/sports", "sports", INITIAL_SPORTS);
-  },
-  getVenues: async () => {
-    return safeFetchWithFallback("/venues", "venues", INITIAL_VENUES);
-  },
-  saveVenues: async (venues) => {
-    await delay(150);
-    setStored("venues", venues);
-    return venues;
-  },
-  saveDepartments: async (depts) => {
-    await delay(150);
-    setStored("departments", depts);
-    return depts;
-  },
-  addSport: async (sportData) => {
-    try {
-      const response = await fetch(`${API_URL}/sports`, {
-        method: 'POST',
-        headers: getSecurityHeaders(),
-        body: JSON.stringify(sportData)
-      });
-      const resJson = await response.json();
-      if (response.ok && resJson.success) {
-        return resJson.data;
-      }
-      throw new Error(resJson.error?.message || 'Failed to add sport');
-    } catch (err) {
-      console.error('[sportsApi] addSport error:', err.message);
-      throw err;
-    }
-  },
-  deleteSport: async (sportId) => {
-    try {
-      const response = await fetch(`${API_URL}/sports/${sportId}`, {
-        method: 'DELETE',
-        headers: getSecurityHeaders()
-      });
-      const resJson = await response.json();
-      if (response.ok && resJson.success) {
-        return true;
-      }
-      throw new Error(resJson.error?.message || 'Failed to delete sport');
-    } catch (err) {
-      console.error('[sportsApi] deleteSport error:', err.message);
-      throw err;
-    }
-  }
+  getDepartments: () => apiFetch("/departments"),
+  getSports: () => apiFetch("/sports"),
+  getVenues: () => apiFetch("/venues"),
+  saveVenues: (venues) => apiFetch("/venues", "POST", venues), // if bulk save needed
+  saveDepartments: (depts) => apiFetch("/departments", "POST", depts),
+  addSport: (sportData) => apiFetch("/sports", "POST", sportData),
+  deleteSport: (sportId) => apiFetch(`/sports/${sportId}`, "DELETE")
 };
 
 /* --- Tournaments & Events API --- */
 export const tournamentsApi = {
-  getTournaments: async () => {
-    return safeFetchWithFallback("/tournaments", "tournaments", INITIAL_TOURNAMENTS);
+  getTournaments: () => apiFetch("/tournaments"),
+  getEvents: (tournamentId = null) => {
+    return apiFetch("/events").then(events => tournamentId ? events.filter(e => e.tournamentId === tournamentId) : events);
   },
-  getEvents: async (tournamentId = null) => {
-    await delay();
-    const events = getStored("events", INITIAL_EVENTS);
-    if (tournamentId) return events.filter(e => e.tournamentId === tournamentId);
-    return events;
-  },
-  createTournament: async (tournamentData) => {
-    await delay(200);
-    const tournaments = getStored("tournaments", INITIAL_TOURNAMENTS);
-    const newTournament = {
-      ...tournamentData,
-      title: sanitizeInput(tournamentData.title),
-      description: sanitizeInput(tournamentData.description),
-      id: `tn_${Date.now()}`,
-      status: tournamentData.status || "Registration Open"
-    };
-    const updated = [newTournament, ...tournaments];
-    setStored("tournaments", updated);
-    return newTournament;
-  },
-  createEvent: async (eventData) => {
-    await delay(200);
-    const events = getStored("events", INITIAL_EVENTS);
-    const newEvent = {
-      ...eventData,
-      title: sanitizeInput(eventData.title),
-      id: `ev_${Date.now()}`,
-      registeredTeams: 0,
-      status: "Open"
-    };
-    const updated = [newEvent, ...events];
-    setStored("events", updated);
-    return newEvent;
-  },
-  toggleEventStatus: async (eventId) => {
-    await delay(150);
-    const events = getStored("events", INITIAL_EVENTS);
-    const updated = events.map(ev => {
-      if (ev.id === eventId) {
-        const isOpen = ev.status === "Open" || ev.status === "Registration Open";
-        return { ...ev, status: isOpen ? "Closed" : "Open" };
-      }
-      return ev;
-    });
-    setStored("events", updated);
-    return updated.find(e => e.id === eventId);
-  }
+  createTournament: (data) => apiFetch("/tournaments", "POST", {
+    ...data,
+    title: sanitizeInput(data.title),
+    description: sanitizeInput(data.description)
+  }),
+  createEvent: (data) => apiFetch("/events", "POST", {
+    ...data,
+    title: sanitizeInput(data.title)
+  }),
+  toggleEventStatus: (eventId) => apiFetch(`/events/${eventId}/toggle`, "POST")
 };
 
-// Team Management API wired to MySQL backend
 /* --- Teams & Roster API --- */
 export const teamsApi = {
-  getTeams: async (deptId = null) => {
-    try {
-      const teams = await safeFetchWithFallback("/teams", "teams", []);
-      if (deptId) return teams.filter(t => t.dept_id === deptId);
-      return teams;
-    } catch (err) {
-      console.error('[teamsApi] getTeams error:', err.message);
-      throw err;
-    }
+  getTeams: (deptId = null) => {
+    return apiFetch("/teams").then(teams => deptId ? teams.filter(t => t.dept_id === deptId || t.deptId === deptId) : teams);
   },
-  registerTeam: async (teamData) => {
-    try {
-      const response = await fetch(`${API_URL}/teams`, {
-        method: 'POST',
-        headers: getSecurityHeaders(),
-        body: JSON.stringify(teamData)
-      });
-      const resJson = await response.json();
-      if (response.ok && resJson.success) {
-        return resJson.data;
-      }
-      throw new Error(resJson.error?.message || 'Failed to register team');
-    } catch (err) {
-      console.error('[teamsApi] registerTeam error:', err.message);
-      throw err;
-    }
-  },
-  updateTeamStatus: async (teamId, status) => {
-    try {
-      const response = await fetch(`${API_URL}/teams/${teamId}/status`, {
-        method: 'PUT',
-        headers: getSecurityHeaders(),
-        body: JSON.stringify({ status })
-      });
-      const resJson = await response.json();
-      if (response.ok && resJson.success) {
-        return resJson.data;
-      }
-      throw new Error(resJson.error?.message || 'Failed to update team status');
-    } catch (err) {
-      console.error('[teamsApi] updateTeamStatus error:', err.message);
-      throw err;
-    }
-  }
+  registerTeam: (teamData) => apiFetch("/teams", "POST", teamData),
+  updateTeamStatus: (teamId, status) => apiFetch(`/teams/${teamId}/status`, "PATCH", { status })
 };
 
-/* --- External Student Lookup Boundary API (Simulating NEC IMS Student Data) --- */
+/* --- Student Lookup API --- */
 export const studentLookupApi = {
-  searchStudent: async (studentIdOrName) => {
-    await delay(150);
-    const registry = getStored("student_registry", EXTERNAL_STUDENT_DATABASE);
-    const query = sanitizeInput(String(studentIdOrName)).trim().toLowerCase();
-    if (!query) return [];
-    return registry.filter(
-      s => s.studentId.toLowerCase().includes(query) || s.name.toLowerCase().includes(query)
-    );
-  }
+  searchStudent: (query) => apiFetch(`/students/search?q=${encodeURIComponent(query)}`)
 };
 
-// TODO: Pending backend implementation - currently using local mock data
 /* --- Players API --- */
 export const playersApi = {
-  getPlayersByTeam: async (teamId) => {
-    await delay();
-    const players = getStored("players", INITIAL_PLAYERS);
-    return players.filter(p => p.teamId === teamId);
-  },
-  getAllPlayers: async () => {
-    await delay();
-    return getStored("players", INITIAL_PLAYERS);
-  },
-  addPlayerToRoster: async (teamId, playerData) => {
-    await delay(200);
-    const players = getStored("players", INITIAL_PLAYERS);
-    const newPlayer = {
-      ...playerData,
-      name: sanitizeInput(playerData.name),
-      position: sanitizeInput(playerData.position),
-      jerseyNo: sanitizeInput(playerData.jerseyNo),
-      id: `pl_${Date.now()}`,
-      teamId,
-      attendancePct: 100
-    };
-    const updated = [...players, newPlayer];
-    setStored("players", updated);
-
-    // Update team member count
-    const teams = getStored("teams", INITIAL_TEAMS);
-    const updatedTeams = teams.map(t => {
-      if (t.id === teamId) {
-        return { ...t, memberCount: (t.memberCount || 0) + 1 };
-      }
-      return t;
-    });
-    setStored("teams", updatedTeams);
-
-    return newPlayer;
-  },
-  removePlayer: async (playerId) => {
-    await delay(150);
-    const players = getStored("players", INITIAL_PLAYERS);
-    const targetPlayer = players.find(p => p.id === playerId);
-    const updated = players.filter(p => p.id !== playerId);
-    setStored("players", updated);
-
-    if (targetPlayer) {
-      const teams = getStored("teams", INITIAL_TEAMS);
-      const updatedTeams = teams.map(t => {
-        if (t.id === targetPlayer.teamId && t.memberCount > 0) {
-          return { ...t, memberCount: t.memberCount - 1 };
-        }
-        return t;
-      });
-      setStored("teams", updatedTeams);
-    }
-    return true;
-  },
-  saveSquadAttendance: async (teamId, attendanceMap) => {
-    await delay(200);
-    const players = getStored("players", INITIAL_PLAYERS);
-    const updated = players.map(p => {
-      if (p.teamId === teamId) {
-        const isPresent = attendanceMap[p.id];
-        let currentPct = p.attendancePct || 90;
-        let newPct = isPresent ? Math.min(100, currentPct + 2) : Math.max(50, currentPct - 8);
-        return { ...p, attendancePct: newPct };
-      }
-      return p;
-    });
-    setStored("players", updated);
-    return true;
-  }
+  getPlayersByTeam: (teamId) => apiFetch(`/teams/${teamId}/players`),
+  addPlayerToTeam: (teamId, playerData) => apiFetch(`/teams/${teamId}/players`, "POST", playerData),
+  removePlayer: (playerId) => apiFetch(`/players/${playerId}`, "DELETE"),
+  saveSquadAttendance: (teamId, attendanceMap) => apiFetch(`/teams/${teamId}/attendance`, "POST", { attendance: attendanceMap })
 };
 
 /* --- Matches & Scheduling API --- */
 export const matchesApi = {
-  getMatches: async () => {
-    const matches = await safeFetchWithFallback("/matches", "matches", INITIAL_MATCHES);
-    const events = getStored("events", INITIAL_EVENTS);
-    
-    // Map event category to matches
-    return matches.map(match => {
-      const event = events.find(e => e.id === match.eventId);
-      return {
-        ...match,
-        eventCategory: event ? event.eventCategory : (match.eventCategory || "Inter-Department")
-      };
-    });
-  },
-  scheduleMatch: async (matchData) => {
-    await delay(200);
-    const matches = getStored("matches", INITIAL_MATCHES);
-    const newMatch = {
-      ...matchData,
-      round: sanitizeInput(matchData.round),
-      id: `m_${Date.now()}`,
-      status: "Scheduled",
-      scoreA: null,
-      scoreB: null,
-      winner: null
-    };
-    const updated = [newMatch, ...matches];
-    setStored("matches", updated);
-    return newMatch;
-  },
-  deleteMatch: async (matchId) => {
-    await delay(150);
-    const matches = getStored("matches", INITIAL_MATCHES);
-    const updated = matches.filter(m => m.id !== matchId);
-    setStored("matches", updated);
-    return true;
-  },
-  // Winner is resolved server-side. Frontend sends raw scores and isFinal flag.
-  updateMatchScore: async (matchId, scoreA, scoreB, detailScore = '', isFinal = false) => {
-    try {
-      const response = await fetch(`${API_URL}/matches/${matchId}/score`, {
-        method: 'PUT',
-        headers: getSecurityHeaders(),
-        body: JSON.stringify({ scoreA, scoreB, detailScore, isFinal })
-      });
-      const resJson = await response.json();
-      if (response.ok && resJson.success) {
-        return resJson.data; // { matchId, scoreA, scoreB, status, winner, winnerTeamId, isFinal }
-      }
-      throw new Error(resJson.error?.message || 'Score update failed');
-    } catch (err) {
-      console.error('[matchesApi] updateMatchScore error:', err.message);
-      throw err; // Propagate — caller must handle and show error to user
-    }
-  }
+  getMatches: () => apiFetch("/matches"),
+  createMatch: (matchData) => apiFetch("/matches", "POST", matchData),
+  updateMatchStatus: (matchId, status) => apiFetch(`/matches/${matchId}/status`, "PATCH", { status }),
+  deleteMatch: (matchId) => apiFetch(`/matches/${matchId}`, "DELETE"),
+  updateScore: (matchId, scoreA, scoreB, detailScore, winner) => apiFetch(`/matches/${matchId}/score`, "PATCH", { scoreA, scoreB, detailScore, winner })
 };
 
-/* --- Leaderboard & Reports API --- */
+/* --- Leaderboard API --- */
 export const leaderboardApi = {
-  getLeaderboard: async () => {
-    await delay();
-    return getStored("leaderboard", INITIAL_LEADERBOARD);
-  }
+  getLeaderboard: () => apiFetch("/leaderboard")
 };
 
-/* --- Announcements & Media API --- */
+/* --- Announcements API --- */
 export const announcementsApi = {
-  getAnnouncements: async () => {
-    return safeFetchWithFallback("/announcements", "announcements", INITIAL_ANNOUNCEMENTS);
-  },
-  createAnnouncement: async (data) => {
-    await delay(200);
-    const list = getStored("announcements", INITIAL_ANNOUNCEMENTS);
-    const newItem = {
-      ...data,
-      title: sanitizeInput(data.title),
-      content: sanitizeInput(data.content),
-      category: sanitizeInput(data.category || "General"),
-      author: sanitizeInput(data.author || "Physical Education Director"),
-      id: `ann_${Date.now()}`,
-      date: new Date().toISOString().split("T")[0]
-    };
-    const updated = [newItem, ...list];
-    setStored("announcements", updated);
-    return newItem;
-  },
-  deleteAnnouncement: async (id) => {
-    await delay(150);
-    const list = getStored("announcements", INITIAL_ANNOUNCEMENTS);
-    const updated = list.filter(a => a.id !== id);
-    setStored("announcements", updated);
-    return true;
-  }
+  getAnnouncements: () => apiFetch("/announcements"),
+  addAnnouncement: (data) => apiFetch("/announcements", "POST", data),
+  deleteAnnouncement: (id) => apiFetch(`/announcements/${id}`, "DELETE")
 };
 
+/* --- Media Gallery API --- */
 export const galleryApi = {
-  getGallery: async () => {
-    await delay();
-    return getStored("gallery", INITIAL_GALLERY);
-  }
+  getGallery: () => apiFetch("/gallery"),
+  uploadMedia: (formData) => apiFetch("/gallery/upload", "POST", formData),
+  deleteMedia: (id) => apiFetch(`/gallery/${id}`, "DELETE")
 };
 
-// TODO: Pending backend implementation - currently using local mock data
 /* --- Notifications API --- */
 export const notificationsApi = {
-  getNotifications: async () => {
-    await delay();
-    return getStored("notifications", INITIAL_NOTIFICATIONS);
-  },
-  markAllRead: async () => {
-    await delay(100);
-    const notifs = getStored("notifications", INITIAL_NOTIFICATIONS);
-    const updated = notifs.map(n => ({ ...n, read: true }));
-    setStored("notifications", updated);
-    return updated;
-  }
+  getNotifications: () => apiFetch("/notifications"),
+  markAsRead: (id) => apiFetch(`/notifications/${id}/read`, "PATCH")
 };

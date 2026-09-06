@@ -8,6 +8,8 @@ import Table from "../../components/common/Table";
 import { sportsApi } from "../../services/api/apiServices";
 import { sanitizeInput } from "../../utils/security";
 import { MapPin, Plus, Edit2, Trash2, Home, Building2 } from "lucide-react";
+import ErrorState from "../../components/common/ErrorState";
+import EmptyState from "../../components/common/EmptyState";
 import "../admin/AdminPortal.css";
 
 const VENUE_TYPES = ["Outdoor", "Indoor", "Multi-Purpose"];
@@ -17,14 +19,21 @@ export default function VenuesManager() {
   const { t } = useAuth();
   const [venues, setVenues] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [editVenue, setEditVenue] = useState(null);
   const [form, setForm] = useState({ name: "", type: "Outdoor", capacity: "", status: "Available", location: "" });
 
   const load = async () => {
     setLoading(true);
-    const data = await sportsApi.getVenues();
-    setVenues(data);
+    setError(null);
+    try {
+      const data = await sportsApi.getVenues();
+      setVenues(data);
+    } catch (err) {
+      console.error(err);
+      setError(err.message);
+    }
     setLoading(false);
   };
 
@@ -94,23 +103,31 @@ export default function VenuesManager() {
         <Button variant="primary" icon={Plus} onClick={openAdd}>Add Venue</Button>
       </div>
 
-      {/* Stats */}
-      <div className="nec-stats-grid" style={{ marginBottom: "20px" }}>
-        {[
-          { label: "Total Venues", value: venues.length, sub: "On campus" },
-          { label: "Available", value: venues.filter(v => v.status === "Available").length, sub: "Ready to use", color: "#22c55e" },
-          { label: "Occupied", value: venues.filter(v => v.status === "Occupied").length, sub: "In active use", color: "#f59e0b" },
-          { label: "Total Capacity", value: venues.reduce((s, v) => s + (Number(v.capacity) || 0), 0).toLocaleString(), sub: "Combined seating" },
-        ].map(({ label, value, sub, color }) => (
-          <div key={label} className="nec-stat-card">
-            <div className="nec-stat-card-top"><span className="nec-stat-title">{label}</span></div>
-            <div className="nec-stat-value" style={{ color: color || "var(--nec-navy)" }}>{value}</div>
-            <div className="nec-stat-subtext">{sub}</div>
+      {error ? (
+        <div style={{ padding: "40px" }}>
+          <ErrorState onRetry={load} />
+        </div>
+      ) : (
+        <>
+          {/* Stats */}
+          <div className="nec-stats-grid" style={{ marginBottom: "20px" }}>
+            {[
+              { label: "Total Venues", value: venues.length, sub: "On campus" },
+              { label: "Available", value: venues.filter(v => v.status === "Available").length, sub: "Ready to use", color: "#22c55e" },
+              { label: "Occupied", value: venues.filter(v => v.status === "Occupied").length, sub: "In active use", color: "#f59e0b" },
+              { label: "Total Capacity", value: venues.reduce((s, v) => s + (Number(v.capacity) || 0), 0).toLocaleString(), sub: "Combined seating" },
+            ].map(({ label, value, sub, color }) => (
+              <div key={label} className="nec-stat-card">
+                <div className="nec-stat-card-top"><span className="nec-stat-title">{label}</span></div>
+                <div className="nec-stat-value" style={{ color: color || "var(--nec-navy)" }}>{value}</div>
+                <div className="nec-stat-subtext">{sub}</div>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
 
-      <Table columns={columns} data={venues} loading={loading} rowKey="id" searchKey="name" />
+          <Table columns={columns} data={venues} loading={loading} rowKey="id" searchKey="name" emptyMessage="No venues configured yet." />
+        </>
+      )}
 
       <Modal isOpen={showModal} onClose={() => setShowModal(false)} title={editVenue ? "Edit Venue" : "Add New Venue"}>
         <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>

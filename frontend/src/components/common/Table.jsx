@@ -11,6 +11,7 @@ export default function Table({
   searchable = true,
   searchPlaceholder = "Search records...",
   loading = false,
+  emptyTitle = "No Records Found",
   emptyMessage = "No data available",
   pageSize = 8,
   className = ""
@@ -86,7 +87,7 @@ export default function Table({
       {loading ? (
         <SkeletonLoader rows={5} />
       ) : paginatedData.length === 0 ? (
-        <EmptyState title="No Records Found" message={emptyMessage} />
+        <EmptyState title={emptyTitle} message={emptyMessage} />
       ) : (
         <>
           <div className="nec-table-responsive-wrapper">

@@ -5,12 +5,15 @@ import Badge from "../../components/common/Badge";
 import Button from "../../components/common/Button";
 import { Modal } from "../../components/common/Modal";
 import SkeletonLoader from "../../components/common/SkeletonLoader";
+import ErrorState from "../../components/common/ErrorState";
+import EmptyState from "../../components/common/EmptyState";
 import { Megaphone, Plus, Trash2, Calendar } from "lucide-react";
 import "./AdminPortal.css";
 
 export default function AnnouncementsManager() {
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [title, setTitle] = useState("");
@@ -23,8 +26,13 @@ export default function AnnouncementsManager() {
 
   const loadAnnouncements = () => {
     setLoading(true);
+    setError(null);
     announcementsApi.getAnnouncements().then(data => {
       setList(data);
+      setLoading(false);
+    }).catch(err => {
+      console.error(err);
+      setError(err.message);
       setLoading(false);
     });
   };
@@ -64,8 +72,20 @@ export default function AnnouncementsManager() {
         </Button>
       </div>
 
-      {loading ? (
+      {error ? (
+        <div style={{ padding: "40px" }}>
+          <ErrorState onRetry={loadAnnouncements} />
+        </div>
+      ) : loading ? (
         <SkeletonLoader rows={3} />
+      ) : list.length === 0 ? (
+        <div style={{ padding: "40px" }}>
+          <EmptyState
+            icon={Megaphone}
+            title="No Announcements"
+            message="No announcements have been published yet."
+          />
+        </div>
       ) : (
         <div className="nec-ann-full-list">
           {list.map(ann => (

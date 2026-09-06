@@ -7,6 +7,8 @@ import Button from "../../components/common/Button";
 import { Modal } from "../../components/common/Modal";
 import { Card } from "../../components/common/Card";
 import Pagination from "../../components/common/Pagination";
+import ErrorState from "../../components/common/ErrorState";
+import EmptyState from "../../components/common/EmptyState";
 import { CheckSquare, Plus, Trophy, Calendar, Users, Send } from "lucide-react";
 import "./CoordinatorPortal.css";
 
@@ -17,6 +19,7 @@ export default function EventRegistration() {
   const [openEvents, setOpenEvents] = useState([]);
   const [deptTeams, setDeptTeams] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -33,6 +36,7 @@ export default function EventRegistration() {
 
   const loadData = () => {
     setLoading(true);
+    setError(null);
     Promise.all([tournamentsApi.getEvents(), teamsApi.getTeams()]).then(([evList, tList]) => {
       const activeEv = evList.filter(e => e.status === "Open" || e.status === "Registration Open");
       setOpenEvents(activeEv);
@@ -40,6 +44,10 @@ export default function EventRegistration() {
 
       const filteredTeams = tList.filter(t => t.deptCode === myDept || myDept === "All");
       setDeptTeams(filteredTeams);
+      setLoading(false);
+    }).catch(err => {
+      console.error(err);
+      setError(err.message);
       setLoading(false);
     });
   };
@@ -96,68 +104,75 @@ export default function EventRegistration() {
         </Button>
       </div>
 
-      <div className="nec-admin-main-grid">
-        <Card title="Open Events & Tournament Deadlines" subtitle="Available championships accepting department registrations">
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-            {openEvents.length === 0 ? (
-              <p>No open event registrations available right now.</p>
-            ) : (
-              <>
-                {openEvents.slice((currentPage - 1) * pageSize, currentPage * pageSize).map(ev => (
-                  <div key={ev.id} style={{
-                    padding: "14px",
-                    borderRadius: "8px",
-                    border: "1px solid var(--nec-border)",
-                    backgroundColor: "var(--nec-surface-raised)",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center"
-                  }}>
-                    <div>
-                      <strong style={{ fontSize: "1rem" }}>
-                        {ev.title} ({ev.category})
-                        {ev.eventCategory && <span style={{ marginLeft: "8px" }}><Badge status={ev.eventCategory === "Inter-College" ? "danger" : "info"}>{ev.eventCategory}</Badge></span>}
-                      </strong>
-                      <div style={{ fontSize: "0.8rem", color: "var(--nec-text-muted)", marginTop: "2px" }}>
-                        Deadline: 📅 {ev.regDeadline} | Registered: {ev.registeredTeams} / {ev.maxTeams} Teams
+      {error ? (
+        <div style={{ padding: "40px" }}>
+          <ErrorState onRetry={loadData} />
+        </div>
+      ) : (
+        <div className="nec-admin-main-grid">
+          <Card title="Open Events & Tournament Deadlines" subtitle="Available championships accepting department registrations">
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              {openEvents.length === 0 ? (
+                <p>No open event registrations available right now.</p>
+              ) : (
+                <>
+                  {openEvents.slice((currentPage - 1) * pageSize, currentPage * pageSize).map(ev => (
+                    <div key={ev.id} style={{
+                      padding: "14px",
+                      borderRadius: "8px",
+                      border: "1px solid var(--nec-border)",
+                      backgroundColor: "var(--nec-surface-raised)",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center"
+                    }}>
+                      <div>
+                        <strong style={{ fontSize: "1rem" }}>
+                          {ev.title} ({ev.category})
+                          {ev.eventCategory && <span style={{ marginLeft: "8px" }}><Badge status={ev.eventCategory === "Inter-College" ? "danger" : "info"}>{ev.eventCategory}</Badge></span>}
+                        </strong>
+                        <div style={{ fontSize: "0.8rem", color: "var(--nec-text-muted)", marginTop: "2px" }}>
+                          Deadline: 📅 {ev.regDeadline} | Registered: {ev.registeredTeams} / {ev.maxTeams} Teams
+                        </div>
                       </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        icon={Send}
+                        onClick={() => {
+                          setSelectedEventId(ev.id);
+                          setTeamName(`${myDept} ${ev.sportId.replace("sp_", "").toUpperCase()}`);
+                          setIsModalOpen(true);
+                        }}
+                      >
+                        Enter Team
+                      </Button>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      icon={Send}
-                      onClick={() => {
-                        setSelectedEventId(ev.id);
-                        setTeamName(`${myDept} ${ev.sportId.replace("sp_", "").toUpperCase()}`);
-                        setIsModalOpen(true);
-                      }}
-                    >
-                      Enter Team
-                    </Button>
-                  </div>
-                ))}
-                {Math.ceil(openEvents.length / pageSize) > 1 && (
-                  <Pagination
-                    currentPage={currentPage}
-                    totalPages={Math.ceil(openEvents.length / pageSize)}
-                    onPageChange={setCurrentPage}
-                    style={{ marginTop: "10px", border: "1px solid var(--nec-border)", borderRadius: "8px" }}
-                  />
-                )}
-              </>
-            )}
-          </div>
-        </Card>
+                  ))}
+                  {Math.ceil(openEvents.length / pageSize) > 1 && (
+                    <Pagination
+                      currentPage={currentPage}
+                      totalPages={Math.ceil(openEvents.length / pageSize)}
+                      onPageChange={setCurrentPage}
+                      style={{ marginTop: "10px", border: "1px solid var(--nec-border)", borderRadius: "8px" }}
+                    />
+                  )}
+                </>
+              )}
+            </div>
+          </Card>
 
-        <Card title="Submitted Department Entries" subtitle={`Status of ${myDept} team registrations submitted for PT Sir approval`}>
-          <Table
-            columns={teamColumns}
-            data={deptTeams}
-            loading={loading}
-            searchable={false}
-          />
-        </Card>
-      </div>
+          <Card title="Submitted Department Entries" subtitle={`Status of ${myDept} team registrations submitted for PT Sir approval`}>
+            <Table
+              columns={teamColumns}
+              data={deptTeams}
+              loading={loading}
+              searchable={false}
+              emptyMessage={`No team registrations submitted by ${myDept} yet.`}
+            />
+          </Card>
+        </div>
+      )}
 
       <Modal
         isOpen={isModalOpen}

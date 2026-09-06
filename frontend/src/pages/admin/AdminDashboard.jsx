@@ -6,6 +6,8 @@ import Table from "../../components/common/Table";
 import { tournamentsApi, teamsApi, matchesApi, sportsApi } from "../../services/api/apiServices";
 import { useAuth } from "../../context/AuthContext";
 import { Trophy, Calendar, CheckSquare, Users, Plus, Radio, ArrowRight, Activity, Award } from "lucide-react";
+import ErrorState from "../../components/common/ErrorState";
+import EmptyState from "../../components/common/EmptyState";
 import "./AdminPortal.css";
 
 export default function AdminDashboard({ onNavigate }) {
@@ -16,19 +18,24 @@ export default function AdminDashboard({ onNavigate }) {
     pendingApprovals: 0,
     upcomingMatches: 0,
     totalTeams: 0,
-    totalVenues: 0
+    totalVenues: 0,
+    totalSports: 0
   });
 
   const [pendingTeams, setPendingTeams] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  useEffect(() => {
+  const fetchDashboardData = () => {
+    setLoading(true);
+    setError(null);
     Promise.all([
       tournamentsApi.getTournaments(),
       teamsApi.getTeams(),
       matchesApi.getMatches(),
-      sportsApi.getVenues()
-    ]).then(([tournaments, teams, matches, venues]) => {
+      sportsApi.getVenues(),
+      sportsApi.getSports()
+    ]).then(([tournaments, teams, matches, venues, sports]) => {
       const pending = teams.filter(t => t.status === "Pending");
       setPendingTeams(pending);
       setStats({
@@ -37,10 +44,19 @@ export default function AdminDashboard({ onNavigate }) {
         pendingApprovals: pending.length,
         upcomingMatches: matches.filter(m => m.status === "Scheduled" || m.status === "Live").length,
         totalTeams: teams.length,
-        totalVenues: venues.length
+        totalVenues: venues.length,
+        totalSports: sports.length
       });
       setLoading(false);
+    }).catch(err => {
+      console.error(err);
+      setError(err.message);
+      setLoading(false);
     });
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
   }, []);
 
   const pendingColumns = [
@@ -51,18 +67,8 @@ export default function AdminDashboard({ onNavigate }) {
     { key: "status", label: "Status", width: "110px", render: (val) => <Badge status="warning">Pending Review</Badge> }
   ];
 
-  const disciplineData = [
-    { sport: "Football", count: 120, height: "85%" },
-    { sport: "Cricket", count: 140, height: "100%" },
-    { sport: "Basketball", count: 80, height: "60%" },
-    { sport: "Volleyball", count: 95, height: "70%" },
-    { sport: "Badminton", count: 65, height: "45%" },
-    { sport: "Table Tennis", count: 40, height: "30%" }
-  ];
-
   return (
     <div className="nec-admin-dashboard">
-      {/* Stitch Header Section */}
       <div className="nec-page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
         <div>
           <span style={{ fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.15em", color: "var(--nec-gold)", textTransform: "uppercase" }}>
@@ -76,85 +82,75 @@ export default function AdminDashboard({ onNavigate }) {
         </Button>
       </div>
 
-      {/* Stitch Bento Grid Metrics */}
-      <div className="nec-stats-grid">
-        <div className="nec-stat-card nec-stat-card-navy cursor-pointer" onClick={() => onNavigate("admin_sports")}>
-          <div className="nec-stat-card-top">
-            <span className="nec-stat-title">{t.activeSports || "Active Sports"}</span>
-            <div className="nec-stat-icon-wrapper"><Trophy size={20} /></div>
-          </div>
-          <div className="nec-stat-value">12</div>
-          <div className="nec-stat-subtext"><span className="nec-stat-trend up">+2 this year</span></div>
+      {error ? (
+        <div style={{ padding: "40px" }}>
+          <ErrorState onRetry={fetchDashboardData} />
         </div>
-
-        <div className="nec-stat-card cursor-pointer" style={{ background: "var(--nec-navy)", color: "#fff" }} onClick={() => onNavigate("admin_events")}>
-          <div className="nec-stat-card-top">
-            <span className="nec-stat-title" style={{ color: "#cbd5e1" }}>{t.ongoingEvents || "Ongoing Events"}</span>
-            <Badge status="live">{t.live || "LIVE"}</Badge>
-          </div>
-          <div className="nec-stat-value" style={{ color: "#fff" }}>5</div>
-          <div className="nec-stat-subtext" style={{ color: "var(--nec-gold-light)" }}>Inter-Department Championships</div>
-        </div>
-
-        <div className="nec-stat-card cursor-pointer" onClick={() => onNavigate("admin_students")}>
-          <div className="nec-stat-card-top">
-            <span className="nec-stat-title">{t.registeredAthletes || "Registered Athletes"}</span>
-            <div className="nec-stat-icon-wrapper"><Users size={20} /></div>
-          </div>
-          <div className="nec-stat-value">450</div>
-          <div className="nec-stat-subtext"><span className="nec-stat-trend up">+15% vs LY</span></div>
-        </div>
-
-        <div className="nec-stat-card cursor-pointer" onClick={() => onNavigate("admin_teams")}>
-          <div className="nec-stat-card-top">
-            <span className="nec-stat-title">{t.competitiveTeams || "Competitive Teams"}</span>
-            <div className="nec-stat-icon-wrapper"><Activity size={20} /></div>
-          </div>
-          <div className="nec-stat-value">{stats.totalTeams || 24}</div>
-          <div className="nec-stat-subtext">Across 8 Departments</div>
-        </div>
-      </div>
-
-      {/* Stitch Split View Main Content */}
-      <div className="nec-admin-main-grid" style={{ marginTop: "24px" }}>
-        {/* Left Column: Participation by Discipline Bar Chart */}
-        <Card title={t.participationByDiscipline || "Participation by Discipline"} subtitle="Active student roster distribution across major sports disciplines.">
-          <div style={{ display: "flex", alignItems: "flex-end", gap: "20px", height: "220px", padding: "20px 10px 10px 10px", borderBottom: "2px solid var(--nec-border-dark)" }}>
-            {disciplineData.map(item => (
-              <div key={item.sport} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "8px", height: "100%", justifyContent: "flex-end" }}>
-                <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--nec-navy)" }}>{item.count}</span>
-                <div style={{
-                  width: "100%",
-                  maxWidth: "42px",
-                  height: item.height,
-                  backgroundColor: "var(--nec-navy)",
-                  borderRadius: "6px 6px 0 0",
-                  transition: "all 0.3s ease"
-                }} />
-                <span style={{ fontSize: "0.75rem", color: "var(--nec-text-muted)", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>{item.sport}</span>
+      ) : (
+        <>
+          <div className="nec-stats-grid">
+            <div className="nec-stat-card nec-stat-card-navy cursor-pointer" onClick={() => onNavigate("admin_sports")}>
+              <div className="nec-stat-card-top">
+                <span className="nec-stat-title">{t.activeSports || "Active Sports"}</span>
+                <div className="nec-stat-icon-wrapper"><Trophy size={20} /></div>
               </div>
-            ))}
-          </div>
-        </Card>
+              <div className="nec-stat-value">{stats.totalSports || 0}</div>
+              <div className="nec-stat-subtext">Registered sports catalogs</div>
+            </div>
 
-        {/* Right Column: Administrative Tasks & Quick Reviews */}
-        <Card
-          title={t.administrativeTasks || "Administrative Tasks"}
-          subtitle={`${stats.pendingApprovals} pending team requests require PT Sir approval`}
-          action={
-            <Button variant="ghost" size="sm" icon={ArrowRight} onClick={() => onNavigate("admin_regs")}>
-              Review All
-            </Button>
-          }
-        >
-          <Table
-            columns={pendingColumns}
-            data={pendingTeams}
-            loading={loading}
-            pagination={false}
-          />
-        </Card>
-      </div>
+            <div className="nec-stat-card cursor-pointer" style={{ background: "var(--nec-navy)", color: "#fff" }} onClick={() => onNavigate("admin_events")}>
+              <div className="nec-stat-card-top">
+                <span className="nec-stat-title" style={{ color: "#cbd5e1" }}>{t.ongoingEvents || "Ongoing Events"}</span>
+                <Badge status="live">{t.live || "LIVE"}</Badge>
+              </div>
+              <div className="nec-stat-value" style={{ color: "#fff" }}>{stats.openRegsCount || 0}</div>
+              <div className="nec-stat-subtext" style={{ color: "var(--nec-gold-light)" }}>Active tournaments & events</div>
+            </div>
+
+            <div className="nec-stat-card cursor-pointer" onClick={() => onNavigate("admin_matches")}>
+              <div className="nec-stat-card-top">
+                <span className="nec-stat-title">Upcoming Matches</span>
+                <div className="nec-stat-icon-wrapper"><Calendar size={20} /></div>
+              </div>
+              <div className="nec-stat-value">{stats.upcomingMatches || 0}</div>
+              <div className="nec-stat-subtext">Matches scheduled to play</div>
+            </div>
+
+            <div className="nec-stat-card cursor-pointer" onClick={() => onNavigate("admin_teams")}>
+              <div className="nec-stat-card-top">
+                <span className="nec-stat-title">{t.competitiveTeams || "Competitive Teams"}</span>
+                <div className="nec-stat-icon-wrapper"><Activity size={20} /></div>
+              </div>
+              <div className="nec-stat-value">{stats.totalTeams || 0}</div>
+              <div className="nec-stat-subtext">Registered active teams</div>
+            </div>
+          </div>
+
+          <div className="nec-admin-main-grid" style={{ marginTop: "24px" }}>
+            <Card
+              title={t.administrativeTasks || "Administrative Tasks"}
+              subtitle={`${stats.pendingApprovals} pending team requests require PT Sir approval`}
+              action={
+                <Button variant="ghost" size="sm" icon={ArrowRight} onClick={() => onNavigate("admin_regs")}>
+                  Review All
+                </Button>
+              }
+            >
+              {pendingTeams.length === 0 && !loading ? (
+                <EmptyState title="No Pending Requests" message="All team registrations have been reviewed." />
+              ) : (
+                <Table
+                  columns={pendingColumns}
+                  data={pendingTeams}
+                  loading={loading}
+                  pagination={false}
+                  emptyMessage="No pending team requests."
+                />
+              )}
+            </Card>
+          </div>
+        </>
+      )}
     </div>
   );
 }

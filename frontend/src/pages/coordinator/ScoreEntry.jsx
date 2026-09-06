@@ -3,6 +3,7 @@ import { matchesApi } from "../../services/api/apiServices";
 import { Card } from "../../components/common/Card";
 import Button from "../../components/common/Button";
 import Badge from "../../components/common/Badge";
+import ErrorState from "../../components/common/ErrorState";
 import { Edit3, CheckCircle, Trophy } from "lucide-react";
 import "./CoordinatorPortal.css";
 
@@ -14,6 +15,7 @@ export default function ScoreEntry() {
   const [detailScore, setDetailScore] = useState("");
   const [isFinal, setIsFinal] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     loadMatches();
@@ -21,6 +23,7 @@ export default function ScoreEntry() {
 
   const loadMatches = () => {
     setLoading(true);
+    setError(null);
     matchesApi.getMatches().then(mList => {
       const active = mList.filter(m => m.status === "Live" || m.status === "Scheduled");
       setMatches(active);
@@ -30,6 +33,10 @@ export default function ScoreEntry() {
         setScoreB(active[0].scoreB || 0);
         setDetailScore(active[0].detailScore || "");
       }
+      setLoading(false);
+    }).catch(err => {
+      console.error(err);
+      setError(err.message);
       setLoading(false);
     });
   };
@@ -57,7 +64,11 @@ export default function ScoreEntry() {
         <p className="nec-page-desc">Enter real-time live scores or submit official final match results.</p>
       </div>
 
-      {matches.length === 0 ? (
+      {error ? (
+        <div style={{ padding: "40px" }}>
+          <ErrorState onRetry={loadMatches} />
+        </div>
+      ) : matches.length === 0 ? (
         <Card title="No Active Matches for Score Entry">
           <p>There are currently no live or scheduled matches assigned for score submission.</p>
         </Card>

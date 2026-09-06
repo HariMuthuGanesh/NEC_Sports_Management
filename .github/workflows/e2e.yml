@@ -37,6 +37,33 @@ jobs:
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
+      - name: 🛢️ Start MySQL Service
+        run: |
+          docker run --name mysql-test -e MYSQL_ROOT_PASSWORD=root -e MYSQL_DATABASE=SportsDB -p 3306:3306 -d mysql:8
+          echo "Waiting for MySQL to start..."
+          until docker exec mysql-test mysqladmin ping -h 127.0.0.1 --silent; do
+            sleep 2
+          done
+
+      - name: 📦 Install Backend Dependencies & Seed DB
+        working-directory: backend
+        run: |
+          npm ci
+          docker exec -i mysql-test mysql -uroot -proot SportsDB < src/data/schema.sql
+          docker exec -i mysql-test mysql -uroot -proot SportsDB < src/data/seed.sql
+
+      - name: 🚀 Start Backend Server
+        working-directory: backend
+        env:
+          MYSQL_HOST: 127.0.0.1
+          MYSQL_USER: root
+          MYSQL_PASSWORD: root
+          MYSQL_DATABASE: SportsDB
+          JWT_SECRET: testing_secret
+        run: |
+          npm start &
+          npx wait-on http://127.0.0.1:5000/api/sports
+
       - name: 📦 Install Frontend Dependencies
         working-directory: frontend
         run: npm ci

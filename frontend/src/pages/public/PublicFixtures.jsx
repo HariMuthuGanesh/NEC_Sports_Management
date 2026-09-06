@@ -1,55 +1,72 @@
 import React, { useEffect, useState } from "react";
 import { matchesApi } from "../../services/api/apiServices";
-import { useAuth } from "../../context/AuthContext";
 import Table from "../../components/common/Table";
 import Badge from "../../components/common/Badge";
-import { Calendar, MapPin } from "lucide-react";
-import "./PublicPortal.css";
+import PublicInfoCard from "../../components/common/PublicInfoCard";
+import { Calendar } from "lucide-react";
 
 export default function PublicFixtures() {
-  const { t } = useAuth();
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchMatches = () => {
+    setLoading(true);
+    setError(null);
+    matchesApi.getMatches()
+      .then(data => {
+        setMatches(data.filter(m => m.status === "Scheduled"));
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setError(err.message);
+        setLoading(false);
+      });
+  };
 
   useEffect(() => {
-    matchesApi.getMatches().then(data => {
-      setMatches(data);
-      setLoading(false);
-    });
+    fetchMatches();
   }, []);
 
   const columns = [
-    { key: "sport", label: t.sportsCatalog || "Sport", width: "120px", render: (val) => <strong>{val}</strong> },
-    { key: "eventCategory", label: "Category", width: "120px", render: (val) => <Badge status={val === "Inter-College" ? "danger" : "info"}>{val}</Badge> },
-    { key: "teams", label: t.teamsCatalog || "Match Teams", render: (_, row) => <span>{row.teamA} ({row.deptA}) vs {row.teamB} ({row.deptB})</span> },
-    { key: "date", label: "Date & Time", width: "160px", render: (_, row) => <span>📅 {row.date} • {row.time}</span> },
-    { key: "venue", label: t.venues || "Venue", width: "200px", render: (val) => <span>📍 {val}</span> },
-    { key: "round", label: "Round", width: "130px" },
-    {
-      key: "status",
+    { key: "date", label: "Date & Time" },
+    { key: "sport", label: "Sport" },
+    { key: "round", label: "Round" },
+    { 
+      key: "teams", 
+      label: "Match",
+      render: (m) => `${m.teamA} (${m.deptA}) vs ${m.teamB} (${m.deptB})`
+    },
+    { key: "venue", label: "Venue" },
+    { 
+      key: "status", 
       label: "Status",
-      width: "120px",
-      render: (val) => (
-        <Badge status={val === "Live" ? "live" : val === "Completed" ? "success" : "warning"}>
-          {val}
-        </Badge>
-      )
+      render: () => <Badge status="scheduled">Scheduled</Badge>
     }
   ];
 
   return (
     <div className="nec-portal-page">
       <div className="nec-page-header">
-        <h2 className="nec-page-title">{t.fixtures || "Tournament Fixtures & Schedule"}</h2>
-        <p className="nec-page-desc">Complete game schedules, timings, and venue assignments for NEC campus tournaments.</p>
+        <h2 className="nec-page-title">Match Fixtures & Schedules</h2>
+        <p className="nec-page-desc">Upcoming sports events, department matches, and tournament schedules.</p>
       </div>
 
-      <Table
-        columns={columns}
-        data={matches}
-        loading={loading}
-        searchPlaceholder="Search by team, sport, date, venue..."
-      />
+      {(error || (!loading && matches.length === 0)) ? (
+        <PublicInfoCard
+          icon={Calendar}
+          title="No Upcoming Fixtures"
+          message="The next tournament schedule hasn't been published yet. Please check again later for upcoming matches."
+        />
+      ) : (
+        <Table
+          columns={columns}
+          data={matches}
+          loading={loading}
+          searchPlaceholder="Search by team, sport, date, venue..."
+        />
+      )}
     </div>
   );
 }

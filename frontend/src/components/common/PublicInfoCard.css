@@ -1,0 +1,52 @@
+.nec-public-info-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 60px 40px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  margin: 40px auto;
+  max-width: 600px;
+  border: 1px solid var(--nec-border);
+}
+
+.nec-public-info-card.variant-flat {
+  background: transparent;
+  box-shadow: none;
+  border: none;
+  padding: 40px 20px;
+}
+
+.nec-pic-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--nec-gold-light);
+  color: var(--nec-gold-dark);
+  margin-bottom: 24px;
+}
+
+.nec-pic-title {
+  color: var(--nec-navy);
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 12px 0;
+}
+
+.nec-pic-message {
+  color: var(--nec-text-muted);
+  font-size: 1.1rem;
+  line-height: 1.6;
+  margin: 0;
+  max-width: 500px;
+}
+
+.nec-pic-action {
+  margin-top: 32px;
+}

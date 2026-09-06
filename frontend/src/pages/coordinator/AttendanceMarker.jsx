@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { playersApi, teamsApi } from "../../services/api/apiServices";
 import { Card } from "../../components/common/Card";
 import Button from "../../components/common/Button";
+import ErrorState from "../../components/common/ErrorState";
 import { UserCheck, CheckSquare, Square, Save } from "lucide-react";
 import "./CoordinatorPortal.css";
 
@@ -11,6 +12,7 @@ export default function AttendanceMarker() {
   const [players, setPlayers] = useState([]);
   const [attendance, setAttendance] = useState({});
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     teamsApi.getTeams().then(tList => {
@@ -19,16 +21,25 @@ export default function AttendanceMarker() {
     });
   }, []);
 
+  const loadPlayers = (teamId) => {
+    setLoading(true);
+    setError(null);
+    playersApi.getPlayersByTeam(teamId).then(pList => {
+      setPlayers(pList);
+      const initial = {};
+      pList.forEach(p => { initial[p.id] = true; }); // Default present
+      setAttendance(initial);
+      setLoading(false);
+    }).catch(err => {
+      console.error(err);
+      setError(err.message);
+      setLoading(false);
+    });
+  };
+
   useEffect(() => {
     if (selectedTeamId) {
-      setLoading(true);
-      playersApi.getPlayersByTeam(selectedTeamId).then(pList => {
-        setPlayers(pList);
-        const initial = {};
-        pList.forEach(p => { initial[p.id] = true; }); // Default present
-        setAttendance(initial);
-        setLoading(false);
-      });
+      loadPlayers(selectedTeamId);
     }
   }, [selectedTeamId]);
 
@@ -72,51 +83,59 @@ export default function AttendanceMarker() {
         </select>
       </div>
 
-      <Card
-        title="Squad Attendance Sheet"
-        subtitle={`Present: ${presentCount} / ${players.length} Athletes`}
-        headerAction={
-          <div style={{ display: "flex", gap: "8px" }}>
-            <Button variant="outline" size="sm" onClick={() => handleSelectAll(true)}>Select All</Button>
-            <Button variant="ghost" size="sm" onClick={() => handleSelectAll(false)}>Clear</Button>
-          </div>
-        }
-        footer={
-          <Button variant="primary" icon={Save} onClick={handleSaveAttendance}>
-            Save Matchday Attendance
-          </Button>
-        }
-      >
-        <div className="nec-attendance-list">
-          {players.map(p => {
-            const isPresent = !!attendance[p.id];
-            return (
-              <div
-                key={p.id}
-                className="nec-att-row"
-                style={{ backgroundColor: isPresent ? "var(--nec-success-bg)" : "var(--nec-surface-raised)" }}
-                onClick={() => toggleStudent(p.id)}
-              >
-                <div className="nec-att-toggle">
-                  {isPresent ? (
-                    <CheckSquare size={20} style={{ color: "var(--nec-success)" }} />
-                  ) : (
-                    <Square size={20} style={{ color: "var(--nec-text-muted)" }} />
-                  )}
-                  <div>
-                    <strong>{p.name}</strong> ({p.studentId})
-                    <br />
-                    <small style={{ color: "var(--nec-text-muted)" }}>#{p.jerseyNo} • {p.position}</small>
-                  </div>
-                </div>
-                <span style={{ fontSize: "0.85rem", fontWeight: 700, color: isPresent ? "var(--nec-success-text)" : "var(--nec-text-muted)" }}>
-                  {isPresent ? "PRESENT ✓" : "ABSENT ×"}
-                </span>
-              </div>
-            );
-          })}
+      {error ? (
+        <div style={{ padding: "40px" }}>
+          <ErrorState onRetry={() => loadPlayers(selectedTeamId)} />
         </div>
-      </Card>
+      ) : (
+        <Card
+          title="Squad Attendance Sheet"
+          subtitle={`Present: ${presentCount} / ${players.length} Athletes`}
+          headerAction={
+            <div style={{ display: "flex", gap: "8px" }}>
+              <Button variant="outline" size="sm" onClick={() => handleSelectAll(true)}>Select All</Button>
+              <Button variant="ghost" size="sm" onClick={() => handleSelectAll(false)}>Clear</Button>
+            </div>
+          }
+          footer={
+            <Button variant="primary" icon={Save} onClick={handleSaveAttendance}>
+              Save Matchday Attendance
+            </Button>
+          }
+        >
+          <div className="nec-attendance-list">
+            {players.length === 0 ? (
+              <p>No players in this team.</p>
+            ) : players.map(p => {
+              const isPresent = !!attendance[p.id];
+              return (
+                <div
+                  key={p.id}
+                  className="nec-att-row"
+                  style={{ backgroundColor: isPresent ? "var(--nec-success-bg)" : "var(--nec-surface-raised)" }}
+                  onClick={() => toggleStudent(p.id)}
+                >
+                  <div className="nec-att-toggle">
+                    {isPresent ? (
+                      <CheckSquare size={20} style={{ color: "var(--nec-success)" }} />
+                    ) : (
+                      <Square size={20} style={{ color: "var(--nec-text-muted)" }} />
+                    )}
+                    <div>
+                      <strong>{p.name}</strong> ({p.studentId})
+                      <br />
+                      <small style={{ color: "var(--nec-text-muted)" }}>#{p.jerseyNo} • {p.position}</small>
+                    </div>
+                  </div>
+                  <span style={{ fontSize: "0.85rem", fontWeight: 700, color: isPresent ? "var(--nec-success-text)" : "var(--nec-text-muted)" }}>
+                    {isPresent ? "PRESENT ✓" : "ABSENT ×"}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      )}
     </div>
   );
 }

@@ -4,6 +4,8 @@ import { useAuth } from "../../context/AuthContext";
 import Table from "../../components/common/Table";
 import Button from "../../components/common/Button";
 import { Modal } from "../../components/common/Modal";
+import ErrorState from "../../components/common/ErrorState";
+import EmptyState from "../../components/common/EmptyState";
 import { UserPlus, Search, Trash2, Shield } from "lucide-react";
 import "./CoordinatorPortal.css";
 
@@ -13,6 +15,7 @@ export default function RosterManager() {
   const [selectedTeamId, setSelectedTeamId] = useState("");
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // Student Search Modal State
   const [searchModalOpen, setSearchModalOpen] = useState(false);
@@ -45,8 +48,13 @@ export default function RosterManager() {
 
   const loadRoster = (teamId) => {
     setLoading(true);
+    setError(null);
     playersApi.getPlayersByTeam(teamId).then(pList => {
       setPlayers(pList);
+      setLoading(false);
+    }).catch(err => {
+      console.error(err);
+      setError(err.message);
       setLoading(false);
     });
   };
@@ -132,12 +140,19 @@ export default function RosterManager() {
         </select>
       </div>
 
-      <Table
-        columns={columns}
-        data={players}
-        loading={loading}
-        searchPlaceholder="Search athlete by roll no or name..."
-      />
+      {error ? (
+        <div style={{ padding: "40px" }}>
+          <ErrorState onRetry={() => loadRoster(selectedTeamId)} />
+        </div>
+      ) : (
+        <Table
+          columns={columns}
+          data={players}
+          loading={loading}
+          searchPlaceholder="Search athlete by roll no or name..."
+          emptyMessage="No players found in this team's roster."
+        />
+      )}
 
       {/* External Student Lookup Modal */}
       <Modal

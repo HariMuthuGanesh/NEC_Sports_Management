@@ -7,6 +7,8 @@ import Table from "../../components/common/Table";
 import { sportsApi } from "../../services/api/apiServices";
 import { sanitizeInput } from "../../utils/security";
 import { Building2, Plus, Edit2, Trash2 } from "lucide-react";
+import ErrorState from "../../components/common/ErrorState";
+import EmptyState from "../../components/common/EmptyState";
 import "../admin/AdminPortal.css";
 
 const DEPT_COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4", "#ec4899", "#64748b", "#f97316", "#14b8a6"];
@@ -15,14 +17,21 @@ export default function DepartmentsManager() {
   const { t } = useAuth();
   const [depts, setDepts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [editDept, setEditDept] = useState(null);
   const [form, setForm] = useState({ name: "", code: "", color: "#3b82f6", hod: "", students: "" });
 
   const load = async () => {
     setLoading(true);
-    const data = await sportsApi.getDepartments();
-    setDepts(data);
+    setError(null);
+    try {
+      const data = await sportsApi.getDepartments();
+      setDepts(data);
+    } catch (err) {
+      console.error(err);
+      setError(err.message);
+    }
     setLoading(false);
   };
 
@@ -95,32 +104,40 @@ export default function DepartmentsManager() {
         <Button variant="primary" icon={Plus} onClick={openAdd}>Add Department</Button>
       </div>
 
-      {/* Stats */}
-      <div className="nec-stats-grid" style={{ marginBottom: "20px" }}>
-        {[
-          { label: "Total Departments", value: depts.length },
-          { label: "Total Students", value: depts.reduce((s, d) => s + (Number(d.students) || 0), 0).toLocaleString() },
-        ].map(({ label, value }) => (
-          <div key={label} className="nec-stat-card">
-            <div className="nec-stat-card-top"><span className="nec-stat-title">{label}</span></div>
-            <div className="nec-stat-value">{value}</div>
-          </div>
-        ))}
-
-        {/* Department color pills */}
-        <div className="nec-stat-card" style={{ gridColumn: "span 2" }}>
-          <div className="nec-stat-title" style={{ marginBottom: "10px" }}>Department Overview</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-            {depts.map(d => (
-              <span key={d.id} style={{ padding: "4px 12px", borderRadius: "20px", background: (d.color || "#3b82f6") + "18", color: d.color || "#3b82f6", fontWeight: 700, fontSize: "0.8rem", border: `1.5px solid ${d.color || "#3b82f6"}44` }}>
-                {d.code}
-              </span>
-            ))}
-          </div>
+      {error ? (
+        <div style={{ padding: "40px" }}>
+          <ErrorState onRetry={load} />
         </div>
-      </div>
+      ) : (
+        <>
+          {/* Stats */}
+          <div className="nec-stats-grid" style={{ marginBottom: "20px" }}>
+            {[
+              { label: "Total Departments", value: depts.length },
+              { label: "Total Students", value: depts.reduce((s, d) => s + (Number(d.students) || 0), 0).toLocaleString() },
+            ].map(({ label, value }) => (
+              <div key={label} className="nec-stat-card">
+                <div className="nec-stat-card-top"><span className="nec-stat-title">{label}</span></div>
+                <div className="nec-stat-value">{value}</div>
+              </div>
+            ))}
 
-      <Table columns={columns} data={depts} loading={loading} rowKey="id" searchKey="name" />
+            {/* Department color pills */}
+            <div className="nec-stat-card" style={{ gridColumn: "span 2" }}>
+              <div className="nec-stat-title" style={{ marginBottom: "10px" }}>Department Overview</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                {depts.map(d => (
+                  <span key={d.id} style={{ padding: "4px 12px", borderRadius: "20px", background: (d.color || "#3b82f6") + "18", color: d.color || "#3b82f6", fontWeight: 700, fontSize: "0.8rem", border: `1.5px solid ${d.color || "#3b82f6"}44` }}>
+                    {d.code}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <Table columns={columns} data={depts} loading={loading} rowKey="id" searchKey="name" emptyMessage="No departments configured yet." />
+        </>
+      )}
 
       <Modal isOpen={showModal} onClose={() => setShowModal(false)} title={editDept ? "Edit Department" : "Add Department"}>
         <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>

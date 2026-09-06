@@ -5,6 +5,7 @@ import Table from "../../components/common/Table";
 import Badge from "../../components/common/Badge";
 import Button from "../../components/common/Button";
 import { Modal } from "../../components/common/Modal";
+import ErrorState from "../../components/common/ErrorState";
 import { Plus, Calendar, Trophy } from "lucide-react";
 import "./AdminPortal.css";
 
@@ -12,6 +13,7 @@ export default function TournamentsManager() {
   const { t } = useAuth();
   const [tournaments, setTournaments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newAcademicYear, setNewAcademicYear] = useState("2025-2026");
@@ -23,8 +25,13 @@ export default function TournamentsManager() {
 
   const loadTournaments = () => {
     setLoading(true);
+    setError(null);
     tournamentsApi.getTournaments().then(data => {
       setTournaments(data);
+      setLoading(false);
+    }).catch(err => {
+      console.error(err);
+      setError(err.message);
       setLoading(false);
     });
   };
@@ -76,12 +83,19 @@ export default function TournamentsManager() {
         </Button>
       </div>
 
-      <Table
-        columns={columns}
-        data={tournaments}
-        loading={loading}
-        searchPlaceholder="Search tournaments..."
-      />
+      {error ? (
+        <div style={{ padding: "40px" }}>
+          <ErrorState onRetry={loadTournaments} />
+        </div>
+      ) : (
+        <Table
+          columns={columns}
+          data={tournaments}
+          loading={loading}
+          searchPlaceholder="Search tournaments..."
+          emptyMessage="No tournaments created yet."
+        />
+      )}
 
       <Modal
         isOpen={isModalOpen}

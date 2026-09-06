@@ -4,6 +4,8 @@ import Table from "../../components/common/Table";
 import Badge from "../../components/common/Badge";
 import Button from "../../components/common/Button";
 import { Modal } from "../../components/common/Modal";
+import ErrorState from "../../components/common/ErrorState";
+import EmptyState from "../../components/common/EmptyState";
 import { Calendar, Plus, MapPin, Clock, Trash2 } from "lucide-react";
 import "./AdminPortal.css";
 
@@ -12,6 +14,7 @@ export default function MatchesManager() {
   const [venues, setVenues] = useState([]);
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [sport, setSport] = useState("Football");
@@ -28,6 +31,7 @@ export default function MatchesManager() {
 
   const loadData = () => {
     setLoading(true);
+    setError(null);
     Promise.all([matchesApi.getMatches(), sportsApi.getVenues(), teamsApi.getTeams()]).then(([mList, vList, tList]) => {
       setMatches(mList);
       setVenues(vList);
@@ -37,6 +41,10 @@ export default function MatchesManager() {
         setTeamB(tList[1].name);
       }
       if (vList.length > 0) setVenue(vList[0].name);
+      setLoading(false);
+    }).catch(err => {
+      console.error(err);
+      setError(err.message);
       setLoading(false);
     });
   };
@@ -112,12 +120,19 @@ export default function MatchesManager() {
         </Button>
       </div>
 
-      <Table
-        columns={columns}
-        data={matches}
-        loading={loading}
-        searchPlaceholder="Search by team, venue, sport..."
-      />
+      {error ? (
+        <div style={{ padding: "40px" }}>
+          <ErrorState onRetry={loadData} />
+        </div>
+      ) : (
+        <Table
+          columns={columns}
+          data={matches}
+          loading={loading}
+          searchPlaceholder="Search by team, venue, sport..."
+          emptyMessage="No matches scheduled yet."
+        />
+      )}
 
       <Modal
         isOpen={isModalOpen}

@@ -4,6 +4,7 @@ import Table from "../../components/common/Table";
 import Badge from "../../components/common/Badge";
 import { useAuth } from "../../context/AuthContext";
 import { matchesApi, teamsApi, playersApi } from "../../services/api/apiServices";
+import ErrorState from "../../components/common/ErrorState";
 import { Calendar, MapPin, Trophy } from "lucide-react";
 import "./PlayerPortal.css";
 
@@ -14,10 +15,12 @@ export default function PlayerMatches() {
 
   const [myMatches, setMyMatches] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [filter, setFilter] = useState("all"); // "all", "upcoming", "past"
 
-  useEffect(() => {
+  const loadData = () => {
     setLoading(true);
+    setError(null);
     Promise.all([
       matchesApi.getMatches(),
       teamsApi.getTeams(),
@@ -33,7 +36,15 @@ export default function PlayerMatches() {
       
       setMyMatches(filteredMatches.length > 0 ? filteredMatches : matches.slice(0, 5));
       setLoading(false);
+    }).catch(err => {
+      console.error(err);
+      setError(err.message);
+      setLoading(false);
     });
+  };
+
+  useEffect(() => {
+    loadData();
   }, [currentUser, playerDept, playerName]);
 
   const columns = [
@@ -68,34 +79,43 @@ export default function PlayerMatches() {
         <p className="nec-page-desc">View your upcoming match schedule and past performance.</p>
       </div>
 
-      <div className="nec-stats-grid">
-        <StatCard title="Upcoming Matches" value={myMatches.filter(m => m.status === "Scheduled").length} icon={Calendar} color="navy" />
-        <StatCard title="Next Venue" value={nextMatch?.venue || "TBD"} subtext={nextMatch?.time || "TBD"} icon={MapPin} color="gold" />
-        <StatCard title="Matches Played" value={myMatches.filter(m => m.status === "Completed").length} icon={Trophy} color="success" />
-      </div>
+      {error ? (
+        <div style={{ padding: "40px" }}>
+          <ErrorState onRetry={loadData} />
+        </div>
+      ) : (
+        <>
+          <div className="nec-stats-grid">
+            <StatCard title="Upcoming Matches" value={myMatches.filter(m => m.status === "Scheduled").length} icon={Calendar} color="navy" />
+            <StatCard title="Next Venue" value={nextMatch?.venue || "TBD"} subtext={nextMatch?.time || "TBD"} icon={MapPin} color="gold" />
+            <StatCard title="Matches Played" value={myMatches.filter(m => m.status === "Completed").length} icon={Trophy} color="success" />
+          </div>
 
-      <div className="nec-card" style={{ padding: "14px 20px", marginBottom: "20px" }}>
-        <label style={{ fontWeight: 600, marginRight: "12px" }}>Filter Matches:</label>
-        <select
-          className="nec-table-search-input"
-          style={{ display: "inline-block", width: "auto" }}
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-        >
-          <option value="all">All Matches</option>
-          <option value="upcoming">Upcoming & Live</option>
-          <option value="past">Past Results</option>
-        </select>
-      </div>
+          <div className="nec-card" style={{ padding: "14px 20px", marginBottom: "20px" }}>
+            <label style={{ fontWeight: 600, marginRight: "12px" }}>Filter Matches:</label>
+            <select
+              className="nec-table-search-input"
+              style={{ display: "inline-block", width: "auto" }}
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+            >
+              <option value="all">All Matches</option>
+              <option value="upcoming">Upcoming & Live</option>
+              <option value="past">Past Results</option>
+            </select>
+          </div>
 
-      <Card title="Match Schedule" subtitle={`Showing ${filteredData.length} matches`}>
-        <Table
-          columns={columns}
-          data={filteredData}
-          loading={loading}
-          searchable={false}
-        />
-      </Card>
+          <Card title="Match Schedule" subtitle={`Showing ${filteredData.length} matches`}>
+            <Table
+              columns={columns}
+              data={filteredData}
+              loading={loading}
+              searchable={false}
+              emptyMessage="No matches found matching the criteria."
+            />
+          </Card>
+        </>
+      )}
     </div>
   );
 }

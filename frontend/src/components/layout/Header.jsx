@@ -41,8 +41,8 @@ export default function Header({ onToggleSidebar, isSidebarOpen, onRoleChange, o
         </button>
 
         <div className="nec-brand">
-          <div className="nec-logo-emblem">
-            <Trophy size={20} className="nec-logo-icon" />
+          <div className="nec-logo-emblem" style={{ background: '#fff', padding: '2px' }}>
+            <img src="/assets/logo.jpg" alt="NEC Logo" style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '6px' }} />
           </div>
           <div className="nec-brand-text">
             <h1 className="nec-college-name">{t.collegeName}</h1>
@@ -102,15 +102,17 @@ export default function Header({ onToggleSidebar, isSidebarOpen, onRoleChange, o
           </div>
         )}
 
-        {/* Settings Button */}
-        <button
-          className="nec-icon-btn"
-          onClick={() => onSelectNav?.("settings")}
-          title="Settings"
-          aria-label="Open settings"
-        >
-          <Settings size={18} />
-        </button>
+        {/* Settings Button (Hidden for Guests) */}
+        {currentUser.role !== ROLES.PUBLIC && (
+          <button
+            className="nec-icon-btn"
+            onClick={() => onSelectNav?.("settings")}
+            title="Settings"
+            aria-label="Open settings"
+          >
+            <Settings size={18} />
+          </button>
+        )}
 
         {/* Theme Toggle */}
         <button

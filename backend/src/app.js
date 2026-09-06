@@ -7,6 +7,8 @@ import apiRoutes from './routes/apiRoutes.js';
 import { auditLogger } from './middleware/auditMiddleware.js';
 import { sanitizeData } from './middleware/sanitizationMiddleware.js';
 import { notFound, errorHandler } from './middleware/errorHandler.js';
+import galleryRoutes from './routes/galleryRoutes.js';
+import path from 'path';
 
 
 const app = express();
@@ -46,7 +48,11 @@ app.use('/api/', apiLimiter);
 
 // 5. Security & Auth API Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/gallery', galleryRoutes);
 app.use('/api', apiRoutes);
+
+// 5.5 Serve static uploads
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 app.get('/', (req, res) => {
     res.json({

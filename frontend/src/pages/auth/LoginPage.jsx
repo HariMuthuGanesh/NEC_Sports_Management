@@ -210,17 +210,11 @@ export default function LoginPage({ onLoginSuccess, onNavigate }) {
               {/* Title & Institutional Identity */}
               <div className="nec-showcase-branding">
                 <div className="nec-showcase-logo">
-                  <Trophy size={36} />
+                  <img src="/assets/logo.jpg" alt="NEC Logo" style={{ width: "64px", height: "64px", borderRadius: "50%", objectFit: "cover" }} />
                 </div>
                 <h1 className="nec-showcase-title">
                   National Engineering College
                 </h1>
-                <p className="nec-showcase-academy">
-                  Lakshmi Ammal Sports Academy (LASA)
-                </p>
-                <p className="nec-showcase-motto">
-                  "Excellence in Sports, Discipline in Character, Glory in Competition"
-                </p>
               </div>
 
               {/* Campus Sports Stats Showcase */}
@@ -243,22 +237,6 @@ export default function LoginPage({ onLoginSuccess, onNavigate }) {
                 </div>
               </div>
 
-              {/* Live Announcement Bulletin Card */}
-              <div className="nec-showcase-bulletin">
-                <div className="nec-bulletin-header">
-                  <Radio size={16} className="nec-pulse-dot" />
-                  <span>Live Sports Bulletin</span>
-                </div>
-                <p className="nec-bulletin-text">
-                  Inter-Department Badminton & Football Tournaments are currently active. Match schedules and team registration forms are open for all departments.
-                </p>
-              </div>
-
-              {/* Footer Trust & Security Note */}
-              <div className="nec-showcase-footer">
-                <ShieldCheck size={16} className="nec-gold-icon" />
-                <span>Protected by NEC Multi-Layer JWT & Role-Based Access Control</span>
-              </div>
             </div>
           </section>
 
@@ -295,7 +273,6 @@ export default function LoginPage({ onLoginSuccess, onNavigate }) {
                 <div className="nec-input-group">
                   <label className="nec-input-label" htmlFor="nec-userid">
                     <span className="nec-label-text">Roll Number / Staff ID</span>
-                    <span className="nec-label-hint">e.g. 2114012, ADM01</span>
                   </label>
                   <div className="nec-input-wrapper">
                     <Building size={18} className="nec-input-icon" />
@@ -305,7 +282,7 @@ export default function LoginPage({ onLoginSuccess, onNavigate }) {
                       required
                       disabled={locked}
                       className="nec-form-control"
-                      placeholder="Enter your Roll Number or Staff ID (e.g. 2114012, ADM01)"
+                      placeholder="Enter your Roll Number or Staff ID"
                       value={userId}
                       onChange={(e) => setUserId(e.target.value)}
                       autoComplete="username"

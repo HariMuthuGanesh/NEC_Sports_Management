@@ -5,6 +5,7 @@ import Table from "../../components/common/Table";
 import Badge from "../../components/common/Badge";
 import Button from "../../components/common/Button";
 import { Modal } from "../../components/common/Modal";
+import ErrorState from "../../components/common/ErrorState";
 import { Plus, Trophy, Users, Trash2 } from "lucide-react";
 import "./AdminPortal.css";
 
@@ -12,6 +13,7 @@ export default function SportsCatalog() {
   const { t } = useAuth();
   const [sports, setSports] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [name, setName] = useState("");
@@ -25,8 +27,13 @@ export default function SportsCatalog() {
 
   const loadSports = () => {
     setLoading(true);
+    setError(null);
     sportsApi.getSports().then(data => {
       setSports(data);
+      setLoading(false);
+    }).catch(err => {
+      console.error(err);
+      setError(err.message);
       setLoading(false);
     });
   };
@@ -98,12 +105,19 @@ export default function SportsCatalog() {
         </Button>
       </div>
 
-      <Table
-        columns={columns}
-        data={sports}
-        loading={loading}
-        searchPlaceholder="Search sports catalog..."
-      />
+      {error ? (
+        <div style={{ padding: "40px" }}>
+          <ErrorState onRetry={loadSports} />
+        </div>
+      ) : (
+        <Table
+          columns={columns}
+          data={sports}
+          loading={loading}
+          searchPlaceholder="Search sports catalog..."
+          emptyMessage="No sports have been added to the catalog yet."
+        />
+      )}
 
       <Modal
         isOpen={isModalOpen}

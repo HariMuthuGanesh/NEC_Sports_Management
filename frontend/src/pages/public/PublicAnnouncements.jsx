@@ -1,57 +1,94 @@
 import React, { useEffect, useState } from "react";
 import { announcementsApi } from "../../services/api/apiServices";
 import { Card } from "../../components/common/Card";
-import Badge from "../../components/common/Badge";
 import SkeletonLoader from "../../components/common/SkeletonLoader";
-import Pagination from "../../components/common/Pagination";
-import { Megaphone, Calendar } from "lucide-react";
+import PublicInfoCard from "../../components/common/PublicInfoCard";
+import Badge from "../../components/common/Badge";
+import Button from "../../components/common/Button";
+import { Megaphone, Calendar, ArrowRight, ArrowLeft } from "lucide-react";
 import "./PublicPortal.css";
 
 export default function PublicAnnouncements() {
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 5;
+  const pageSize = 10;
+
+  const fetchAnnouncements = () => {
+    setLoading(true);
+    setError(null);
+    announcementsApi.getAll()
+      .then(data => {
+        setList(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setError(err.message);
+        setLoading(false);
+      });
+  };
 
   useEffect(() => {
-    announcementsApi.getAnnouncements().then(data => {
-      setList(data);
-      setLoading(false);
-    });
+    fetchAnnouncements();
   }, []);
+
+  const totalPages = Math.ceil(list.length / pageSize);
 
   return (
     <div className="nec-portal-page">
       <div className="nec-page-header">
-        <h2 className="nec-page-title">Institutional Sports Bulletin & Announcements</h2>
-        <p className="nec-page-desc">Official news, rules, entry schedules, and circulars from NEC Physical Education Department.</p>
+        <h2 className="nec-page-title">Sports Announcements</h2>
+        <p className="nec-page-desc">Official notices, tournament rules, registration deadlines, and campus sports updates.</p>
       </div>
 
-      {loading ? (
+      {(error || (!loading && list.length === 0)) ? (
+        <PublicInfoCard
+          icon={Megaphone}
+          title="No Announcements"
+          message="There are no new sports announcements at this time. Visit again for updates on registrations and tournaments."
+        />
+      ) : loading ? (
         <SkeletonLoader rows={3} />
       ) : (
         <div className="nec-ann-full-list">
           {list.slice((currentPage - 1) * pageSize, currentPage * pageSize).map(ann => (
             <Card key={ann.id} className="nec-ann-card">
-              <div className="nec-ann-head">
-                <div className="nec-ann-tag-row">
-                  <Badge status={ann.category === "Important" ? "danger" : "info"}>{ann.category}</Badge>
-                  <span className="nec-ann-date"><Calendar size={14} /> {ann.date}</span>
-                </div>
-                <span className="nec-ann-by">By {ann.author}</span>
+              <div className="nec-ann-top">
+                <Badge status={ann.isImportant ? "danger" : "info"}>
+                  {ann.isImportant ? "IMPORTANT" : "NOTICE"}
+                </Badge>
+                <span className="nec-ann-date">
+                  <Calendar size={14} /> {new Date(ann.postedDate).toLocaleDateString()}
+                </span>
               </div>
               <h3 className="nec-ann-title">{ann.title}</h3>
-              <p className="nec-ann-body">{ann.content}</p>
+              <p className="nec-ann-content">{ann.content}</p>
             </Card>
           ))}
-          
-          {Math.ceil(list.length / pageSize) > 1 && (
-            <Pagination
-              currentPage={currentPage}
-              totalPages={Math.ceil(list.length / pageSize)}
-              onPageChange={setCurrentPage}
-              style={{ marginTop: "20px", border: "1px solid var(--nec-border)", borderRadius: "8px" }}
-            />
+
+          {totalPages > 1 && (
+            <div className="nec-pagination">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(p => p - 1)}
+              >
+                <ArrowLeft size={16} /> Previous
+              </Button>
+              <span className="nec-page-indicator">Page {currentPage} of {totalPages}</span>
+              <Button 
+                variant="outline" 
+                size="sm"
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(p => p + 1)}
+              >
+                Next <ArrowRight size={16} />
+              </Button>
+            </div>
           )}
         </div>
       )}

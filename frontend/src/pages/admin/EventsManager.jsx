@@ -4,12 +4,15 @@ import Table from "../../components/common/Table";
 import Badge from "../../components/common/Badge";
 import Button from "../../components/common/Button";
 import { Modal } from "../../components/common/Modal";
+import ErrorState from "../../components/common/ErrorState";
+import EmptyState from "../../components/common/EmptyState";
 import { Plus, ToggleLeft, ToggleRight, Calendar, Award } from "lucide-react";
 import "./AdminPortal.css";
 
 export default function EventsManager() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [title, setTitle] = useState("");
@@ -25,8 +28,13 @@ export default function EventsManager() {
 
   const loadEvents = () => {
     setLoading(true);
+    setError(null);
     tournamentsApi.getEvents().then(data => {
       setEvents(data);
+      setLoading(false);
+    }).catch(err => {
+      console.error(err);
+      setError(err.message);
       setLoading(false);
     });
   };
@@ -112,12 +120,19 @@ export default function EventsManager() {
         </Button>
       </div>
 
-      <Table
-        columns={columns}
-        data={events}
-        loading={loading}
-        searchPlaceholder="Search sports events..."
-      />
+      {error ? (
+        <div style={{ padding: "40px" }}>
+          <ErrorState onRetry={loadEvents} />
+        </div>
+      ) : (
+        <Table
+          columns={columns}
+          data={events}
+          loading={loading}
+          searchPlaceholder="Search sports events..."
+          emptyMessage="No events found."
+        />
+      )}
 
       <Modal
         isOpen={isModalOpen}

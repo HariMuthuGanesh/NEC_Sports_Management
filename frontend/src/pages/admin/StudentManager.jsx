@@ -1,19 +1,32 @@
 import React, { useEffect, useState } from "react";
-import { EXTERNAL_STUDENT_DATABASE } from "../../data/mock/mockData";
+import { playersApi } from "../../services/api/apiServices";
 import Table from "../../components/common/Table";
 import Badge from "../../components/common/Badge";
 import Button from "../../components/common/Button";
+import ErrorState from "../../components/common/ErrorState";
 import { Users, Filter, Plus, Search, Mail, Phone, GraduationCap } from "lucide-react";
 import "./AdminPortal.css";
 
 export default function StudentManager() {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const loadData = () => {
+    setLoading(true);
+    setError(null);
+    playersApi.getAllPlayers().then(data => {
+      setStudents(data);
+      setLoading(false);
+    }).catch(err => {
+      console.error(err);
+      setError(err.message);
+      setLoading(false);
+    });
+  };
 
   useEffect(() => {
-    // Load student directory data
-    setStudents(EXTERNAL_STUDENT_DATABASE);
-    setLoading(false);
+    loadData();
   }, []);
 
   const columns = [
@@ -56,12 +69,19 @@ export default function StudentManager() {
         </div>
       </div>
 
-      <Table
-        columns={columns}
-        data={students}
-        loading={loading}
-        searchPlaceholder="Search student directory by name, ID, department..."
-      />
+      {error ? (
+        <div style={{ padding: "40px" }}>
+          <ErrorState onRetry={loadData} />
+        </div>
+      ) : (
+        <Table
+          columns={columns}
+          data={students}
+          loading={loading}
+          searchPlaceholder="Search student directory by name, ID, department..."
+          emptyMessage="No students found."
+        />
+      )}
     </div>
   );
 }

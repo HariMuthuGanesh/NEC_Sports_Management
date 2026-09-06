@@ -4,19 +4,31 @@ import { useAuth } from "../../context/AuthContext";
 import { Card } from "../../components/common/Card";
 import Badge from "../../components/common/Badge";
 import SkeletonLoader from "../../components/common/SkeletonLoader";
-import EmptyState from "../../components/common/EmptyState";
+import PublicInfoCard from "../../components/common/PublicInfoCard";
+import { Trophy, Calendar } from "lucide-react";
 import "./PublicPortal.css";
 
-export default function PublicLiveScores() {
+export default function PublicLiveScores({ onNavigate }) {
   const { t } = useAuth();
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  useEffect(() => {
+  const fetchMatches = () => {
+    setLoading(true);
+    setError(null);
     matchesApi.getMatches().then(data => {
       setMatches(data);
       setLoading(false);
+    }).catch(err => {
+      console.error(err);
+      setError(err.message);
+      setLoading(false);
     });
+  };
+
+  useEffect(() => {
+    fetchMatches();
   }, []);
 
   const liveList = matches.filter(m => m.status === "Live");
@@ -30,11 +42,17 @@ export default function PublicLiveScores() {
       </div>
 
       <div className="nec-portal-section">
-        <h3 className="nec-sub-title">🔴 {t.liveActionCampus || "Matches In Progress"}</h3>
+        <h3 className="nec-sub-title">🔴 {liveList.length} Live Matches in Progress</h3>
         {loading ? (
           <SkeletonLoader rows={2} type="cards" />
-        ) : liveList.length === 0 ? (
-          <EmptyState title={t.noMatchesLive || "No Live Matches Currently"} message="Check the fixtures tab for upcoming scheduled games today." />
+        ) : (error || liveList.length === 0) ? (
+          <PublicInfoCard
+            icon={Trophy}
+            title="No Live Matches Today"
+            message="There are currently no live matches being played on campus. Live scores will automatically appear here once a match begins."
+            actionText="View Fixtures"
+            onAction={() => onNavigate && onNavigate("public_fixtures")}
+          />
         ) : (
           <div className="nec-matches-grid">
             {liveList.map(m => (
@@ -68,6 +86,13 @@ export default function PublicLiveScores() {
         <h3 className="nec-sub-title">🏆 Recent Completed Match Results</h3>
         {loading ? (
           <SkeletonLoader rows={3} />
+        ) : (error || recentList.length === 0) ? (
+          <PublicInfoCard
+            icon={Calendar}
+            title="No Completed Matches Yet"
+            message="Completed match results and final scores will appear here after tournaments conclude."
+            variant="flat"
+          />
         ) : (
           <div className="nec-matches-grid">
             {recentList.map(m => (

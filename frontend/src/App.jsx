@@ -31,6 +31,7 @@ import ReportsManager from "./pages/admin/ReportsManager";
 import AnnouncementsManager from "./pages/admin/AnnouncementsManager";
 import AuditLog from "./pages/admin/AuditLog";
 import StudentManager from "./pages/admin/StudentManager";
+import GalleryManager from "./pages/admin/GalleryManager";
 
 // Coordinator Pages
 import CoordinatorDashboard from "./pages/coordinator/CoordinatorDashboard";
@@ -178,6 +179,12 @@ function MainApp() {
             <AnnouncementsManager />
           </ProtectedRoute>
         );
+      case "admin_gallery":
+        return (
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={redirectNav}>
+            <GalleryManager />
+          </ProtectedRoute>
+        );
       case "admin_reports":
         return (
           <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={redirectNav}>
@@ -219,7 +226,11 @@ function MainApp() {
           </ProtectedRoute>
         );
       case "coord_media":
-        return <PublicGallery />;
+        return (
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.COORDINATOR]} onRedirectPublic={redirectNav}>
+            <GalleryManager />
+          </ProtectedRoute>
+        );
 
       // Protected Player Routes
       case "player_dash":
@@ -256,7 +267,11 @@ function MainApp() {
 
       // Settings — accessible to all logged-in roles
       case "settings":
-        return <SettingsPage onNavigate={(nav) => setActiveNav(nav)} />;
+        return (
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.COORDINATOR, ROLES.PLAYER]} onRedirectPublic={redirectNav}>
+            <SettingsPage onNavigate={(nav) => setActiveNav(nav)} />
+          </ProtectedRoute>
+        );
 
       default:
         return <PublicHome onNavigate={(nav) => setActiveNav(nav)} />;

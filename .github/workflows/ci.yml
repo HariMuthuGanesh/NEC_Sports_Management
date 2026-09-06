@@ -226,8 +226,7 @@ jobs:
             "src/app.js"
             "src/config/db.js"
             "src/middleware/authMiddleware.js"
-            "src/middleware/roleMiddleware.js"
-            "src/routes/authRoutes.js"
+            "src/routes/apiRoutes.js"
           )
           MISSING=0
           for f in "${REQUIRED[@]}"; do

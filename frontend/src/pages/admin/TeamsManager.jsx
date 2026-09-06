@@ -4,33 +4,43 @@ import Table from "../../components/common/Table";
 import Badge from "../../components/common/Badge";
 import Button from "../../components/common/Button";
 import { Modal } from "../../components/common/Modal";
+import ErrorState from "../../components/common/ErrorState";
 import { Users, Filter, Plus, Trophy, Calendar, Eye, Activity } from "lucide-react";
 import "./AdminPortal.css";
 
 export default function TeamsManager() {
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [teamRoster, setTeamRoster] = useState([]);
   const [rosterModalOpen, setRosterModalOpen] = useState(false);
 
-  useEffect(() => {
-    loadTeams();
-  }, []);
-
   const loadTeams = () => {
     setLoading(true);
+    setError(null);
     teamsApi.getTeams().then(data => {
       setTeams(data);
       setLoading(false);
+    }).catch(err => {
+      console.error(err);
+      setError(err.message);
+      setLoading(false);
     });
   };
+
+  useEffect(() => {
+    loadTeams();
+  }, []);
 
   const handleViewRoster = (team) => {
     setSelectedTeam(team);
     playersApi.getPlayersByTeam(team.team_id).then(players => {
       setTeamRoster(players);
       setRosterModalOpen(true);
+    }).catch(err => {
+      console.error(err);
+      alert("Failed to load roster: " + err.message);
     });
   };
 
@@ -75,17 +85,8 @@ export default function TeamsManager() {
       render: (val, row) => (
         <div>
           <strong style={{ fontSize: "0.875rem" }}>{val} (Captain)</strong>
-          <div style={{ fontSize: "0.75rem", color: "var(--nec-text-muted)" }}>
-            Coach: Prof. S. Nathan
-          </div>
         </div>
       )
-    },
-    {
-      key: "memberCount",
-      label: "Roster",
-      width: "120px",
-      render: (val) => <span><strong>{val}</strong> / 25 Athletes</span>
     },
     {
       key: "status",
@@ -95,17 +96,6 @@ export default function TeamsManager() {
         <Badge status={val === "Approved" ? "success" : "warning"}>
           {val === "Approved" ? "Active ✓" : "Pending"}
         </Badge>
-      )
-    },
-    {
-      key: "nextMatch",
-      label: "Next Fixture",
-      width: "180px",
-      render: () => (
-        <div>
-          <strong style={{ fontSize: "0.8125rem" }}>Aug 18, 16:00</strong>
-          <div style={{ fontSize: "0.75rem", color: "var(--nec-text-muted)" }}>vs Mech Titans</div>
-        </div>
       )
     },
     {
@@ -130,7 +120,6 @@ export default function TeamsManager() {
 
   return (
     <div className="nec-portal-page">
-      {/* Stitch Design Header */}
       <div className="nec-page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
         <div>
           <h1 className="nec-page-title" style={{ fontSize: "1.75rem" }}>Team Roster Management</h1>
@@ -142,54 +131,51 @@ export default function TeamsManager() {
         </div>
       </div>
 
-      {/* Stitch Bento Grid Metrics */}
-      <div className="nec-stats-grid">
-        <div className="nec-stat-card nec-stat-card-navy">
-          <div className="nec-stat-card-top">
-            <span className="nec-stat-title">Total Teams</span>
-            <div className="nec-stat-icon-wrapper"><Users size={20} /></div>
-          </div>
-          <div className="nec-stat-value">42</div>
-          <div className="nec-stat-subtext">
-            <span className="nec-stat-trend up">↑ +3</span> this semester
-          </div>
+      {error ? (
+        <div style={{ padding: "40px" }}>
+          <ErrorState onRetry={loadTeams} />
         </div>
+      ) : (
+        <>
+          <div className="nec-stats-grid">
+            <div className="nec-stat-card nec-stat-card-navy">
+              <div className="nec-stat-card-top">
+                <span className="nec-stat-title">Total Teams</span>
+                <div className="nec-stat-icon-wrapper"><Users size={20} /></div>
+              </div>
+              <div className="nec-stat-value">{teams.length}</div>
+              <div className="nec-stat-subtext">Registered this semester</div>
+            </div>
 
-        <div className="nec-stat-card nec-stat-card-gold">
-          <div className="nec-stat-card-top">
-            <span className="nec-stat-title">Active Athletes</span>
-            <div className="nec-stat-icon-wrapper"><Activity size={20} /></div>
+            <div className="nec-stat-card nec-stat-card-gold">
+              <div className="nec-stat-card-top">
+                <span className="nec-stat-title">Pending Approvals</span>
+                <div className="nec-stat-icon-wrapper"><Activity size={20} /></div>
+              </div>
+              <div className="nec-stat-value">{teams.filter(t => t.status === "Pending").length}</div>
+              <div className="nec-stat-subtext">Requires attention</div>
+            </div>
+            
+            <div className="nec-stat-card nec-stat-card-navy">
+              <div className="nec-stat-card-top">
+                <span className="nec-stat-title">Approved Teams</span>
+                <div className="nec-stat-icon-wrapper"><Trophy size={20} /></div>
+              </div>
+              <div className="nec-stat-value">{teams.filter(t => t.status === "Approved").length}</div>
+              <div className="nec-stat-subtext">Active for tournaments</div>
+            </div>
           </div>
-          <div className="nec-stat-value">658</div>
-          <div className="nec-stat-subtext">
-            <span className="nec-stat-trend up">↑ +45</span> this semester
-          </div>
-        </div>
 
-        <div className="nec-stat-card" style={{
-          background: "linear-gradient(135deg, var(--nec-navy), var(--nec-navy-dark))",
-          color: "#fff",
-          gridColumn: "span 2"
-        }}>
-          <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--nec-gold-light)", textTransform: "uppercase" }}>
-            Upcoming Inter-College Meet
-          </div>
-          <h3 style={{ margin: "4px 0", fontSize: "1.3rem", color: "#fff" }}>South Zone Qualifiers</h3>
-          <p style={{ margin: 0, fontSize: "0.85rem", color: "#cbd5e1" }}>
-            12 teams are currently preparing for the zonal qualifiers next week.
-          </p>
-        </div>
-      </div>
+          <Table
+            columns={columns}
+            data={teams}
+            loading={loading}
+            searchPlaceholder="Search teams by name, department, captain..."
+            emptyMessage="No teams have registered yet."
+          />
+        </>
+      )}
 
-      {/* Data Table */}
-      <Table
-        columns={columns}
-        data={teams}
-        loading={loading}
-        searchPlaceholder="Search teams by name, department, captain..."
-      />
-
-      {/* Roster Modal */}
       <Modal
         isOpen={rosterModalOpen}
         onClose={() => setRosterModalOpen(false)}
