@@ -46,10 +46,6 @@ export default function PublicHome({ onNavigate }) {
       {/* Hero Section */}
       <section className="nec-portal-hero">
         <div className="nec-hero-content">
-          <div className="nec-hero-badge">
-            <Trophy size={16} className="nec-gold-icon" />
-            <span>Lakshmi Ammal Sports Academy</span>
-          </div>
           <h1 className="nec-hero-title">
             {t.heroTitle}
           </h1>

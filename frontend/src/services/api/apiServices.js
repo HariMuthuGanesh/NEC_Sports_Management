@@ -132,6 +132,7 @@ export const announcementsApi = {
 /* --- Media Gallery API --- */
 export const galleryApi = {
   getGallery: () => apiFetch("/gallery"),
+  getAll: () => apiFetch("/gallery"),
   uploadMedia: (formData) => apiFetch("/gallery/upload", "POST", formData),
   deleteMedia: (id) => apiFetch(`/gallery/${id}`, "DELETE")
 };

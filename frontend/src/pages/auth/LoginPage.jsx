@@ -438,7 +438,7 @@ export default function LoginPage({ onLoginSuccess, onNavigate }) {
             <Trophy size={28} className="nec-gold-icon" />
             <div>
               <h3 className="nec-help-title">National Engineering College Sports Directorate</h3>
-              <p className="nec-help-subtitle">Lakshmi Ammal Sports Academy (LASA) Administration</p>
+              <p className="nec-help-subtitle">Physical Education & Sports Administration</p>
             </div>
           </div>
 
@@ -447,7 +447,7 @@ export default function LoginPage({ onLoginSuccess, onNavigate }) {
               <MapPin size={18} className="nec-help-icon" />
               <div>
                 <strong>Physical Location</strong>
-                <p>LASA Indoor Stadium Complex, Ground Floor, Room 102, NEC Campus, Kovilpatti.</p>
+                <p>Indoor Stadium Complex, Ground Floor, Room 102, NEC Campus, Kovilpatti.</p>
               </div>
             </div>
 

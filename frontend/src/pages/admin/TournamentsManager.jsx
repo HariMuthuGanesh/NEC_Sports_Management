@@ -45,7 +45,7 @@ export default function TournamentsManager() {
       description: newDesc,
       startDate: new Date().toISOString().split("T")[0],
       endDate: "2026-09-30",
-      organizer: "Physical Education Department & LASA"
+      organizer: "Physical Education Department & Sports Directorate"
     }).then(() => {
       setIsModalOpen(false);
       setNewTitle("");

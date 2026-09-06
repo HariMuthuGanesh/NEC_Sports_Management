@@ -107,15 +107,15 @@ function MainApp() {
       case "public_home":
         return <PublicHome onNavigate={(nav) => setActiveNav(nav)} />;
       case "public_live":
-        return <PublicLiveScores />;
+        return <PublicLiveScores onNavigate={(nav) => setActiveNav(nav)} />;
       case "public_fixtures":
-        return <PublicFixtures />;
+        return <PublicFixtures onNavigate={(nav) => setActiveNav(nav)} />;
       case "public_leaderboard":
-        return <PublicLeaderboard />;
+        return <PublicLeaderboard onNavigate={(nav) => setActiveNav(nav)} />;
       case "public_gallery":
-        return <PublicGallery />;
+        return <PublicGallery onNavigate={(nav) => setActiveNav(nav)} />;
       case "public_announcements":
-        return <PublicAnnouncements />;
+        return <PublicAnnouncements onNavigate={(nav) => setActiveNav(nav)} />;
 
       // Protected Admin / Director of Physical Education Routes
       case "admin_dash":

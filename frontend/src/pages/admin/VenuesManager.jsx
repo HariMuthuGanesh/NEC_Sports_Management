@@ -133,7 +133,7 @@ export default function VenuesManager() {
         <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
           <div className="nec-form-group">
             <label className="nec-form-label">Venue Name *</label>
-            <input className="nec-table-search-input" style={{ maxWidth: "100%" }} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. LASA Indoor Sports Complex" />
+            <input className="nec-table-search-input" style={{ maxWidth: "100%" }} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. NEC Indoor Sports Complex" />
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
             <div className="nec-form-group">

@@ -158,7 +158,7 @@ export const TRANSLATIONS = {
     collegeName: "தேசிய பொறியியல் கல்லூரி",
     systemTitle: "விளையாட்டு மேலாண்மை அமைப்பு",
     sportsPortal: "விளையாட்டு தளம்",
-    lasaTag: "லக்ஷ்மி அம்மாள் விளையாட்டு அகாடமி",
+    lasaTag: "என்.இ.சி விளையாட்டு அகாடமி",
     lasaSub: "என்.இ.சி வளாக சுற்றுச்சூழல்",
     mode: "முறை",
     switchLanguage: "மொழியை மாற்றவும்",
@@ -214,7 +214,7 @@ export const TRANSLATIONS = {
     // Public Home
     officialPortal: "அதிகாரப்பூர்வ என்.இ.சி வளாக விளையாட்டு தளம்",
     heroTitle: "தேசிய பொறியியல் கல்லூரி விளையாட்டுக்கள்",
-    heroSubtitle: "அனைத்துத் துறைகளிலும் லக்ஷ்மி அம்மாள் விளையாட்டு அகாடமியிலும் சிறப்பையும் அணிப்பணியையும் ஊக்குவித்தல்.",
+    heroSubtitle: "அனைத்துத் துறைகளிலும் சிறப்பையும் அணிப்பணியையும் ஊக்குவித்தல்.",
     watchLiveScores: "நேரலை மதிப்பெண்கள்",
     viewFixturesSchedule: "போட்டி அட்டவணை",
     liveActionCampus: "வளாகத்தில் நேரலை போட்டிகள்",
@@ -245,7 +245,7 @@ export const TRANSLATIONS = {
     enterPasswordPlaceholder: "கடவுச்சொல்லை உள்ளிடவும்...",
     signInBtn: "என்.இ.சி விளையாட்டு அமைப்பில் உள்நுழைக",
     login: "உள்நுழை",
-    integratedWithLasa: "என்.இ.சி நிறுவன அடையாளம் மற்றும் லக்ஷ்மி அம்மாள் விளையாட்டு அகாடமியுடன் இணைக்கப்பட்டது",
+    integratedWithLasa: "என்.இ.சி நிறுவன அடையாளத்துடன் பாதுகாப்பாக ஒருங்கிணைக்கப்பட்டது",
 
     // General & Status
     live: "நேரலை",
@@ -312,7 +312,7 @@ export const TRANSLATIONS = {
     collegeName: "नेशनल इंजीनियरिंग कॉलेज",
     systemTitle: "खेल प्रबंधन प्रणाली",
     sportsPortal: "स्पोर्ट्स पोर्टल",
-    lasaTag: "लक्ष्मी अम्माल स्पोर्ट्स अकादमी",
+    lasaTag: "एनईसी स्पोर्ट्स अकादमी",
     lasaSub: "एनईसी परिसर पारिस्थितिकी तंत्र",
     mode: "मोड",
     switchLanguage: "भाषा बदलें",
@@ -368,7 +368,7 @@ export const TRANSLATIONS = {
     // Public Home
     officialPortal: "आधिकारिक एनईसी परिसर खेल पोर्टल",
     heroTitle: "नेशनल इंजीनियरिंग कॉलेज खेल और कूद",
-    heroSubtitle: "सभी विभागों और लक्ष्मी अम्माल स्पोर्ट्स अकादमी में उत्कृष्टता, टीम वर्क और खेल भावना को बढ़ावा देना।",
+    heroSubtitle: "सभी विभागों में उत्कृष्टता, टीम वर्क और खेल भावना को बढ़ावा देना।",
     watchLiveScores: "लाइव स्कोर देखें",
     viewFixturesSchedule: "फिक्स्चर और शेड्यूल देखें",
     liveActionCampus: "कैंपस में लाइव मैच",
@@ -399,7 +399,7 @@ export const TRANSLATIONS = {
     enterPasswordPlaceholder: "पासवर्ड दर्ज करें...",
     signInBtn: "एनईसी स्पोर्ट्स सिस्टम में साइन इन करें",
     login: "लॉगिन",
-    integratedWithLasa: "एनईसी संस्थागत पहचान और लक्ष्मी अम्माल स्पोर्ट्स अकादमी के साथ एकीकृत",
+    integratedWithLasa: "एनईसी संस्थागत पहचान के साथ सुरक्षित रूप से एकीकृत",
 
     // General & Status
     live: "लाइव",
