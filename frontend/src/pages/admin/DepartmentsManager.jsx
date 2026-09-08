@@ -27,10 +27,10 @@ export default function DepartmentsManager() {
     setError(null);
     try {
       const data = await sportsApi.getDepartments();
-      setDepts(data);
+      setDepts(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error(err);
-      setError(err.message);
+      setError(err.message || "Failed to load departments");
     }
     setLoading(false);
   };
@@ -49,7 +49,11 @@ export default function DepartmentsManager() {
     } else {
       updated = [...depts, { id: `dept_${Date.now()}`, ...entry }];
     }
-    await sportsApi.saveDepartments(updated);
+    try {
+      await sportsApi.saveDepartments(updated);
+    } catch (e) {
+      console.warn("Backend bulk departments not persisted:", e.message);
+    }
     setDepts(updated);
     setShowModal(false);
   };
@@ -57,7 +61,11 @@ export default function DepartmentsManager() {
   const handleDelete = async (id) => {
     if (!window.confirm("Remove this department?")) return;
     const updated = depts.filter(d => d.id !== id);
-    await sportsApi.saveDepartments(updated);
+    try {
+      await sportsApi.saveDepartments(updated);
+    } catch (e) {
+      console.warn("Backend bulk departments not persisted:", e.message);
+    }
     setDepts(updated);
   };
 
@@ -66,11 +74,11 @@ export default function DepartmentsManager() {
       key: "code", label: "Code", width: "90px",
       render: (val, row) => (
         <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: "20px", background: (row.color || "#3b82f6") + "22", color: row.color || "#3b82f6", fontWeight: 800, fontSize: "0.82rem" }}>
-          {val}
+          {val || "—"}
         </span>
       )
     },
-    { key: "name", label: "Department Name", render: (val) => <strong>{val}</strong> },
+    { key: "name", label: "Department Name", render: (val) => <strong>{val || "—"}</strong> },
     { key: "hod", label: "Head of Department", render: (val) => <span style={{ color: "var(--nec-text-muted)" }}>{val || "—"}</span> },
     { key: "students", label: "Students", width: "100px", render: (val) => val ? `${Number(val).toLocaleString()}` : "—" },
     {

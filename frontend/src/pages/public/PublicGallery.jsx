@@ -54,7 +54,10 @@ export default function PublicGallery({ onNavigate }) {
             {items.map((item, idx) => {
               const isVideo = item.media_type === "video" || item.type === "video" || item.type === "Video";
               const rawUrl = item.url || item.media_url || "";
-              const finalUrl = rawUrl.startsWith("http") ? rawUrl : `http://localhost:5000${rawUrl}`;
+              const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+              const finalUrl = rawUrl.startsWith("http://") || rawUrl.startsWith("https://")
+                ? rawUrl
+                : `${apiUrl}${rawUrl.startsWith("/") ? "" : "/"}${rawUrl}`;
               const rawDate = item.date || item.created_at;
               const dateStr = rawDate ? (isNaN(new Date(rawDate)) ? rawDate : new Date(rawDate).toLocaleDateString()) : "Campus Sports";
 

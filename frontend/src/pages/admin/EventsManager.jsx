@@ -5,8 +5,7 @@ import Badge from "../../components/common/Badge";
 import Button from "../../components/common/Button";
 import { Modal } from "../../components/common/Modal";
 import ErrorState from "../../components/common/ErrorState";
-import EmptyState from "../../components/common/EmptyState";
-import { Plus, ToggleLeft, ToggleRight, Calendar, Award } from "lucide-react";
+import { Plus, ToggleLeft, ToggleRight } from "lucide-react";
 import "./AdminPortal.css";
 
 export default function EventsManager() {
@@ -49,34 +48,35 @@ export default function EventsManager() {
     }));
   };
 
-  const handleCreateEvent = (e) => {
+  const handleCreateEvent = async (e) => {
     e.preventDefault();
     if (!title.trim()) return;
 
-    const newEv = {
-      id: `ev_${Date.now()}`,
-      tournamentId: "tn_2026_interdept",
-      sportId,
-      category,
-      eventCategory,
-      title,
-      maxTeams: Number(maxTeams),
-      registeredTeams: 0,
-      status: "Open",
-      regDeadline
-    };
-
-    setEvents(prev => [newEv, ...prev]);
-    setIsModalOpen(false);
-    setTitle("");
+    try {
+      await tournamentsApi.createTournament({
+        title,
+        tier: eventCategory,
+        startDate: regDeadline,
+        endDate: regDeadline,
+        status: "Upcoming",
+        sportId,
+        category,
+        maxTeams: Number(maxTeams),
+      });
+      await loadEvents();
+      setIsModalOpen(false);
+      setTitle("");
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
   const columns = [
-    { key: "title", label: "Event Name", render: (val, row) => <div><strong>{val}</strong><br/><small style={{color: 'var(--nec-text-muted)'}}>{row.category} Category</small></div> },
+    { key: "title", label: "Event Name", render: (val, row) => <div><strong>{val}</strong><br /><small style={{ color: 'var(--nec-text-muted)' }}>{row.category} Category</small></div> },
     { key: "eventCategory", label: "Event Category", width: "140px", render: (val) => <Badge status={val === "Inter-College" ? "danger" : "info"}>{val}</Badge> },
-    { key: "sportId", label: "Sport", width: "130px", render: (val) => val.replace("sp_", "").toUpperCase() },
-    { key: "teamsLimit", label: "Teams Registered", width: "150px", render: (_, row) => <span>{row.registeredTeams} / {row.maxTeams} Teams</span> },
-    { key: "regDeadline", label: "Entry Deadline", width: "130px", render: (val) => <span>📅 {val}</span> },
+    { key: "sportId", label: "Sport", width: "130px", render: (val, row) => String(row.sportName || val || "General").replace("sp_", "").toUpperCase() },
+    { key: "teamsLimit", label: "Teams Registered", width: "150px", render: (_, row) => <span>{row.registeredTeams || 0} / {row.maxTeams || 0} Teams</span> },
+    { key: "regDeadline", label: "Entry Deadline", width: "130px", render: (val) => <span>📅 {val || "TBD"}</span> },
     {
       key: "status",
       label: "Registration Status",
@@ -203,7 +203,7 @@ export default function EventsManager() {
                 <option value="National">National</option>
               </select>
             </div>
-            
+
             <div>
               <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: "4px" }}>Max Teams Limit</label>
               <input

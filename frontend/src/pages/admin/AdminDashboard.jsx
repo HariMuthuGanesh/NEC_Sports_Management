@@ -3,9 +3,9 @@ import { StatCard, Card } from "../../components/common/Card";
 import Button from "../../components/common/Button";
 import Badge from "../../components/common/Badge";
 import Table from "../../components/common/Table";
-import { tournamentsApi, teamsApi, matchesApi, sportsApi, devApi } from "../../services/api/apiServices";
+import { tournamentsApi, teamsApi, matchesApi, sportsApi } from "../../services/api/apiServices";
 import { useAuth } from "../../context/AuthContext";
-import { Trophy, Calendar, CheckSquare, Users, Plus, Radio, ArrowRight, Activity, Award, Database, Trash2, RefreshCw } from "lucide-react";
+import { Trophy, Calendar, CheckSquare, Users, Plus, Radio, ArrowRight, Activity, Award } from "lucide-react";
 import ErrorState from "../../components/common/ErrorState";
 import EmptyState from "../../components/common/EmptyState";
 import "./AdminPortal.css";
@@ -25,8 +25,6 @@ export default function AdminDashboard({ onNavigate }) {
   const [pendingTeams, setPendingTeams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [devActionLoading, setDevActionLoading] = useState(false);
-  const [devMessage, setDevMessage] = useState(null);
 
   const fetchDashboardData = () => {
     setLoading(true);
@@ -61,37 +59,6 @@ export default function AdminDashboard({ onNavigate }) {
     fetchDashboardData();
   }, []);
 
-  const handleLoadDemoData = async () => {
-    try {
-      setDevActionLoading(true);
-      setDevMessage(null);
-      const res = await devApi.loadDemoData();
-      setDevMessage({ type: "success", text: res.message || "Demo dataset loaded successfully." });
-      fetchDashboardData();
-    } catch (err) {
-      setDevMessage({ type: "error", text: err.message || "Failed to load demo data." });
-    } finally {
-      setDevActionLoading(false);
-    }
-  };
-
-  const handleClearDemoData = async () => {
-    if (!window.confirm("Are you sure you want to clear demo data? This will restore the database to a baseline state.")) {
-      return;
-    }
-    try {
-      setDevActionLoading(true);
-      setDevMessage(null);
-      const res = await devApi.clearDemoData();
-      setDevMessage({ type: "success", text: res.message || "Demo data cleared successfully." });
-      fetchDashboardData();
-    } catch (err) {
-      setDevMessage({ type: "error", text: err.message || "Failed to clear demo data." });
-    } finally {
-      setDevActionLoading(false);
-    }
-  };
-
   const pendingColumns = [
     { key: "deptCode", label: "Dept", width: "90px", render: (val) => <strong>{val}</strong> },
     { key: "name", label: "Team Name", render: (val) => <strong>{val}</strong> },
@@ -107,61 +74,16 @@ export default function AdminDashboard({ onNavigate }) {
           <span style={{ fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.15em", color: "var(--nec-gold)", textTransform: "uppercase" }}>
             {t.navOverview || "OVERVIEW"}
           </span>
-          <h1 className="nec-page-title" style={{ fontSize: "2rem", marginTop: "2px" }}>{t.directorsDesk || "Director's Desk"}</h1>
+          <h1 className="nec-page-title" style={{ fontSize: "2rem", marginTop: "2px" }}>{t.directorsDesk || "Physical Director's Desk"}</h1>
           <p className="nec-page-desc">Institutional overview of athletic programs, student participation metrics, and recent administrative actions across all departments.</p>
         </div>
         <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
-          <Button 
-            variant="outline" 
-            size="sm"
-            icon={Database} 
-            loading={devActionLoading} 
-            disabled={devActionLoading}
-            onClick={handleLoadDemoData}
-            title="Populate MySQL database with realistic demo data"
-          >
-            Load Demo Data
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="sm"
-            icon={Trash2} 
-            loading={devActionLoading} 
-            disabled={devActionLoading}
-            onClick={handleClearDemoData}
-            title="Clean demo data and restore baseline state"
-            style={{ color: "var(--nec-danger, #ef4444)" }}
-          >
-            Clear Demo Data
-          </Button>
           <Button variant="primary" icon={Plus} onClick={() => onNavigate("admin_events")}>
             {t.createEvent || "Create Event"}
           </Button>
         </div>
       </div>
 
-      {devMessage && (
-        <div style={{
-          margin: "12px 0 20px 0",
-          padding: "10px 16px",
-          borderRadius: "8px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          fontSize: "0.875rem",
-          background: devMessage.type === "success" ? "rgba(16, 185, 129, 0.1)" : "rgba(239, 68, 68, 0.1)",
-          color: devMessage.type === "success" ? "#10b981" : "#ef4444",
-          border: `1px solid ${devMessage.type === "success" ? "rgba(16, 185, 129, 0.3)" : "rgba(239, 68, 68, 0.3)"}`
-        }}>
-          <span>{devMessage.text}</span>
-          <button 
-            onClick={() => setDevMessage(null)}
-            style={{ background: "none", border: "none", color: "inherit", cursor: "pointer", fontWeight: "bold", fontSize: "1rem" }}
-          >
-            ✕
-          </button>
-        </div>
-      )}
 
       {error ? (
         <div style={{ padding: "40px" }}>

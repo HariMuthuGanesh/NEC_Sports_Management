@@ -4,6 +4,13 @@ import { Image, Upload, Trash2, X, Plus } from "lucide-react";
 import SkeletonLoader from "../../components/common/SkeletonLoader";
 import "./AdminPortal.css";
 
+const getMediaUrl = (url) => {
+  if (!url) return "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=800&q=80";
+  if (url.startsWith("http://") || url.startsWith("https://")) return url;
+  const backendUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+  return `${backendUrl}${url.startsWith("/") ? "" : "/"}${url}`;
+};
+
 export default function GalleryManager() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -108,32 +115,34 @@ export default function GalleryManager() {
           <p>Upload some photos or videos to see them here.</p>
         </div>
       ) : (
-        <div className="nec-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '20px' }}>
+        <div className="nec-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 190px))', gap: '14px' }}>
           {items.map(item => (
-            <div key={item.id} className="nec-card" style={{ padding: '0', overflow: 'hidden' }}>
-              <div style={{ position: 'relative', paddingTop: '66%', background: '#f1f5f9' }}>
+            <div key={item.id} className="nec-card" style={{ padding: '0', overflow: 'hidden', borderRadius: '8px' }}>
+              <div style={{ position: 'relative', height: '110px', background: '#f1f5f9' }}>
                 <img
-                  src={'http://localhost:5000' + item.url}
+                  src={getMediaUrl(item.url)}
                   alt={item.title}
                   style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }}
                   onError={(e) => {
                     e.target.onerror = null; 
-                    e.target.src = '/assets/placeholder.png'; // Fallback if backend is not serving static properly
+                    e.target.src = 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=800&q=80';
                   }}
                 />
               </div>
-              <div style={{ padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{item.title}</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--nec-text-muted)' }}>{item.date}</div>
+              <div style={{ padding: '10px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontSize: '0.8rem', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={item.title}>
+                    {item.title}
+                  </div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--nec-text-muted)' }}>{item.date}</div>
                 </div>
                 <button
                   onClick={() => handleDelete(item.id)}
                   className="nec-icon-btn"
-                  style={{ color: 'var(--nec-danger)', border: '1px solid rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.05)' }}
+                  style={{ color: 'var(--nec-danger)', border: '1px solid rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.05)', padding: '4px', width: '28px', height: '28px', flexShrink: 0 }}
                   title="Delete Media"
                 >
-                  <Trash2 size={16} />
+                  <Trash2 size={14} />
                 </button>
               </div>
             </div>

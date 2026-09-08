@@ -72,7 +72,7 @@ export default function RosterManager() {
     e.preventDefault();
     if (!selectedStudent || !selectedTeamId) return;
 
-    playersApi.addPlayerToRoster(selectedTeamId, {
+    playersApi.addPlayerToTeam(selectedTeamId, {
       studentId: selectedStudent.studentId,
       name: selectedStudent.name,
       dept: selectedStudent.dept,
@@ -135,7 +135,7 @@ export default function RosterManager() {
           onChange={(e) => setSelectedTeamId(e.target.value)}
         >
           {teams.map(t => (
-            <option key={t.id} value={t.id}>{t.name} ({t.deptCode}) - {t.sportId.replace("sp_", "").toUpperCase()}</option>
+            <option key={t.id} value={t.id}>{t.name} ({t.deptCode}) - {String(t.sportName || t.sportId || "Sport").replace("sp_", "").toUpperCase()}</option>
           ))}
         </select>
       </div>

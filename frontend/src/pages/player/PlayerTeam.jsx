@@ -24,7 +24,8 @@ export default function PlayerTeam() {
     Promise.all([
       teamsApi.getTeams(),
       playersApi.getAllPlayers()
-    ]).then(([teams, players]) => {
+    ]).then(([teams, playersResponse]) => {
+      const players = Array.isArray(playersResponse) ? playersResponse : playersResponse.data || [];
       const playerObj = players.find(p => p.name.toLowerCase().includes(playerName.toLowerCase()) || p.studentId === currentUser.id) || players[0];
       setMyPlayerInfo(playerObj);
 

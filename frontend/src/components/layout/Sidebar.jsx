@@ -45,6 +45,7 @@ export default function Sidebar({ activeNav, onSelectNav, isOpen, onCloseMobile 
               { id: "admin_regs", label: t.teamApprovals, icon: CheckSquare },
               { id: "admin_teams", label: t.teamsCatalog, icon: Users },
               { id: "admin_students", label: "Student Registry", icon: UserCheck },
+              { id: "admin_depts", label: "Departments", icon: Building2 },
               { id: "admin_matches", label: t.matchScheduler, icon: Calendar },
               { id: "admin_venues", label: t.venues, icon: MapPin }
             ]
@@ -68,7 +69,8 @@ export default function Sidebar({ activeNav, onSelectNav, isOpen, onCloseMobile 
             items: [
               { id: "coord_players", label: t.playerRoster, icon: Users },
               { id: "coord_event_reg", label: t.eventRegistration, icon: CheckSquare },
-              { id: "coord_matches", label: t.departmentMatches, icon: Calendar }
+              { id: "coord_matches", label: t.departmentMatches, icon: Calendar },
+              { id: "notifications", label: t.notifications, icon: Bell }
             ]
           },
           {
@@ -89,7 +91,7 @@ export default function Sidebar({ activeNav, onSelectNav, isOpen, onCloseMobile 
             items: [
               { id: "player_team", label: t.myTeam, icon: Users },
               { id: "player_matches", label: t.myFixtures, icon: Calendar },
-              { id: "player_notifs", label: t.notifications, icon: Bell }
+              { id: "notifications", label: t.notifications, icon: Bell }
             ]
           }
         ];

@@ -77,24 +77,28 @@ export const validatePasswordStrength = (password) => {
   };
 };
 
-// ── 3. JWT Token Storage & Parsing ───────────────────────────
-
-const TOKEN_KEY = "nec_sports_jwt_token";
-
 export const getAuthToken = () => {
-  try { return localStorage.getItem(TOKEN_KEY); } catch { return null; }
+  try {
+    return localStorage.getItem("nec_sports_jwt_token");
+  } catch {
+    return null;
+  }
 };
 
 export const setAuthToken = (token) => {
-  try { localStorage.setItem(TOKEN_KEY, token); } catch (e) {
-    console.error("Failed to store security token:", e);
-  }
+  try {
+    if (token) {
+      localStorage.setItem("nec_sports_jwt_token", token);
+    } else {
+      localStorage.removeItem("nec_sports_jwt_token");
+    }
+  } catch { }
 };
 
 export const removeAuthToken = () => {
-  try { localStorage.removeItem(TOKEN_KEY); } catch (e) {
-    console.error("Failed to remove security token:", e);
-  }
+  try {
+    localStorage.removeItem("nec_sports_jwt_token");
+  } catch { }
 };
 
 /**
@@ -111,26 +115,6 @@ export const decodeTokenPayload = (token) => {
   } catch {
     return null;
   }
-};
-
-/**
- * Builds a structured JWT-like token with expiry for the given user.
- * Expiry: sessionDurationMinutes from now (default 30).
- */
-export const buildSessionToken = (user, sessionDurationMinutes = 30) => {
-  const header = btoa(JSON.stringify({ alg: "HS256", typ: "JWT" }));
-  const now = Math.floor(Date.now() / 1000);
-  const payload = btoa(
-    JSON.stringify({
-      sub: user.id || "guest",
-      name: user.name,
-      role: user.role,
-      dept: user.dept,
-      iat: now,
-      exp: now + sessionDurationMinutes * 60,
-    })
-  );
-  return `${header}.${payload}.nec_sig_placeholder`;
 };
 
 /**
@@ -220,10 +204,6 @@ export const SecurityLogger = {
     } catch {
       return [];
     }
-  },
-
-  clearLog() {
-    localStorage.removeItem(AUDIT_KEY);
   },
 
   logLogin(user) {

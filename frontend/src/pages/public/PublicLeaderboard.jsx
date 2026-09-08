@@ -30,12 +30,12 @@ export default function PublicLeaderboard() {
   }, []);
 
   const columns = [
-    { key: "rank", label: "Rank", render: (r) => <strong style={{fontSize:"1.1rem"}}>#{r.rank}</strong> },
+    { key: "rank", label: "Rank", render: (val, r) => <strong style={{fontSize:"1.1rem"}}>#{val ?? r?.rank}</strong> },
     { key: "department", label: "Department" },
     { key: "gold", label: "Gold 🥇" },
     { key: "silver", label: "Silver 🥈" },
     { key: "bronze", label: "Bronze 🥉" },
-    { key: "total_points", label: "Total Points", render: (r) => <Badge status="live">{r.total_points} PTS</Badge> }
+    { key: "total_points", label: "Total Points", render: (val, r) => <Badge status="live">{val ?? r?.total_points} PTS</Badge> }
   ];
 
   return (

@@ -4,6 +4,198 @@
   gap: 24px;
 }
 
+/* Guest landing page: an editorial matchday bulletin rather than a generic dashboard. */
+.nec-guest-home {
+  gap: 20px;
+}
+
+.nec-guest-home .nec-portal-hero {
+  position: relative;
+  overflow: hidden;
+  padding: 40px;
+  border-radius: var(--nec-radius-xl);
+  color: #fff;
+}
+
+.nec-guest-home .nec-portal-hero {
+  min-height: 330px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  isolation: isolate;
+  background:
+    linear-gradient(112deg, rgba(8, 25, 52, 0.98) 0%, rgba(10, 48, 82, 0.94) 58%, rgba(16, 92, 117, 0.84) 100%),
+    url("/assets/logo.jpg") center / cover;
+}
+
+.nec-guest-home .nec-hero-content {
+  max-width: 720px;
+  flex: 1 1 auto;
+}
+
+.nec-guest-home .nec-hero-title {
+  margin: 0 0 12px;
+  color: #fff;
+  font-family: var(--nec-font-display);
+  font-size: clamp(1.9rem, 3.4vw, 2.8rem);
+  line-height: 1.12;
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.24);
+}
+
+.nec-guest-home .nec-hero-subtitle {
+  margin: 0 0 24px;
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.nec-guest-home .nec-hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: nowrap;
+}
+
+.nec-guest-home .nec-hero-actions .nec-btn {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.nec-hero-kicker {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 18px;
+  color: var(--nec-gold-light, #f5c451);
+  font-family: var(--nec-font-display);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+
+.nec-hero-kicker-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--nec-live, #ef4444);
+  box-shadow: 0 0 0 5px rgba(239, 68, 68, 0.16);
+}
+
+.nec-hero-mark {
+  width: 170px;
+  height: 170px;
+  display: grid;
+  place-items: center;
+  position: relative;
+  margin: 24px 5% 0 24px;
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  transform: rotate(7deg);
+}
+
+.nec-hero-mark img {
+  width: 94px;
+  height: 94px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid rgba(255, 255, 255, 0.82);
+  transform: rotate(-7deg);
+}
+
+.nec-guest-quicknav {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-top: 1px solid var(--nec-border);
+  border-bottom: 1px solid var(--nec-border);
+}
+
+.nec-guest-quicknav button {
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 16px;
+  border: 0;
+  border-right: 1px solid var(--nec-border);
+  background: transparent;
+  color: var(--nec-text-main);
+  cursor: pointer;
+  font: 700 0.82rem var(--nec-font-body);
+  text-align: left;
+  transition: background-color 180ms ease, color 180ms ease;
+}
+
+.nec-guest-quicknav button:last-child {
+  border-right: 0;
+}
+
+.nec-guest-quicknav button:hover,
+.nec-guest-quicknav button:focus-visible {
+  background: var(--nec-surface-raised);
+  color: var(--nec-blue-accent);
+  outline: none;
+}
+
+.nec-guest-quicknav button span {
+  margin-left: auto;
+  min-width: 22px;
+  padding: 3px 6px;
+  border-radius: 999px;
+  background: var(--nec-live-bg);
+  color: var(--nec-live);
+  font-size: 0.72rem;
+  text-align: center;
+}
+
+.nec-guest-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.nec-guest-stats-grid>* {
+  min-width: 0;
+}
+
+@media (max-width: 760px) {
+  .nec-guest-home .nec-portal-hero {
+    min-height: 0;
+    align-items: flex-start;
+    padding: 30px 24px;
+  }
+
+  .nec-guest-home .nec-hero-actions {
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
+  .nec-guest-home .nec-hero-actions .nec-btn {
+    flex: 1 1 100%;
+  }
+
+  .nec-hero-mark {
+    display: none;
+  }
+
+  .nec-guest-quicknav {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .nec-guest-quicknav button:nth-child(2) {
+    border-right: 0;
+  }
+
+  .nec-guest-quicknav button:nth-child(-n + 2) {
+    border-bottom: 1px solid var(--nec-border);
+  }
+
+  .nec-guest-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 .nec-page-header {
   border-bottom: 2px solid var(--nec-border);
   padding-bottom: 12px;
@@ -44,6 +236,7 @@
 .nec-score-card.live {
   border-top: 4px solid var(--nec-live);
 }
+
 .nec-score-card.completed {
   border-top: 4px solid var(--nec-success);
 }
@@ -71,6 +264,7 @@
   display: flex;
   flex-direction: column;
 }
+
 .nec-score-team.text-right {
   text-align: right;
 }
@@ -174,7 +368,7 @@
   left: 0;
   right: 0;
   padding: 24px 16px 16px;
-  background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0) 100%);
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0) 100%);
   color: #fff;
 }
 
@@ -244,4 +438,3 @@
   color: var(--nec-accent-light);
   text-transform: uppercase;
 }
-

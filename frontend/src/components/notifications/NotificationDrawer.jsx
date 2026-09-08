@@ -3,22 +3,39 @@ import { notificationsApi } from "../../services/api/apiServices";
 import { Bell, Check, Radio, Trophy, Award } from "lucide-react";
 import "./NotificationDrawer.css";
 
-export default function NotificationDrawer({ onClose }) {
+export default function NotificationDrawer({ onClose, onUpdateCount }) {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    notificationsApi.getNotifications().then(data => {
-      setNotifications(data);
-      setLoading(false);
-    });
-  }, []);
+    notificationsApi.getNotifications()
+      .then(data => {
+        const list = Array.isArray(data) ? data : [];
+        setNotifications(list);
+        setLoading(false);
+        if (onUpdateCount) {
+          onUpdateCount(list.filter(n => !n.read && !n.is_read).length);
+        }
+      })
+      .catch(() => {
+        setNotifications([]);
+        setLoading(false);
+        if (onUpdateCount) onUpdateCount(0);
+      });
+  }, [onUpdateCount]);
 
   const handleMarkAllRead = () => {
-    notificationsApi.markAllRead().then(data => {
-      setNotifications(data);
-      if (onClose) onClose();
-    });
+    notificationsApi.markAllRead()
+      .then(data => {
+        const list = Array.isArray(data) ? data : [];
+        setNotifications(list);
+        if (onUpdateCount) onUpdateCount(0);
+        if (onClose) onClose();
+      })
+      .catch(() => {
+        if (onUpdateCount) onUpdateCount(0);
+        if (onClose) onClose();
+      });
   };
 
   const getIcon = (type) => {

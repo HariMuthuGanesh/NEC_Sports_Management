@@ -61,7 +61,6 @@ function StudentForm({ onLogin }) {
 
         console.log("Roll Number:", formState.roll);
         console.log("Name:", formState.name);
-        console.log("Password:", formState.password);
 
         // Bug fix: call the onLogin callback so App can navigate to Dashboard
         if (typeof onLogin === "function") onLogin();

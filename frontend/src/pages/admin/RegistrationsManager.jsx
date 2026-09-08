@@ -54,18 +54,18 @@ export default function RegistrationsManager() {
   };
 
   const columns = [
-    { key: "deptCode", label: "Dept", width: "90px", render: (val) => <strong>{val}</strong> },
-    { key: "name", label: "Team Name", render: (val) => <strong>{val}</strong> },
-    { key: "sportId", label: "Sport", width: "130px", render: (val) => val.replace("sp_", "").toUpperCase() },
-    { key: "captainName", label: "Captain", render: (val, row) => <span>{val} ({row.captainRoll})</span> },
-    { key: "memberCount", label: "Players", width: "90px", render: (val) => <span>{val} players</span> },
+    { key: "deptCode", label: "Dept", width: "90px", render: (val) => <strong>{val || "—"}</strong> },
+    { key: "name", label: "Team Name", render: (val) => <strong>{val || "Unnamed Team"}</strong> },
+    { key: "sportId", label: "Sport", width: "130px", render: (val, row) => String(row.sportName || val || "Sport").replace("sp_", "").toUpperCase() },
+    { key: "captainName", label: "Captain", render: (val, row) => <span>{val || "Not Assigned"} {row.captainRoll ? `(${row.captainRoll})` : ""}</span> },
+    { key: "memberCount", label: "Players", width: "90px", render: (val) => <span>{val || 0} players</span> },
     {
       key: "status",
       label: "Status",
       width: "120px",
       render: (val) => (
         <Badge status={val === "Approved" ? "success" : val === "Rejected" ? "danger" : "warning"}>
-          {val}
+          {val || "Pending"}
         </Badge>
       )
     },
@@ -85,7 +85,7 @@ export default function RegistrationsManager() {
                 variant="primary"
                 size="sm"
                 icon={Check}
-                onClick={() => setConfirmDialog({ open: true, teamId: row.id, action: "approve" })}
+                onClick={() => setConfirmDialog({ open: true, teamId: row.id || row.team_id, action: "approve" })}
               >
                 Approve
               </Button>
@@ -93,7 +93,7 @@ export default function RegistrationsManager() {
                 variant="danger"
                 size="sm"
                 icon={X}
-                onClick={() => setConfirmDialog({ open: true, teamId: row.id, action: "reject" })}
+                onClick={() => setConfirmDialog({ open: true, teamId: row.id || row.team_id, action: "reject" })}
               >
                 Reject
               </Button>

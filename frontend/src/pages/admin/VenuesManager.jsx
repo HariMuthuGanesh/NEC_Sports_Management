@@ -45,43 +45,49 @@ export default function VenuesManager() {
   const handleSave = async () => {
     if (!form.name.trim()) return;
     const entry = { ...form, name: sanitizeInput(form.name), location: sanitizeInput(form.location), capacity: Number(form.capacity) || 0 };
-    let updated;
-    if (editVenue) {
-      updated = venues.map(v => v.id === editVenue.id ? { ...editVenue, ...entry } : v);
-    } else {
-      updated = [...venues, { id: `v_${Date.now()}`, ...entry }];
+    try {
+      if (editVenue) {
+        const venueId = editVenue.venue_id || editVenue.id;
+        await sportsApi.updateVenue(venueId, entry);
+      } else {
+        await sportsApi.createVenue(entry);
+      }
+      await load();
+      setShowModal(false);
+    } catch (err) {
+      alert("Failed to save venue: " + err.message);
     }
-    await sportsApi.saveVenues(updated);
-    setVenues(updated);
-    setShowModal(false);
   };
 
   const handleDelete = async (id) => {
     if (!window.confirm("Remove this venue?")) return;
-    const updated = venues.filter(v => v.id !== id);
-    await sportsApi.saveVenues(updated);
-    setVenues(updated);
+    try {
+      await sportsApi.deleteVenue(id);
+      await load();
+    } catch (err) {
+      alert("Failed to delete venue: " + err.message);
+    }
   };
 
   const statusMap = { Available: "success", Occupied: "warning", "Under Maintenance": "danger", Closed: "neutral" };
 
   const columns = [
-    { key: "name", label: "Venue Name", render: (val) => <strong>{val}</strong> },
+    { key: "name", label: "Venue Name", render: (val) => <strong>{val || "Unnamed Venue"}</strong> },
     { key: "type", label: "Type", width: "120px", render: (val) => (
       <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
         {val === "Indoor" ? <Building2 size={13} /> : <Home size={13} />}
-        {val}
+        {val || "Outdoor"}
       </div>
     )},
-    { key: "capacity", label: "Capacity", width: "110px", render: (val) => `${val.toLocaleString()} pax` },
+    { key: "capacity", label: "Capacity", width: "110px", render: (val) => `${Number(val || 0).toLocaleString()} pax` },
     { key: "location", label: "Location / Block", render: (val) => <span style={{ color: "var(--nec-text-muted)" }}>{val || "—"}</span> },
-    { key: "status", label: "Status", width: "160px", render: (val) => <Badge status={statusMap[val] || "neutral"}>{val}</Badge> },
+    { key: "status", label: "Status", width: "160px", render: (val) => <Badge status={statusMap[val] || "neutral"}>{val || "Available"}</Badge> },
     {
       key: "actions", label: "", width: "100px",
       render: (_, row) => (
         <div style={{ display: "flex", gap: "6px" }}>
           <Button variant="ghost" size="sm" icon={Edit2} onClick={() => openEdit(row)} />
-          <Button variant="danger" size="sm" icon={Trash2} onClick={() => handleDelete(row.id)} />
+          <Button variant="danger" size="sm" icon={Trash2} onClick={() => handleDelete(row.venue_id || row.id)} />
         </div>
       )
     },

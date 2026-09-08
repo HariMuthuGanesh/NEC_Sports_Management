@@ -4,12 +4,11 @@ import { Card } from "../../components/common/Card";
 import Button from "../../components/common/Button";
 import Badge from "../../components/common/Badge";
 import {
-  Sun, Moon, Globe, User, ShieldCheck, Database, Info,
-  LogOut, Trash2, RefreshCw, CheckCircle2, Clock, Languages
+  Sun, Moon, Globe, User, ShieldCheck, Info,
+  LogOut, RefreshCw, CheckCircle2, Clock, Languages
 } from "lucide-react";
 import { getTokenExpiry, getAuthToken, SecurityLogger, invalidateTranslationCache } from "../../utils/security";
 import { hasTranslationCache, getTranslationCacheInfo } from "../../utils/liveTranslator";
-import { devApi } from "../../services/api/apiServices";
 import "./SettingsPage.css";
 
 const LANGUAGES = [
@@ -29,40 +28,9 @@ export default function SettingsPage() {
   const { currentUser, theme, toggleTheme, language, setLanguage, logout, ROLES, sessionExpiresAt, t } = useAuth();
   const [resetConfirm, setResetConfirm] = useState(false);
   const [cacheCleared, setCacheCleared] = useState(false);
-  const [devActionLoading, setDevActionLoading] = useState(false);
-  const [devMessage, setDevMessage] = useState(null);
 
   const tokenExpiry = sessionExpiresAt || getTokenExpiry(getAuthToken());
   const isLoggedIn = currentUser?.role !== ROLES.PUBLIC;
-
-  const handleLoadDemoData = async () => {
-    try {
-      setDevActionLoading(true);
-      setDevMessage(null);
-      const res = await devApi.loadDemoData();
-      setDevMessage({ type: "success", text: res.message || "Demo dataset loaded successfully into MySQL." });
-    } catch (err) {
-      setDevMessage({ type: "error", text: err.message || "Failed to load demo data." });
-    } finally {
-      setDevActionLoading(false);
-    }
-  };
-
-  const handleClearDemoData = async () => {
-    if (!window.confirm("Are you sure you want to clear demo data? This will restore the database to a baseline state.")) {
-      return;
-    }
-    try {
-      setDevActionLoading(true);
-      setDevMessage(null);
-      const res = await devApi.clearDemoData();
-      setDevMessage({ type: "success", text: res.message || "Demo data cleared successfully." });
-    } catch (err) {
-      setDevMessage({ type: "error", text: err.message || "Failed to clear demo data." });
-    } finally {
-      setDevActionLoading(false);
-    }
-  };
 
   const handleResetData = () => {
     if (!resetConfirm) { setResetConfirm(true); return; }
@@ -163,9 +131,6 @@ export default function SettingsPage() {
               { label: "System", value: "NEC Sports Management System" },
               { label: "Academy", value: "NEC Sports Academy" },
               { label: "College", value: "National Engineering College, Kovilpatti" },
-              { label: "Version", value: "v1.2 — 18 Aug 2026" },
-              { label: "Build", value: "React 18 + Vite · Vanilla CSS" },
-              { label: "Security", value: "7-Layer Frontend Security" },
             ].map(({ label, value }) => (
               <div key={label} className="nec-settings-info-row">
                 <span className="nec-settings-info-label">{label}</span>
@@ -174,58 +139,6 @@ export default function SettingsPage() {
             ))}
           </div>
         </Card>
-
-        {/* ── Developer & Demo Data Tools ── */}
-        {(currentUser?.role === ROLES.ADMIN || import.meta.env.DEV) && (
-          <Card title="Developer Demo Data System" icon={<Database size={16} />}>
-            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-              <p style={{ fontSize: "0.85rem", color: "var(--nec-text-muted)", margin: 0 }}>
-                Instantly populate or clear MySQL sample data for development and testing. This utility is isolated from production.
-              </p>
-
-              {devMessage && (
-                <div style={{
-                  padding: "8px 12px",
-                  borderRadius: "6px",
-                  fontSize: "0.8rem",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  background: devMessage.type === "success" ? "rgba(16, 185, 129, 0.1)" : "rgba(239, 68, 68, 0.1)",
-                  color: devMessage.type === "success" ? "#10b981" : "#ef4444",
-                  border: `1px solid ${devMessage.type === "success" ? "rgba(16, 185, 129, 0.3)" : "rgba(239, 68, 68, 0.3)"}`
-                }}>
-                  <span>{devMessage.text}</span>
-                  <button onClick={() => setDevMessage(null)} style={{ background: "none", border: "none", color: "inherit", cursor: "pointer" }}>✕</button>
-                </div>
-              )}
-
-              <div style={{ display: "flex", gap: "10px", marginTop: "4px" }}>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  icon={Database}
-                  loading={devActionLoading}
-                  disabled={devActionLoading}
-                  onClick={handleLoadDemoData}
-                >
-                  Load Demo Data
-                </Button>
-                <Button
-                  variant="danger"
-                  size="sm"
-                  icon={Trash2}
-                  loading={devActionLoading}
-                  disabled={devActionLoading}
-                  onClick={handleClearDemoData}
-                >
-                  Clear Demo Data
-                </Button>
-              </div>
-            </div>
-          </Card>
-        )}
-
       </div>
     </div>
   );

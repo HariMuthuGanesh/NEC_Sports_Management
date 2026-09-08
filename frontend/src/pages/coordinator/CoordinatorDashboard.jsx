@@ -41,7 +41,7 @@ export default function CoordinatorDashboard({ onNavigate }) {
 
   const teamColumns = [
     { key: "name", label: "Team Name", render: (val) => <strong>{val}</strong> },
-    { key: "sportId", label: "Sport", render: (val) => val.replace("sp_", "").toUpperCase() },
+    { key: "sportId", label: "Sport", render: (val, row) => String(row.sportName || val || "Sport").replace("sp_", "").toUpperCase() },
     { key: "memberCount", label: "Roster Size", render: (val) => <span>{val} Athletes</span> },
     {
       key: "status",

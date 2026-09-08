@@ -3,7 +3,6 @@ import {
   getAuthToken,
   setAuthToken,
   removeAuthToken,
-  buildSessionToken,
   isTokenExpired,
   getTokenExpiry,
   SecurityLogger,
@@ -26,19 +25,65 @@ const IDLE_TIMEOUT_MS = 30 * 60 * 1000;
 const IDLE_WARNING_MS = 2 * 60 * 1000;
 
 export function AuthProvider({ children }) {
+  const publicUser = { role: ROLES.PUBLIC, name: "Guest Visitor", dept: "All", id: null };
   const [currentUser, setCurrentUser] = useState(() => {
     try {
-      const saved = localStorage.getItem("nec_sports_auth_user");
-      return saved ? JSON.parse(saved) : { role: ROLES.PUBLIC, name: "Guest Visitor", dept: "All", id: null };
-    } catch {
-      return { role: ROLES.PUBLIC, name: "Guest Visitor", dept: "All", id: null };
-    }
+      const token = getAuthToken();
+      if (token && !isTokenExpired(token)) {
+        const saved = localStorage.getItem("nec_sports_auth_user");
+        if (saved) return JSON.parse(saved);
+      }
+    } catch { }
+    return publicUser;
   });
 
   const [authToken, setTokenState] = useState(() => getAuthToken());
-  const [sessionExpiresAt, setSessionExpiresAt] = useState(null);
+  const [sessionExpiresAt, setSessionExpiresAt] = useState(() => {
+    const token = getAuthToken();
+    return token ? getTokenExpiry(token) : null;
+  });
   const [idleWarning, setIdleWarning] = useState(false);   // true → show "You'll be logged out soon" banner
   const [secondsUntilIdle, setSecondsUntilIdle] = useState(0);
+
+  useEffect(() => {
+    const token = getAuthToken();
+    if (!token || isTokenExpired(token)) {
+      if (currentUser.role !== ROLES.PUBLIC) {
+        setCurrentUser(publicUser);
+        removeAuthToken();
+        localStorage.removeItem("nec_sports_auth_user");
+      }
+      return;
+    }
+
+    fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/me`, {
+      credentials: "include",
+      headers: {
+        "Authorization": `Bearer ${token}`
+      }
+    })
+      .then(response => {
+        if (response.ok) return response.json();
+        if (response.status === 401 || response.status === 403) {
+          setCurrentUser(publicUser);
+          removeAuthToken();
+          localStorage.removeItem("nec_sports_auth_user");
+          setTokenState(null);
+          setSessionExpiresAt(null);
+        }
+        return null;
+      })
+      .then(result => {
+        if (result?.success && result.data) {
+          setCurrentUser(result.data);
+          localStorage.setItem("nec_sports_auth_user", JSON.stringify(result.data));
+          setSessionExpiresAt(getTokenExpiry(token));
+        }
+      })
+      .catch(() => {
+        // Keep cached user if server is temporarily unreachable
+      });
+  }, []);
 
   const [theme, setTheme] = useState(() => localStorage.getItem("nec_sports_theme") || "light");
   const [language, setLanguageState] = useState(() =>
@@ -197,49 +242,36 @@ export function AuthProvider({ children }) {
 
   // ── Auth Actions ─────────────────────────────────────────────
 
-  const setRole = (roleName) => {
-    const prevRole = currentUser.role;
-    let mockUser;
-    if (roleName === ROLES.ADMIN) {
-      mockUser = { role: roleName, name: "Dr. K. Arumugam", title: "Director of Physical Education", dept: "Sports Office", id: "ADM01" };
-    } else if (roleName === ROLES.COORDINATOR) {
-      mockUser = { role: roleName, name: "Rahul Sharma", title: "CSE Sports Coordinator", dept: "CSE", id: "2112045" };
-    } else if (roleName === ROLES.PLAYER) {
-      mockUser = { role: roleName, name: "Priya Patel", title: "Student Athlete", dept: "MECH", id: "2114012" };
-    } else {
-      mockUser = { role: ROLES.PUBLIC, name: "Guest Visitor", dept: "All", id: null };
-    }
-
-    const token = buildSessionToken(mockUser, 30);
-    setTokenState(token);
-    setAuthToken(token);
-    setSessionExpiresAt(getTokenExpiry(token));
-
-    SecurityLogger.logRoleChange(prevRole, roleName, mockUser);
-
-    setCurrentUser(mockUser);
-    localStorage.setItem("nec_sports_auth_user", JSON.stringify(mockUser));
-    resetIdleTimer(mockUser);
-  };
-
   const login = (userData, token = null) => {
-    const generatedToken = token || buildSessionToken(userData, 30);
-    setTokenState(generatedToken);
-    setAuthToken(generatedToken);
-    setSessionExpiresAt(getTokenExpiry(generatedToken));
+    if (token) {
+      if (isTokenExpired(token)) throw new Error("The server-issued authentication token has expired.");
+      setTokenState(token);
+      setAuthToken(token);
+      setSessionExpiresAt(getTokenExpiry(token));
+    } else {
+      setTokenState(null);
+      setSessionExpiresAt(null);
+    }
     setCurrentUser(userData);
     localStorage.setItem("nec_sports_auth_user", JSON.stringify(userData));
     SecurityLogger.logLogin(userData);
     resetIdleTimer(userData);
   };
 
-  const logout = () => {
+  const logout = async () => {
     SecurityLogger.logLogout(currentUser);
+    try {
+      await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch {
+      // Clear the local session even if the server is unavailable.
+    }
     clearIdleTimers();
     removeAuthToken();
     setTokenState(null);
     setSessionExpiresAt(null);
-    const publicUser = { role: ROLES.PUBLIC, name: "Guest Visitor", dept: "All", id: null };
     setCurrentUser(publicUser);
     localStorage.setItem("nec_sports_auth_user", JSON.stringify(publicUser));
   };
@@ -261,7 +293,6 @@ export function AuthProvider({ children }) {
       idleWarning,
       secondsUntilIdle,
       stayLoggedIn,
-      setRole,
       login,
       logout,
       theme,

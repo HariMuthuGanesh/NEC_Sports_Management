@@ -25,7 +25,8 @@ export default function PlayerMatches() {
       matchesApi.getMatches(),
       teamsApi.getTeams(),
       playersApi.getAllPlayers()
-    ]).then(([matches, teams, players]) => {
+    ]).then(([matches, teams, playersResponse]) => {
+      const players = Array.isArray(playersResponse) ? playersResponse : playersResponse.data || [];
       const playerObj = players.find(p => p.name.toLowerCase().includes(playerName.toLowerCase()) || p.studentId === currentUser.id) || players[0];
       const teamObj = teams.find(t => t.id === playerObj?.teamId || t.deptCode === playerDept) || teams[0];
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { AuthProvider, useAuth, ROLES } from "./context/AuthContext";
 import AppShell from "./components/layout/AppShell";
 import ProtectedRoute from "./components/common/ProtectedRoute";
+import ErrorBoundary from "./components/common/ErrorBoundary";
 import SessionTimeoutBanner from "./components/security/SessionTimeoutBanner";
 import TranslationLoadingBar from "./components/security/TranslationLoadingBar";
 
@@ -10,6 +11,7 @@ import SettingsPage from "./pages/settings/SettingsPage";
 
 // Admin extra pages
 import VenuesManager from "./pages/admin/VenuesManager";
+import DepartmentsManager from "./pages/admin/DepartmentsManager";
 
 // Public Pages
 import PublicHome from "./pages/public/PublicHome";
@@ -32,6 +34,7 @@ import AnnouncementsManager from "./pages/admin/AnnouncementsManager";
 import AuditLog from "./pages/admin/AuditLog";
 import StudentManager from "./pages/admin/StudentManager";
 import GalleryManager from "./pages/admin/GalleryManager";
+import ODManager from "./pages/admin/ODManager";
 
 // Coordinator Pages
 import CoordinatorDashboard from "./pages/coordinator/CoordinatorDashboard";
@@ -39,6 +42,7 @@ import RosterManager from "./pages/coordinator/RosterManager";
 import EventRegistration from "./pages/coordinator/EventRegistration";
 import ScoreEntry from "./pages/coordinator/ScoreEntry";
 import AttendanceMarker from "./pages/coordinator/AttendanceMarker";
+import ODRequestPanel from "./pages/coordinator/ODRequestPanel";
 
 // Player Pages
 import PlayerDashboard from "./pages/player/PlayerDashboard";
@@ -46,13 +50,12 @@ import PlayerTeam from "./pages/player/PlayerTeam";
 import PlayerMatches from "./pages/player/PlayerMatches";
 import PlayerNotifications from "./pages/player/PlayerNotifications";
 
-// Auth Page
+// Auth Pages
 import LoginPage from "./pages/auth/LoginPage";
+import SignUpPage from "./pages/auth/SignUpPage";
 
 function MainApp() {
   const { currentUser, ROLES } = useAuth();
-  const [activeNav, setActiveNav] = useState("public_home");
-
   const getDefaultNav = (role) => {
     switch (role) {
       case ROLES.ADMIN: return "admin_dash";
@@ -62,6 +65,21 @@ function MainApp() {
     }
   };
 
+  const [activeNav, setActiveNavState] = useState(() => {
+    try {
+      const savedNav = sessionStorage.getItem("nec_sports_active_nav");
+      if (savedNav) return savedNav;
+    } catch { }
+    return getDefaultNav(currentUser?.role);
+  });
+
+  const setActiveNav = (nav) => {
+    setActiveNavState(nav);
+    try {
+      sessionStorage.setItem("nec_sports_active_nav", nav);
+    } catch { }
+  };
+
   const handleRoleChange = (newRole) => {
     setActiveNav(getDefaultNav(newRole));
   };
@@ -69,7 +87,7 @@ function MainApp() {
   useEffect(() => {
     const role = currentUser?.role;
     // Don't redirect away from shared routes accessible to all roles
-    if (activeNav === "settings" || activeNav === "login") return;
+    if (activeNav === "settings" || activeNav === "login" || activeNav === "signup") return;
     if (role === ROLES.ADMIN && !activeNav.startsWith("admin_") && !activeNav.startsWith("public_")) {
       setActiveNav("admin_dash");
     } else if (role === ROLES.COORDINATOR && !activeNav.startsWith("coord_") && !activeNav.startsWith("public_")) {
@@ -88,6 +106,23 @@ function MainApp() {
     if (activeNav === "login") {
       return (
         <LoginPage
+          onLoginSuccess={() => {
+            try {
+              const saved = localStorage.getItem("nec_sports_auth_user");
+              const userObj = saved ? JSON.parse(saved) : currentUser;
+              setActiveNav(getDefaultNav(userObj?.role));
+            } catch {
+              setActiveNav(getDefaultNav(currentUser?.role));
+            }
+          }}
+          onNavigate={(nav) => setActiveNav(nav)}
+        />
+      );
+    }
+
+    if (activeNav === "signup") {
+      return (
+        <SignUpPage
           onLoginSuccess={() => {
             try {
               const saved = localStorage.getItem("nec_sports_auth_user");
@@ -161,6 +196,12 @@ function MainApp() {
             <StudentManager />
           </ProtectedRoute>
         );
+      case "admin_depts":
+        return (
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={redirectNav} routeId="admin_depts">
+            <DepartmentsManager />
+          </ProtectedRoute>
+        );
       case "admin_matches":
         return (
           <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={redirectNav} routeId="admin_matches">
@@ -191,6 +232,12 @@ function MainApp() {
             <ReportsManager />
           </ProtectedRoute>
         );
+      case "admin_od":
+        return (
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={redirectNav} routeId="admin_od">
+            <ODManager />
+          </ProtectedRoute>
+        );
 
       // Protected Coordinator Routes
       case "coord_dash":
@@ -212,7 +259,7 @@ function MainApp() {
           </ProtectedRoute>
         );
       case "coord_matches":
-        return <PublicFixtures />;
+        return <PublicFixtures departmentCode={currentUser?.dept} />;
       case "coord_score_entry":
         return (
           <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.COORDINATOR]} onRedirectPublic={redirectNav}>
@@ -223,6 +270,12 @@ function MainApp() {
         return (
           <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.COORDINATOR]} onRedirectPublic={redirectNav}>
             <AttendanceMarker />
+          </ProtectedRoute>
+        );
+      case "coord_od":
+        return (
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.COORDINATOR]} onRedirectPublic={redirectNav} routeId="coord_od">
+            <ODRequestPanel />
           </ProtectedRoute>
         );
       case "coord_media":
@@ -251,6 +304,7 @@ function MainApp() {
             <PlayerMatches />
           </ProtectedRoute>
         );
+      case "notifications":
       case "player_notifs":
         return (
           <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.COORDINATOR, ROLES.PLAYER]} onRedirectPublic={redirectNav}>
@@ -282,7 +336,9 @@ function MainApp() {
     <AppShell activeNav={activeNav} onSelectNav={(navId) => setActiveNav(navId)} onRoleChange={handleRoleChange}>
       <TranslationLoadingBar />
       <SessionTimeoutBanner />
-      {renderContent()}
+      <ErrorBoundary onNavigate={() => setActiveNav(getDefaultNav(currentUser?.role))}>
+        {renderContent()}
+      </ErrorBoundary>
     </AppShell>
   );
 }

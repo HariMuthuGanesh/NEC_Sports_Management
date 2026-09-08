@@ -107,8 +107,9 @@ export default function LoginPage({ onLoginSuccess, onNavigate }) {
     setLoading(true);
 
     try {
-      const response = await fetch("http://localhost:5000/api/auth/login", {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/login`, {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: cleanId, password: cleanPw })
       });
@@ -243,7 +244,7 @@ export default function LoginPage({ onLoginSuccess, onNavigate }) {
           {/* ── Right Column: Login Card & Persona Switcher ── */}
           <section className="nec-auth-form-panel">
             <div className="nec-auth-card">
-              
+
               {/* Form Header */}
               <div className="nec-auth-card-header">
                 <div className="nec-header-text">
@@ -402,8 +403,8 @@ export default function LoginPage({ onLoginSuccess, onNavigate }) {
                   {loading
                     ? "Authenticating Credentials…"
                     : locked
-                    ? `Locked — ${formatCountdown(lockCountdown)}`
-                    : (t.signInBtn || "Sign In to Sports Portal")}
+                      ? `Locked — ${formatCountdown(lockCountdown)}`
+                      : (t.signInBtn || "Sign In to Sports Portal")}
                 </Button>
               </form>
 
@@ -413,6 +414,16 @@ export default function LoginPage({ onLoginSuccess, onNavigate }) {
                 <button
                   type="button"
                   className="nec-guest-link"
+                  onClick={() => {
+                    if (typeof onNavigate === "function") onNavigate("signup");
+                  }}
+                >
+                  Create Account <ArrowRight size={14} />
+                </button>
+                <button
+                  type="button"
+                  className="nec-guest-link"
+                  style={{ color: "var(--nec-text-muted)", fontSize: "0.8rem" }}
                   onClick={() => {
                     if (typeof onNavigate === "function") onNavigate("public_home");
                   }}

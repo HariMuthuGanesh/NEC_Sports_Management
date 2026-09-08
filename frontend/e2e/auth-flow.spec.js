@@ -26,12 +26,14 @@ test.describe('NEC Sports Management — Authentication & Security Journey', () 
   });
 
   test('should authenticate and display authenticated user profile in header upon submission', async ({ page }) => {
+    const playerPassword = process.env.E2E_PLAYER_PASSWORD;
+    test.skip(!playerPassword, 'Set E2E_PLAYER_PASSWORD to run the authenticated flow.');
     const studentTab = page.locator('.nec-role-tab:has-text("Student")').first();
     if (await studentTab.isVisible()) {
       await studentTab.click();
     } else {
       await page.locator('#nec-userid').fill('2114012');
-      await page.locator('#nec-password').fill('Player@789');
+      await page.locator('#nec-password').fill(playerPassword);
     }
 
     const submitBtn = page.locator('button.nec-submit-btn, button:has-text("Sign In")').first();

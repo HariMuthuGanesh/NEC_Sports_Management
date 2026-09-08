@@ -17,7 +17,8 @@ export default function AnnouncementsManager() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [title, setTitle] = useState("");
-  const [category, setCategory] = useState("Important");
+  // priority must match DB ENUM: Low | Medium | High | Urgent
+  const [priority, setPriority] = useState("Medium");
   const [content, setContent] = useState("");
 
   useEffect(() => {
@@ -43,9 +44,8 @@ export default function AnnouncementsManager() {
 
     announcementsApi.createAnnouncement({
       title,
-      category,
-      content,
-      author: "Physical Education Director (PT Sir)"
+      priority,   // DB column is 'priority', not 'category'
+      content
     }).then(() => {
       setIsModalOpen(false);
       setTitle("");
@@ -127,17 +127,18 @@ export default function AnnouncementsManager() {
           </div>
 
           <div>
-            <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: "4px" }}>Category</label>
+            {/* Priority must match DB ENUM: Low | Medium | High | Urgent */}
+            <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: "4px" }}>Priority</label>
             <select
               className="nec-table-search-input"
               style={{ maxWidth: "100%" }}
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
+              value={priority}
+              onChange={(e) => setPriority(e.target.value)}
             >
-              <option value="Important">Important Notice</option>
-              <option value="Facility">Facility & Venue Notice</option>
-              <option value="Schedule">Schedule Update</option>
-              <option value="General">General Announcement</option>
+              <option value="Low">Low — General Announcement</option>
+              <option value="Medium">Medium — Schedule Update</option>
+              <option value="High">High — Important Notice</option>
+              <option value="Urgent">Urgent — Immediate Action Required</option>
             </select>
           </div>
 

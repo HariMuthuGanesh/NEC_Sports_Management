@@ -1,27 +1,29 @@
-import React, { useState, useRef, useEffect } from "react";
-import { Sun, Moon, Bell, Menu, X, Shield, User, Trophy, Globe, Settings, LogIn, LogOut } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Sun, Moon, Bell, Menu, X, User, Globe, Settings, LogIn, LogOut } from "lucide-react";
 import { useAuth, ROLES } from "../../context/AuthContext";
-import NotificationDrawer from "../notifications/NotificationDrawer";
+import { notificationsApi } from "../../services/api/apiServices";
 import "./Header.css";
 
-export default function Header({ onToggleSidebar, isSidebarOpen, onRoleChange, onSelectNav }) {
-  const { currentUser, setRole, logout, theme, toggleTheme, language, setLanguage, t } = useAuth();
-  const [showNotifs, setShowNotifs] = useState(false);
+export default function Header({ onToggleSidebar, isSidebarOpen, onSelectNav }) {
+  const { currentUser, logout, theme, toggleTheme, language, setLanguage, t } = useAuth();
+  const [unreadCount, setUnreadCount] = useState(0);
   const [showLangMenu, setShowLangMenu] = useState(false);
-  
-  const notifRef = useRef(null);
 
   useEffect(() => {
-    function handleClickOutside(event) {
-      if (notifRef.current && !notifRef.current.contains(event.target)) {
-        setShowNotifs(false);
-      }
+    if (currentUser?.role && currentUser.role !== ROLES.PUBLIC) {
+      notificationsApi.getNotifications()
+        .then(data => {
+          if (Array.isArray(data)) {
+            setUnreadCount(data.filter(n => !n.read && !n.is_read).length);
+          } else {
+            setUnreadCount(0);
+          }
+        })
+        .catch(() => setUnreadCount(0));
+    } else {
+      setUnreadCount(0);
     }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
+  }, [currentUser?.role, currentUser?.id]);
 
   const LANGUAGES = [
     { code: "en", label: "English" },
@@ -87,17 +89,16 @@ export default function Header({ onToggleSidebar, isSidebarOpen, onRoleChange, o
 
         {/* Notifications Icon (Only for authenticated users, hidden for Guests) */}
         {currentUser.role !== ROLES.PUBLIC && (
-          <div className="nec-notif-wrapper" ref={notifRef}>
+          <div className="nec-notif-wrapper">
             <button
               className="nec-icon-btn"
-              onClick={() => setShowNotifs(prev => !prev)}
+              onClick={() => onSelectNav?.("notifications")}
               aria-label="Notifications"
             >
               <Bell size={18} />
-              <span className="nec-notif-dot" />
+              {unreadCount > 0 && <span className="nec-notif-dot" />}
             </button>
 
-            {showNotifs && <NotificationDrawer onClose={() => setShowNotifs(false)} />}
           </div>
         )}
 

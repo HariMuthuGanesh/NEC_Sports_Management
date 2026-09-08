@@ -10,7 +10,7 @@ import "./PublicPortal.css";
 
 export default function PublicHome({ onNavigate }) {
   const { t, currentUser } = useAuth();
-  
+
   const [liveMatches, setLiveMatches] = useState([]);
   const [leaderboard, setLeaderboard] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
@@ -42,10 +42,11 @@ export default function PublicHome({ onNavigate }) {
   }, []);
 
   return (
-    <div className="nec-portal-page">
+    <div className="nec-portal-page nec-guest-home">
       {/* Hero Section */}
       <section className="nec-portal-hero">
         <div className="nec-hero-content">
+          <div className="nec-hero-kicker"><span className="nec-hero-kicker-dot" /> NEC ATHLETICS / MATCHDAY BULLETIN</div>
           <h1 className="nec-hero-title">
             {t.heroTitle}
           </h1>
@@ -76,7 +77,17 @@ export default function PublicHome({ onNavigate }) {
             )}
           </div>
         </div>
+        <div className="nec-hero-mark" aria-hidden="true">
+          <img src="/assets/logo.jpg" alt="" />
+        </div>
       </section>
+
+      <nav className="nec-guest-quicknav" aria-label="Guest portal shortcuts">
+        <button type="button" onClick={() => onNavigate("public_live")}><Radio size={16} /> Live scores <span>{liveMatches.length}</span></button>
+        <button type="button" onClick={() => onNavigate("public_fixtures")}><Calendar size={16} /> Fixtures <ArrowRight size={14} /></button>
+        <button type="button" onClick={() => onNavigate("public_leaderboard")}><Trophy size={16} /> Rankings <ArrowRight size={14} /></button>
+        <button type="button" onClick={() => onNavigate("public_gallery")}><Users size={16} /> Campus gallery <ArrowRight size={14} /></button>
+      </nav>
 
       {/* Main Content Area */}
       {(error || (!loading && liveMatches.length === 0 && leaderboard.length === 0 && announcements.length === 0)) ? (
@@ -94,7 +105,7 @@ export default function PublicHome({ onNavigate }) {
       ) : (
         <>
           {/* Public Dashboard Statistics */}
-          <div className="nec-home-stats-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "20px" }}>
+          <div className="nec-home-stats-grid nec-guest-stats-grid">
             <StatCard title="Sports" value="8+" icon={Trophy} subtext="Active Disciplines" color="gold" onClick={() => onNavigate("public_leaderboard")} />
             <StatCard title="Athletes" value="500+" icon={Users} subtext="Registered Players" color="navy" onClick={() => onNavigate("login")} />
             <StatCard title="Live Matches" value={liveMatches.length} icon={Radio} subtext="Currently Playing" color="navy" trend={liveMatches.length > 0 ? "+ Active" : undefined} onClick={() => onNavigate("public_live")} />
@@ -114,10 +125,10 @@ export default function PublicHome({ onNavigate }) {
             </div>
 
             {liveMatches.length === 0 ? (
-              <PublicInfoCard 
+              <PublicInfoCard
                 icon={Radio}
-                title="No Live Matches Today" 
-                message="There are currently no live matches being played on campus. Live scores will automatically appear here once a match begins." 
+                title="No Live Matches Today"
+                message="There are currently no live matches being played on campus. Live scores will automatically appear here once a match begins."
                 variant="flat"
                 actionText="View Fixtures"
                 onAction={() => onNavigate("public_fixtures")}
@@ -163,7 +174,7 @@ export default function PublicHome({ onNavigate }) {
                   Full Leaderboard <ArrowRight size={14} />
                 </Button>
               </div>
-              
+
               {leaderboard.length === 0 ? (
                 <PublicInfoCard
                   icon={Trophy}

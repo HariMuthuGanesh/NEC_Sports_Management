@@ -20,9 +20,7 @@ export default function PlayerNotifications() {
     setLoading(true);
     setError(null);
     notificationsApi.getNotifications().then(data => {
-      // Add a mock read status for demo purposes
-      const notifsWithStatus = data.map(n => ({ ...n, read: false }));
-      setNotifs(notifsWithStatus);
+      setNotifs(Array.isArray(data) ? data : []);
       setLoading(false);
     }).catch(err => {
       console.error(err);
@@ -36,11 +34,15 @@ export default function PlayerNotifications() {
   }, []);
 
   const markAllRead = () => {
-    setNotifs(notifs.map(n => ({ ...n, read: true })));
+    notificationsApi.markAllRead().then((notifications) => {
+      setNotifs(Array.isArray(notifications) ? notifications : []);
+    }).catch((requestError) => setError(requestError.message));
   };
 
   const markAsRead = (id) => {
-    setNotifs(notifs.map(n => n.id === id ? { ...n, read: true } : n));
+    notificationsApi.markAsRead(id).then(() => {
+      setNotifs(notifs.map((notification) => notification.id === id ? { ...notification, read: true } : notification));
+    }).catch((requestError) => setError(requestError.message));
   };
 
   const unreadCount = notifs.filter(n => !n.read).length;

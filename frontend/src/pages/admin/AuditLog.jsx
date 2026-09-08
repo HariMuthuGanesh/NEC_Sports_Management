@@ -1,46 +1,67 @@
 import React, { useState, useEffect } from "react";
-import { useAuth } from "../../context/AuthContext";
 import { SecurityLogger } from "../../utils/security";
+import { auditApi } from "../../services/api/apiServices";
+import * as XLSX from "xlsx";
 import Table from "../../components/common/Table";
 import Badge from "../../components/common/Badge";
 import Button from "../../components/common/Button";
 import { Card } from "../../components/common/Card";
-import { Shield, Trash2, RefreshCw, AlertTriangle, CheckCircle2, XCircle, LogOut, UserCog } from "lucide-react";
+import { Shield, Download, RefreshCw, AlertTriangle, CheckCircle2, XCircle, LogOut, UserCog } from "lucide-react";
 import "./AdminPortal.css";
 
 const EVENT_META = {
-  LOGIN_SUCCESS:        { label: "Login Success",         status: "success", icon: CheckCircle2 },
-  LOGOUT:               { label: "Logout",                status: "neutral", icon: LogOut },
-  ROLE_SWITCH:          { label: "Role Switch",           status: "info",    icon: UserCog },
-  LOGIN_FAILED:         { label: "Login Failed",          status: "danger",  icon: XCircle },
-  UNAUTHORIZED_ACCESS:  { label: "Unauthorized Access",   status: "warning", icon: AlertTriangle },
-  SESSION_EXPIRED:      { label: "Session Expired",       status: "warning", icon: AlertTriangle },
-  IDLE_TIMEOUT:         { label: "Idle Timeout",          status: "neutral", icon: AlertTriangle },
+  LOGIN_SUCCESS: { label: "Login Success", status: "success", icon: CheckCircle2 },
+  LOGOUT: { label: "Logout", status: "neutral", icon: LogOut },
+  ROLE_SWITCH: { label: "Role Switch", status: "info", icon: UserCog },
+  LOGIN_FAILED: { label: "Login Failed", status: "danger", icon: XCircle },
+  UNAUTHORIZED_ACCESS: { label: "Unauthorized Access", status: "warning", icon: AlertTriangle },
+  SESSION_EXPIRED: { label: "Session Expired", status: "warning", icon: AlertTriangle },
+  IDLE_TIMEOUT: { label: "Idle Timeout", status: "neutral", icon: AlertTriangle },
 };
 
 const SUMMARY_EVENTS = ["LOGIN_FAILED", "UNAUTHORIZED_ACCESS"];
 
 export default function AuditLog() {
-  const { t } = useAuth();
   const [log, setLog] = useState([]);
   const [filter, setFilter] = useState("ALL");
 
-  const load = () => setLog(SecurityLogger.getLog());
+  const load = async () => {
+    const localEntries = SecurityLogger.getLog();
+    try {
+      const serverEntries = await auditApi.getEntries();
+      setLog([...localEntries, ...serverEntries]);
+    } catch {
+      setLog(localEntries);
+    }
+  };
 
   useEffect(() => { load(); }, []);
 
-  const handleClear = () => {
-    if (window.confirm("Clear the entire security audit log? This cannot be undone.")) {
-      SecurityLogger.clearLog();
-      setLog([]);
-    }
+  const handleExport = () => {
+    const rows = filtered.map(entry => ({
+      Timestamp: entry.timestamp || "",
+      EventType: entry.eventType || EVENT_META[entry.event]?.label || entry.event || "HTTP Request",
+      Operation: entry.operation || `${entry.method || ""} ${entry.route || ""}`.trim(),
+      User: entry.user || entry.userId || "—",
+      Role: entry.role || "—",
+      IPAddress: entry.ipAddress || "—",
+      ForwardedFor: entry.forwardedFor || "—",
+      UserAgent: entry.userAgent || "—",
+      StatusCode: entry.statusCode || "—",
+      DurationMs: entry.durationMs || "—",
+      Details: entry.reason || entry.route || entry.dept || "—",
+    }));
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Security Audit");
+    XLSX.writeFile(workbook, `nec-security-audit-${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
   const filtered = filter === "ALL" ? log : log.filter(e => e.event === filter);
 
   const criticalCount = log.filter(e => SUMMARY_EVENTS.includes(e.event)).length;
-  const loginCount    = log.filter(e => e.event === "LOGIN_SUCCESS").length;
-  const failedCount   = log.filter(e => e.event === "LOGIN_FAILED").length;
+  const loginCount = log.filter(e => e.event === "LOGIN_SUCCESS").length;
+  const failedCount = log.filter(e => e.event === "LOGIN_FAILED").length;
 
   const columns = [
     {
@@ -70,6 +91,18 @@ export default function AuditLog() {
           </div>
         );
       }
+    },
+    {
+      key: "eventType",
+      label: "Event Type",
+      width: "190px",
+      render: (val, row) => <Badge status={val?.includes("FAILURE") || val === "RATE_LIMITED" ? "danger" : "info"}>{val || row.event || "—"}</Badge>
+    },
+    {
+      key: "operation",
+      label: "Operation",
+      width: "260px",
+      render: (val, row) => <span style={{ fontFamily: "monospace", fontSize: "0.78rem" }}>{val || `${row.method || ""} ${row.route || ""}`.trim() || "—"}</span>
     },
     {
       key: "user",
@@ -107,6 +140,12 @@ export default function AuditLog() {
         </span>
       )
     },
+    {
+      key: "ipAddress",
+      label: "IP Address",
+      width: "150px",
+      render: (val) => <span style={{ fontFamily: "monospace", fontSize: "0.78rem" }}>{val || "—"}</span>
+    },
   ];
 
   const EVENT_FILTERS = ["ALL", ...Object.keys(EVENT_META)];
@@ -128,7 +167,7 @@ export default function AuditLog() {
         </div>
         <div style={{ display: "flex", gap: "8px" }}>
           <Button variant="ghost" size="sm" icon={RefreshCw} onClick={load}>Refresh</Button>
-          <Button variant="danger" size="sm" icon={Trash2} onClick={handleClear}>Clear Log</Button>
+          <Button variant="primary" size="sm" icon={Download} onClick={handleExport}>Export Excel</Button>
         </div>
       </div>
 
@@ -140,7 +179,7 @@ export default function AuditLog() {
             <Shield size={18} style={{ color: "var(--nec-navy)" }} />
           </div>
           <div className="nec-stat-value">{log.length}</div>
-          <div className="nec-stat-subtext">In session history</div>
+          <div className="nec-stat-subtext">Recorded security events</div>
         </div>
         <div className="nec-stat-card">
           <div className="nec-stat-card-top">

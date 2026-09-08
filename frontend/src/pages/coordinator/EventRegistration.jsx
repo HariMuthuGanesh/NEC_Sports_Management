@@ -60,9 +60,8 @@ export default function EventRegistration() {
 
     teamsApi.registerTeam({
       name: teamName,
-      deptId: `dept_${myDept.toLowerCase()}`,
       deptCode: myDept,
-      sportId: evObj ? evObj.sportId : "sp_football",
+      tournamentId: evObj?.tournamentId,
       captainName,
       captainRoll,
       memberCount: 1,
@@ -77,7 +76,7 @@ export default function EventRegistration() {
   const teamColumns = [
     { key: "name", label: "Registered Squad", render: (val) => <strong>{val}</strong> },
     { key: "deptCode", label: "Dept", width: "90px", render: (val) => <span>{val}</span> },
-    { key: "sportId", label: "Sport", width: "130px", render: (val) => val.replace("sp_", "").toUpperCase() },
+    { key: "sportId", label: "Sport", width: "130px", render: (val, row) => String(row.sportName || val || "Sport").replace("sp_", "").toUpperCase() },
     { key: "captainName", label: "Captain", render: (val, row) => <span>{val} ({row.captainRoll})</span> },
     { key: "memberCount", label: "Squad Size", width: "110px", render: (val) => <span>{val} Athletes</span> },
     {
@@ -141,7 +140,7 @@ export default function EventRegistration() {
                         icon={Send}
                         onClick={() => {
                           setSelectedEventId(ev.id);
-                          setTeamName(`${myDept} ${ev.sportId.replace("sp_", "").toUpperCase()}`);
+                          setTeamName(`${myDept} ${String(ev.sportName || ev.sportId || "Sport").replace("sp_", "").toUpperCase()}`);
                           setIsModalOpen(true);
                         }}
                       >
