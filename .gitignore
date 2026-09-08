@@ -107,12 +107,19 @@ test-results/
 blob-report/
 **/blob-report/
 
-# ==========================================
-# 10. Database & Storage Files
+# 10. Database, Local Data & Uploads
 # ==========================================
 *.db
 *.sqlite
 *.sqlite3
+uploads/
+**/uploads/
+*.sql
+!backend/src/data/schema.sql
+backend/src/data/seed.sql
+backend/src/data/mockDb.js
+backend/src/data/seedDb.js
+backend/src/dev-tools/
 
 # ==========================================
 # 11. Graphify
