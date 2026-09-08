@@ -1,11 +1,18 @@
 import pool from '../config/db.js';
 import { getAllSports, createSport as createSportSql, updateSport as updateSportSql, deleteSport as deleteSportSql } from '../models/sql/sportSqlModel.js';
 import { getAllTournaments, createTournament as createTournamentSql } from '../models/sql/tournamentSqlModel.js';
-import { getAllVenues } from '../models/sql/venueSqlModel.js';
+import { getAllVenues, createVenue as createVenueSql, updateVenue as updateVenueSql, deleteVenue as deleteVenueSql } from '../models/sql/venueSqlModel.js';
 import { getAllMatches } from '../models/sql/matchSqlModel.js';
 import { getAllDepartments } from '../models/sql/departmentSqlModel.js';
 import { getAllAnnouncements, createAnnouncement as createAnnouncementSql, deleteAnnouncement as deleteAnnouncementSql } from '../models/sql/announcementSqlModel.js';
-import { searchStudents as searchStudentsSql } from '../models/sql/studentSqlModel.js';
+import bcrypt from 'bcryptjs';
+import {
+    searchStudents as searchStudentsSql,
+    createStudent as createStudentSql,
+    searchStudentsFromIms,
+    hasImsStudents,
+    getImsAttendanceSummary
+} from '../models/sql/studentSqlModel.js';
 
 export const getSports = async (req, res, next) => {
     try {
@@ -29,6 +36,39 @@ export const getVenues = async (req, res, next) => {
     try {
         const data = await getAllVenues();
         return res.json({ success: true, data });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const createVenueController = async (req, res, next) => {
+    try {
+        const venueId = await createVenueSql(req.body);
+        return res.status(201).json({ success: true, data: { venue_id: venueId, id: venueId, ...req.body } });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const updateVenueController = async (req, res, next) => {
+    try {
+        const success = await updateVenueSql(req.params.id, req.body);
+        if (!success) {
+            return res.status(404).json({ success: false, error: { message: "Venue not found" } });
+        }
+        return res.json({ success: true, data: { venue_id: req.params.id, id: req.params.id, ...req.body } });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const deleteVenueController = async (req, res, next) => {
+    try {
+        const success = await deleteVenueSql(req.params.id);
+        if (!success) {
+            return res.status(404).json({ success: false, error: { message: "Venue not found" } });
+        }
+        return res.json({ success: true, data: { message: "Venue deleted successfully" } });
     } catch (err) {
         next(err);
     }
@@ -149,8 +189,155 @@ export const getEvents = async (req, res, next) => {
 export const searchStudentsController = async (req, res, next) => {
     try {
         const query = req.query.q || '';
-        const data = await searchStudentsSql(query);
-        return res.json({ success: true, data });
+
+        // Try IMS first. If IMS has students, use that enriched source.
+        // Fall back to sportsdb-only when IMS has no personal_information rows yet.
+        const imsPopulated = await hasImsStudents();
+        let data;
+        let source;
+
+        if (imsPopulated) {
+            data = await searchStudentsFromIms(query);
+            source = 'ims';
+        } else {
+            data = await searchStudentsSql(query);
+            source = 'sportsdb';
+        }
+
+        return res.json({
+            success: true,
+            data,
+            meta: { source, imsConnected: true, imsPopulated }
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+/**
+ * GET /api/students/:registerNumber/attendance
+ * Returns per-semester attendance summary from IMS for a given register number.
+ */
+export const getStudentAttendanceController = async (req, res, next) => {
+    try {
+        const { registerNumber } = req.params;
+        const rows = await getImsAttendanceSummary(registerNumber);
+
+        // Compute overall attendance across all semesters
+        const overall = rows.reduce(
+            (acc, r) => ({
+                totalDays:   acc.totalDays   + (r.totalDays   || 0),
+                presentDays: acc.presentDays + (r.presentDays || 0),
+                absentDays:  acc.absentDays  + (r.absentDays  || 0),
+            }),
+            { totalDays: 0, presentDays: 0, absentDays: 0 }
+        );
+        overall.attendancePct = overall.totalDays > 0
+            ? Math.round((overall.presentDays / overall.totalDays) * 1000) / 10
+            : 0;
+
+        return res.json({
+            success: true,
+            data: {
+                registerNumber,
+                semesters: rows,
+                overall
+            }
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const createStudentController = async (req, res, next) => {
+    try {
+        const {
+            name,
+            studentName,
+            rollNo,
+            registerNumber,
+            deptId,
+            departmentId,
+            departmentCode,
+            year,
+            batch,
+            section,
+            email,
+            personalEmail,
+            phone,
+            personalPhone,
+            bloodGroup,
+            studentType = 'Day-Scholar'
+        } = req.body;
+
+        const cleanName = (studentName || name || '').trim();
+        const cleanRegNo = (registerNumber || rollNo || '').trim();
+        const cleanEmail = (personalEmail || email || `${cleanRegNo.toLowerCase()}@nec.edu.in`).trim();
+        const cleanPhone = (personalPhone || phone || '9876543210').trim();
+
+        if (!cleanName || !cleanRegNo) {
+            return res.status(400).json({ success: false, error: { message: 'Student name and roll number are required.' } });
+        }
+
+        // Resolve department ID
+        let resolvedDeptId = departmentId || deptId;
+        if (!resolvedDeptId && departmentCode) {
+            const [deptRows] = await pool.execute('SELECT id FROM departments WHERE code = ? LIMIT 1', [departmentCode.toUpperCase()]);
+            if (deptRows[0]) resolvedDeptId = deptRows[0].id;
+        }
+        if (!resolvedDeptId) {
+            const [firstDept] = await pool.execute('SELECT id FROM departments ORDER BY id ASC LIMIT 1');
+            resolvedDeptId = firstDept[0]?.id;
+        }
+
+        // Check or create user account for student
+        const [existingUser] = await pool.execute('SELECT id FROM users WHERE username = ? OR email = ? LIMIT 1', [cleanRegNo, cleanEmail]);
+        let studentUserId;
+        if (existingUser[0]) {
+            studentUserId = existingUser[0].id;
+        } else {
+            const defaultHash = await bcrypt.hash('Player@123', 10);
+            const [uRes] = await pool.execute(
+                'INSERT INTO users (username, email, password_hash, role, is_active) VALUES (?, ?, ?, ?, 1)',
+                [cleanRegNo, cleanEmail, defaultHash, 'Player']
+            );
+            studentUserId = uRes.insertId;
+        }
+
+        // Check if student already registered
+        const [existingStudent] = await pool.execute('SELECT student_id FROM students WHERE register_number = ? LIMIT 1', [cleanRegNo]);
+        if (existingStudent[0]) {
+            return res.status(400).json({ success: false, error: { message: `Student with roll number ${cleanRegNo} is already registered.` } });
+        }
+
+        const newStudentId = await createStudentSql({
+            userId: studentUserId,
+            studentName: cleanName,
+            registerNumber: cleanRegNo,
+            departmentId: resolvedDeptId,
+            batch: Number(batch || year) || 2026,
+            section: section || 'A',
+            personalEmail: cleanEmail,
+            personalPhone: cleanPhone,
+            parentsPhone: '9876543211',
+            bloodGroup: bloodGroup || 'O+',
+            studentType: studentType || 'Day-Scholar',
+            medicalFitness: 1
+        });
+
+        return res.status(201).json({
+            success: true,
+            data: {
+                student_id: newStudentId,
+                id: newStudentId,
+                name: cleanName,
+                studentName: cleanName,
+                studentId: cleanRegNo,
+                rollNo: cleanRegNo,
+                email: cleanEmail,
+                deptId: resolvedDeptId
+            }
+        });
     } catch (err) {
         next(err);
     }

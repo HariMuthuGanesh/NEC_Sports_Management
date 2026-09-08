@@ -2,7 +2,17 @@ import pool from '../../config/db.js';
 
 export const getAllDepartments = async () => {
     const sql = `
-        SELECT id, name, code, hod_name, hod_email, coordinator_user_id, color_code, created_at
+        SELECT 
+            id, 
+            name, 
+            code, 
+            hod_name, 
+            hod_name AS hod, 
+            hod_email, 
+            coordinator_user_id, 
+            color_code, 
+            color_code AS color, 
+            created_at
         FROM departments
         ORDER BY name ASC
     `;

@@ -3,7 +3,17 @@ import crypto from 'crypto';
 // In development, if JWT_SECRET is not set, generate a cryptographically strong runtime secret
 let runtimeSecret = process.env.JWT_SECRET;
 
-if (!runtimeSecret || runtimeSecret === 'fallback_secret_for_mock_db') {
+const createRuntimeSecret = (name) => {
+  const configuredSecret = process.env[name];
+  if (configuredSecret) return configuredSecret;
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(`${name} environment variable must be set in production.`);
+  }
+  console.warn(`[Security Warning] ${name} was not set. Generated a secure runtime secret.`);
+  return crypto.randomBytes(32).toString('hex');
+};
+
+if (!runtimeSecret) {
   if (process.env.NODE_ENV === 'production') {
     console.error('FATAL SECURITY ERROR: JWT_SECRET environment variable must be set with at least 32 characters in production.');
     process.exit(1);
@@ -18,6 +28,8 @@ if (!runtimeSecret || runtimeSecret === 'fallback_secret_for_mock_db') {
 
 export const JWT_SECRET = runtimeSecret;
 export const getJwtSecret = () => JWT_SECRET;
+export const COOKIE_SECRET = createRuntimeSecret('COOKIE_SECRET');
+export const CSRF_SECRET = createRuntimeSecret('CSRF_SECRET');
 
 // Token Revocation / Blacklist Store (In-Memory with TTL cleanup)
 const revokedTokens = new Map(); // tokenHash -> expiryTimestamp

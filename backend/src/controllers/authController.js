@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { JWT_SECRET, revokeToken } from '../config/securityConfig.js';
+import pool from '../config/db.js';
 import {
     findUserByUsernameOrEmail,
     findUserById,
@@ -9,12 +10,20 @@ import {
     updateLastLogin
 } from '../models/sql/userSqlModel.js';
 import { getStudentByUserId } from '../models/sql/studentSqlModel.js';
+import { generateCsrfToken } from '../middleware/csrfMiddleware.js';
 
-const generateToken = (id, role, dept = 'All') => {
-    return jwt.sign({ id, role, dept }, JWT_SECRET, {
+const generateToken = (id, role, dept = 'All', tokenVersion = 0) => {
+    return jwt.sign({ id, role, dept, token_version: tokenVersion }, JWT_SECRET, {
         expiresIn: '24h',
         algorithm: 'HS256'
     });
+};
+
+const AUTH_COOKIE_OPTIONS = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours (matches JWT expiresIn)
 };
 
 // Timing-attack defense hash
@@ -48,8 +57,12 @@ export const loginUser = async (req, res, next) => {
             await updateLastLogin(user.id);
             const student = await getStudentByUserId(user.id);
 
-            const token = generateToken(user.id, user.role, student?.department_code || 'Sports Office');
+            const [vRows] = await pool.execute('SELECT token_version FROM users WHERE id = ?', [user.id]);
+            const tokenVersion = vRows[0]?.token_version ?? 0;
 
+            const token = generateToken(user.id, user.role, student?.department_code || 'Sports Office', tokenVersion);
+
+            res.cookie('token', token, AUTH_COOKIE_OPTIONS);
             return res.json({
                 success: true,
                 data: {
@@ -73,10 +86,13 @@ export const loginUser = async (req, res, next) => {
     }
 };
 
-// 2. Manual Signup First (Username, Email, Password, Role)
+// 2. Manual Signup — role is always Player, no exceptions.
+// Admin and Coordinator accounts are provisioned separately by an authenticated Admin.
 export const signupUser = async (req, res, next) => {
     try {
-        const { username, email, password, role = 'Player' } = req.body || {};
+        // role is intentionally NOT read from req.body — any role field sent by the client is ignored.
+        const { username, email, password } = req.body || {};
+        const role = 'Player'; // Hardcoded: public signup can never set a privileged role.
 
         if (!username || !email || !password) {
             return res.status(400).json({
@@ -96,7 +112,8 @@ export const signupUser = async (req, res, next) => {
         const passwordHash = await bcrypt.hash(password, 10);
         const newUserId = await createUser({ username, email, passwordHash, role });
 
-        const token = generateToken(newUserId, role, 'All');
+        const token = generateToken(newUserId, role, 'All', 0);
+        res.cookie('token', token, AUTH_COOKIE_OPTIONS);
 
         return res.status(201).json({
             success: true,
@@ -142,7 +159,12 @@ export const googleSignIn = async (req, res, next) => {
 
         await updateLastLogin(user.id);
         const student = await getStudentByUserId(user.id);
-        const token = generateToken(user.id, user.role, student?.department_code || 'Sports Office');
+
+        const [vRows] = await pool.execute('SELECT token_version FROM users WHERE id = ?', [user.id]);
+        const tokenVersion = vRows[0]?.token_version ?? 0;
+
+        const token = generateToken(user.id, user.role, student?.department_code || 'Sports Office', tokenVersion);
+        res.cookie('token', token, AUTH_COOKIE_OPTIONS);
 
         return res.json({
             success: true,
@@ -162,14 +184,28 @@ export const googleSignIn = async (req, res, next) => {
 };
 
 // 4. Logout & Me
-export const logoutUser = (req, res) => {
-    if (req.token && req.user) {
-        revokeToken(req.token, req.user.exp);
+export const logoutUser = async (req, res, next) => {
+    try {
+        if (req.user?.id) {
+            await pool.execute('UPDATE users SET token_version = token_version + 1 WHERE id = ?', [req.user.id]);
+        }
+        res.clearCookie('token', AUTH_COOKIE_OPTIONS);
+        return res.json({
+            success: true,
+            message: 'Successfully logged out and session revoked.'
+        });
+    } catch (err) {
+        next(err);
     }
-    return res.json({
-        success: true,
-        message: 'Successfully logged out and session revoked.'
-    });
+};
+
+// Password change / reset session invalidation helper
+export const resetUserPassword = async (userId, newPassword) => {
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    await pool.execute(
+        'UPDATE users SET password_hash = ?, token_version = token_version + 1 WHERE id = ?',
+        [passwordHash, userId]
+    );
 };
 
 export const getCurrentUser = async (req, res, next) => {

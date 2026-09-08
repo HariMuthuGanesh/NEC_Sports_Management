@@ -11,6 +11,9 @@ import galleryRoutes from './routes/galleryRoutes.js';
 import path from 'path';
 
 
+import cookieParser from 'cookie-parser';
+import { COOKIE_SECRET } from './config/securityConfig.js';
+
 const app = express();
 
 // 0. Centralized Audit Logging
@@ -22,14 +25,16 @@ app.use(helmet({
     crossOriginEmbedderPolicy: false
 }));
 
-// 2. Restricted CORS Configuration
+// 2. Restricted CORS Configuration (Strict Origins with Credentials)
 app.use(cors({
     origin: ['http://localhost:5173', 'http://localhost:3000', 'https://nec.edu.in'],
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token']
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token', 'X-Client-Version']
 }));
 
-// 3. Payload Limit Protection (Defend against Denial-of-Service / Buffer Payload attacks)
+// 3. Cookie Parser & Payload Limit Protection
+app.use(cookieParser(COOKIE_SECRET));
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
@@ -39,8 +44,8 @@ app.use(sanitizeData);
 // 4. Rate Limiting (DDoS Protection)
 const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // Limit each IP to 100 requests per `window` (here, per 15 minutes)
-    message: { error: 'Too many requests from this IP, please try again after 15 minutes' },
+    max: process.env.NODE_ENV === 'production' ? 1000 : 20000, // Generous dev limit
+    message: { success: false, error: { code: 'RATE_LIMIT_EXCEEDED', message: 'Too many requests from this IP, please try again after 15 minutes' } },
     standardHeaders: true,
     legacyHeaders: false,
 });
@@ -51,15 +56,6 @@ app.use('/api/auth', authRoutes);
 app.use('/api/gallery', galleryRoutes);
 app.use('/api', apiRoutes);
 
-// 5.1 Isolated Development-only Demo Data Utilities
-if (process.env.NODE_ENV !== 'production') {
-    try {
-        const devModule = await import('./dev-tools/devRoutes.js');
-        app.use('/api/dev', devModule.default);
-    } catch (err) {
-        console.info('[DevTools] Demo routes module omitted or unavailable:', err.message);
-    }
-}
 
 // 5.5 Serve static uploads
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));

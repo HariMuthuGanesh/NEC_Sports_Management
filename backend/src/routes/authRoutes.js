@@ -4,7 +4,15 @@ import { protect } from '../middleware/authMiddleware.js';
 import { loginRateLimiter } from '../middleware/rateLimiter.js';
 import { validateLoginInput } from '../middleware/validatorMiddleware.js';
 
+import { generateCsrfToken } from '../middleware/csrfMiddleware.js';
+
 const router = express.Router();
+
+// Public route to obtain / refresh CSRF token
+router.get('/csrf-token', (req, res) => {
+    const csrfToken = generateCsrfToken(req, res);
+    return res.json({ success: true, data: { csrfToken } });
+});
 
 // Public manual login route
 router.post('/login', loginRateLimiter(), validateLoginInput, loginUser);

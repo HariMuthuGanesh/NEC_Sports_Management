@@ -2,7 +2,7 @@ import 'dotenv/config';
 import app from './app.js';
 import { testConnection } from './config/db.js';
 
-const port = process.env.PORT || 8000;
+const port = process.env.PORT || 5000;
 
 app.listen(port, async () => {
     console.log(`[Server] NEC Sports Management API running on port ${port} (MySQL Database Mode)`);

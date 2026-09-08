@@ -34,16 +34,21 @@ export const getPlayersByTeam = async (teamId) => {
             tm.team_id,
             tm.student_id,
             tm.role,
+            tm.role AS position,
             tm.jersey_number,
+            tm.jersey_number AS jerseyNo,
             tm.medical_clearance,
             s.student_name,
             s.student_name AS name,
             s.register_number,
+            s.register_number AS studentId,
             s.register_number AS rollNo,
             s.personal_email,
             s.personal_phone,
             s.blood_group,
-            d.code AS dept_code
+            d.code AS dept_code,
+            d.code AS dept,
+            s.batch AS year
         FROM team_members tm
         JOIN students s ON tm.student_id = s.student_id
         JOIN departments d ON s.department_id = d.id
@@ -69,6 +74,31 @@ export const createTeam = async (teamData) => {
         teamData.status || 'Pending'
     ]);
     return result.insertId;
+};
+
+export const addPlayerToTeam = async (teamId, studentIdentifier, role, jerseyNumber) => {
+    const [[student]] = await pool.execute(
+        'SELECT student_id FROM students WHERE student_id = ? OR register_number = ? LIMIT 1',
+        [studentIdentifier, studentIdentifier]
+    );
+    if (!student) return null;
+
+    const [[existingMember]] = await pool.execute(
+        'SELECT member_id FROM team_members WHERE team_id = ? AND student_id = ? LIMIT 1',
+        [teamId, student.student_id]
+    );
+    if (existingMember) return { memberId: existingMember.member_id, alreadyMember: true };
+
+    const [insert] = await pool.execute(
+        'INSERT INTO team_members (team_id, student_id, role, jersey_number) VALUES (?, ?, ?, ?)',
+        [teamId, student.student_id, role, jerseyNumber]
+    );
+    return { memberId: insert.insertId, alreadyMember: false };
+};
+
+export const removePlayerFromTeam = async (memberId) => {
+    const [deleted] = await pool.execute('DELETE FROM team_members WHERE member_id = ?', [memberId]);
+    return deleted.affectedRows > 0;
 };
 
 export const updateTeamStatus = async (teamId, status) => {

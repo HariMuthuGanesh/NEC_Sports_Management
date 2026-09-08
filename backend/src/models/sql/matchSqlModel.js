@@ -1,5 +1,79 @@
 import pool from '../../config/db.js';
 
+/**
+ * Create a scheduled match.
+ * Accepts team_a_id/team_b_id (numeric) OR team_a_name/team_b_name (string lookups).
+ * sport_id can be numeric or a sport name string.
+ */
+export const createMatch = async (data) => {
+    const {
+        tournament_id,
+        sport_id,
+        sport_name,
+        team_a_id,
+        team_b_id,
+        team_a_name,
+        team_b_name,
+        venue_id,
+        venue_name,
+        scheduled_time,
+        round = 'League',
+        status = 'Scheduled'
+    } = data;
+
+    // Resolve sport_id if only a name was provided
+    let resolvedSportId = sport_id;
+    if (!resolvedSportId && sport_name) {
+        const [[sport]] = await pool.execute('SELECT sport_id FROM sports WHERE name = ? LIMIT 1', [sport_name]);
+        if (!sport) throw new Error(`Sport not found: ${sport_name}`);
+        resolvedSportId = sport.sport_id;
+    }
+
+    // Resolve team_a_id if only a name was provided
+    let resolvedTeamAId = team_a_id;
+    if (!resolvedTeamAId && team_a_name) {
+        const [[teamA]] = await pool.execute('SELECT team_id FROM teams WHERE name = ? LIMIT 1', [team_a_name]);
+        if (!teamA) throw new Error(`Team not found: ${team_a_name}`);
+        resolvedTeamAId = teamA.team_id;
+    }
+
+    // Resolve team_b_id if only a name was provided
+    let resolvedTeamBId = team_b_id;
+    if (!resolvedTeamBId && team_b_name) {
+        const [[teamB]] = await pool.execute('SELECT team_id FROM teams WHERE name = ? LIMIT 1', [team_b_name]);
+        if (!teamB) throw new Error(`Team not found: ${team_b_name}`);
+        resolvedTeamBId = teamB.team_id;
+    }
+
+    // Resolve venue_id if only a name was provided
+    let resolvedVenueId = venue_id || null;
+    if (!resolvedVenueId && venue_name) {
+        const [[venue]] = await pool.execute('SELECT venue_id FROM venues WHERE name = ? LIMIT 1', [venue_name]);
+        if (venue) resolvedVenueId = venue.venue_id;
+    }
+
+    const sql = `
+        INSERT INTO matches (tournament_id, sport_id, team_a_id, team_b_id, venue_id, scheduled_time, round, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+    const [result] = await pool.execute(sql, [
+        tournament_id,
+        resolvedSportId,
+        resolvedTeamAId,
+        resolvedTeamBId,
+        resolvedVenueId,
+        scheduled_time,
+        round,
+        status
+    ]);
+    return result.insertId;
+};
+
+export const deleteMatch = async (matchId) => {
+    const [result] = await pool.execute('DELETE FROM matches WHERE match_id = ?', [matchId]);
+    return result.affectedRows > 0;
+};
+
 export const getAllMatches = async () => {
     const sql = `
         SELECT 

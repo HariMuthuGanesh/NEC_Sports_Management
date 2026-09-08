@@ -50,7 +50,7 @@ CREATE TABLE students (
 CREATE TABLE sports (
   sport_id INT PRIMARY KEY AUTO_INCREMENT,
   name VARCHAR(100) NOT NULL UNIQUE,
-  category ENUM('Indoor','Outdoor','Track','Field') NOT NULL,
+  category VARCHAR(50) NOT NULL DEFAULT 'Outdoor',
   min_players INT NOT NULL,
   max_players INT NOT NULL,
   points_rule VARCHAR(255),
