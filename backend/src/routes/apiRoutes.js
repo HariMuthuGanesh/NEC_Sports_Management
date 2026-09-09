@@ -192,7 +192,7 @@ router.patch('/od/:requestId/reject', protect, authorize('Admin'), rejectOdContr
 
 // ── Department Teams & Role Hierarchy v2 Routes ───────────────────────────
 router.get('/department-teams', protect, authorize('Admin', 'Coordinator'), getDepartmentTeams);
-router.get('/department-teams/my', protect, authorize('Admin', 'Coordinator', 'TeamCaptain', 'Captain'), getMyDepartmentTeam);
+router.get('/department-teams/my', protect, authorize('TeamCaptain', 'Captain'), getMyDepartmentTeam);
 router.post('/department-teams', protect, authorize('Admin', 'Coordinator'), createDepartmentTeam);
 router.patch('/department-teams/:id/captain', protect, authorize('Admin', 'Coordinator'), assignDepartmentTeamCaptain);
 router.post('/department-teams/:id/players', protect, authorize('Admin', 'Coordinator', 'TeamCaptain', 'Captain'), addPlayerToDepartmentTeam);

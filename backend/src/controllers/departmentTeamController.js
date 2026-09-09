@@ -351,7 +351,7 @@ export const confirmCollegeTeam = async (req, res, next) => {
 
 /**
  * GET /api/department-teams
- * Fetch department teams for coordinator/admin.
+ * Fetch department teams for coordinator/admin (filtered in SQL for Coordinator).
  */
 export const getDepartmentTeams = async (req, res, next) => {
     try {
@@ -365,9 +365,10 @@ export const getDepartmentTeams = async (req, res, next) => {
         `;
         const params = [];
 
-        if (req.user.role === 'Coordinator' && req.user.dept_id) {
+        const coordDeptId = req.user.dept_id || req.user.department_id;
+        if (req.user.role === 'Coordinator') {
             sql += ' WHERE dt.department_id = ?';
-            params.push(req.user.dept_id);
+            params.push(coordDeptId);
         }
 
         const [rows] = await pool.execute(sql, params);
@@ -380,12 +381,13 @@ export const getDepartmentTeams = async (req, res, next) => {
 /**
  * GET /api/department-teams/my
  * Fetch team captain's assigned department team and its active roster.
+ * Returns 404 if no team found for this captain.
  */
 export const getMyDepartmentTeam = async (req, res, next) => {
     try {
         const userId = req.user.id;
         const [teams] = await pool.execute(
-            `SELECT dt.*, s.name AS sport_name, d.name AS department_name
+            `SELECT dt.*, s.name AS sport_name, d.name AS department_name, d.code AS department_code
              FROM department_teams dt
              JOIN sports s ON s.sport_id = dt.sport_id
              JOIN departments d ON d.id = dt.department_id
@@ -395,7 +397,10 @@ export const getMyDepartmentTeam = async (req, res, next) => {
         const team = teams[0];
 
         if (!team) {
-            return res.json({ success: true, data: null });
+            return res.status(404).json({
+                success: false,
+                error: { code: 'NOT_FOUND', message: 'No department team assigned to this captain.' }
+            });
         }
 
         const [members] = await pool.execute(
