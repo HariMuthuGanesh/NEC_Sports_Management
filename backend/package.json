@@ -10,7 +10,9 @@
     "start": "cross-env NODE_ENV=production node src/index.js",
     "dev": "cross-env NODE_ENV=development nodemon src/index.js",
     "provision:demo-accounts": "node src/data/provisionDemoAccounts.js",
-    "seed:v2": "node src/data/seedRoleHierarchyV2.js"
+    "seed:v2": "node src/data/seedRoleHierarchyV2.js",
+    "create:account": "node src/scripts/createAccounts.js --interactive",
+    "provision:initial": "node src/scripts/createAccounts.js --preset"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
