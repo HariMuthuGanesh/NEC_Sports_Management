@@ -1,5 +1,10 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
+import path from 'path';
 import mysql from 'mysql2/promise';
+
+const envMode = process.env.NODE_ENV || 'development';
+dotenv.config({ path: path.resolve(process.cwd(), `.env.${envMode}`) });
+dotenv.config();
 
 // MySQL Connection Pool Configuration
 const pool = mysql.createPool({

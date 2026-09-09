@@ -62,6 +62,16 @@ import {
     bulkApproveMatchOdController,
     getOdRequestController
 } from '../controllers/odController.js';
+import {
+    createDepartmentTeam,
+    assignDepartmentTeamCaptain,
+    addPlayerToDepartmentTeam,
+    removePlayerFromDepartmentTeam,
+    getCollegeTeamSuggestions,
+    confirmCollegeTeam,
+    getDepartmentTeams,
+    getMyDepartmentTeam
+} from '../controllers/departmentTeamController.js';
 
 const router = express.Router();
 
@@ -179,6 +189,18 @@ router.get('/od/:requestId', protect, authorize('Admin', 'Coordinator'), getOdRe
 // Admin: approve / reject
 router.patch('/od/:requestId/approve', protect, authorize('Admin'), approveOdController);
 router.patch('/od/:requestId/reject', protect, authorize('Admin'), rejectOdController);
+
+// ── Department Teams & Role Hierarchy v2 Routes ───────────────────────────
+router.get('/department-teams', protect, authorize('Admin', 'Coordinator'), getDepartmentTeams);
+router.get('/department-teams/my', protect, authorize('Admin', 'Coordinator', 'TeamCaptain', 'Captain'), getMyDepartmentTeam);
+router.post('/department-teams', protect, authorize('Admin', 'Coordinator'), createDepartmentTeam);
+router.patch('/department-teams/:id/captain', protect, authorize('Admin', 'Coordinator'), assignDepartmentTeamCaptain);
+router.post('/department-teams/:id/players', protect, authorize('Admin', 'Coordinator', 'TeamCaptain', 'Captain'), addPlayerToDepartmentTeam);
+router.delete('/department-teams/:id/players/:playerId', protect, authorize('Admin', 'Coordinator', 'TeamCaptain', 'Captain'), removePlayerFromDepartmentTeam);
+
+// ── College Team Builder Routes ───────────────────────────────────────────
+router.get('/college-teams/:sportId/suggestions', protect, authorize('Admin'), getCollegeTeamSuggestions);
+router.post('/college-teams/:sportId/confirm', protect, authorize('Admin'), confirmCollegeTeam);
 
 export default router;
 
