@@ -21,9 +21,9 @@ export const protect = async (req, res, next) => {
         // 1. Cryptographically verify token signature
         const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] });
 
-        // 2. Query current token_version and active status from database
+        // 2. Query current token_version, active status, and admin_scope from database
         const [rows] = await pool.execute(
-            'SELECT token_version, is_active FROM users WHERE id = ? LIMIT 1',
+            'SELECT token_version, is_active, admin_scope FROM users WHERE id = ? LIMIT 1',
             [decoded.id]
         );
         const user = rows[0];
@@ -44,7 +44,10 @@ export const protect = async (req, res, next) => {
         }
 
         // 4. Set user context and resolve department if Coordinator/Student
-        req.user = decoded;
+        req.user = {
+            ...decoded,
+            admin_scope: user.admin_scope || decoded.admin_scope || 'Full'
+        };
         req.token = token;
 
         if (req.user.role === 'Coordinator' && !req.user.dept_id) {
@@ -81,6 +84,30 @@ export const authorize = (...roles) => {
             });
         }
         next();
+    };
+};
+
+export const requireAdminScope = (requiredScope) => {
+    return (req, res, next) => {
+        if (!req.user || req.user.role !== 'Admin') {
+            return res.status(403).json({
+                success: false,
+                error: { code: 'FORBIDDEN', message: 'Admin access required.' }
+            });
+        }
+
+        const userScope = req.user.admin_scope || 'Full';
+        if (userScope === 'Full' || userScope === requiredScope) {
+            return next();
+        }
+
+        return res.status(403).json({
+            success: false,
+            error: {
+                code: 'FORBIDDEN_SCOPE',
+                message: `Admin scope '${userScope}' is not authorized to access this resource.`
+            }
+        });
     };
 };
 

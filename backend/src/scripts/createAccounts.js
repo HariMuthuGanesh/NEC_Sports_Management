@@ -31,10 +31,12 @@ const ensureDepartmentsExist = async () => {
 };
 
 // Helper to create or update user account in MySQL
-const createOrUpdateUser = async ({ username, email, password, role, deptCode }) => {
+const createOrUpdateUser = async ({ username, email, password, role, deptCode, adminScope }) => {
   const conn = await pool.getConnection();
   try {
     const passwordHash = await bcrypt.hash(password, 10);
+    const scopeValue = role === 'Admin' ? (adminScope || 'Full') : null;
+
     const [existing] = await conn.query(
       'SELECT id FROM users WHERE username = ? OR email = ? LIMIT 1',
       [username, email]
@@ -44,17 +46,17 @@ const createOrUpdateUser = async ({ username, email, password, role, deptCode })
     if (existing[0]) {
       userId = existing[0].id;
       await conn.query(
-        'UPDATE users SET username = ?, email = ?, password_hash = ?, role = ?, is_active = 1 WHERE id = ?',
-        [username, email, passwordHash, role, userId]
+        'UPDATE users SET username = ?, email = ?, password_hash = ?, role = ?, admin_scope = ?, is_active = 1 WHERE id = ?',
+        [username, email, passwordHash, role, scopeValue, userId]
       );
-      console.log(`[OK] Updated existing account: ${username} (${email}) - Role: ${role}`);
+      console.log(`[OK] Updated existing account: ${username} (${email}) - Role: ${role} (Scope: ${scopeValue || 'N/A'})`);
     } else {
       const [res] = await conn.query(
-        'INSERT INTO users (username, email, password_hash, role, is_active) VALUES (?, ?, ?, ?, 1)',
-        [username, email, passwordHash, role]
+        'INSERT INTO users (username, email, password_hash, role, admin_scope, is_active) VALUES (?, ?, ?, ?, ?, 1)',
+        [username, email, passwordHash, role, scopeValue]
       );
       userId = res.insertId;
-      console.log(`[OK] Created new account: ${username} (${email}) - Role: ${role}`);
+      console.log(`[OK] Created new account: ${username} (${email}) - Role: ${role} (Scope: ${scopeValue || 'N/A'})`);
     }
 
     // Link coordinator user ID to department
@@ -88,14 +90,16 @@ const runPresetProvisioning = async () => {
     username: 'sys_admin',
     email: 'sys.admin@nec.edu.in',
     password: process.env.ADMIN_PASSWORD || defaultPassword,
-    role: 'Admin'
+    role: 'Admin',
+    adminScope: 'Full'
   });
 
   await createOrUpdateUser({
     username: 'sports_admin',
     email: 'sports.admin@nec.edu.in',
     password: process.env.SPORTS_ADMIN_PASSWORD || defaultPassword,
-    role: 'Admin'
+    role: 'Admin',
+    adminScope: 'CollegeTeamOnly'
   });
 
   // 2. Department Coordinator Accounts
@@ -123,8 +127,8 @@ const runPresetProvisioning = async () => {
   console.log('\n============================================================');
   console.log(' PROVISIONED CREDENTIALS SUMMARY');
   console.log('============================================================');
-  console.log(' Admin 1 (System Admin):   username = sys_admin     | pass = ' + defaultPassword);
-  console.log(' Admin 2 (Sports Admin):   username = sports_admin  | pass = ' + defaultPassword);
+  console.log(' Admin 1 (System Admin):   username = sys_admin     | Scope = Full            | pass = ' + defaultPassword);
+  console.log(' Admin 2 (Sports Admin):   username = sports_admin  | Scope = CollegeTeamOnly | pass = ' + defaultPassword);
   console.log(' Department Coordinators:  username = coord_cse, coord_ece, coord_mech...');
   console.log('                           pass = ' + defaultPassword);
   console.log('============================================================\n');
@@ -147,17 +151,41 @@ const runInteractiveMode = async () => {
     await ensureDepartmentsExist();
 
     console.log('Select Account Role:');
-    console.log('  1. System Administrator (Admin)');
-    console.log('  2. College Team & Sports Administrator (Admin)');
+    console.log('  1. System Administrator (Admin - Full Scope)');
+    console.log('  2. College Team & Sports Administrator (Admin - College Team Only)');
     console.log('  3. Department Coordinator (Coordinator)');
     console.log('  4. Team Captain (Captain)');
     console.log('  5. Student Athlete (Player)\n');
 
     const roleChoice = await question('Enter choice (1-5): ');
     let role = 'Admin';
-    if (roleChoice.trim() === '3') role = 'Coordinator';
-    else if (roleChoice.trim() === '4') role = 'Captain';
-    else if (roleChoice.trim() === '5') role = 'Player';
+    let adminScope = 'Full';
+
+    if (roleChoice.trim() === '1') {
+      role = 'Admin';
+      adminScope = 'Full';
+    } else if (roleChoice.trim() === '2') {
+      role = 'Admin';
+      adminScope = 'CollegeTeamOnly';
+    } else if (roleChoice.trim() === '3') {
+      role = 'Coordinator';
+    } else if (roleChoice.trim() === '4') {
+      role = 'Captain';
+    } else if (roleChoice.trim() === '5') {
+      role = 'Player';
+    }
+
+    if (role === 'Admin' && roleChoice.trim() !== '1' && roleChoice.trim() !== '2') {
+      console.log('\nSelect Admin Scope:');
+      console.log('  1. Full (System Admin)');
+      console.log('  2. CollegeTeamOnly (Sports Admin)');
+      const scopeChoice = await question('Enter scope choice (1-2, default 1): ');
+      if (scopeChoice.trim() === '2') {
+        adminScope = 'CollegeTeamOnly';
+      } else {
+        adminScope = 'Full';
+      }
+    }
 
     const username = await question('Enter Username: ');
     const email = await question('Enter Email: ');
@@ -179,10 +207,11 @@ const runInteractiveMode = async () => {
       email: email.trim(),
       password: password.trim(),
       role,
+      adminScope,
       deptCode: deptCode.trim().toUpperCase()
     });
 
-    console.log(`\n[SUCCESS] Successfully provisioned ${role} account for "${username}"!`);
+    console.log(`\n[SUCCESS] Successfully provisioned ${role} account for "${username}" (Scope: ${role === 'Admin' ? adminScope : 'N/A'})!`);
   } catch (err) {
     console.error('\n[ERROR] Account creation failed:', err);
   } finally {

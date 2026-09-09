@@ -1,5 +1,5 @@
 import express from 'express';
-import { protect, authorize } from '../middleware/authMiddleware.js';
+import { protect, authorize, requireAdminScope } from '../middleware/authMiddleware.js';
 import {
     getSports,
     getTournaments,
@@ -207,8 +207,8 @@ router.post('/my-squad/members', protect, authorize('Captain'), addSquadMember);
 router.delete('/my-squad/members/:studentId', protect, authorize('Captain'), removeSquadMember);
 
 // ── College Team Builder Routes (Real match_attendance Data) ──────────────
-router.get('/college-teams/:sportId/suggestions', protect, authorize('Admin'), getCollegeTeamSuggestionsV2);
-router.post('/college-teams/:sportId/confirm', protect, authorize('Admin'), confirmCollegeTeamV2);
+router.get('/college-teams/:sportId/suggestions', protect, authorize('Admin'), requireAdminScope('CollegeTeamOnly'), getCollegeTeamSuggestionsV2);
+router.post('/college-teams/:sportId/confirm', protect, authorize('Admin'), requireAdminScope('CollegeTeamOnly'), confirmCollegeTeamV2);
 
 export default router;
 
