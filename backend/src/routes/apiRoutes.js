@@ -72,6 +72,14 @@ import {
     getDepartmentTeams,
     getMyDepartmentTeam
 } from '../controllers/departmentTeamController.js';
+import {
+    assignDepartmentSportCaptain,
+    getMySquad,
+    addSquadMember,
+    removeSquadMember,
+    getCollegeTeamSuggestionsV2,
+    confirmCollegeTeamV2
+} from '../controllers/squadController.js';
 
 const router = express.Router();
 
@@ -190,17 +198,17 @@ router.get('/od/:requestId', protect, authorize('Admin', 'Coordinator'), getOdRe
 router.patch('/od/:requestId/approve', protect, authorize('Admin'), approveOdController);
 router.patch('/od/:requestId/reject', protect, authorize('Admin'), rejectOdController);
 
-// ── Department Teams & Role Hierarchy v2 Routes ───────────────────────────
-router.get('/department-teams', protect, authorize('Admin', 'Coordinator'), getDepartmentTeams);
-router.get('/department-teams/my', protect, authorize('TeamCaptain', 'Captain'), getMyDepartmentTeam);
-router.post('/department-teams', protect, authorize('Admin', 'Coordinator'), createDepartmentTeam);
-router.patch('/department-teams/:id/captain', protect, authorize('Admin', 'Coordinator'), assignDepartmentTeamCaptain);
-router.post('/department-teams/:id/players', protect, authorize('Admin', 'Coordinator', 'TeamCaptain', 'Captain'), addPlayerToDepartmentTeam);
-router.delete('/department-teams/:id/players/:playerId', protect, authorize('Admin', 'Coordinator', 'TeamCaptain', 'Captain'), removePlayerFromDepartmentTeam);
+// ── Department Sport Captains & Squad Routes ─────────────────────────────
+router.post('/department-sport-captains', protect, authorize('Coordinator'), assignDepartmentSportCaptain);
 
-// ── College Team Builder Routes ───────────────────────────────────────────
-router.get('/college-teams/:sportId/suggestions', protect, authorize('Admin'), getCollegeTeamSuggestions);
-router.post('/college-teams/:sportId/confirm', protect, authorize('Admin'), confirmCollegeTeam);
+// ── Captain Squad Routes ───────────────────────────────────────────────────
+router.get('/my-squad', protect, authorize('Captain'), getMySquad);
+router.post('/my-squad/members', protect, authorize('Captain'), addSquadMember);
+router.delete('/my-squad/members/:studentId', protect, authorize('Captain'), removeSquadMember);
+
+// ── College Team Builder Routes (Real match_attendance Data) ──────────────
+router.get('/college-teams/:sportId/suggestions', protect, authorize('Admin'), getCollegeTeamSuggestionsV2);
+router.post('/college-teams/:sportId/confirm', protect, authorize('Admin'), confirmCollegeTeamV2);
 
 export default router;
 
