@@ -241,3 +241,19 @@ export const odApi = {
   // Admin: reject with reason
   reject: (requestId, reason) => apiFetch(`/od/${requestId}/reject`, 'PATCH', { reason })
 };
+
+/* --- Department Teams & Role Hierarchy v2 API --- */
+export const departmentTeamsApi = {
+  getDepartmentTeams: () => apiFetch("/department-teams"),
+  getMyDepartmentTeam: () => apiFetch("/department-teams/my"),
+  createDepartmentTeam: (data) => apiFetch("/department-teams", "POST", data),
+  assignCaptain: (id, captainUserId) => apiFetch(`/department-teams/${id}/captain`, "PATCH", { captain_user_id: captainUserId }),
+  addPlayer: (id, playerUserId) => apiFetch(`/department-teams/${id}/players`, "POST", { player_user_id: playerUserId }),
+  removePlayer: (id, playerId) => apiFetch(`/department-teams/${id}/players/${playerId}`, "DELETE")
+};
+
+/* --- College Team Builder API --- */
+export const collegeTeamsApi = {
+  getSuggestions: (sportId) => apiFetch(`/college-teams/${sportId}/suggestions`),
+  confirmTeam: (sportId, players) => apiFetch(`/college-teams/${sportId}/confirm`, "POST", players)
+};

@@ -53,6 +53,9 @@ import PlayerNotifications from "./pages/player/PlayerNotifications";
 // Captain & Shared Pages
 import CaptainDashboard from "./pages/captain/CaptainDashboard";
 import TeamProfile from "./pages/shared/TeamProfile";
+import DepartmentTeams from "./pages/coordinator/DepartmentTeams";
+import MyRoster from "./pages/captain/MyRoster";
+import CollegeTeamBuilder from "./pages/admin/CollegeTeamBuilder";
 
 // Auth Pages
 import LoginPage from "./pages/auth/LoginPage";
@@ -160,6 +163,13 @@ function MainApp() {
         return <PublicAnnouncements onNavigate={(nav) => setActiveNav(nav)} />;
 
       // Protected Admin / Director of Physical Education Routes
+      case "admin_college_teams":
+      case "admin_college_team_builder":
+        return (
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={redirectNav}>
+            <CollegeTeamBuilder />
+          </ProtectedRoute>
+        );
       case "admin_dash":
         return (
           <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={redirectNav}>
@@ -247,6 +257,12 @@ function MainApp() {
         );
 
       // Protected Coordinator Routes
+      case "coord_dept_teams":
+        return (
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.COORDINATOR]} onRedirectPublic={redirectNav}>
+            <DepartmentTeams />
+          </ProtectedRoute>
+        );
       case "coord_dash":
         return (
           <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.COORDINATOR]} onRedirectPublic={redirectNav}>
@@ -293,6 +309,13 @@ function MainApp() {
         );
 
       // Protected Captain Routes
+      case "captain_roster":
+      case "captain_my_roster":
+        return (
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.CAPTAIN]} onRedirectPublic={redirectNav}>
+            <MyRoster />
+          </ProtectedRoute>
+        );
       case "captain_dash":
         return (
           <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.CAPTAIN]} onRedirectPublic={redirectNav}>
