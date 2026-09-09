@@ -16,6 +16,7 @@ export const ROLES = {
   PUBLIC: "Public Guest Portal",
   ADMIN: "Admin",
   COORDINATOR: "Coordinator",
+  CAPTAIN: "Captain",
   PLAYER: "Player",
 };
 

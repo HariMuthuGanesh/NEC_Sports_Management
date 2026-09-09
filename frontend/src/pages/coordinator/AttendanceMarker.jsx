@@ -53,11 +53,22 @@ export default function AttendanceMarker() {
     setAttendance(updated);
   };
 
-  const handleSaveAttendance = () => {
+  const [saving, setSaving] = useState(false);
+  const [successMsg, setSuccessMsg] = useState("");
+
+  const handleSaveAttendance = async () => {
     if (!selectedTeamId) return;
-    playersApi.saveSquadAttendance(selectedTeamId, attendance).then(() => {
-      alert(`Matchday attendance recorded! ${presentCount} / ${players.length} athletes present.`);
-    });
+    setSaving(true);
+    setSuccessMsg("");
+    try {
+      const res = await playersApi.saveSquadAttendance(selectedTeamId, attendance);
+      setSuccessMsg(`Matchday attendance recorded! ${presentCount} of ${players.length} athletes marked present.`);
+      setTimeout(() => setSuccessMsg(""), 4000);
+    } catch (err) {
+      alert("Failed to save squad attendance: " + err.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const presentCount = Object.values(attendance).filter(Boolean).length;
@@ -98,9 +109,16 @@ export default function AttendanceMarker() {
             </div>
           }
           footer={
-            <Button variant="primary" icon={Save} onClick={handleSaveAttendance}>
-              Save Matchday Attendance
-            </Button>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
+              {successMsg ? (
+                <span style={{ color: "var(--nec-success, #10b981)", fontWeight: 600, fontSize: "0.85rem" }}>
+                  ✓ {successMsg}
+                </span>
+              ) : <span />}
+              <Button variant="primary" icon={Save} onClick={handleSaveAttendance} loading={saving} disabled={saving || players.length === 0}>
+                {saving ? "Saving..." : "Save Matchday Attendance"}
+              </Button>
+            </div>
           }
         >
           <div className="nec-attendance-list">

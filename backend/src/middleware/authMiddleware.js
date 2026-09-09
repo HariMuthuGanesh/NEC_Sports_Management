@@ -43,9 +43,21 @@ export const protect = async (req, res, next) => {
             });
         }
 
-        // 4. Set user context
+        // 4. Set user context and resolve department if Coordinator/Student
         req.user = decoded;
         req.token = token;
+
+        if (req.user.role === 'Coordinator' && !req.user.dept_id) {
+            const [deptRows] = await pool.execute(
+                'SELECT id, code, name FROM departments WHERE coordinator_user_id = ? LIMIT 1',
+                [req.user.id]
+            );
+            if (deptRows[0]) {
+                req.user.dept_id = deptRows[0].id;
+                req.user.deptCode = deptRows[0].code;
+                req.user.dept = deptRows[0].code;
+            }
+        }
 
         return next();
     } catch (error) {

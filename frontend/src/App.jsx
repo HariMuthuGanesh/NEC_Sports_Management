@@ -50,6 +50,10 @@ import PlayerTeam from "./pages/player/PlayerTeam";
 import PlayerMatches from "./pages/player/PlayerMatches";
 import PlayerNotifications from "./pages/player/PlayerNotifications";
 
+// Captain & Shared Pages
+import CaptainDashboard from "./pages/captain/CaptainDashboard";
+import TeamProfile from "./pages/shared/TeamProfile";
+
 // Auth Pages
 import LoginPage from "./pages/auth/LoginPage";
 import SignUpPage from "./pages/auth/SignUpPage";
@@ -60,6 +64,7 @@ function MainApp() {
     switch (role) {
       case ROLES.ADMIN: return "admin_dash";
       case ROLES.COORDINATOR: return "coord_dash";
+      case ROLES.CAPTAIN: return "captain_dash";
       case ROLES.PLAYER: return "player_dash";
       default: return "public_home";
     }
@@ -87,14 +92,16 @@ function MainApp() {
   useEffect(() => {
     const role = currentUser?.role;
     // Don't redirect away from shared routes accessible to all roles
-    if (activeNav === "settings" || activeNav === "login" || activeNav === "signup") return;
-    if (role === ROLES.ADMIN && !activeNav.startsWith("admin_") && !activeNav.startsWith("public_")) {
+    if (activeNav === "settings" || activeNav === "login" || activeNav === "signup" || activeNav.startsWith("team_profile_")) return;
+    if (role === ROLES.ADMIN && !activeNav.startsWith("admin_") && !activeNav.startsWith("public_") && !activeNav.startsWith("team_")) {
       setActiveNav("admin_dash");
-    } else if (role === ROLES.COORDINATOR && !activeNav.startsWith("coord_") && !activeNav.startsWith("public_")) {
+    } else if (role === ROLES.COORDINATOR && !activeNav.startsWith("coord_") && !activeNav.startsWith("public_") && !activeNav.startsWith("team_")) {
       setActiveNav("coord_dash");
-    } else if (role === ROLES.PLAYER && !activeNav.startsWith("player_") && !activeNav.startsWith("public_")) {
+    } else if (role === ROLES.CAPTAIN && !activeNav.startsWith("captain_") && !activeNav.startsWith("public_") && !activeNav.startsWith("team_")) {
+      setActiveNav("captain_dash");
+    } else if (role === ROLES.PLAYER && !activeNav.startsWith("player_") && !activeNav.startsWith("public_") && !activeNav.startsWith("team_")) {
       setActiveNav("player_dash");
-    } else if (role === ROLES.PUBLIC && !activeNav.startsWith("public_")) {
+    } else if (role === ROLES.PUBLIC && !activeNav.startsWith("public_") && !activeNav.startsWith("team_")) {
       setActiveNav("public_home");
     }
   }, [currentUser?.role, activeNav]);
@@ -285,29 +292,37 @@ function MainApp() {
           </ProtectedRoute>
         );
 
+      // Protected Captain Routes
+      case "captain_dash":
+        return (
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.CAPTAIN]} onRedirectPublic={redirectNav}>
+            <CaptainDashboard onNavigate={(nav) => setActiveNav(nav)} />
+          </ProtectedRoute>
+        );
+
       // Protected Player Routes
       case "player_dash":
         return (
-          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.COORDINATOR, ROLES.PLAYER]} onRedirectPublic={redirectNav}>
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.COORDINATOR, ROLES.CAPTAIN, ROLES.PLAYER]} onRedirectPublic={redirectNav}>
             <PlayerDashboard onNavigate={(nav) => setActiveNav(nav)} />
           </ProtectedRoute>
         );
       case "player_team":
         return (
-          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.COORDINATOR, ROLES.PLAYER]} onRedirectPublic={redirectNav}>
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.COORDINATOR, ROLES.CAPTAIN, ROLES.PLAYER]} onRedirectPublic={redirectNav}>
             <PlayerTeam />
           </ProtectedRoute>
         );
       case "player_matches":
         return (
-          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.COORDINATOR, ROLES.PLAYER]} onRedirectPublic={redirectNav}>
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.COORDINATOR, ROLES.CAPTAIN, ROLES.PLAYER]} onRedirectPublic={redirectNav}>
             <PlayerMatches />
           </ProtectedRoute>
         );
       case "notifications":
       case "player_notifs":
         return (
-          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.COORDINATOR, ROLES.PLAYER]} onRedirectPublic={redirectNav}>
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.COORDINATOR, ROLES.CAPTAIN, ROLES.PLAYER]} onRedirectPublic={redirectNav}>
             <PlayerNotifications />
           </ProtectedRoute>
         );
@@ -322,12 +337,15 @@ function MainApp() {
       // Settings — accessible to all logged-in roles
       case "settings":
         return (
-          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.COORDINATOR, ROLES.PLAYER]} onRedirectPublic={redirectNav}>
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.COORDINATOR, ROLES.CAPTAIN, ROLES.PLAYER]} onRedirectPublic={redirectNav}>
             <SettingsPage onNavigate={(nav) => setActiveNav(nav)} />
           </ProtectedRoute>
         );
 
       default:
+        if (activeNav.startsWith("team_profile_")) {
+          return <TeamProfile />;
+        }
         return <PublicHome onNavigate={(nav) => setActiveNav(nav)} />;
     }
   };

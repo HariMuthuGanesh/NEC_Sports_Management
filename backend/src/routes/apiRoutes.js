@@ -9,9 +9,14 @@ import {
     deleteVenueController,
     getMatches,
     getDepartments,
+    createDepartmentController,
+    updateDepartmentController,
+    deleteDepartmentController,
+    getCoordinatorsListController,
     getAnnouncements,
     getLeaderboard,
     getEvents,
+    toggleEventStatusController,
     searchStudentsController,
     createStudentController,
     createTournamentController,
@@ -20,10 +25,30 @@ import {
     createSport,
     updateSport,
     deleteSport,
+    assignCaptainToSportController,
+    getTournamentMatchesController,
+    createTournamentMatchController,
+    getTournamentTeamsController,
     getStudentAttendanceController
 } from '../controllers/sportsController.js';
 import { createMatch, deleteMatch, updateScore } from '../controllers/matchController.js';
-import { addPlayerToTeam, createTeam, deleteTeam, getTeamPlayers, getTeams, removePlayer, updateTeamStatus } from '../controllers/teamController.js';
+import { 
+    addPlayerToTeam, 
+    createTeam, 
+    deleteTeam, 
+    getTeamPlayers, 
+    getTeams, 
+    removePlayer, 
+    updateTeamStatus,
+    getTeamDetailsController,
+    getCaptainTeamsController
+} from '../controllers/teamController.js';
+import { 
+    saveSquadAttendanceController, 
+    getTeamAttendanceController,
+    getDepartmentAttendanceController 
+} from '../controllers/attendanceController.js';
+import { getPerformanceReportController } from '../controllers/reportsController.js';
 import { validateScoreInput, validateTeamRegistration } from '../middleware/validatorMiddleware.js';
 import { getAuditEntries } from '../services/auditStore.js';
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from '../controllers/notificationController.js';
@@ -37,7 +62,6 @@ import {
     bulkApproveMatchOdController,
     getOdRequestController
 } from '../controllers/odController.js';
-
 
 const router = express.Router();
 
@@ -92,9 +116,12 @@ router.patch('/matches/:id/status', protect, authorize('Admin', 'Coordinator'), 
 
 // Teams listing (accessible to all, modifications protected)
 router.get('/teams', getTeams);
+router.get('/teams/:id', getTeamDetailsController);
 router.get('/teams/:id/players', protect, getTeamPlayers);
-router.post('/teams/:id/players', protect, authorize('Admin', 'Coordinator'), addPlayerToTeam);
-router.delete('/players/:id', protect, authorize('Admin', 'Coordinator'), removePlayer);
+router.post('/teams/:id/players', protect, authorize('Admin', 'Coordinator', 'Captain'), addPlayerToTeam);
+router.delete('/players/:id', protect, authorize('Admin', 'Coordinator', 'Captain'), removePlayer);
+router.get('/captain/teams', protect, authorize('Admin', 'Captain'), getCaptainTeamsController);
+
 router.get('/notifications', protect, getNotifications);
 router.patch('/notifications/:id/read', protect, markNotificationRead);
 router.patch('/notifications/read-all', protect, markAllNotificationsRead);
@@ -102,16 +129,37 @@ router.patch('/notifications/read-all', protect, markAllNotificationsRead);
 // Admin only endpoints
 router.post('/sports', protect, authorize('Admin'), createSport);
 router.put('/sports/:id', protect, authorize('Admin'), updateSport);
+router.put('/sports/:id/captain', protect, authorize('Admin'), assignCaptainToSportController);
 router.delete('/sports/:id', protect, authorize('Admin'), deleteSport);
 
 router.post('/tournaments', protect, authorize('Admin'), createTournamentController);
+router.get('/tournaments/:id/matches', getTournamentMatchesController);
+router.post('/tournaments/:id/matches', protect, authorize('Admin'), createTournamentMatchController);
+router.get('/tournaments/:id/teams', getTournamentTeamsController);
 
 router.post('/announcements', protect, authorize('Admin'), createAnnouncementController);
 router.delete('/announcements/:id', protect, authorize('Admin'), deleteAnnouncementController);
 
-router.post('/teams', protect, authorize('Admin', 'Coordinator'), validateTeamRegistration, createTeam);
+router.post('/teams', protect, authorize('Admin', 'Coordinator', 'Captain'), validateTeamRegistration, createTeam);
 router.put('/teams/:id/status', protect, authorize('Admin', 'Coordinator'), updateTeamStatus);
 router.delete('/teams/:id', protect, authorize('Admin', 'Coordinator'), deleteTeam);
+
+// Department CRUD & Coordinators (Admin)
+router.get('/coordinators', protect, authorize('Admin'), getCoordinatorsListController);
+router.post('/departments', protect, authorize('Admin'), createDepartmentController);
+router.put('/departments/:id', protect, authorize('Admin'), updateDepartmentController);
+router.delete('/departments/:id', protect, authorize('Admin'), deleteDepartmentController);
+
+// Events / Tournament Registration Control
+router.post('/events/:id/toggle', protect, authorize('Admin'), toggleEventStatusController);
+
+// Squad Matchday Attendance (Admin, Coordinator & Captain)
+router.post('/teams/:id/attendance', protect, authorize('Admin', 'Coordinator', 'Captain'), saveSquadAttendanceController);
+router.get('/teams/:id/attendance', protect, authorize('Admin', 'Coordinator', 'Captain'), getTeamAttendanceController);
+router.get('/departments/:id/attendance', protect, authorize('Admin', 'Coordinator'), getDepartmentAttendanceController);
+
+// Dynamic Institutional Performance Reports (Admin & Coordinator)
+router.get('/reports/performance', protect, authorize('Admin', 'Coordinator'), getPerformanceReportController);
 
 // ── OD (On Duty) Routes ────────────────────────────────────────────────────
 // Coordinator/Admin: batch-create OD for all rostered players in a match
@@ -133,3 +181,4 @@ router.patch('/od/:requestId/approve', protect, authorize('Admin'), approveOdCon
 router.patch('/od/:requestId/reject', protect, authorize('Admin'), rejectOdController);
 
 export default router;
+

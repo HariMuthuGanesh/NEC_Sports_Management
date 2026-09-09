@@ -12,8 +12,8 @@ import {
 import { getStudentByUserId } from '../models/sql/studentSqlModel.js';
 import { generateCsrfToken } from '../middleware/csrfMiddleware.js';
 
-const generateToken = (id, role, dept = 'All', tokenVersion = 0) => {
-    return jwt.sign({ id, role, dept, token_version: tokenVersion }, JWT_SECRET, {
+const generateToken = (id, role, dept = 'All', tokenVersion = 0, deptId = null) => {
+    return jwt.sign({ id, role, dept, dept_id: deptId, token_version: tokenVersion }, JWT_SECRET, {
         expiresIn: '24h',
         algorithm: 'HS256'
     });
@@ -28,6 +28,24 @@ const AUTH_COOKIE_OPTIONS = {
 
 // Timing-attack defense hash
 const DUMMY_HASH = bcrypt.hashSync('DummyPassword123!', 10);
+
+// Helper to resolve user department
+const resolveUserDepartment = async (user) => {
+    if (user.role === 'Coordinator') {
+        const [deptRows] = await pool.execute(
+            'SELECT id, name, code FROM departments WHERE coordinator_user_id = ? LIMIT 1',
+            [user.id]
+        );
+        if (deptRows[0]) {
+            return { deptId: deptRows[0].id, deptCode: deptRows[0].code, deptName: deptRows[0].name };
+        }
+    }
+    const student = await getStudentByUserId(user.id);
+    if (student) {
+        return { deptId: student.department_id, deptCode: student.department_code, deptName: student.department_name, student };
+    }
+    return { deptId: null, deptCode: 'Sports Office', deptName: 'Sports Directorate', student: null };
+};
 
 // 1. Manual Login
 export const loginUser = async (req, res, next) => {
@@ -55,12 +73,12 @@ export const loginUser = async (req, res, next) => {
             }
 
             await updateLastLogin(user.id);
-            const student = await getStudentByUserId(user.id);
+            const { deptId, deptCode, student } = await resolveUserDepartment(user);
 
             const [vRows] = await pool.execute('SELECT token_version FROM users WHERE id = ?', [user.id]);
             const tokenVersion = vRows[0]?.token_version ?? 0;
 
-            const token = generateToken(user.id, user.role, student?.department_code || 'Sports Office', tokenVersion);
+            const token = generateToken(user.id, user.role, deptCode || 'Sports Office', tokenVersion, deptId);
 
             res.cookie('token', token, AUTH_COOKIE_OPTIONS);
             return res.json({
@@ -70,6 +88,8 @@ export const loginUser = async (req, res, next) => {
                     username: user.username,
                     email: user.email,
                     role: user.role,
+                    dept: deptCode,
+                    deptId,
                     googleLinked: Boolean(user.google_linked),
                     studentProfile: student || null,
                     token
@@ -158,12 +178,12 @@ export const googleSignIn = async (req, res, next) => {
         }
 
         await updateLastLogin(user.id);
-        const student = await getStudentByUserId(user.id);
+        const { deptId, deptCode, student } = await resolveUserDepartment(user);
 
         const [vRows] = await pool.execute('SELECT token_version FROM users WHERE id = ?', [user.id]);
         const tokenVersion = vRows[0]?.token_version ?? 0;
 
-        const token = generateToken(user.id, user.role, student?.department_code || 'Sports Office', tokenVersion);
+        const token = generateToken(user.id, user.role, deptCode || 'Sports Office', tokenVersion, deptId);
         res.cookie('token', token, AUTH_COOKIE_OPTIONS);
 
         return res.json({
@@ -173,6 +193,8 @@ export const googleSignIn = async (req, res, next) => {
                 username: user.username,
                 email: user.email,
                 role: user.role,
+                dept: deptCode,
+                deptId,
                 googleLinked: true,
                 studentProfile: student || null,
                 token

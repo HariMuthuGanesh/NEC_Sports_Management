@@ -41,20 +41,23 @@ export default function ScoreEntry() {
     });
   };
 
-  const handleSubmitScore = (e) => {
+  const handleSubmitScore = async (e) => {
     e.preventDefault();
     if (!selectedMatch) return;
 
-    matchesApi.updateMatchScore(
-      selectedMatch.id,
-      scoreA,
-      scoreB,
-      detailScore,
-      isFinal
-    ).then(() => {
+    try {
+      await matchesApi.updateScore(
+        selectedMatch.id,
+        scoreA,
+        scoreB,
+        detailScore,
+        isFinal
+      );
       alert(isFinal ? "Match outcome finalized and submitted!" : "Live score updated successfully!");
       loadMatches();
-    });
+    } catch (err) {
+      alert("Failed to submit score: " + err.message);
+    }
   };
 
   return (

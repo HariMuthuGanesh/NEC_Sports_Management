@@ -89,20 +89,29 @@ const apiFetchFull = async (endpoint, method = 'GET', body = null) => {
 /* --- Sports & Departments API --- */
 export const sportsApi = {
   getDepartments: () => apiFetch("/departments"),
+  createDepartment: (deptData) => apiFetch("/departments", "POST", deptData),
+  updateDepartment: (deptId, deptData) => apiFetch(`/departments/${deptId}`, "PUT", deptData),
+  deleteDepartment: (deptId) => apiFetch(`/departments/${deptId}`, "DELETE"),
+  getCoordinators: () => apiFetch("/coordinators"),
   getSports: () => apiFetch("/sports"),
+  addSport: (sportData) => apiFetch("/sports", "POST", sportData),
+  updateSport: (sportId, sportData) => apiFetch(`/sports/${sportId}`, "PUT", sportData),
+  assignCaptain: (sportId, captainUserId) => apiFetch(`/sports/${sportId}/captain`, "PUT", { captainUserId }),
+  deleteSport: (sportId) => apiFetch(`/sports/${sportId}`, "DELETE"),
   getVenues: () => apiFetch("/venues"),
   createVenue: (venueData) => apiFetch("/venues", "POST", venueData),
   updateVenue: (venueId, venueData) => apiFetch(`/venues/${venueId}`, "PUT", venueData),
   deleteVenue: (venueId) => apiFetch(`/venues/${venueId}`, "DELETE"),
   saveVenues: (venues) => apiFetch("/venues", "POST", venues),
-  saveDepartments: (depts) => apiFetch("/departments", "POST", depts),
-  addSport: (sportData) => apiFetch("/sports", "POST", sportData),
-  deleteSport: (sportId) => apiFetch(`/sports/${sportId}`, "DELETE")
+  saveDepartments: (depts) => apiFetch("/departments", "POST", depts)
 };
 
 /* --- Tournaments & Events API --- */
 export const tournamentsApi = {
   getTournaments: () => apiFetch("/tournaments"),
+  getTournamentMatches: (tournamentId) => apiFetch(`/tournaments/${tournamentId}/matches`),
+  createTournamentMatch: (tournamentId, matchData) => apiFetch(`/tournaments/${tournamentId}/matches`, "POST", matchData),
+  getTournamentTeams: (tournamentId) => apiFetch(`/tournaments/${tournamentId}/teams`),
   getEvents: (tournamentId = null) => {
     return apiFetch("/events").then(events => tournamentId ? events.filter(e => e.tournamentId === tournamentId) : events);
   },
@@ -123,9 +132,20 @@ export const teamsApi = {
   getTeams: (deptId = null) => {
     return apiFetch("/teams").then(teams => deptId ? teams.filter(t => t.dept_id === deptId || t.deptId === deptId) : teams);
   },
+  getTeamDetails: (teamId) => apiFetch(`/teams/${teamId}`),
+  getCaptainTeams: () => apiFetch("/captain/teams"),
   registerTeam: (teamData) => apiFetch("/teams", "POST", teamData),
-  updateTeamStatus: (teamId, status) => apiFetch(`/teams/${teamId}/status`, "PUT", { status })
+  updateTeamStatus: (teamId, status) => apiFetch(`/teams/${teamId}/status`, "PUT", { status }),
+  deleteTeam: (teamId) => apiFetch(`/teams/${teamId}`, "DELETE")
 };
+
+/* --- Attendance API --- */
+export const attendanceApi = {
+  saveSquadAttendance: (teamId, attendanceMap, matchId = null) => apiFetch(`/teams/${teamId}/attendance`, "POST", { attendance: attendanceMap, matchId }),
+  getTeamAttendance: (teamId) => apiFetch(`/teams/${teamId}/attendance`),
+  getDepartmentAttendance: (deptId) => apiFetch(`/departments/${deptId}/attendance`)
+};
+
 
 /* --- Student Lookup API --- */
 export const studentLookupApi = {
@@ -140,7 +160,8 @@ export const playersApi = {
   getPlayersByTeam: (teamId) => apiFetch(`/teams/${teamId}/players`),
   addPlayerToTeam: (teamId, playerData) => apiFetch(`/teams/${teamId}/players`, "POST", playerData),
   removePlayer: (playerId) => apiFetch(`/players/${playerId}`, "DELETE"),
-  saveSquadAttendance: (teamId, attendanceMap) => apiFetch(`/teams/${teamId}/attendance`, "POST", { attendance: attendanceMap }),
+  saveSquadAttendance: (teamId, attendanceMap, matchId = null) => apiFetch(`/teams/${teamId}/attendance`, "POST", { attendance: attendanceMap, matchId }),
+  getSquadAttendance: (teamId) => apiFetch(`/teams/${teamId}/attendance`),
   // IMS attendance per student (by register number)
   getStudentAttendance: (registerNumber) => apiFetch(`/students/${encodeURIComponent(registerNumber)}/attendance`)
 };
@@ -153,7 +174,13 @@ export const matchesApi = {
   scheduleMatch: (matchData) => apiFetch("/matches", "POST", matchData),
   updateMatchStatus: (matchId, status) => apiFetch(`/matches/${matchId}/status`, "PATCH", { status }),
   deleteMatch: (matchId) => apiFetch(`/matches/${matchId}`, "DELETE"),
-  updateScore: (matchId, scoreA, scoreB, detailScore, isFinal) => apiFetch(`/matches/${matchId}/score`, "PATCH", { scoreA, scoreB, detailScore, isFinal })
+  updateScore: (matchId, scoreA, scoreB, detailScore, isFinal) => apiFetch(`/matches/${matchId}/score`, "PATCH", { scoreA, scoreB, detailScore, isFinal }),
+  updateMatchScore: (matchId, scoreA, scoreB, detailScore, isFinal) => apiFetch(`/matches/${matchId}/score`, "PATCH", { scoreA, scoreB, detailScore, isFinal })
+};
+
+/* --- Reports API --- */
+export const reportsApi = {
+  getPerformanceReport: (timeframe = '1month') => apiFetch(`/reports/performance?timeframe=${timeframe}`)
 };
 
 /* --- Leaderboard API --- */

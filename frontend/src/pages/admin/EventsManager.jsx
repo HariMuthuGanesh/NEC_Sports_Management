@@ -38,14 +38,13 @@ export default function EventsManager() {
     });
   };
 
-  const handleToggleRegistration = (eventId) => {
-    setEvents(prev => prev.map(ev => {
-      if (ev.id === eventId) {
-        const newStatus = ev.status === "Open" || ev.status === "Registration Open" ? "Closed" : "Open";
-        return { ...ev, status: newStatus };
-      }
-      return ev;
-    }));
+  const handleToggleRegistration = async (eventId) => {
+    try {
+      await tournamentsApi.toggleEventStatus(eventId);
+      await loadEvents();
+    } catch (err) {
+      alert("Failed to toggle registration status: " + err.message);
+    }
   };
 
   const handleCreateEvent = async (e) => {

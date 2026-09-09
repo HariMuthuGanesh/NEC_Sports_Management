@@ -18,30 +18,40 @@ export default function PlayerTeam() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const loadData = () => {
+  const loadData = async () => {
     setLoading(true);
     setError(null);
-    Promise.all([
-      teamsApi.getTeams(),
-      playersApi.getAllPlayers()
-    ]).then(([teams, playersResponse]) => {
+    try {
+      const teams = await teamsApi.getTeams();
+      const playersResponse = await playersApi.getAllPlayers();
       const players = Array.isArray(playersResponse) ? playersResponse : playersResponse.data || [];
-      const playerObj = players.find(p => p.name.toLowerCase().includes(playerName.toLowerCase()) || p.studentId === currentUser.id) || players[0];
+      const playerObj = players.find(p => 
+        (p.name && playerName && p.name.toLowerCase().includes(playerName.toLowerCase())) || 
+        p.studentId === currentUser.id ||
+        p.rollNo === currentUser.username
+      ) || players[0];
       setMyPlayerInfo(playerObj);
 
-      const teamObj = teams.find(t => t.id === playerObj?.teamId || t.deptCode === playerDept) || teams[0];
+      const teamObj = teams.find(t => 
+        t.id === playerObj?.teamId || 
+        t.team_id === playerObj?.teamId || 
+        (t.deptCode && playerDept && t.deptCode.toUpperCase() === playerDept.toUpperCase())
+      ) || teams[0];
       setMyTeam(teamObj);
 
       if (teamObj) {
-        setTeammates(players.filter(p => p.teamId === teamObj.id));
+        const teamId = teamObj.id || teamObj.team_id;
+        const roster = await playersApi.getPlayersByTeam(teamId);
+        setTeammates(Array.isArray(roster) ? roster : []);
+      } else {
+        setTeammates([]);
       }
-
       setLoading(false);
-    }).catch(err => {
-      console.error(err);
-      setError(err.message);
+    } catch (err) {
+      console.error("Error loading team data:", err);
+      setError(err.message || "Failed to load team roster");
       setLoading(false);
-    });
+    }
   };
 
   useEffect(() => {

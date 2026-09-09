@@ -37,9 +37,11 @@ export const createOdForMatchController = async (req, res, next) => {
 export const listOdRequestsController = async (req, res, next) => {
     try {
         const { status, tournamentId, q } = req.query;
+        const departmentId = req.user?.role === 'Coordinator' ? req.user.dept_id : null;
         const data = await getOdRequests({
             status: status || 'ALL',
             tournamentId: tournamentId ? Number(tournamentId) : null,
+            departmentId,
             query: q || ''
         });
         return res.json({ success: true, data });

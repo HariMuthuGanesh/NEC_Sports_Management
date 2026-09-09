@@ -18,6 +18,7 @@ export const createMatch = async (data) => {
         venue_name,
         scheduled_time,
         round = 'League',
+        pool: matchPool = 'Pool A',
         status = 'Scheduled'
     } = data;
 
@@ -53,8 +54,8 @@ export const createMatch = async (data) => {
     }
 
     const sql = `
-        INSERT INTO matches (tournament_id, sport_id, team_a_id, team_b_id, venue_id, scheduled_time, round, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO matches (tournament_id, sport_id, team_a_id, team_b_id, venue_id, scheduled_time, round, pool, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const [result] = await pool.execute(sql, [
         tournament_id,
@@ -64,6 +65,7 @@ export const createMatch = async (data) => {
         resolvedVenueId,
         scheduled_time,
         round,
+        matchPool,
         status
     ]);
     return result.insertId;
@@ -86,6 +88,7 @@ export const getAllMatches = async () => {
             m.scheduled_time,
             m.scheduled_time AS date,
             m.round,
+            COALESCE(m.pool, 'Pool A') AS pool,
             m.score_a,
             m.score_a AS scoreA,
             m.score_b,
@@ -93,6 +96,7 @@ export const getAllMatches = async () => {
             m.status,
             m.detail_score,
             m.detail_score AS detailScore,
+            m.winner_team_id,
             t1.name AS team_a_name,
             t1.name AS teamA,
             d1.code AS dept_a_code,
@@ -103,6 +107,9 @@ export const getAllMatches = async () => {
             d2.code AS deptB,
             v.name AS venue_name,
             v.name AS venue,
+            COALESCE(v.college_name, 'National Engineering College') AS college_name,
+            COALESCE(v.college_name, 'National Engineering College') AS ground,
+            v.is_external,
             s.name AS sport_name,
             s.name AS sport
         FROM matches m
@@ -118,6 +125,56 @@ export const getAllMatches = async () => {
     return rows;
 };
 
+export const getMatchesByTournament = async (tournamentId) => {
+    const sql = `
+        SELECT 
+            m.match_id,
+            m.match_id AS id,
+            m.tournament_id,
+            m.tournament_id AS tournamentId,
+            m.sport_id,
+            m.sport_id AS sportId,
+            m.scheduled_time,
+            m.scheduled_time AS date,
+            m.round,
+            COALESCE(m.pool, 'Pool A') AS pool,
+            m.score_a,
+            m.score_a AS scoreA,
+            m.score_b,
+            m.score_b AS scoreB,
+            m.status,
+            m.detail_score,
+            m.detail_score AS detailScore,
+            m.winner_team_id,
+            t1.name AS team_a_name,
+            t1.name AS teamA,
+            d1.code AS dept_a_code,
+            d1.code AS deptA,
+            t2.name AS team_b_name,
+            t2.name AS teamB,
+            d2.code AS dept_b_code,
+            d2.code AS deptB,
+            v.name AS venue_name,
+            v.name AS venue,
+            COALESCE(v.college_name, 'National Engineering College') AS college_name,
+            COALESCE(v.college_name, 'National Engineering College') AS ground,
+            v.is_external,
+            s.name AS sport_name,
+            s.name AS sport
+        FROM matches m
+        JOIN teams t1 ON m.team_a_id = t1.team_id
+        JOIN departments d1 ON t1.department_id = d1.id
+        JOIN teams t2 ON m.team_b_id = t2.team_id
+        JOIN departments d2 ON t2.department_id = d2.id
+        JOIN sports s ON m.sport_id = s.sport_id
+        LEFT JOIN venues v ON m.venue_id = v.venue_id
+        WHERE m.tournament_id = ?
+        ORDER BY m.pool ASC, m.scheduled_time ASC
+    `;
+    const [rows] = await pool.execute(sql, [tournamentId]);
+    return rows;
+};
+
 export const updateMatchScore = async ({ matchId, scoreA, scoreB, detailScore, status, winnerTeamId, updatedBy }) => {
     const sql = `
         UPDATE matches
@@ -127,3 +184,4 @@ export const updateMatchScore = async ({ matchId, scoreA, scoreB, detailScore, s
     const [result] = await pool.execute(sql, [scoreA, scoreB, detailScore, status, winnerTeamId, updatedBy, matchId]);
     return result.affectedRows > 0;
 };
+

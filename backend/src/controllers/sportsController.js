@@ -1,10 +1,24 @@
 import pool from '../config/db.js';
-import { getAllSports, createSport as createSportSql, updateSport as updateSportSql, deleteSport as deleteSportSql } from '../models/sql/sportSqlModel.js';
+import {
+    getAllSports,
+    createSport as createSportSql,
+    updateSport as updateSportSql,
+    deleteSport as deleteSportSql,
+    assignSportCaptain as assignSportCaptainSql
+} from '../models/sql/sportSqlModel.js';
 import { getAllTournaments, createTournament as createTournamentSql } from '../models/sql/tournamentSqlModel.js';
 import { getAllVenues, createVenue as createVenueSql, updateVenue as updateVenueSql, deleteVenue as deleteVenueSql } from '../models/sql/venueSqlModel.js';
-import { getAllMatches } from '../models/sql/matchSqlModel.js';
-import { getAllDepartments } from '../models/sql/departmentSqlModel.js';
+import { getAllMatches, getMatchesByTournament, createMatch as createMatchSql } from '../models/sql/matchSqlModel.js';
+import { getTeamsByTournament } from '../models/sql/teamSqlModel.js';
+import {
+    getAllDepartments,
+    createDepartmentSql,
+    updateDepartmentSql,
+    deleteDepartmentSql,
+    getAvailableCoordinators
+} from '../models/sql/departmentSqlModel.js';
 import { getAllAnnouncements, createAnnouncement as createAnnouncementSql, deleteAnnouncement as deleteAnnouncementSql } from '../models/sql/announcementSqlModel.js';
+import { notifyAdmins } from '../services/emailService.js';
 import bcrypt from 'bcryptjs';
 import {
     searchStudents as searchStudentsSql,
@@ -13,6 +27,7 @@ import {
     hasImsStudents,
     getImsAttendanceSummary
 } from '../models/sql/studentSqlModel.js';
+
 
 export const getSports = async (req, res, next) => {
     try {
@@ -86,6 +101,67 @@ export const getMatches = async (req, res, next) => {
 export const getDepartments = async (req, res, next) => {
     try {
         const data = await getAllDepartments();
+        return res.json({ success: true, data });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const createDepartmentController = async (req, res, next) => {
+    try {
+        const { name, code, hodName, hod, hodEmail, coordinatorUserId, coordinatorId, colorCode, color } = req.body;
+        if (!name || !code) {
+            return res.status(400).json({ success: false, error: { message: 'Department name and code are required.' } });
+        }
+        const deptId = await createDepartmentSql({
+            name,
+            code,
+            hodName: hodName || hod || null,
+            hodEmail: hodEmail || null,
+            coordinatorUserId: Number(coordinatorUserId || coordinatorId) || null,
+            colorCode: colorCode || color || '#3b82f6'
+        });
+        return res.status(201).json({ success: true, data: { id: deptId, ...req.body } });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const updateDepartmentController = async (req, res, next) => {
+    try {
+        const { name, code, hodName, hod, hodEmail, coordinatorUserId, coordinatorId, colorCode, color } = req.body;
+        const success = await updateDepartmentSql(req.params.id, {
+            name,
+            code,
+            hodName: hodName !== undefined ? hodName : hod,
+            hodEmail,
+            coordinatorUserId: coordinatorUserId !== undefined ? (Number(coordinatorUserId || coordinatorId) || null) : undefined,
+            colorCode: colorCode || color
+        });
+        if (!success) {
+            return res.status(404).json({ success: false, error: { message: 'Department not found.' } });
+        }
+        return res.json({ success: true, data: { id: Number(req.params.id), ...req.body } });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const deleteDepartmentController = async (req, res, next) => {
+    try {
+        const success = await deleteDepartmentSql(req.params.id);
+        if (!success) {
+            return res.status(404).json({ success: false, error: { message: 'Department not found.' } });
+        }
+        return res.json({ success: true, data: { message: 'Department deleted successfully.' } });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const getCoordinatorsListController = async (req, res, next) => {
+    try {
+        const data = await getAvailableCoordinators();
         return res.json({ success: true, data });
     } catch (err) {
         next(err);
@@ -168,6 +244,14 @@ export const getLeaderboard = async (req, res, next) => {
 export const getEvents = async (req, res, next) => {
     try {
         const tournaments = await getAllTournaments();
+        const [counts] = await pool.execute(
+            `SELECT tournament_id, COUNT(*) AS reg_count 
+             FROM teams 
+             GROUP BY tournament_id`
+        );
+        const countMap = {};
+        counts.forEach(c => { countMap[c.tournament_id] = c.reg_count; });
+
         const events = tournaments.map(t => ({
             id: `ev_${t.tournament_id}`,
             tournamentId: t.tournament_id,
@@ -175,12 +259,35 @@ export const getEvents = async (req, res, next) => {
             sportId: 'sp_general',
             category: 'Men & Women',
             eventCategory: t.tier || 'Inter-Department',
-            maxTeams: 8,
-            registeredTeams: 4,
+            maxTeams: 16,
+            registeredTeams: countMap[t.tournament_id] || 0,
             status: t.status === 'Upcoming' ? 'Open' : t.status === 'Ongoing' ? 'Ongoing' : 'Closed',
             regDeadline: t.start_date ? new Date(t.start_date).toISOString().split('T')[0] : '2026-09-20'
         }));
         return res.json({ success: true, data: events });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const toggleEventStatusController = async (req, res, next) => {
+    try {
+        const rawId = req.params.id;
+        const tournamentId = Number(rawId.replace('ev_', ''));
+        const [[tour]] = await pool.execute('SELECT status FROM tournaments WHERE tournament_id = ?', [tournamentId]);
+        if (!tour) {
+            return res.status(404).json({ success: false, error: { message: 'Event not found.' } });
+        }
+        const newStatus = tour.status === 'Upcoming' ? 'Completed' : 'Upcoming';
+        await pool.execute('UPDATE tournaments SET status = ? WHERE tournament_id = ?', [newStatus, tournamentId]);
+        return res.json({
+            success: true,
+            data: {
+                id: rawId,
+                tournamentId,
+                status: newStatus === 'Upcoming' ? 'Open' : 'Closed'
+            }
+        });
     } catch (err) {
         next(err);
     }
@@ -226,9 +333,9 @@ export const getStudentAttendanceController = async (req, res, next) => {
         // Compute overall attendance across all semesters
         const overall = rows.reduce(
             (acc, r) => ({
-                totalDays:   acc.totalDays   + (r.totalDays   || 0),
+                totalDays: acc.totalDays + (r.totalDays || 0),
                 presentDays: acc.presentDays + (r.presentDays || 0),
-                absentDays:  acc.absentDays  + (r.absentDays  || 0),
+                absentDays: acc.absentDays + (r.absentDays || 0),
             }),
             { totalDays: 0, presentDays: 0, absentDays: 0 }
         );
@@ -373,4 +480,70 @@ export const deleteAnnouncementController = async (req, res, next) => {
         next(err);
     }
 };
+
+export const assignCaptainToSportController = async (req, res, next) => {
+    try {
+        const sportId = Number(req.params.id);
+        const { captainUserId } = req.body;
+        if (!sportId) {
+            return res.status(400).json({ success: false, error: { message: "Valid sport ID is required" } });
+        }
+        await assignSportCaptainSql(sportId, captainUserId ? Number(captainUserId) : null);
+        return res.json({
+            success: true,
+            message: captainUserId ? "Sports Captain assigned successfully" : "Sports Captain unassigned"
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const getTournamentMatchesController = async (req, res, next) => {
+    try {
+        const tournamentId = Number(req.params.id);
+        if (!tournamentId) {
+            return res.status(400).json({ success: false, error: { message: "Valid tournament ID is required" } });
+        }
+        const data = await getMatchesByTournament(tournamentId);
+        return res.json({ success: true, data });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const createTournamentMatchController = async (req, res, next) => {
+    try {
+        const tournamentId = Number(req.params.id);
+        if (!tournamentId) {
+            return res.status(400).json({ success: false, error: { message: "Valid tournament ID is required" } });
+        }
+        const matchData = { ...req.body, tournament_id: tournamentId };
+        const matchId = await createMatchSql(matchData);
+        return res.status(201).json({
+            success: true,
+            data: { match_id: matchId, id: matchId, ...matchData }
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const getTournamentTeamsController = async (req, res, next) => {
+    try {
+        const tournamentId = Number(req.params.id);
+        if (!tournamentId) {
+            return res.status(400).json({ success: false, error: { message: "Valid tournament ID is required" } });
+        }
+
+        let data = await getTeamsByTournament(tournamentId);
+        if (req.user?.role === 'Coordinator' && req.user.dept_id) {
+            data = data.filter(team => Number(team.department_id ?? team.deptId ?? team.dept_id) === Number(req.user.dept_id));
+        }
+
+        return res.json({ success: true, data });
+    } catch (err) {
+        next(err);
+    }
+};
+
 

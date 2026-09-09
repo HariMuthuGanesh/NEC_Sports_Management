@@ -83,6 +83,19 @@ export default function Sidebar({ activeNav, onSelectNav, isOpen, onCloseMobile 
           }
         ];
 
+      case ROLES.CAPTAIN:
+        return [
+          { category: "Captain Portal", items: [{ id: "captain_dash", label: "Captain Workspace", icon: Trophy }] },
+          {
+            category: "Squad & Fixtures",
+            items: [
+              { id: "captain_dash", label: "My Sports Squad", icon: Users },
+              { id: "coord_matches", label: "Tournament Fixtures", icon: Calendar },
+              { id: "notifications", label: t.notifications || "Notifications", icon: Bell }
+            ]
+          }
+        ];
+
       case ROLES.PLAYER:
         return [
           { category: t.navPlayerPortal, items: [{ id: "player_dash", label: t.dashboard, icon: LayoutDashboard }] },

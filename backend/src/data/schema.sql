@@ -18,7 +18,7 @@ CREATE TABLE users (
   email VARCHAR(100) NOT NULL UNIQUE,
   password_hash VARCHAR(255) NOT NULL,
   google_linked TINYINT(1) NOT NULL DEFAULT 0,
-  role ENUM('Admin','Coordinator','Player') NOT NULL DEFAULT 'Player',
+  role ENUM('Admin','Coordinator','Captain','Player') NOT NULL DEFAULT 'Player',
   is_active TINYINT(1) DEFAULT 1,
   login_attempts INT DEFAULT 0,
   last_login_at DATETIME,
@@ -54,7 +54,9 @@ CREATE TABLE sports (
   min_players INT NOT NULL,
   max_players INT NOT NULL,
   points_rule VARCHAR(255),
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  captain_user_id INT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (captain_user_id) REFERENCES users(id)
 );
 
 CREATE TABLE venues (
@@ -63,6 +65,8 @@ CREATE TABLE venues (
   location VARCHAR(255),
   capacity INT,
   status ENUM('Available','Maintenance','Booked') NOT NULL DEFAULT 'Available',
+  is_external TINYINT(1) DEFAULT 0,
+  college_name VARCHAR(150) DEFAULT 'National Engineering College',
   incharge_user_id INT,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (incharge_user_id) REFERENCES users(id)
@@ -85,13 +89,32 @@ CREATE TABLE teams (
   department_id INT NOT NULL,
   sport_id INT NOT NULL,
   tournament_id INT NOT NULL,
+  captain_id INT,
   coach_name VARCHAR(100),
   jersey_color VARCHAR(50),
   status ENUM('Pending','Approved','Disqualified') DEFAULT 'Pending',
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (department_id) REFERENCES departments(id),
   FOREIGN KEY (sport_id) REFERENCES sports(sport_id),
-  FOREIGN KEY (tournament_id) REFERENCES tournaments(tournament_id)
+  FOREIGN KEY (tournament_id) REFERENCES tournaments(tournament_id),
+  FOREIGN KEY (captain_id) REFERENCES users(id)
+);
+
+CREATE TABLE department_sport_captains (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  department_id INT NOT NULL,
+  sport_id INT NOT NULL,
+  user_id INT NOT NULL,
+  assigned_by_user_id INT,
+  status ENUM('Active','Transferred','Removed','Archived') NOT NULL DEFAULT 'Active',
+  assigned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  changed_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  notes VARCHAR(255),
+  UNIQUE KEY uq_department_sport_active (department_id, sport_id, status),
+  FOREIGN KEY (department_id) REFERENCES departments(id),
+  FOREIGN KEY (sport_id) REFERENCES sports(sport_id),
+  FOREIGN KEY (user_id) REFERENCES users(id),
+  FOREIGN KEY (assigned_by_user_id) REFERENCES users(id)
 );
 
 CREATE TABLE team_members (
@@ -114,7 +137,8 @@ CREATE TABLE matches (
   team_b_id INT NOT NULL,
   venue_id INT,
   scheduled_time DATETIME NOT NULL,
-  round ENUM('League','Quarter-Final','Semi-Final','Final'),
+  round ENUM('League','Quarter-Final','Semi-Final','Final') DEFAULT 'League',
+  pool VARCHAR(20) DEFAULT 'Pool A',
   score_a INT DEFAULT 0,
   score_b INT DEFAULT 0,
   winner_team_id INT,
@@ -192,4 +216,18 @@ CREATE TABLE gallery (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (match_id) REFERENCES matches(match_id),
   FOREIGN KEY (uploaded_by) REFERENCES users(id)
+);
+
+CREATE TABLE match_attendance (
+  attendance_id INT PRIMARY KEY AUTO_INCREMENT,
+  team_id INT NOT NULL,
+  match_id INT,
+  student_id INT NOT NULL,
+  status ENUM('Present','Absent') NOT NULL DEFAULT 'Present',
+  marked_by INT NOT NULL,
+  recorded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (team_id) REFERENCES teams(team_id),
+  FOREIGN KEY (match_id) REFERENCES matches(match_id),
+  FOREIGN KEY (student_id) REFERENCES students(student_id),
+  FOREIGN KEY (marked_by) REFERENCES users(id)
 );

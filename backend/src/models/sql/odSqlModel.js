@@ -75,7 +75,7 @@ export const createOdForMatch = async (matchId, requestedByUserId) => {
  * Get all OD requests with enriched details.
  * Supports filtering by status, tournament, student name/register number.
  */
-export const getOdRequests = async ({ status, tournamentId, query } = {}) => {
+export const getOdRequests = async ({ status, tournamentId, departmentId, query } = {}) => {
     const conditions = [];
     const params = [];
 
@@ -86,6 +86,10 @@ export const getOdRequests = async ({ status, tournamentId, query } = {}) => {
     if (tournamentId) {
         conditions.push('o.tournament_id = ?');
         params.push(tournamentId);
+    }
+    if (departmentId) {
+        conditions.push('s.department_id = ?');
+        params.push(departmentId);
     }
     if (query) {
         const q = `%${query}%`;
