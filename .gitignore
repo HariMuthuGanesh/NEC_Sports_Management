@@ -2,6 +2,9 @@
 # 1. Documentation & Markdown Files
 # ==========================================
 *.md
+!.env.example
+!README.md
+!CLI_DATA_OPS.md
 .agents/
 Plan/
 
