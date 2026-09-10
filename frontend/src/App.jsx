@@ -56,6 +56,7 @@ import TeamProfile from "./pages/shared/TeamProfile";
 import DepartmentTeams from "./pages/coordinator/DepartmentTeams";
 import MyRoster from "./pages/captain/MyRoster";
 import CollegeTeamBuilder from "./pages/admin/CollegeTeamBuilder";
+import PresidentDashboard from "./pages/president/PresidentDashboard";
 
 // Auth Pages
 import LoginPage from "./pages/auth/LoginPage";
@@ -66,8 +67,10 @@ function MainApp() {
   const getDefaultNav = (role) => {
     switch (role) {
       case ROLES.ADMIN: return "admin_dash";
+      case ROLES.PRESIDENT: return "president_dash";
       case ROLES.COORDINATOR: return "coord_dash";
       case ROLES.CAPTAIN: return "captain_dash";
+      case ROLES.SCORE_UPDATER: return "coord_score_entry";
       case ROLES.PLAYER: return "player_dash";
       default: return "public_home";
     }
@@ -98,10 +101,14 @@ function MainApp() {
     if (activeNav === "settings" || activeNav === "login" || activeNav === "signup" || activeNav.startsWith("team_profile_")) return;
     if (role === ROLES.ADMIN && !activeNav.startsWith("admin_") && !activeNav.startsWith("public_") && !activeNav.startsWith("team_")) {
       setActiveNav("admin_dash");
+    } else if (role === ROLES.PRESIDENT && !activeNav.startsWith("president_") && activeNav !== "college_teams" && !activeNav.startsWith("public_") && !activeNav.startsWith("team_")) {
+      setActiveNav("president_dash");
     } else if (role === ROLES.COORDINATOR && !activeNav.startsWith("coord_") && !activeNav.startsWith("public_") && !activeNav.startsWith("team_")) {
       setActiveNav("coord_dash");
     } else if (role === ROLES.CAPTAIN && !activeNav.startsWith("captain_") && !activeNav.startsWith("public_") && !activeNav.startsWith("team_")) {
       setActiveNav("captain_dash");
+    } else if (role === ROLES.SCORE_UPDATER && activeNav !== "coord_score_entry" && !activeNav.startsWith("public_")) {
+      setActiveNav("coord_score_entry");
     } else if (role === ROLES.PLAYER && !activeNav.startsWith("player_") && !activeNav.startsWith("public_") && !activeNav.startsWith("team_")) {
       setActiveNav("player_dash");
     } else if (role === ROLES.PUBLIC && !activeNav.startsWith("public_") && !activeNav.startsWith("team_")) {
@@ -283,9 +290,23 @@ function MainApp() {
         );
       case "coord_matches":
         return <PublicFixtures departmentCode={currentUser?.dept} />;
+      case "president_dash":
+      case "president_od":
+        return (
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.PRESIDENT]} onRedirectPublic={redirectNav}>
+            <PresidentDashboard onSelectNav={(nav) => setActiveNav(nav)} />
+          </ProtectedRoute>
+        );
+      case "college_teams":
+        return (
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.PRESIDENT]} onRedirectPublic={redirectNav}>
+            <CollegeTeamBuilder />
+          </ProtectedRoute>
+        );
+
       case "coord_score_entry":
         return (
-          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.COORDINATOR]} onRedirectPublic={redirectNav}>
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.COORDINATOR, ROLES.SCORE_UPDATER]} onRedirectPublic={redirectNav}>
             <ScoreEntry />
           </ProtectedRoute>
         );

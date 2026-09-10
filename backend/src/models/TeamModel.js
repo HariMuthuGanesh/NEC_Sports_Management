@@ -6,10 +6,14 @@ const teamSchema = new mongoose.Schema({
         required: [true, 'Team name is required'],
         trim: true
     },
+    teamType: {
+        type: String,
+        enum: ['Inter-Department', 'Outer-College'],
+        default: 'Inter-Department'
+    },
     departmentId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Department',
-        required: true,
         index: true
     },
     sportId: {
@@ -21,12 +25,16 @@ const teamSchema = new mongoose.Schema({
     tournamentId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Tournament',
-        required: true,
+        index: true
+    },
+    eventId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Event',
         index: true
     },
     captainStudentId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Student'
+        ref: 'User'
     },
     coachName: String,
     jerseyColor: String,

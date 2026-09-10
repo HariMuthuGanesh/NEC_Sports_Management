@@ -73,13 +73,40 @@ export const protect = async (req, res, next) => {
 };
 
 export const authorize = (...roles) => {
+    const roleAliases = {
+        'Admin': ['Admin', 'Director of Physical Education', 'Sys-Admin', 'Sys Admin'],
+        'Director of Physical Education': ['Admin', 'Director of Physical Education', 'Sys-Admin', 'Sys Admin'],
+        'President': ['President', 'Sports President'],
+        'Sports President': ['President', 'Sports President'],
+        'Coordinator': ['Coordinator', 'Department Sports Coordinator', 'Department Coordinator'],
+        'Department Sports Coordinator': ['Coordinator', 'Department Sports Coordinator', 'Department Coordinator'],
+        'Team Captain': ['Team Captain', 'Captain'],
+        'Score Updater': ['Score Updater', 'Umpire'],
+        'Student': ['Student', 'Student Athlete', 'Player'],
+        'Player': ['Student', 'Student Athlete', 'Player']
+    };
+
     return (req, res, next) => {
-        if (!req.user || !roles.includes(req.user.role)) {
+        if (!req.user) {
+            return res.status(403).json({ 
+                success: false,
+                error: { code: 'FORBIDDEN', message: 'Not authorized: User unauthenticated.' }
+            });
+        }
+
+        const userRole = req.user.role;
+        const isAuthorized = roles.some(role => {
+            if (role === userRole) return true;
+            const aliases = roleAliases[role];
+            return aliases && aliases.includes(userRole);
+        });
+
+        if (!isAuthorized) {
             return res.status(403).json({ 
                 success: false,
                 error: { 
                     code: 'FORBIDDEN', 
-                    message: `User role '${req.user?.role || 'unauthenticated'}' is not authorized to access this resource.` 
+                    message: `User role '${userRole || 'unauthenticated'}' is not authorized to access this resource.` 
                 }
             });
         }

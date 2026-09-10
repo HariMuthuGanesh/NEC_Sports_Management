@@ -83,6 +83,32 @@ export default function Sidebar({ activeNav, onSelectNav, isOpen, onCloseMobile 
           }
         ];
 
+      case ROLES.PRESIDENT:
+        return [
+          { category: "President Portal", items: [{ id: "president_dash", label: "College Sports Overview", icon: LayoutDashboard }] },
+          {
+            category: "Outer-College Competitions",
+            items: [
+              { id: "college_teams", label: "Outer-College Teams", icon: Building2 },
+              { id: "admin_tournaments", label: "Tournaments & Events", icon: Calendar },
+              { id: "president_od", label: "OD Information Matrix", icon: FileText },
+              { id: "notifications", label: t.notifications || "Notifications", icon: Bell }
+            ]
+          }
+        ];
+
+      case ROLES.SCORE_UPDATER:
+        return [
+          { category: "Score Operations", items: [{ id: "coord_score_entry", label: "Live Score Desk", icon: Edit3 }] },
+          {
+            category: "Matches",
+            items: [
+              { id: "coord_matches", label: "All Scheduled & Ongoing", icon: Calendar },
+              { id: "notifications", label: t.notifications || "Notifications", icon: Bell }
+            ]
+          }
+        ];
+
       case ROLES.CAPTAIN:
         return [
           { category: "Captain Portal", items: [{ id: "captain_dash", label: "Captain Workspace", icon: Trophy }] },

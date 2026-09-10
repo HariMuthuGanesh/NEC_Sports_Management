@@ -4,6 +4,7 @@ import Department from './DepartmentModel.js';
 import Sport from './SportModel.js';
 import Venue from './VenueModel.js';
 import Tournament from './TournamentModel.js';
+import Event from './EventModel.js';
 import Team from './TeamModel.js';
 import TeamMember from './TeamMemberModel.js';
 import Match from './MatchModel.js';
@@ -20,6 +21,7 @@ export {
     Sport,
     Venue,
     Tournament,
+    Event,
     Team,
     TeamMember,
     Match,

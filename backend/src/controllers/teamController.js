@@ -237,6 +237,19 @@ export const addPlayerToTeam = async (req, res, next) => {
             }
         }
 
+        if (req.user?.role === 'Team Captain' || req.user?.role === 'Captain') {
+            const [teamRows] = await pool.execute('SELECT captain_id, sport_id FROM teams WHERE team_id = ? LIMIT 1', [teamId]);
+            if (teamRows[0] && Number(teamRows[0].captain_id) !== Number(req.user.id)) {
+                const [sportRows] = await pool.execute('SELECT captain_user_id FROM sports WHERE sport_id = ? LIMIT 1', [teamRows[0].sport_id]);
+                if (!sportRows[0] || Number(sportRows[0].captain_user_id) !== Number(req.user.id)) {
+                    return res.status(403).json({
+                        success: false,
+                        error: { message: 'As Team Captain, you can only manage players for your assigned sport team.' }
+                    });
+                }
+            }
+        }
+
         const { studentId, position = 'Player', jerseyNo = null } = req.body;
         const allowedRoles = ['Captain', 'Vice Captain', 'Player', 'Reserve', 'Goalkeeper'];
         const role = allowedRoles.includes(position) ? position : 'Player';

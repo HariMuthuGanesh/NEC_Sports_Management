@@ -1,0 +1,222 @@
+.nec-president-dashboard {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.nec-president-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.nec-president-header h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text-primary, #1e293b);
+}
+
+.nec-subtext {
+  margin: 4px 0 0 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary, #64748b);
+}
+
+.nec-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.nec-metric-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px;
+  border-radius: 12px;
+  background: var(--bg-surface, #ffffff);
+  border: 1px solid var(--border-color, #e2e8f0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+}
+
+.metric-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(59, 130, 246, 0.1);
+  color: #2563eb;
+}
+
+.nec-metric-card.success .metric-icon {
+  background: rgba(16, 185, 129, 0.1);
+  color: #059669;
+}
+
+.nec-metric-card.warning .metric-icon {
+  background: rgba(245, 158, 11, 0.1);
+  color: #d97706;
+}
+
+.nec-metric-card.info .metric-icon {
+  background: rgba(139, 92, 246, 0.1);
+  color: #7c3aed;
+}
+
+.metric-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.metric-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary, #64748b);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.metric-value {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--text-primary, #0f172a);
+}
+
+.nec-command-chain-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  background: linear-gradient(90deg, #eff6ff 0%, #e0f2fe 100%);
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: #1e40af;
+}
+
+.nec-card {
+  background: var(--bg-surface, #ffffff);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
+}
+
+.nec-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.nec-card-header h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary, #1e293b);
+}
+
+.nec-search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color, #cbd5e1);
+  border-radius: 8px;
+  background: var(--bg-input, #f8fafc);
+}
+
+.nec-search-box input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 0.875rem;
+  width: 220px;
+}
+
+.nec-table-responsive {
+  overflow-x: auto;
+}
+
+.nec-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.nec-table th,
+.nec-table td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color, #f1f5f9);
+}
+
+.nec-table th {
+  background: var(--bg-header, #f8fafc);
+  font-weight: 600;
+  color: var(--text-secondary, #475569);
+}
+
+.nec-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.nec-badge.dept {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.nec-badge.status-approved {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.nec-badge.status-pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.nec-badge.status-rejected {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.nec-btn-primary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.nec-btn-primary:hover {
+  background: #1d4ed8;
+}
+
+.nec-loading, .nec-empty {
+  padding: 30px;
+  text-align: center;
+  color: var(--text-secondary, #64748b);
+  font-size: 0.9rem;
+}

@@ -7,6 +7,11 @@ const matchSchema = new mongoose.Schema({
         required: true,
         index: true
     },
+    eventId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Event',
+        index: true
+    },
     sportId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Sport',
@@ -59,7 +64,12 @@ const matchSchema = new mongoose.Schema({
         enum: ['Scheduled', 'Ongoing', 'Completed', 'Postponed'],
         default: 'Scheduled'
     },
-    detailScore: String,
+    scoringMethod: {
+        type: String,
+        enum: ['Runs/Overs', 'Goals', 'Sets/Points', 'Points', 'Board_Points'],
+        default: 'Points'
+    },
+    detailScore: mongoose.Schema.Types.Mixed,
     updatedBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'

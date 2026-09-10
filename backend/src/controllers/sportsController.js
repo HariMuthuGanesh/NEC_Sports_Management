@@ -6,6 +6,7 @@ import {
     deleteSport as deleteSportSql,
     assignSportCaptain as assignSportCaptainSql
 } from '../models/sql/sportSqlModel.js';
+import { getAllEvents, createEventSql, updateEventStatusSql } from '../models/sql/eventSqlModel.js';
 import { getAllTournaments, createTournament as createTournamentSql } from '../models/sql/tournamentSqlModel.js';
 import { getAllVenues, createVenue as createVenueSql, updateVenue as updateVenueSql, deleteVenue as deleteVenueSql } from '../models/sql/venueSqlModel.js';
 import { getAllMatches, getMatchesByTournament, createMatch as createMatchSql } from '../models/sql/matchSqlModel.js';
@@ -545,5 +546,70 @@ export const getTournamentTeamsController = async (req, res, next) => {
         next(err);
     }
 };
+
+export const createSport = async (req, res, next) => {
+    try {
+        const sportId = await createSportSql(req.body);
+        return res.status(201).json({ success: true, data: { sport_id: sportId, id: sportId, ...req.body } });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const updateSport = async (req, res, next) => {
+    try {
+        const success = await updateSportSql(req.params.id, req.body);
+        if (!success) {
+            return res.status(404).json({ success: false, error: { message: "Sport not found" } });
+        }
+        return res.json({ success: true, data: { sport_id: req.params.id, id: req.params.id, ...req.body } });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const deleteSport = async (req, res, next) => {
+    try {
+        const success = await deleteSportSql(req.params.id);
+        if (!success) {
+            return res.status(404).json({ success: false, error: { message: "Sport not found" } });
+        }
+        return res.json({ success: true, data: { message: "Sport deleted successfully" } });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const getEvents = async (req, res, next) => {
+    try {
+        const data = await getAllEvents();
+        return res.json({ success: true, data });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const createEventController = async (req, res, next) => {
+    try {
+        const eventId = await createEventSql(req.body);
+        return res.status(201).json({ success: true, data: { event_id: eventId, id: eventId, ...req.body } });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const toggleEventStatusController = async (req, res, next) => {
+    try {
+        const { status } = req.body;
+        const success = await updateEventStatusSql(req.params.id, status || 'Closed');
+        if (!success) {
+            return res.status(404).json({ success: false, error: { message: "Event not found" } });
+        }
+        return res.json({ success: true, data: { message: `Event status updated to ${status}` } });
+    } catch (err) {
+        next(err);
+    }
+};
+
 
 

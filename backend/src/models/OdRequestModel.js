@@ -8,9 +8,26 @@ const odRequestSchema = new mongoose.Schema({
         index: true
     },
     tournamentId: {
-        type: mongoose.Schema.Types.ObjectId, // Will link to Tournament model once created
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Tournament',
         required: true
     },
+    eventId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Event'
+    },
+    departmentId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Department'
+    },
+    generatedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    },
+    notifiedTo: [{
+        type: String,
+        enum: ['Admin', 'President', 'PET Sir']
+    }],
     fromDate: {
         type: Date,
         required: true

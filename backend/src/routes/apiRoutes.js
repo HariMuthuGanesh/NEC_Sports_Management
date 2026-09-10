@@ -109,8 +109,8 @@ router.delete('/venues/:id', protect, authorize('Admin'), deleteVenueController)
 
 // Match score update — Admin and Coordinator only, winner resolved server-side
 // Accept both PUT (legacy) and PATCH (frontend uses PATCH)
-router.put('/matches/:id/score', protect, authorize('Admin', 'Coordinator'), validateScoreInput, updateScore);
-router.patch('/matches/:id/score', protect, authorize('Admin', 'Coordinator'), validateScoreInput, updateScore);
+router.put('/matches/:id/score', protect, authorize('Admin', 'Coordinator', 'Score Updater'), validateScoreInput, updateScore);
+router.patch('/matches/:id/score', protect, authorize('Admin', 'Coordinator', 'Score Updater'), validateScoreInput, updateScore);
 
 // Match CRUD — schedule, cancel, update status
 router.post('/matches', protect, authorize('Admin', 'Coordinator'), createMatch);
@@ -190,8 +190,8 @@ router.post('/od/match/:matchId/bulk-approve', protect, authorize('Admin'), bulk
 // Player: own OD requests (must be before /:requestId)
 router.get('/od/my', protect, getMyOdRequestsController);
 
-// Admin: list all OD requests with filters
-router.get('/od', protect, authorize('Admin', 'Coordinator'), listOdRequestsController);
+// Admin/President/Coordinator: list all OD requests with filters
+router.get('/od', protect, authorize('Admin', 'Coordinator', 'President'), listOdRequestsController);
 // Admin/Coordinator: get single OD request by ID
 router.get('/od/:requestId', protect, authorize('Admin', 'Coordinator'), getOdRequestController);
 // Admin: approve / reject

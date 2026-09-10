@@ -26,7 +26,10 @@ const userSchema = new mongoose.Schema({
         type: String,
         enum: [
             'Director of Physical Education',
+            'Sports President',
             'Department Sports Coordinator',
+            'Team Captain',
+            'Score Updater',
             'Student Athlete',
             'Public Guest Portal'
         ],

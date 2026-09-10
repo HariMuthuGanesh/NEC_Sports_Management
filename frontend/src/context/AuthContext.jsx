@@ -15,8 +15,10 @@ const AuthContext = createContext();
 export const ROLES = {
   PUBLIC: "Public Guest Portal",
   ADMIN: "Admin",
+  PRESIDENT: "Sports President",
   COORDINATOR: "Coordinator",
   CAPTAIN: "Captain",
+  SCORE_UPDATER: "Score Updater",
   PLAYER: "Player",
 };
 
