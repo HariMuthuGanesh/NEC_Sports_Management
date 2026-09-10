@@ -1,33 +1,16 @@
-import User from './UserModel.js';
-import Student from './StudentModel.js';
-import Department from './DepartmentModel.js';
-import Sport from './SportModel.js';
-import Venue from './VenueModel.js';
-import Tournament from './TournamentModel.js';
-import Event from './EventModel.js';
-import Team from './TeamModel.js';
-import TeamMember from './TeamMemberModel.js';
-import Match from './MatchModel.js';
-import Announcement from './AnnouncementModel.js';
-import OdRequest from './OdRequestModel.js';
-import AuditLog from './AuditLogModel.js';
-import AIChatSession from './AIChatSessionModel.js';
-import AIMessage from './AIMessageModel.js';
-
-export {
-    User,
-    Student,
-    Department,
-    Sport,
-    Venue,
-    Tournament,
-    Event,
-    Team,
-    TeamMember,
-    Match,
-    Announcement,
-    OdRequest,
-    AuditLog,
-    AIChatSession,
-    AIMessage
-};
+/**
+ * Central exporter for active MySQL SQL Data Models
+ */
+export * from './sql/userSqlModel.js';
+export * from './sql/studentSqlModel.js';
+export * from './sql/departmentSqlModel.js';
+export * from './sql/sportSqlModel.js';
+export * from './sql/tournamentSqlModel.js';
+export * from './sql/eventSqlModel.js';
+export * from './sql/teamSqlModel.js';
+export * from './sql/matchSqlModel.js';
+export * from './sql/odSqlModel.js';
+export * from './sql/announcementSqlModel.js';
+export * from './sql/venueSqlModel.js';
+export * from './sql/attendanceSqlModel.js';
+export * from './sql/notificationSqlModel.js';
