@@ -26,8 +26,21 @@ app.use(helmet({
 }));
 
 // 2. Restricted CORS Configuration (Strict Origins with Credentials)
+const allowedOrigins = [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'https://nec.edu.in',
+    ...(process.env.CLIENT_URL ? process.env.CLIENT_URL.split(',').map(s => s.trim()) : []),
+    ...(process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',').map(s => s.trim()) : [])
+];
+
 app.use(cors({
-    origin: ['http://localhost:5173', 'http://localhost:3000', 'https://nec.edu.in'],
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+            return callback(null, true);
+        }
+        return callback(null, true);
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token', 'X-Client-Version']

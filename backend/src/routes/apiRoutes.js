@@ -16,6 +16,7 @@ import {
     getAnnouncements,
     getLeaderboard,
     getEvents,
+    createEventController,
     toggleEventStatusController,
     searchStudentsController,
     createStudentController,
@@ -169,6 +170,7 @@ router.put('/departments/:id', protect, authorize('Admin'), updateDepartmentCont
 router.delete('/departments/:id', protect, authorize('Admin'), deleteDepartmentController);
 
 // Events / Tournament Registration Control
+router.post('/events', protect, authorize('Admin'), createEventController);
 router.post('/events/:id/toggle', protect, authorize('Admin'), toggleEventStatusController);
 
 // Squad Matchday Attendance (Admin, Coordinator & Captain)

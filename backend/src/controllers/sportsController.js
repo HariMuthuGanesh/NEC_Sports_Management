@@ -181,7 +181,7 @@ export const getAnnouncements = async (req, res, next) => {
 export const createSport = async (req, res, next) => {
     try {
         const sportId = await createSportSql(req.body);
-        return res.status(201).json({ success: true, data: { sport_id: sportId, ...req.body } });
+        return res.status(201).json({ success: true, data: { sport_id: sportId, id: sportId, ...req.body } });
     } catch (err) {
         next(err);
     }
@@ -193,7 +193,7 @@ export const updateSport = async (req, res, next) => {
         if (!success) {
             return res.status(404).json({ success: false, error: { message: "Sport not found" } });
         }
-        return res.json({ success: true, data: { sport_id: req.params.id, ...req.body } });
+        return res.json({ success: true, data: { sport_id: req.params.id, id: req.params.id, ...req.body } });
     } catch (err) {
         next(err);
     }
@@ -244,28 +244,17 @@ export const getLeaderboard = async (req, res, next) => {
 
 export const getEvents = async (req, res, next) => {
     try {
-        const tournaments = await getAllTournaments();
-        const [counts] = await pool.execute(
-            `SELECT tournament_id, COUNT(*) AS reg_count 
-             FROM teams 
-             GROUP BY tournament_id`
-        );
-        const countMap = {};
-        counts.forEach(c => { countMap[c.tournament_id] = c.reg_count; });
+        const data = await getAllEvents();
+        return res.json({ success: true, data });
+    } catch (err) {
+        next(err);
+    }
+};
 
-        const events = tournaments.map(t => ({
-            id: `ev_${t.tournament_id}`,
-            tournamentId: t.tournament_id,
-            title: t.name,
-            sportId: 'sp_general',
-            category: 'Men & Women',
-            eventCategory: t.tier || 'Inter-Department',
-            maxTeams: 16,
-            registeredTeams: countMap[t.tournament_id] || 0,
-            status: t.status === 'Upcoming' ? 'Open' : t.status === 'Ongoing' ? 'Ongoing' : 'Closed',
-            regDeadline: t.start_date ? new Date(t.start_date).toISOString().split('T')[0] : '2026-09-20'
-        }));
-        return res.json({ success: true, data: events });
+export const createEventController = async (req, res, next) => {
+    try {
+        const eventId = await createEventSql(req.body);
+        return res.status(201).json({ success: true, data: { event_id: eventId, id: eventId, ...req.body } });
     } catch (err) {
         next(err);
     }
@@ -274,21 +263,19 @@ export const getEvents = async (req, res, next) => {
 export const toggleEventStatusController = async (req, res, next) => {
     try {
         const rawId = req.params.id;
-        const tournamentId = Number(rawId.replace('ev_', ''));
-        const [[tour]] = await pool.execute('SELECT status FROM tournaments WHERE tournament_id = ?', [tournamentId]);
-        if (!tour) {
+        const { status } = req.body || {};
+        const isEvPrefix = typeof rawId === 'string' && rawId.startsWith('ev_');
+        const parsedId = isEvPrefix ? Number(rawId.replace('ev_', '')) : Number(rawId);
+
+        let success = false;
+        if (!isNaN(parsedId)) {
+            success = await updateEventStatusSql(parsedId, status || 'Closed');
+        }
+
+        if (!success) {
             return res.status(404).json({ success: false, error: { message: 'Event not found.' } });
         }
-        const newStatus = tour.status === 'Upcoming' ? 'Completed' : 'Upcoming';
-        await pool.execute('UPDATE tournaments SET status = ? WHERE tournament_id = ?', [newStatus, tournamentId]);
-        return res.json({
-            success: true,
-            data: {
-                id: rawId,
-                tournamentId,
-                status: newStatus === 'Upcoming' ? 'Open' : 'Closed'
-            }
-        });
+        return res.json({ success: true, data: { message: `Event status updated to ${status || 'Closed'}` } });
     } catch (err) {
         next(err);
     }
@@ -546,70 +533,5 @@ export const getTournamentTeamsController = async (req, res, next) => {
         next(err);
     }
 };
-
-export const createSport = async (req, res, next) => {
-    try {
-        const sportId = await createSportSql(req.body);
-        return res.status(201).json({ success: true, data: { sport_id: sportId, id: sportId, ...req.body } });
-    } catch (err) {
-        next(err);
-    }
-};
-
-export const updateSport = async (req, res, next) => {
-    try {
-        const success = await updateSportSql(req.params.id, req.body);
-        if (!success) {
-            return res.status(404).json({ success: false, error: { message: "Sport not found" } });
-        }
-        return res.json({ success: true, data: { sport_id: req.params.id, id: req.params.id, ...req.body } });
-    } catch (err) {
-        next(err);
-    }
-};
-
-export const deleteSport = async (req, res, next) => {
-    try {
-        const success = await deleteSportSql(req.params.id);
-        if (!success) {
-            return res.status(404).json({ success: false, error: { message: "Sport not found" } });
-        }
-        return res.json({ success: true, data: { message: "Sport deleted successfully" } });
-    } catch (err) {
-        next(err);
-    }
-};
-
-export const getEvents = async (req, res, next) => {
-    try {
-        const data = await getAllEvents();
-        return res.json({ success: true, data });
-    } catch (err) {
-        next(err);
-    }
-};
-
-export const createEventController = async (req, res, next) => {
-    try {
-        const eventId = await createEventSql(req.body);
-        return res.status(201).json({ success: true, data: { event_id: eventId, id: eventId, ...req.body } });
-    } catch (err) {
-        next(err);
-    }
-};
-
-export const toggleEventStatusController = async (req, res, next) => {
-    try {
-        const { status } = req.body;
-        const success = await updateEventStatusSql(req.params.id, status || 'Closed');
-        if (!success) {
-            return res.status(404).json({ success: false, error: { message: "Event not found" } });
-        }
-        return res.json({ success: true, data: { message: `Event status updated to ${status}` } });
-    } catch (err) {
-        next(err);
-    }
-};
-
 
 
