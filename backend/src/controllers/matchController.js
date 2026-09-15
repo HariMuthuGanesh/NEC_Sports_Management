@@ -37,6 +37,14 @@ export const createMatch = async (req, res, next) => {
             return res.status(400).json({ success: false, error: { code: 'MISSING_FIELDS', message: 'scheduled_time or date is required.' } });
         }
 
+        // Guard: a team cannot play against itself
+        if (team_a_id && team_b_id && String(team_a_id) === String(team_b_id)) {
+            return res.status(400).json({
+                success: false,
+                error: { code: 'SAME_TEAM', message: 'A team cannot play against itself.' }
+            });
+        }
+
         const matchId = await createMatchSql({
             tournament_id: tournament_id || null,
             sport_id: sport_id || null,

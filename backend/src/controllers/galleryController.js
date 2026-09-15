@@ -74,8 +74,11 @@ export const getGallery = async (req, res) => {
 
         res.json({ success: true, data: mappedData });
     } catch (error) {
-        console.error('Error fetching gallery from DB, serving fallback:', error.message || error);
-        res.json({ success: true, data: FALLBACK_GALLERY });
+        console.error('Error fetching gallery from DB:', error.message || error);
+        return res.status(500).json({
+            success: false,
+            error: { message: 'Failed to load gallery. Please check the database connection.' }
+        });
     }
 };
 
@@ -111,15 +114,23 @@ export const uploadMedia = async (req, res) => {
     }
 };
 
-// @desc    Update media details (stub for title/sport if we add it later)
+// @desc    Update media details (stub — schema does not yet store title/sport)
 // @route   PUT /api/gallery/:id
 // @access  Protected (Admin, Coordinator)
 export const updateMedia = async (req, res) => {
     try {
         const { id } = req.params;
-        // The table currently doesn't store title/sport. 
-        // We just return success. If schema is updated, we would update DB here.
-        res.json({ success: true, message: 'Media updated successfully' });
+        // Verify the record exists before claiming success
+        const [rows] = await db.execute('SELECT gallery_id FROM gallery WHERE gallery_id = ?', [id]);
+        if (rows.length === 0) {
+            return res.status(404).json({ success: false, error: { message: 'Media item not found.' } });
+        }
+        // The gallery table currently has no title/sport columns.
+        // Return 501 so callers know the update is not yet persisted.
+        return res.status(501).json({
+            success: false,
+            error: { message: 'Gallery item update is not yet implemented. The schema does not store title or sport metadata.' }
+        });
     } catch (error) {
         console.error('Error updating media:', error);
         res.status(500).json({ success: false, message: 'Failed to update media' });

@@ -47,7 +47,8 @@ export default function Sidebar({ activeNav, onSelectNav, isOpen, onCloseMobile 
               { id: "admin_students", label: "Student Registry", icon: UserCheck },
               { id: "admin_depts", label: "Departments", icon: Building2 },
               { id: "admin_matches", label: t.matchScheduler, icon: Calendar },
-              { id: "admin_venues", label: t.venues, icon: MapPin }
+              { id: "admin_venues", label: t.venues, icon: MapPin },
+              { id: "admin_od", label: "On Duty Requests", icon: FileText }
             ]
           },
           {
@@ -78,7 +79,8 @@ export default function Sidebar({ activeNav, onSelectNav, isOpen, onCloseMobile 
             items: [
               { id: "coord_score_entry", label: t.scoreEntry, icon: Edit3 },
               { id: "coord_attendance", label: t.squadAttendance, icon: UserCheck },
-              { id: "coord_media", label: t.mediaUpload, icon: Image }
+              { id: "coord_media", label: t.mediaUpload, icon: Image },
+              { id: "coord_od", label: "On Duty Requests", icon: FileText }
             ]
           }
         ];

@@ -26,7 +26,7 @@ export default function PublicHome({ onNavigate }) {
         leaderboardApi.getLeaderboard(),
         announcementsApi.getAll()
       ]);
-      setLiveMatches(matches.filter(m => m.status === "Live"));
+      setLiveMatches(matches.filter(m => m.status === "Ongoing"));
       setLeaderboard(board.slice(0, 5));
       setAnnouncements(anns.slice(0, 3));
     } catch (err) {

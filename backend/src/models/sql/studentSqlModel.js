@@ -191,10 +191,15 @@ export const searchStudentsFromIms = async (query) => {
  * Returns true if IMS is populated, false if empty.
  */
 export const hasImsStudents = async () => {
-    const [[{ count }]] = await pool.execute(
-        'SELECT COUNT(*) AS count FROM ims.personal_information'
-    );
-    return count > 0;
+    try {
+        const [[{ count }]] = await pool.execute(
+            'SELECT COUNT(*) AS count FROM ims.personal_information'
+        );
+        return count > 0;
+    } catch {
+        // IMS schema unavailable — fall back to local sportsdb student search
+        return false;
+    }
 };
 
 /**

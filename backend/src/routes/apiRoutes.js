@@ -81,8 +81,13 @@ import {
     getCollegeTeamSuggestionsV2,
     confirmCollegeTeamV2
 } from '../controllers/squadController.js';
+import { doubleCsrfProtection } from '../middleware/csrfMiddleware.js';
 
 const router = express.Router();
+
+// CSRF protection on all state-changing routes (POST/PUT/PATCH/DELETE).
+// GET/HEAD/OPTIONS are automatically excluded via ignoredMethods in csrfMiddleware.js.
+router.use(doubleCsrfProtection);
 
 router.get('/admin/audit-log', protect, authorize('Admin'), (req, res) => {
     return res.json({ success: true, data: getAuditEntries(req.query.limit) });

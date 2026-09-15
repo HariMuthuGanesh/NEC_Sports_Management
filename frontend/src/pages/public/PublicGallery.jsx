@@ -38,7 +38,18 @@ export default function PublicGallery({ onNavigate }) {
         <p className="nec-page-desc">Photos and moments from campus sports events, tournaments, and practice sessions.</p>
       </div>
 
-      {(error || (!loading && items.length === 0)) ? (
+      {error ? (
+        // Real DB / network failure — show a clearly-labeled error, not "nothing uploaded yet"
+        <div style={{ padding: "40px", textAlign: "center" }}>
+          <PublicInfoCard
+            icon={ImageIcon}
+            title="Gallery Unavailable"
+            message="The gallery could not be loaded due to a server error. Please try again later."
+            actionText="Retry"
+            onAction={fetchGallery}
+          />
+        </div>
+      ) : (!loading && items.length === 0) ? (
         <PublicInfoCard
           icon={ImageIcon}
           title="Sports Gallery"

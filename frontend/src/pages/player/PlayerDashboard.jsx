@@ -39,7 +39,7 @@ export default function PlayerDashboard({ onNavigate }) {
         (teamObj && (m.teamA === teamObj.name || m.teamB === teamObj.name)) ||
         m.deptA === playerDept || m.deptB === playerDept
       );
-      setNextMatch(filteredMatches.find(m => m.status === "Scheduled" || m.status === "Live") || filteredMatches[0]);
+      setNextMatch(filteredMatches.find(m => m.status === "Scheduled" || m.status === "Ongoing") || filteredMatches[0]);
       setLoading(false);
     }).catch(err => {
       console.error(err);

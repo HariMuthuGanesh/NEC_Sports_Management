@@ -14,11 +14,30 @@ export const getSecurityHeaders = () => {
     "Content-Type": "application/json",
     "Authorization": token ? `Bearer ${token}` : "",
     "X-Client-Version": "1.0.0",
+    "X-CSRF-Token": sessionStorage.getItem('nec_csrf_token') || "",
   };
 };
 
+// Fetch a CSRF token from the server and cache it in sessionStorage.
+// Must be called once on app mount before any state-changing request.
+export const initCsrf = async () => {
+  try {
+    const res = await fetch(`${API_URL}/auth/csrf-token`, { credentials: 'include' });
+    const json = await res.json();
+    if (json?.data?.csrfToken) {
+      sessionStorage.setItem('nec_csrf_token', json.data.csrfToken);
+    }
+  } catch {
+    // Non-fatal: requests will simply send an empty token and the server
+    // will reject mutating calls until a valid token is obtained on retry.
+    console.warn('[CSRF] Failed to fetch CSRF token on init.');
+  }
+};
+
 // Strict API fetcher: Primary fetch to backend API with NO fallback
-const apiFetch = async (endpoint, method = 'GET', body = null) => {
+// Exported so auth pages (SignUpPage, LoginPage) can make unauthenticated calls
+// to /auth/* routes before a JWT is available.
+export const apiFetch = async (endpoint, method = 'GET', body = null) => {
   try {
     const headers = getSecurityHeaders();
     const controller = new AbortController();
@@ -256,4 +275,9 @@ export const departmentTeamsApi = {
 export const collegeTeamsApi = {
   getSuggestions: (sportId) => apiFetch(`/college-teams/${sportId}/suggestions`),
   confirmTeam: (sportId, players) => apiFetch(`/college-teams/${sportId}/confirm`, "POST", players)
+};
+
+/* --- Public Stats API --- */
+export const statsApi = {
+  getOverview: () => apiFetch("/stats/overview")
 };

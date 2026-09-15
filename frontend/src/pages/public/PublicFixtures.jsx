@@ -16,8 +16,10 @@ export default function PublicFixtures({ departmentCode }) {
     matchesApi.getMatches()
       .then(data => {
         const scheduledMatches = data.filter((match) => match.status === "Scheduled");
-        setMatches(departmentCode
-          ? scheduledMatches.filter((match) => match.deptA === departmentCode || match.deptB === departmentCode)
+        // "All" is the public guest's default dept value — treat it the same as no filter.
+        const effectiveDept = departmentCode && departmentCode !== "All" ? departmentCode : null;
+        setMatches(effectiveDept
+          ? scheduledMatches.filter((match) => match.deptA === effectiveDept || match.deptB === effectiveDept)
           : scheduledMatches);
         setLoading(false);
       })

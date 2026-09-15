@@ -42,7 +42,7 @@ export default function AdminDashboard({ onNavigate }) {
         tournamentsCount: tournaments.length,
         openRegsCount: tournaments.filter(t => t.status === "Registration Open" || t.status === "Ongoing").length,
         pendingApprovals: pending.length,
-        upcomingMatches: matches.filter(m => m.status === "Scheduled" || m.status === "Live").length,
+        upcomingMatches: matches.filter(m => m.status === "Scheduled" || m.status === "Ongoing").length,
         totalTeams: teams.length,
         totalVenues: venues.length,
         totalSports: sports.length

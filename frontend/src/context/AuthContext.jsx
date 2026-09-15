@@ -9,6 +9,7 @@ import {
 } from "../utils/security";
 import { TRANSLATIONS } from "../utils/translations";
 import { getTranslations, hasTranslationCache, LANG_CODES } from "../utils/liveTranslator";
+import { initCsrf } from "../services/api/apiServices";
 
 const AuthContext = createContext();
 
@@ -47,6 +48,9 @@ export function AuthProvider({ children }) {
   });
   const [idleWarning, setIdleWarning] = useState(false);   // true → show "You'll be logged out soon" banner
   const [secondsUntilIdle, setSecondsUntilIdle] = useState(0);
+
+  // Fetch and cache CSRF token once on app start
+  useEffect(() => { initCsrf(); }, []);
 
   useEffect(() => {
     const token = getAuthToken();

@@ -25,7 +25,7 @@ export default function ScoreEntry() {
     setLoading(true);
     setError(null);
     matchesApi.getMatches().then(mList => {
-      const active = mList.filter(m => m.status === "Live" || m.status === "Scheduled");
+      const active = mList.filter(m => m.status === "Ongoing" || m.status === "Scheduled");
       setMatches(active);
       if (active.length > 0) {
         setSelectedMatch(active[0]);
@@ -101,7 +101,7 @@ export default function ScoreEntry() {
                       </div>
                     )}
                   </div>
-                  <Badge status={m.status === "Live" ? "live" : "warning"}>{m.status}</Badge>
+                  <Badge status={m.status === "Ongoing" ? "live" : "warning"}>{m.status}</Badge>
                 </div>
               ))}
             </div>

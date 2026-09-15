@@ -8,11 +8,18 @@ export const getAllVenues = async () => {
             name, 
             location, 
             COALESCE(capacity, 0) AS capacity, 
-            status, 
+            -- Reverse-map DB enum -> UI label so the frontend <select> pre-populates
+            -- correctly.  DB stores: Available | Maintenance | Booked
+            -- UI expects:            Available | Under Maintenance | Occupied
+            CASE status
+                WHEN 'Maintenance' THEN 'Under Maintenance'
+                WHEN 'Booked'      THEN 'Occupied'
+                ELSE status
+            END AS status,
             is_external,
             COALESCE(college_name, 'National Engineering College') AS college_name,
             COALESCE(college_name, 'National Engineering College') AS collegeName,
-            'Outdoor' AS type,
+            COALESCE(type, 'Outdoor') AS type,
             incharge_user_id, 
             created_at
         FROM venues

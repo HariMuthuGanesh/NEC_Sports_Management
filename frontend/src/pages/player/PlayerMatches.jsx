@@ -66,12 +66,12 @@ export default function PlayerMatches() {
   ];
 
   const filteredData = myMatches.filter(m => {
-    if (filter === "upcoming") return m.status === "Scheduled" || m.status === "Live";
+    if (filter === "upcoming") return m.status === "Scheduled" || m.status === "Ongoing";
     if (filter === "past") return m.status === "Completed";
     return true;
   });
 
-  const nextMatch = myMatches.find(m => m.status === "Scheduled" || m.status === "Live") || myMatches[0];
+  const nextMatch = myMatches.find(m => m.status === "Scheduled" || m.status === "Ongoing") || myMatches[0];
 
   return (
     <div className="nec-portal-page">

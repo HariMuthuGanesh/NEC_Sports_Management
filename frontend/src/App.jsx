@@ -98,7 +98,7 @@ function MainApp() {
   useEffect(() => {
     const role = currentUser?.role;
     // Don't redirect away from shared routes accessible to all roles
-    if (activeNav === "settings" || activeNav === "login" || activeNav === "signup" || activeNav.startsWith("team_profile_")) return;
+    if (activeNav === "settings" || activeNav === "login" || activeNav === "signup" || activeNav === "notifications" || activeNav === "player_notifs" || activeNav.startsWith("team_profile_")) return;
     if (role === ROLES.ADMIN && !activeNav.startsWith("admin_") && !activeNav.startsWith("public_") && !activeNav.startsWith("team_")) {
       setActiveNav("admin_dash");
     } else if (role === ROLES.PRESIDENT && !activeNav.startsWith("president_") && activeNav !== "college_teams" && !activeNav.startsWith("public_") && !activeNav.startsWith("team_")) {

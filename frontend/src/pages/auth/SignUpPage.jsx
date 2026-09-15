@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
+import { apiFetch } from "../../services/api/apiServices";
 import Button from "../../components/common/Button";
 import {
   Trophy,
@@ -55,18 +56,14 @@ export default function SignUpPage({ onLoginSuccess, onNavigate }) {
 
     setLoading(true);
     try {
-      const response = await fetch("http://localhost:5000/api/auth/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ username: cleanUsername, email: cleanEmail, password }),
-      });
+      const resData = await apiFetch("/auth/signup", "POST", { username: cleanUsername, email: cleanEmail, password });
 
-      const resData = await response.json();
+      if (resData) {
+        const userData = resData;
 
-      if (response.ok && resData.success && resData.data) {
-        const userData = resData.data;
-
+        // Bug fix: pass the JWT token so AuthContext stores it via setAuthToken().
+        // Without this, the session cookie works until a hard refresh, then the
+        // token is missing and every authenticated API call fails with 401.
         login(
           {
             role: userData.role,
@@ -75,7 +72,8 @@ export default function SignUpPage({ onLoginSuccess, onNavigate }) {
             dept: userData.studentProfile?.department_code || "Sports Office",
             title: userData.role,
             id: userData.username || cleanUsername,
-          }
+          },
+          userData.token || null
         );
 
         setLoading(false);
@@ -84,12 +82,8 @@ export default function SignUpPage({ onLoginSuccess, onNavigate }) {
         }
         return;
       }
-
-      // Server returned an error — show the actual message from the API
-      const msg = resData.error?.message || "Sign-up failed. Please try again.";
-      setError(msg);
-    } catch {
-      setError("Unable to connect to the authentication server. Please check your backend connection.");
+    } catch (err) {
+      setError(err.message || "Unable to connect to the authentication server. Please check your backend connection.");
     } finally {
       setLoading(false);
     }

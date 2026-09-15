@@ -47,7 +47,8 @@ export default function RegistrationsManager() {
     const { teamId, action } = confirmDialog;
     if (!teamId || !action) return;
 
-    teamsApi.updateTeamStatus(teamId, action === "approve" ? "Approved" : "Rejected").then(() => {
+    // Bug fix: DB enum for rejection is "Disqualified", not "Rejected"
+    teamsApi.updateTeamStatus(teamId, action === "approve" ? "Approved" : "Disqualified").then(() => {
       setConfirmDialog({ open: false, teamId: null, action: null });
       loadTeams();
     });
@@ -64,7 +65,7 @@ export default function RegistrationsManager() {
       label: "Status",
       width: "120px",
       render: (val) => (
-        <Badge status={val === "Approved" ? "success" : val === "Rejected" ? "danger" : "warning"}>
+        <Badge status={val === "Approved" ? "success" : (val === "Rejected" || val === "Disqualified") ? "danger" : "warning"}>
           {val || "Pending"}
         </Badge>
       )

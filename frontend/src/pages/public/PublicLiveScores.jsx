@@ -31,7 +31,7 @@ export default function PublicLiveScores({ onNavigate }) {
     fetchMatches();
   }, []);
 
-  const liveList = matches.filter(m => m.status === "Live");
+  const liveList = matches.filter(m => m.status === "Ongoing");
   const recentList = matches.filter(m => m.status === "Completed");
 
   return (

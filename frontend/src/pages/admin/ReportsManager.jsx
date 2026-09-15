@@ -5,7 +5,7 @@ import Table from "../../components/common/Table";
 import { FileText, Printer, Download, Award, Trophy, RefreshCw } from "lucide-react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
-import { reportsApi } from "../../services/api/apiServices";
+import { reportsApi, leaderboardApi } from "../../services/api/apiServices";
 import ErrorState from "../../components/common/ErrorState";
 import "./AdminPortal.css";
 
@@ -31,9 +31,24 @@ export default function ReportsManager() {
     setLoading(true);
     setError(null);
     try {
-      const res = await reportsApi.getPerformanceReport(timeframe);
-      setReportData(res.departments || []);
-      setSummaryData(res.summary || {});
+      const rows = await leaderboardApi.getLeaderboard();
+      const mapped = rows.map((r, i) => ({
+        rank: r.rank ?? i + 1,
+        dept: r.name,
+        code: r.code,
+        totalEvents: r.wins,
+        wins: r.wins,
+        gold: r.gold,
+        silver: r.silver,
+        bronze: r.bronze,
+        points: r.total_points,
+        participation: r.students ?? '-'
+      }));
+      setReportData(mapped);
+      setSummaryData({
+        totalCompleted: rows.reduce((s, r) => s + (r.wins || 0), 0),
+        totalScheduled: rows.length
+      });
     } catch (err) {
       console.error(err);
       setError(err.message || "Failed to load performance report");
