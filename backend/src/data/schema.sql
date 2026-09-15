@@ -287,11 +287,65 @@ CREATE TABLE IF NOT EXISTS gallery (
   FOREIGN KEY (uploaded_by) REFERENCES users(id) ON DELETE CASCADE
 );
 
+-- 18. Captain Squad Rosters (used live by squadController.js: GET/POST/DELETE
+-- /api/my-squad and /api/my-squad/members). NOTE: this table was previously
+-- only created by migrations/004_squad_and_college_team.sql, so a fresh
+-- database bootstrapped from schema.sql alone (e.g. via `npm run seed`,
+-- which does not run migrations) was missing this table entirely and the
+-- Captain "My Sports Squad" page failed with ER_NO_SUCH_TABLE. It is defined
+-- here so schema.sql alone is sufficient to run the full application.
+CREATE TABLE IF NOT EXISTS department_squad_members (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  department_id INT NOT NULL,
+  sport_id INT NOT NULL,
+  student_id INT NOT NULL,
+  added_by INT NOT NULL,
+  status ENUM('Active','Removed') DEFAULT 'Active',
+  joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (department_id) REFERENCES departments(id),
+  FOREIGN KEY (sport_id) REFERENCES sports(sport_id),
+  FOREIGN KEY (student_id) REFERENCES students(student_id),
+  FOREIGN KEY (added_by) REFERENCES users(id),
+  UNIQUE KEY unique_active_member (department_id, sport_id, student_id)
+);
+
+-- 19. Outer-College Team Builder (used live by squadController.js's
+-- getCollegeTeamSuggestionsV2 / confirmCollegeTeamV2, wired to
+-- GET/POST /api/college-teams/:sportId/suggestions|confirm, which power the
+-- Admin/President "Outer-College Teams" (CollegeTeamBuilder.jsx) page).
+CREATE TABLE IF NOT EXISTS college_teams (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  sport_id INT NOT NULL,
+  season_year INT NOT NULL,
+  FOREIGN KEY (sport_id) REFERENCES sports(sport_id),
+  UNIQUE KEY unique_sport_season (sport_id, season_year)
+);
+
+CREATE TABLE IF NOT EXISTS college_team_members (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  college_team_id INT NOT NULL,
+  student_id INT NOT NULL,
+  source_department_id INT NOT NULL,
+  suggested_by_system BOOLEAN DEFAULT TRUE,
+  admin_confirmed BOOLEAN DEFAULT FALSE,
+  confirmed_by INT NULL,
+  added_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (college_team_id) REFERENCES college_teams(id),
+  FOREIGN KEY (student_id) REFERENCES students(student_id),
+  FOREIGN KEY (source_department_id) REFERENCES departments(id),
+  FOREIGN KEY (confirmed_by) REFERENCES users(id)
+);
+
 -- ============================================================================
--- NOTE ON DEPRECATED V2 PARALLEL TABLES:
--- The following tables from experimental migrations (003/004) are DEPRECATED:
---   - department_teams, department_team_members, department_squad_members
---   - college_teams, college_team_members
--- The canonical production system uses `teams`, `team_members`, and
--- `department_sport_captains` with team_type ENUM('Inter-Department', 'Outer-College').
+-- NOTE ON DEPRECATED V1 PARALLEL TABLES:
+-- The following tables from experimental migration 003 are DEPRECATED and are
+-- intentionally NOT created here — their only consumer, departmentTeamController.js,
+-- is not wired to any route in apiRoutes.js (verified: zero route registrations):
+--   - department_teams, department_team_members
+-- The canonical, LIVE implementation for department-sport-captain assignment
+-- and squad rosters is `department_sport_captains` + `department_squad_members`
+-- (squadController.js), and for outer-college team building it is
+-- `college_teams` + `college_team_members` (also squadController.js) — all
+-- three of which ARE created above since real application code depends on them.
 -- ============================================================================
+

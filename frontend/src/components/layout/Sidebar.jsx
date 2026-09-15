@@ -69,6 +69,7 @@ export default function Sidebar({ activeNav, onSelectNav, isOpen, onCloseMobile 
             category: t.navSquadEvents,
             items: [
               { id: "coord_players", label: t.playerRoster, icon: Users },
+              { id: "coord_dept_teams", label: "Sport Captains", icon: Award },
               { id: "coord_event_reg", label: t.eventRegistration, icon: CheckSquare },
               { id: "coord_matches", label: t.departmentMatches, icon: Calendar },
               { id: "notifications", label: t.notifications, icon: Bell }

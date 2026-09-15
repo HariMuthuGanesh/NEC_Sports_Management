@@ -1,4 +1,13 @@
-CREATE TABLE department_squad_members (
+-- NOTE: These three tables are also defined directly in schema.sql (with
+-- IF NOT EXISTS) as of the fix that made squadController.js's live endpoints
+-- (/api/my-squad, /api/college-teams/:sportId/*) work on a database
+-- bootstrapped from schema.sql alone (previously ONLY this migration created
+-- them, so `npm run seed` without ever running `npm run migrate` left these
+-- tables missing entirely). This migration is kept, using IF NOT EXISTS, so
+-- it remains a safe no-op for any existing database that already has these
+-- tables (from schema.sql) while still correctly creating them for older
+-- databases that only ran migrations up through 003.
+CREATE TABLE IF NOT EXISTS department_squad_members (
   id INT PRIMARY KEY AUTO_INCREMENT,
   department_id INT NOT NULL,
   sport_id INT NOT NULL,
@@ -13,7 +22,7 @@ CREATE TABLE department_squad_members (
   UNIQUE KEY unique_active_member (department_id, sport_id, student_id)
 );
 
-CREATE TABLE college_teams (
+CREATE TABLE IF NOT EXISTS college_teams (
   id INT PRIMARY KEY AUTO_INCREMENT,
   sport_id INT NOT NULL,
   season_year INT NOT NULL,
@@ -21,7 +30,7 @@ CREATE TABLE college_teams (
   UNIQUE KEY unique_sport_season (sport_id, season_year)
 );
 
-CREATE TABLE college_team_members (
+CREATE TABLE IF NOT EXISTS college_team_members (
   id INT PRIMARY KEY AUTO_INCREMENT,
   college_team_id INT NOT NULL,
   student_id INT NOT NULL,
@@ -35,3 +44,4 @@ CREATE TABLE college_team_members (
   FOREIGN KEY (source_department_id) REFERENCES departments(id),
   FOREIGN KEY (confirmed_by) REFERENCES users(id)
 );
+
