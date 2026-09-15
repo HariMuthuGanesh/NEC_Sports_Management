@@ -9,7 +9,7 @@ import {
     linkGoogleAccount,
     updateLastLogin
 } from '../models/sql/userSqlModel.js';
-import { getStudentByUserId } from '../models/sql/studentSqlModel.js';
+import { getStudentByUserId, createStudent } from '../models/sql/studentSqlModel.js';
 import { generateCsrfToken } from '../middleware/csrfMiddleware.js';
 
 const generateToken = (id, role, dept = 'All', tokenVersion = 0, deptId = null) => {
@@ -73,7 +73,7 @@ export const loginUser = async (req, res, next) => {
             }
 
             await updateLastLogin(user.id);
-            const { deptId, deptCode, student } = await resolveUserDepartment(user);
+            const { deptId, deptCode, deptName, student } = await resolveUserDepartment(user);
 
             const [vRows] = await pool.execute('SELECT token_version FROM users WHERE id = ?', [user.id]);
             const tokenVersion = vRows[0]?.token_version ?? 0;
@@ -84,15 +84,18 @@ export const loginUser = async (req, res, next) => {
             return res.json({
                 success: true,
                 data: {
+                    token,
                     id: user.id,
                     username: user.username,
                     email: user.email,
                     role: user.role,
-                    dept: deptCode,
-                    deptId,
+                    dept: deptCode || 'Sports Office',
+                    deptId: deptId || null,
+                    deptName: deptName || 'Sports Directorate',
+                    playerName: student?.student_name || user.username,
+                    admin_scope: user.admin_scope || null,
                     googleLinked: Boolean(user.google_linked),
-                    studentProfile: student || null,
-                    token
+                    studentProfile: student || null
                 }
             });
         }
@@ -132,72 +135,46 @@ export const signupUser = async (req, res, next) => {
         const passwordHash = await bcrypt.hash(password, 10);
         const newUserId = await createUser({ username, email, passwordHash, role });
 
-        const token = generateToken(newUserId, role, 'All', 0);
+        // Fallback department for signup (since public signup doesn't ask for it)
+        const [deptRows] = await pool.execute('SELECT id, code, name FROM departments LIMIT 1');
+        const departmentId = deptRows[0] ? deptRows[0].id : 1;
+        const deptCode = deptRows[0] ? deptRows[0].code : 'CSE';
+        const deptName = deptRows[0] ? deptRows[0].name : 'Computer Science and Engineering';
+
+        // Create the student profile row automatically
+        await createStudent({
+            userId: newUserId,
+            studentName: username,
+            registerNumber: username,
+            departmentId: departmentId,
+            batch: new Date().getFullYear(),
+            section: 'A',
+            personalEmail: email,
+            personalPhone: '0000000000',
+            parentsPhone: '0000000000',
+            bloodGroup: 'O+',
+            studentType: 'Regular',
+            medicalFitness: 1
+        });
+
+        const token = generateToken(newUserId, role, deptCode, 0, departmentId);
         res.cookie('token', token, AUTH_COOKIE_OPTIONS);
 
         return res.status(201).json({
             success: true,
             data: {
+                token,
                 id: newUserId,
                 username,
                 email,
                 role,
-                googleLinked: false,
-                token
-            }
-        });
-    } catch (err) {
-        next(err);
-    }
-};
-
-// 3. Optional Google Login Shortcut (Matches user by email and sets google_linked = 1)
-export const googleSignIn = async (req, res, next) => {
-    try {
-        const { email } = req.body || {};
-
-        if (!email) {
-            return res.status(400).json({
-                success: false,
-                error: { code: 'MISSING_EMAIL', message: 'Google email is required.' }
-            });
-        }
-
-        const user = await findUserByUsernameOrEmail(email);
-
-        if (!user) {
-            return res.status(404).json({
-                success: false,
-                error: { code: 'USER_NOT_FOUND', message: 'No registered user found with this email. Please sign up manually first.' }
-            });
-        }
-
-        // Link Google sign-in shortcut
-        if (!user.google_linked) {
-            await linkGoogleAccount(email);
-        }
-
-        await updateLastLogin(user.id);
-        const { deptId, deptCode, student } = await resolveUserDepartment(user);
-
-        const [vRows] = await pool.execute('SELECT token_version FROM users WHERE id = ?', [user.id]);
-        const tokenVersion = vRows[0]?.token_version ?? 0;
-
-        const token = generateToken(user.id, user.role, deptCode || 'Sports Office', tokenVersion, deptId);
-        res.cookie('token', token, AUTH_COOKIE_OPTIONS);
-
-        return res.json({
-            success: true,
-            data: {
-                id: user.id,
-                username: user.username,
-                email: user.email,
-                role: user.role,
                 dept: deptCode,
-                deptId,
-                googleLinked: true,
-                studentProfile: student || null,
-                token
+                deptId: departmentId,
+                deptName,
+                playerName: username,
+                admin_scope: null,
+                googleLinked: false,
+                studentProfile: null
             }
         });
     } catch (err) {
@@ -205,7 +182,7 @@ export const googleSignIn = async (req, res, next) => {
     }
 };
 
-// 4. Logout & Me
+// 3. Logout & Me
 export const logoutUser = async (req, res, next) => {
     try {
         if (req.user?.id) {
@@ -236,12 +213,20 @@ export const getCurrentUser = async (req, res, next) => {
         if (!user) {
             return res.status(404).json({ success: false, error: { code: 'USER_NOT_FOUND', message: 'User not found.' } });
         }
-        const student = await getStudentByUserId(user.id);
+        const { deptId, deptCode, deptName, student } = await resolveUserDepartment(user);
 
         return res.json({
             success: true,
             data: {
-                ...user,
+                id: user.id,
+                username: user.username,
+                email: user.email,
+                role: user.role,
+                dept: deptCode || 'Sports Office',
+                deptId: deptId || null,
+                deptName: deptName || 'Sports Directorate',
+                playerName: student?.student_name || user.username,
+                admin_scope: user.admin_scope || null,
                 googleLinked: Boolean(user.google_linked),
                 studentProfile: student || null
             }

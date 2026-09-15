@@ -30,22 +30,28 @@ export default function AdminDashboard({ onNavigate }) {
     setLoading(true);
     setError(null);
     Promise.all([
-      tournamentsApi.getTournaments(),
-      teamsApi.getTeams(),
-      matchesApi.getMatches(),
-      sportsApi.getVenues(),
-      sportsApi.getSports()
-    ]).then(([tournaments, teams, matches, venues, sports]) => {
-      const pending = teams.filter(t => t.status === "Pending");
+      tournamentsApi.getTournaments().catch(err => { console.warn("[AdminDashboard] Failed to fetch tournaments:", err); return []; }),
+      teamsApi.getTeams().catch(err => { console.warn("[AdminDashboard] Failed to fetch teams:", err); return []; }),
+      matchesApi.getMatches().catch(err => { console.warn("[AdminDashboard] Failed to fetch matches:", err); return []; }),
+      sportsApi.getVenues().catch(err => { console.warn("[AdminDashboard] Failed to fetch venues:", err); return []; }),
+      sportsApi.getSports().catch(err => { console.warn("[AdminDashboard] Failed to fetch sports:", err); return []; })
+    ]).then(([tournaments = [], teams = [], matches = [], venues = [], sports = []]) => {
+      const teamList = Array.isArray(teams) ? teams : [];
+      const tournamentList = Array.isArray(tournaments) ? tournaments : [];
+      const matchList = Array.isArray(matches) ? matches : [];
+      const venueList = Array.isArray(venues) ? venues : [];
+      const sportList = Array.isArray(sports) ? sports : [];
+
+      const pending = teamList.filter(t => t.status === "Pending");
       setPendingTeams(pending);
       setStats({
-        tournamentsCount: tournaments.length,
-        openRegsCount: tournaments.filter(t => t.status === "Registration Open" || t.status === "Ongoing").length,
+        tournamentsCount: tournamentList.length,
+        openRegsCount: tournamentList.filter(t => t.status === "Registration Open" || t.status === "Ongoing").length,
         pendingApprovals: pending.length,
-        upcomingMatches: matches.filter(m => m.status === "Scheduled" || m.status === "Ongoing").length,
-        totalTeams: teams.length,
-        totalVenues: venues.length,
-        totalSports: sports.length
+        upcomingMatches: matchList.filter(m => m.status === "Scheduled" || m.status === "Ongoing").length,
+        totalTeams: teamList.length,
+        totalVenues: venueList.length,
+        totalSports: sportList.length
       });
       setLoading(false);
     }).catch(err => {

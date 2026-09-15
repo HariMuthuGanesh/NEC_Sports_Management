@@ -1,4 +1,4 @@
-import { recordSquadAttendance, getTeamAttendance, getDepartmentAttendance } from '../models/sql/attendanceSqlModel.js';
+import { recordSquadAttendance, getTeamAttendance, getDepartmentAttendance, getMatchAttendanceSql } from '../models/sql/attendanceSqlModel.js';
 
 export const saveSquadAttendanceController = async (req, res, next) => {
     try {
@@ -63,4 +63,22 @@ export const getDepartmentAttendanceController = async (req, res, next) => {
         next(err);
     }
 };
+
+export const getMatchAttendanceController = async (req, res, next) => {
+    try {
+        const matchId = Number(req.params.matchId || req.params.id);
+        if (!matchId) {
+            return res.status(400).json({
+                success: false,
+                error: { message: 'A valid match ID is required.' }
+            });
+        }
+
+        const data = await getMatchAttendanceSql(matchId);
+        return res.json({ success: true, data });
+    } catch (err) {
+        next(err);
+    }
+};
+
 

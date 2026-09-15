@@ -1,20 +1,23 @@
 import React, { useEffect, useState } from "react";
 import { matchesApi } from "../../services/api/apiServices";
+import { useToast } from "../../context/ToastContext";
 import { Card } from "../../components/common/Card";
 import Button from "../../components/common/Button";
 import Badge from "../../components/common/Badge";
 import ErrorState from "../../components/common/ErrorState";
-import { Edit3, CheckCircle, Trophy } from "lucide-react";
+import { Edit3, CheckCircle, Trophy, RefreshCw } from "lucide-react";
 import "./CoordinatorPortal.css";
 
 export default function ScoreEntry() {
+  const toast = useToast();
   const [matches, setMatches] = useState([]);
   const [selectedMatch, setSelectedMatch] = useState(null);
-  const [scoreA, setScoreA] = useState("");
-  const [scoreB, setScoreB] = useState("");
+  const [scoreA, setScoreA] = useState(0);
+  const [scoreB, setScoreB] = useState(0);
   const [detailScore, setDetailScore] = useState("");
   const [isFinal, setIsFinal] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -25,38 +28,64 @@ export default function ScoreEntry() {
     setLoading(true);
     setError(null);
     matchesApi.getMatches().then(mList => {
-      const active = mList.filter(m => m.status === "Ongoing" || m.status === "Scheduled");
+      const active = (mList || []).filter(m => m.status === "Ongoing" || m.status === "Scheduled");
       setMatches(active);
       if (active.length > 0) {
-        setSelectedMatch(active[0]);
-        setScoreA(active[0].scoreA || 0);
-        setScoreB(active[0].scoreB || 0);
-        setDetailScore(active[0].detailScore || "");
+        const first = active[0];
+        setSelectedMatch(first);
+        setScoreA(Number(first.scoreA) || 0);
+        setScoreB(Number(first.scoreB) || 0);
+        setDetailScore(first.detailScore || "");
+      } else {
+        setSelectedMatch(null);
       }
       setLoading(false);
     }).catch(err => {
       console.error(err);
-      setError(err.message);
+      setError(err.message || "Failed to load matches");
       setLoading(false);
     });
   };
 
+  const handleSelectMatch = (m) => {
+    setSelectedMatch(m);
+    setScoreA(Number(m.scoreA) || 0);
+    setScoreB(Number(m.scoreB) || 0);
+    setDetailScore(m.detailScore || "");
+    setIsFinal(false);
+  };
+
   const handleSubmitScore = async (e) => {
     e.preventDefault();
-    if (!selectedMatch) return;
+    if (!selectedMatch) {
+      toast.warning("Please select an active match first.");
+      return;
+    }
 
+    const numA = parseInt(scoreA, 10);
+    const numB = parseInt(scoreB, 10);
+
+    if (isNaN(numA) || isNaN(numB) || numA < 0 || numB < 0) {
+      toast.error("Scores must be valid non-negative numbers.");
+      return;
+    }
+
+    setSubmitting(true);
     try {
       await matchesApi.updateScore(
         selectedMatch.id,
-        scoreA,
-        scoreB,
-        detailScore,
+        numA,
+        numB,
+        detailScore.trim(),
         isFinal
       );
-      alert(isFinal ? "Match outcome finalized and submitted!" : "Live score updated successfully!");
+      toast.success(isFinal ? "Match finalized and official result saved!" : "Live score updated successfully!");
       loadMatches();
     } catch (err) {
-      alert("Failed to submit score: " + err.message);
+      console.error("Score submission error:", err);
+      toast.error(err.message || "Failed to update match score. Please check your connection.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -84,12 +113,7 @@ export default function ScoreEntry() {
                   key={m.id}
                   className={`nec-att-row ${selectedMatch?.id === m.id ? "active" : ""}`}
                   style={{ cursor: "pointer", borderLeft: selectedMatch?.id === m.id ? "4px solid var(--nec-navy)" : "" }}
-                  onClick={() => {
-                    setSelectedMatch(m);
-                    setScoreA(m.scoreA || 0);
-                    setScoreB(m.scoreB || 0);
-                    setDetailScore(m.detailScore || "");
-                  }}
+                  onClick={() => handleSelectMatch(m)}
                 >
                   <div>
                     <strong>{m.teamA}</strong> vs <strong>{m.teamB}</strong>
@@ -115,6 +139,7 @@ export default function ScoreEntry() {
                     <div style={{ fontWeight: 700, marginBottom: "8px" }}>{selectedMatch.teamA} ({selectedMatch.deptA})</div>
                     <input
                       type="number"
+                      min="0"
                       required
                       style={{ fontSize: "1.8rem", width: "100px", textAlign: "center" }}
                       className="nec-table-search-input"
@@ -127,6 +152,7 @@ export default function ScoreEntry() {
                     <div style={{ fontWeight: 700, marginBottom: "8px" }}>{selectedMatch.teamB} ({selectedMatch.deptB})</div>
                     <input
                       type="number"
+                      min="0"
                       required
                       style={{ fontSize: "1.8rem", width: "100px", textAlign: "center" }}
                       className="nec-table-search-input"
@@ -160,8 +186,8 @@ export default function ScoreEntry() {
                   </label>
                 </div>
 
-                <Button type="submit" variant="primary" icon={CheckCircle}>
-                  {isFinal ? "Submit Final Result" : "Update Live Score"}
+                <Button type="submit" variant="primary" icon={CheckCircle} disabled={submitting}>
+                  {submitting ? "Submitting Score..." : isFinal ? "Submit Final Result" : "Update Live Score"}
                 </Button>
               </form>
             </Card>

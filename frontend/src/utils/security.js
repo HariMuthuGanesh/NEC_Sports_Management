@@ -77,9 +77,11 @@ export const validatePasswordStrength = (password) => {
   };
 };
 
+const TOKEN_STORAGE_KEY = "nec_sports_jwt_token";
+
 export const getAuthToken = () => {
   try {
-    return localStorage.getItem("nec_sports_jwt_token");
+    return localStorage.getItem(TOKEN_STORAGE_KEY);
   } catch {
     return null;
   }
@@ -88,16 +90,16 @@ export const getAuthToken = () => {
 export const setAuthToken = (token) => {
   try {
     if (token) {
-      localStorage.setItem("nec_sports_jwt_token", token);
+      localStorage.setItem(TOKEN_STORAGE_KEY, token);
     } else {
-      localStorage.removeItem("nec_sports_jwt_token");
+      localStorage.removeItem(TOKEN_STORAGE_KEY);
     }
   } catch { }
 };
 
 export const removeAuthToken = () => {
   try {
-    localStorage.removeItem("nec_sports_jwt_token");
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
   } catch { }
 };
 
@@ -181,29 +183,42 @@ export const clearRateLimit = () => {
 
 // ── 5. Security Audit Logger ──────────────────────────────────
 
-const AUDIT_KEY = "nec_security_audit_log";
-const MAX_LOG_ENTRIES = 200;
+const _memoryLog = [];
+const MAX_LOG_ENTRIES = 100;
 
 export const SecurityLogger = {
   _write(entry) {
     try {
-      const log = this.getLog();
-      log.unshift({ ...entry, timestamp: new Date().toISOString(), id: crypto.randomUUID?.() || Date.now().toString(36) });
-      // Keep log size bounded
-      if (log.length > MAX_LOG_ENTRIES) log.splice(MAX_LOG_ENTRIES);
-      localStorage.setItem(AUDIT_KEY, JSON.stringify(log));
+      const payload = {
+        ...entry,
+        timestamp: new Date().toISOString(),
+        id: crypto.randomUUID?.() || Date.now().toString(36),
+      };
+      _memoryLog.unshift(payload);
+      if (_memoryLog.length > MAX_LOG_ENTRIES) _memoryLog.splice(MAX_LOG_ENTRIES);
+
+      // Async backend persistence
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      fetch(`${apiUrl}/api/audit/log`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: payload.event || "SECURITY_EVENT",
+          table_affected: "security_audit",
+          record_id: payload.userId || payload.role || null,
+          new_value: payload
+        })
+      }).catch(() => {
+        // Silent fallback to in-memory log
+      });
     } catch (e) {
       console.warn("[SecurityLogger] Could not write audit entry:", e);
     }
   },
 
   getLog() {
-    try {
-      const raw = localStorage.getItem(AUDIT_KEY);
-      return raw ? JSON.parse(raw) : [];
-    } catch {
-      return [];
-    }
+    return [..._memoryLog];
   },
 
   logLogin(user) {
@@ -211,7 +226,7 @@ export const SecurityLogger = {
   },
 
   logLogout(user) {
-    this._write({ event: "LOGOUT", user: user?.name || "Unknown", role: user?.role || "—", userId: user?.id });
+    this._write({ event: "LOGOUT", user: user?.name || "Unknown", role: user?.role || "N/A", userId: user?.id });
   },
 
   logRoleChange(fromRole, toRole, user) {
@@ -227,11 +242,11 @@ export const SecurityLogger = {
   },
 
   logSessionExpired(user) {
-    this._write({ event: "SESSION_EXPIRED", user: user?.name || "Unknown", role: user?.role || "—" });
+    this._write({ event: "SESSION_EXPIRED", user: user?.name || "Unknown", role: user?.role || "N/A" });
   },
 
   logIdleTimeout(user) {
-    this._write({ event: "IDLE_TIMEOUT", user: user?.name || "Unknown", role: user?.role || "—" });
+    this._write({ event: "IDLE_TIMEOUT", user: user?.name || "Unknown", role: user?.role || "N/A" });
   },
 };
 

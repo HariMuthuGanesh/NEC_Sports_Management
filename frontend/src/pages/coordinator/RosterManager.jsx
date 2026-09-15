@@ -30,12 +30,16 @@ export default function RosterManager() {
 
   useEffect(() => {
     teamsApi.getTeams().then(tList => {
-      const myDept = currentUser.dept;
-      const filtered = (myDept && myDept !== "All") ? tList.filter(t => t.deptCode === myDept) : tList;
-      const finalTeams = filtered.length > 0 ? filtered : tList;
-      setTeams(finalTeams);
-      if (finalTeams.length > 0) {
-        setSelectedTeamId(finalTeams[0].id);
+      const myDept = currentUser.dept || currentUser.deptCode;
+      const list = Array.isArray(tList) ? tList : [];
+      const filtered = (myDept && myDept !== "All" && myDept !== "Sports Office")
+        ? list.filter(t => (t.deptCode || t.dept_code || t.dept || "").toUpperCase() === myDept.toUpperCase())
+        : list;
+      setTeams(filtered);
+      if (filtered.length > 0) {
+        setSelectedTeamId(filtered[0].id || filtered[0].team_id);
+      } else {
+        setSelectedTeamId("");
       }
     });
   }, [currentUser]);

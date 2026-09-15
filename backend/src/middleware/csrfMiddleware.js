@@ -14,7 +14,7 @@ const {
     cookieName: CSRF_COOKIE_NAME,
     cookieOptions: {
         httpOnly: false, // Client JavaScript reads this cookie to attach to X-CSRF-Token header
-        sameSite: 'strict',
+        sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
         path: '/',
         secure: process.env.NODE_ENV === 'production'
     },

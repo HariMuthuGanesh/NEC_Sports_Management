@@ -171,8 +171,20 @@ async function seedSchema(conn) {
     try { await conn.execute(`ALTER TABLE team_members ADD COLUMN role VARCHAR(50) DEFAULT 'Player'`); } catch {}
     try { await conn.execute(`ALTER TABLE team_members ADD COLUMN jersey_number INT NULL`); } catch {}
     try { await conn.execute(`ALTER TABLE matches ADD COLUMN event_id INT NULL`); } catch {}
+    try { await conn.execute(`ALTER TABLE matches ADD COLUMN pool VARCHAR(50) DEFAULT 'Pool A'`); } catch {}
     try { await conn.execute(`ALTER TABLE matches ADD COLUMN scoring_method VARCHAR(50) DEFAULT 'Points'`); } catch {}
     try { await conn.execute(`ALTER TABLE matches MODIFY COLUMN status VARCHAR(50) DEFAULT 'Scheduled'`); } catch {}
+
+    try { await conn.execute(`ALTER TABLE venues ADD COLUMN college_name VARCHAR(150) DEFAULT 'National Engineering College'`); } catch {}
+    try { await conn.execute(`ALTER TABLE venues ADD COLUMN is_external TINYINT(1) DEFAULT 0`); } catch {}
+    try { await conn.execute(`ALTER TABLE venues ADD COLUMN incharge_user_id INT NULL`); } catch {}
+
+    try { await conn.execute(`ALTER TABLE od_requests ADD COLUMN match_id INT NULL`); } catch {}
+    try { await conn.execute(`ALTER TABLE od_requests ADD COLUMN department_id INT NULL`); } catch {}
+    try { await conn.execute(`ALTER TABLE od_requests ADD COLUMN remarks VARCHAR(255) NULL`); } catch {}
+    try { await conn.execute(`ALTER TABLE od_requests ADD COLUMN rejection_reason VARCHAR(255) NULL`); } catch {}
+    try { await conn.execute(`ALTER TABLE od_requests ADD COLUMN approved_at DATETIME NULL`); } catch {}
+    try { await conn.execute(`ALTER TABLE od_requests ADD COLUMN generated_by INT NULL`); } catch {}
 
     await conn.execute(`
         CREATE TABLE IF NOT EXISTS od_requests (
@@ -237,16 +249,16 @@ async function seed() {
         // 2. Seed Core Users representing all 7 Roles
         const passwordHash = await bcrypt.hash(seedStudentPassword, 10);
         const usersToSeed = [
-            { username: 'sys_admin', email: 'sys.admin@nec.edu.in', role: 'Director of Physical Education', admin_scope: 'Full' },
+            { username: 'sys_admin', email: 'sys.admin@nec.edu.in', role: 'Admin', admin_scope: 'Full' },
             { username: 'sports_president', email: 'president@nec.edu.in', role: 'Sports President', admin_scope: null },
-            { username: 'coord_cse', email: 'coord.cse@nec.edu.in', role: 'Department Sports Coordinator', dept: 'CSE' },
-            { username: 'coord_ece', email: 'coord.ece@nec.edu.in', role: 'Department Sports Coordinator', dept: 'ECE' },
-            { username: 'coord_mech', email: 'coord.mech@nec.edu.in', role: 'Department Sports Coordinator', dept: 'MECH' },
-            { username: 'captain_cricket', email: 'captain.cricket@nec.edu.in', role: 'Team Captain', dept: 'CSE' },
+            { username: 'coord_cse', email: 'coord.cse@nec.edu.in', role: 'Coordinator', dept: 'CSE' },
+            { username: 'coord_ece', email: 'coord.ece@nec.edu.in', role: 'Coordinator', dept: 'ECE' },
+            { username: 'coord_mech', email: 'coord.mech@nec.edu.in', role: 'Coordinator', dept: 'MECH' },
+            { username: 'captain_cricket', email: 'captain.cricket@nec.edu.in', role: 'Captain', dept: 'CSE' },
             { username: 'score_updater1', email: 'score.updater@nec.edu.in', role: 'Score Updater' },
-            { username: 'player_arun', email: 'arun.2114002@nec.edu.in', role: 'Student Athlete', dept: 'CSE' },
-            { username: 'player_vignesh', email: 'vignesh.2114003@nec.edu.in', role: 'Student Athlete', dept: 'MECH' },
-            { username: 'player_karthik', email: 'karthik.2114004@nec.edu.in', role: 'Student Athlete', dept: 'ECE' }
+            { username: 'player_arun', email: 'arun.2114002@nec.edu.in', role: 'Player', dept: 'CSE' },
+            { username: 'player_vignesh', email: 'vignesh.2114003@nec.edu.in', role: 'Player', dept: 'MECH' },
+            { username: 'player_karthik', email: 'karthik.2114004@nec.edu.in', role: 'Player', dept: 'ECE' }
         ];
 
         const userMap = {};

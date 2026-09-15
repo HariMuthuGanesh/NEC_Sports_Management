@@ -1,0 +1,673 @@
+/* ==========================================================================
+   NEC Sports Management - Captain Portal & Team Profile Stylesheet
+   Design Language: Collegiate Athletic Heritage, Responsive, Multi-Theme
+   ========================================================================== */
+
+/* --- Page & Layout --- */
+.nec-captain-portal {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* --- Hero Banner --- */
+.nec-captain-hero {
+  background: linear-gradient(135deg, var(--nec-navy-dark, #081f42) 0%, var(--nec-navy, #0b2c5d) 60%, var(--nec-navy-light, #134080) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--nec-radius-xl, 16px);
+  padding: 28px 32px;
+  color: #ffffff;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--nec-shadow-md, 0 4px 16px rgba(0, 0, 0, 0.12));
+}
+
+[data-theme="dark"] .nec-captain-hero {
+  background: linear-gradient(135deg, #061224 0%, #0d1e38 60%, #152d52 100%);
+  border-color: rgba(29, 155, 240, 0.2);
+}
+
+.nec-captain-hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  background: rgba(245, 158, 11, 0.18);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: #fbbf24;
+  border-radius: var(--nec-radius-full, 9999px);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 12px;
+}
+
+.nec-captain-hero-title {
+  margin: 0 0 8px 0;
+  font-family: var(--nec-font-display);
+  font-size: 1.85rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+}
+
+.nec-captain-hero-sub {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  max-width: 680px;
+}
+
+/* --- Alert Messages --- */
+.nec-alert-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: var(--nec-radius-lg, 8px);
+  font-size: 0.875rem;
+  font-weight: 500;
+  animation: fadeIn 0.25s ease-out;
+}
+
+.nec-alert-box.success {
+  background: var(--nec-success-bg, #ecfdf5);
+  border: 1px solid var(--nec-success);
+  color: var(--nec-success-text, #065f46);
+}
+
+.nec-alert-box.error {
+  background: var(--nec-danger-bg, #fef2f2);
+  border: 1px solid var(--nec-danger);
+  color: var(--nec-danger-text, #991b1b);
+}
+
+[data-theme="dark"] .nec-alert-box.success {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+}
+
+[data-theme="dark"] .nec-alert-box.error {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}
+
+/* --- Tabs Bar --- */
+.nec-tab-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 2px solid var(--nec-border);
+  padding-bottom: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.nec-tab-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.nec-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -4px;
+  color: var(--nec-text-muted);
+  font-family: var(--nec-font-display);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--nec-transition-fast);
+  white-space: nowrap;
+  border-radius: 6px 6px 0 0;
+}
+
+.nec-tab-btn:hover {
+  color: var(--nec-blue, #0274be);
+  background: var(--nec-surface-raised);
+}
+
+.nec-tab-btn.active {
+  color: var(--nec-blue, #0274be);
+  border-bottom-color: var(--nec-blue, #0274be);
+  background: var(--nec-surface-raised);
+  font-weight: 700;
+}
+
+[data-theme="dark"] .nec-tab-btn.active {
+  color: #38bdf8;
+  border-bottom-color: #38bdf8;
+}
+
+/* --- Squad Cards Grid --- */
+.nec-captain-teams-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+.nec-team-card {
+  background: var(--nec-surface);
+  border: 1px solid var(--nec-border);
+  border-radius: var(--nec-radius-lg, 12px);
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+  box-shadow: var(--nec-shadow-sm);
+  transition: var(--nec-transition);
+}
+
+.nec-team-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--nec-shadow-md);
+  border-color: var(--nec-blue, #0274be);
+}
+
+[data-theme="dark"] .nec-team-card {
+  background: var(--nec-solid-card, #16263d);
+}
+
+.nec-team-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.nec-team-sport-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: var(--nec-info-bg, #e8f2f9);
+  color: var(--nec-info-text, #01568e);
+  border: 1px solid var(--nec-border-accent, #0274be);
+  border-radius: var(--nec-radius-full, 9999px);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+[data-theme="dark"] .nec-team-sport-pill {
+  background: rgba(29, 155, 240, 0.15);
+  color: #7dd3fc;
+  border-color: rgba(29, 155, 240, 0.3);
+}
+
+.nec-team-card-title {
+  margin: 0;
+  font-family: var(--nec-font-display);
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--nec-text-main);
+  letter-spacing: -0.01em;
+}
+
+.nec-team-card-tournament {
+  font-size: 0.825rem;
+  color: var(--nec-text-muted);
+  line-height: 1.4;
+}
+
+.nec-team-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--nec-border);
+  font-size: 0.8rem;
+  color: var(--nec-text-muted);
+}
+
+.nec-team-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.nec-team-card-actions button {
+  flex: 1;
+}
+
+/* --- Registration Form Container --- */
+.nec-form-card {
+  max-width: 680px;
+  margin: 0 auto;
+  background: var(--nec-surface);
+  border: 1px solid var(--nec-border);
+  border-radius: var(--nec-radius-xl, 16px);
+  padding: 32px;
+  box-shadow: var(--nec-shadow-md);
+}
+
+[data-theme="dark"] .nec-form-card {
+  background: var(--nec-solid-card, #16263d);
+}
+
+.nec-form-header {
+  border-bottom: 1px solid var(--nec-border);
+  padding-bottom: 16px;
+  margin-bottom: 24px;
+}
+
+.nec-form-title {
+  margin: 0 0 6px 0;
+  font-family: var(--nec-font-display);
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--nec-text-main);
+}
+
+.nec-form-sub {
+  margin: 0;
+  font-size: 0.825rem;
+  color: var(--nec-text-muted);
+  line-height: 1.45;
+}
+
+.nec-form-body {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.nec-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 600px) {
+  .nec-form-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.nec-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nec-form-label {
+  font-size: 0.775rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--nec-text-main);
+}
+
+.nec-form-input,
+.nec-form-select {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--nec-border-dark, #cbd5e1);
+  border-radius: var(--nec-radius-md, 6px);
+  background: var(--nec-surface-raised, #f8fafc);
+  color: var(--nec-text-main);
+  font-size: 0.875rem;
+  transition: var(--nec-transition-fast);
+  outline: none;
+}
+
+[data-theme="dark"] .nec-form-input,
+[data-theme="dark"] .nec-form-select {
+  background: rgba(13, 27, 42, 0.7);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: #f8fafc;
+}
+
+.nec-form-input:focus,
+.nec-form-select:focus {
+  border-color: var(--nec-blue, #0274be);
+  box-shadow: 0 0 0 3px rgba(2, 116, 190, 0.15);
+}
+
+/* --- Attendance Section --- */
+.nec-attendance-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.nec-attendance-team-select {
+  padding: 8px 14px;
+  border: 1px solid var(--nec-border);
+  border-radius: var(--nec-radius-md, 6px);
+  background: var(--nec-surface);
+  color: var(--nec-text-main);
+  font-weight: 600;
+  font-size: 0.875rem;
+  min-width: 240px;
+}
+
+[data-theme="dark"] .nec-attendance-team-select {
+  background: var(--nec-surface-raised);
+  border-color: var(--nec-border-dark);
+}
+
+.nec-attendance-table-wrap {
+  background: var(--nec-surface);
+  border: 1px solid var(--nec-border);
+  border-radius: var(--nec-radius-lg, 12px);
+  overflow: hidden;
+  box-shadow: var(--nec-shadow-sm);
+}
+
+[data-theme="dark"] .nec-attendance-table-wrap {
+  background: var(--nec-solid-card, #16263d);
+}
+
+.nec-attendance-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.nec-attendance-table th {
+  padding: 14px 18px;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--nec-text-muted);
+  background: var(--nec-surface-raised);
+  border-bottom: 1px solid var(--nec-border);
+}
+
+.nec-attendance-table td {
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--nec-border);
+  color: var(--nec-text-main);
+  vertical-align: middle;
+}
+
+.nec-attendance-table tr:last-child td {
+  border-bottom: none;
+}
+
+.nec-attendance-table tr:hover {
+  background: var(--nec-surface-hover);
+}
+
+.nec-jersey-badge {
+  font-family: monospace;
+  font-weight: 700;
+  color: var(--nec-blue, #0274be);
+  background: var(--nec-info-bg, #e8f2f9);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+[data-theme="dark"] .nec-jersey-badge {
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.15);
+}
+
+/* --- Fixtures Grid --- */
+.nec-fixtures-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 18px;
+}
+
+.nec-fixture-card {
+  background: var(--nec-surface);
+  border: 1px solid var(--nec-border);
+  border-radius: var(--nec-radius-lg, 12px);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: var(--nec-shadow-sm);
+  transition: var(--nec-transition);
+}
+
+.nec-fixture-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--nec-shadow-md);
+  border-color: var(--nec-blue, #0274be);
+}
+
+[data-theme="dark"] .nec-fixture-card {
+  background: var(--nec-solid-card, #16263d);
+}
+
+.nec-fixture-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.775rem;
+  color: var(--nec-text-muted);
+}
+
+.nec-fixture-pool-tag {
+  padding: 3px 8px;
+  background: var(--nec-surface-raised);
+  border: 1px solid var(--nec-border);
+  border-radius: 4px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.nec-fixture-teams-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 700;
+  font-size: 0.95rem;
+  gap: 12px;
+}
+
+.nec-fixture-score-box {
+  padding: 6px 14px;
+  background: var(--nec-surface-raised);
+  border: 1px solid var(--nec-border);
+  border-radius: var(--nec-radius-md, 6px);
+  font-family: monospace;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--nec-blue, #0274be);
+  white-space: nowrap;
+}
+
+[data-theme="dark"] .nec-fixture-score-box {
+  color: #38bdf8;
+  background: rgba(13, 27, 42, 0.8);
+}
+
+.nec-fixture-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 10px;
+  border-top: 1px solid var(--nec-border);
+  font-size: 0.775rem;
+  color: var(--nec-text-muted);
+}
+
+/* --- Student Search Dropdown in Modal --- */
+.nec-student-results-dropdown {
+  max-height: 180px;
+  overflow-y: auto;
+  border: 1px solid var(--nec-border);
+  border-radius: var(--nec-radius-md, 6px);
+  background: var(--nec-surface);
+  margin-top: 6px;
+  box-shadow: var(--nec-shadow-md);
+}
+
+[data-theme="dark"] .nec-student-results-dropdown {
+  background: var(--nec-surface-raised);
+}
+
+.nec-student-result-item {
+  width: 100%;
+  padding: 10px 14px;
+  border: none;
+  border-bottom: 1px solid var(--nec-border);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+  cursor: pointer;
+  transition: var(--nec-transition-fast);
+}
+
+.nec-student-result-item:last-child {
+  border-bottom: none;
+}
+
+.nec-student-result-item:hover {
+  background: var(--nec-surface-hover);
+}
+
+.nec-student-result-name {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--nec-text-main);
+}
+
+.nec-student-result-meta {
+  font-size: 0.75rem;
+  font-family: monospace;
+  color: var(--nec-text-muted);
+}
+
+/* --- Team Profile Dedicated Styling --- */
+.nec-team-profile-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.nec-team-profile-banner {
+  background: linear-gradient(135deg, var(--nec-navy-dark, #081f42) 0%, var(--nec-navy, #0b2c5d) 70%, #173d74 100%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--nec-radius-xl, 16px);
+  padding: 32px;
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  box-shadow: var(--nec-shadow-lg);
+}
+
+[data-theme="dark"] .nec-team-profile-banner {
+  background: linear-gradient(135deg, #061224 0%, #0d1e38 70%, #152d52 100%);
+}
+
+.nec-team-profile-banner-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.nec-team-profile-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nec-team-profile-name {
+  margin: 0;
+  font-family: var(--nec-font-display);
+  font-size: 2.2rem;
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.nec-team-profile-sub {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.95rem;
+}
+
+.nec-team-profile-pill-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.nec-team-profile-pill {
+  padding: 4px 12px;
+  border-radius: var(--nec-radius-full, 9999px);
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  text-transform: uppercase;
+}
+
+.nec-team-profile-grid {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 24px;
+}
+
+@media (max-width: 900px) {
+  .nec-team-profile-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.nec-dept-breakdown-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.nec-dept-box {
+  padding: 12px;
+  background: var(--nec-surface-raised);
+  border: 1px solid var(--nec-border);
+  border-radius: var(--nec-radius-md, 8px);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.nec-dept-box-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--nec-text-muted);
+}
+
+.nec-dept-box-count {
+  font-family: var(--nec-font-display);
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--nec-blue, #0274be);
+  margin-top: 6px;
+}
+
+[data-theme="dark"] .nec-dept-box-count {
+  color: #38bdf8;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}

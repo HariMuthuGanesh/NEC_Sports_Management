@@ -142,4 +142,33 @@ export const getDepartmentAttendance = async (departmentId) => {
     return rows;
 };
 
+export const getMatchAttendanceSql = async (matchId) => {
+    await ensureAttendanceTable();
+    const sql = `
+        SELECT 
+            ma.attendance_id,
+            ma.team_id,
+            t.name AS team_name,
+            ma.match_id,
+            ma.student_id,
+            ma.status,
+            ma.recorded_at,
+            st.student_name,
+            st.register_number,
+            d.name AS department_name,
+            d.code AS department_code,
+            u.username AS marked_by_user
+        FROM match_attendance ma
+        JOIN students st ON ma.student_id = st.student_id
+        JOIN departments d ON st.department_id = d.id
+        JOIN teams t ON ma.team_id = t.team_id
+        LEFT JOIN users u ON ma.marked_by = u.id
+        WHERE ma.match_id = ?
+        ORDER BY t.name ASC, st.student_name ASC
+    `;
+    const [rows] = await pool.execute(sql, [matchId]);
+    return rows;
+};
+
+
 

@@ -3,7 +3,7 @@ import pool from '../../config/db.js';
 // Find user by username or email
 export const findUserByUsernameOrEmail = async (identifier) => {
     const sql = `
-        SELECT id, username, email, password_hash, google_linked, role, is_active, login_attempts, last_login_at, created_at
+        SELECT id, username, email, password_hash, google_linked, role, admin_scope, token_version, is_active, login_attempts, last_login_at, created_at
         FROM users
         WHERE username = ? OR email = ?
         LIMIT 1
@@ -15,7 +15,7 @@ export const findUserByUsernameOrEmail = async (identifier) => {
 // Find user by ID
 export const findUserById = async (id) => {
     const sql = `
-        SELECT id, username, email, google_linked, role, is_active, last_login_at, created_at
+        SELECT id, username, email, google_linked, role, admin_scope, token_version, is_active, last_login_at, created_at
         FROM users
         WHERE id = ?
         LIMIT 1

@@ -1,0 +1,111 @@
+.nec-toast-container {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 999999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 420px;
+  width: calc(100vw - 48px);
+  pointer-events: none;
+}
+
+.nec-toast-item {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: var(--nec-surface, #ffffff);
+  color: var(--nec-text, #1e293b);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--nec-border, #e2e8f0);
+  animation: necToastSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transition: all 0.2s ease;
+}
+
+[data-theme='dark'] .nec-toast-item {
+  background: #1e293b;
+  color: #f8fafc;
+  border-color: #334155;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4);
+}
+
+@keyframes necToastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(100%) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+.nec-toast-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.nec-toast-icon.success {
+  color: #10b981;
+}
+
+.nec-toast-icon.error {
+  color: #ef4444;
+}
+
+.nec-toast-icon.warning {
+  color: #f59e0b;
+}
+
+.nec-toast-icon.info {
+  color: #3b82f6;
+}
+
+.nec-toast-item.nec-toast-success {
+  border-left: 4px solid #10b981;
+}
+
+.nec-toast-item.nec-toast-error {
+  border-left: 4px solid #ef4444;
+}
+
+.nec-toast-item.nec-toast-warning {
+  border-left: 4px solid #f59e0b;
+}
+
+.nec-toast-item.nec-toast-info {
+  border-left: 4px solid #3b82f6;
+}
+
+.nec-toast-msg {
+  flex: 1;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  font-weight: 500;
+  word-break: break-word;
+}
+
+.nec-toast-close {
+  background: transparent;
+  border: none;
+  color: var(--nec-text-muted, #64748b);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+
+.nec-toast-close:hover {
+  background: var(--nec-surface-raised, rgba(0, 0, 0, 0.05));
+  color: var(--nec-text, #1e293b);
+}

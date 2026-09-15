@@ -116,11 +116,16 @@ export const authorize = (...roles) => {
 
 export const requireAdminScope = (requiredScope) => {
     return (req, res, next) => {
-        if (!req.user || req.user.role !== 'Admin') {
+        if (!req.user) {
             return res.status(403).json({
                 success: false,
-                error: { code: 'FORBIDDEN', message: 'Admin access required.' }
+                error: { code: 'FORBIDDEN', message: 'Authentication required.' }
             });
+        }
+
+        // If user is not Admin (e.g. Sports President), bypass admin_scope check
+        if (req.user.role !== 'Admin') {
+            return next();
         }
 
         const userScope = req.user.admin_scope || 'Full';

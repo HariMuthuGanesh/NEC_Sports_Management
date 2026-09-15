@@ -93,102 +93,108 @@ export const searchStudents = async (query) => {
  * Returns [] (not an error) if IMS has no student profiles yet.
  */
 export const searchStudentsFromIms = async (query) => {
-    const q = `%${query}%`;
-    const sql = `
-        SELECT
-            pi.id                                       AS imsId,
-            pi.post                                     AS studentId,
-            pi.post                                     AS rollNo,
-            pi.post                                     AS register_number,
-            pi.full_name                                AS name,
-            pi.full_name                                AS student_name,
-            pi.email,
-            pi.email                                    AS personal_email,
-            pi.mobile_number                            AS phone,
-            pi.mobile_number                            AS personal_phone,
-            pi.gender,
-            pi.date_of_birth,
-            pi.age,
-            pi.community,
-            pi.department                               AS imsRawDept,
-
-            -- IMS department metadata
-            id.departmentId                             AS imsDeptId,
-            id.departmentName                           AS department_name,
-            id.departmentName                           AS dept,
-            id.departmentAcr                            AS deptCode,
-            id.departmentAcr                            AS department_code,
-
-            -- IMS batch metadata (match on department acronym)
-            b.degree,
-            b.batch                                     AS batchYear,
-            b.batchYears,
-            b.batch                                     AS year,
-
-            -- Attendance aggregate from IMS
-            att.totalDays,
-            att.presentDays,
-            ROUND(IFNULL(att.presentDays / NULLIF(att.totalDays, 0) * 100, 0), 1) AS attendancePct,
-
-            -- Sports registry cross-link (sportsdb)
-            sp.student_id                               AS sportsStudentId,
-            sp.blood_group                              AS bloodGroup,
-            sp.student_type                             AS studentType,
-            sp.medical_fitness                          AS medicalFitness,
-            sp.section,
-            CASE
-                WHEN sp.student_id IS NOT NULL
-                 AND ROUND(IFNULL(att.presentDays / NULLIF(att.totalDays, 0) * 100, 0), 1) >= 75
-                THEN 'eligible'
-                WHEN sp.student_id IS NOT NULL
-                THEN 'registered'
-                ELSE 'not_registered'
-            END AS sportsEligibility,
-
-            'ims' AS dataSource
-
-        FROM ims.personal_information pi
-
-        -- Join IMS departments by the text name stored in pi.department
-        LEFT JOIN ims.departments id
-            ON id.departmentAcr = pi.department
-            OR id.departmentName = pi.department
-
-        -- Join IMS batch by department acronym
-        LEFT JOIN ims.batch b
-            ON b.branch = COALESCE(id.departmentAcr, pi.department)
-            AND b.isActive = 'YES'
-
-        -- Aggregate attendance from IMS dayattendance keyed by regno (register number)
-        LEFT JOIN (
+    try {
+        const q = `%${query}%`;
+        const sql = `
             SELECT
-                regno,
-                COUNT(*) AS totalDays,
-                SUM(CASE WHEN status = 'P' THEN 1 ELSE 0 END) AS presentDays
-            FROM ims.dayattendance
-            GROUP BY regno
-        ) att ON att.regno = pi.post
+                pi.id                                       AS imsId,
+                pi.post                                     AS studentId,
+                pi.post                                     AS rollNo,
+                pi.post                                     AS register_number,
+                pi.full_name                                AS name,
+                pi.full_name                                AS student_name,
+                pi.email,
+                pi.email                                    AS personal_email,
+                pi.mobile_number                            AS phone,
+                pi.mobile_number                            AS personal_phone,
+                pi.gender,
+                pi.date_of_birth,
+                pi.age,
+                pi.community,
+                pi.department                               AS imsRawDept,
 
-        -- Cross-link to sportsdb for sports registration + team eligibility
-        LEFT JOIN sportsdb.students sp
-            ON sp.register_number = pi.post
+                -- IMS department metadata
+                id.departmentId                             AS imsDeptId,
+                id.departmentName                           AS department_name,
+                id.departmentName                           AS dept,
+                id.departmentAcr                            AS deptCode,
+                id.departmentAcr                            AS department_code,
 
-        WHERE (
-            pi.full_name   LIKE ?
-            OR pi.post     LIKE ?
-            OR pi.email    LIKE ?
-            OR pi.department LIKE ?
-        )
-        ORDER BY pi.full_name ASC
-        LIMIT 200
-    `;
-    const [rows] = await pool.execute(sql, [q, q, q, q]);
-    return rows;
+                -- IMS batch metadata (match on department acronym)
+                b.degree,
+                b.batch                                     AS batchYear,
+                b.batchYears,
+                b.batch                                     AS year,
+
+                -- Attendance aggregate from IMS
+                att.totalDays,
+                att.presentDays,
+                ROUND(IFNULL(att.presentDays / NULLIF(att.totalDays, 0) * 100, 0), 1) AS attendancePct,
+
+                -- Sports registry cross-link (students)
+                sp.student_id                               AS sportsStudentId,
+                sp.blood_group                              AS bloodGroup,
+                sp.student_type                             AS studentType,
+                sp.medical_fitness                          AS medicalFitness,
+                sp.section,
+                CASE
+                    WHEN sp.student_id IS NOT NULL
+                     AND ROUND(IFNULL(att.presentDays / NULLIF(att.totalDays, 0) * 100, 0), 1) >= 75
+                    THEN 'eligible'
+                    WHEN sp.student_id IS NOT NULL
+                    THEN 'registered'
+                    ELSE 'not_registered'
+                END AS sportsEligibility,
+
+                'ims' AS dataSource
+
+            FROM ims.personal_information pi
+
+            -- Join IMS departments by the text name stored in pi.department
+            LEFT JOIN ims.departments id
+                ON id.departmentAcr = pi.department
+                OR id.departmentName = pi.department
+
+            -- Join IMS batch by department acronym
+            LEFT JOIN ims.batch b
+                ON b.branch = COALESCE(id.departmentAcr, pi.department)
+                AND b.isActive = 'YES'
+
+            -- Aggregate attendance from IMS dayattendance keyed by regno (register number)
+            LEFT JOIN (
+                SELECT
+                    regno,
+                    COUNT(*) AS totalDays,
+                    SUM(CASE WHEN status = 'P' THEN 1 ELSE 0 END) AS presentDays
+                FROM ims.dayattendance
+                GROUP BY regno
+            ) att ON att.regno = pi.post
+
+            -- Cross-link to local students for sports registration + team eligibility
+            LEFT JOIN students sp
+                ON sp.register_number = pi.post
+
+            WHERE (
+                pi.full_name   LIKE ?
+                OR pi.post     LIKE ?
+                OR pi.email    LIKE ?
+                OR pi.department LIKE ?
+            )
+            ORDER BY pi.full_name ASC
+            LIMIT 200
+        `;
+        const [rows] = await pool.execute(sql, [q, q, q, q]);
+        return rows;
+    } catch (err) {
+        // Catch ER_BAD_DB_ERROR / missing tables as "IMS unavailable"
+        console.warn('[IMS] IMS student search query failed (IMS schema may be unavailable):', err.message);
+        return null;
+    }
 };
 
 /**
  * Check whether IMS personal_information has any students.
- * Returns true if IMS is populated, false if empty.
+ * Returns true if IMS is populated, false if empty or unavailable.
  */
 export const hasImsStudents = async () => {
     try {
@@ -196,7 +202,7 @@ export const hasImsStudents = async () => {
             'SELECT COUNT(*) AS count FROM ims.personal_information'
         );
         return count > 0;
-    } catch {
+    } catch (err) {
         // IMS schema unavailable — fall back to local sportsdb student search
         return false;
     }
@@ -207,26 +213,31 @@ export const hasImsStudents = async () => {
  * Uses register_number (regno in IMS) as the key.
  */
 export const getImsAttendanceSummary = async (registerNumber) => {
-    const sql = `
-        SELECT
-            regno,
-            COUNT(*)                                           AS totalDays,
-            SUM(CASE WHEN status = 'P' THEN 1 ELSE 0 END)    AS presentDays,
-            SUM(CASE WHEN status = 'A' THEN 1 ELSE 0 END)    AS absentDays,
-            ROUND(
-                SUM(CASE WHEN status = 'P' THEN 1 ELSE 0 END)
-                / NULLIF(COUNT(*), 0) * 100,
-                1
-            )                                                  AS attendancePct,
-            MIN(attendanceDate)                                AS firstRecorded,
-            MAX(attendanceDate)                                AS lastRecorded,
-            semesterNumber,
-            COUNT(DISTINCT semesterNumber)                     AS semestersRecorded
-        FROM ims.dayattendance
-        WHERE regno = ?
-        GROUP BY regno, semesterNumber
-        ORDER BY semesterNumber ASC
-    `;
-    const [rows] = await pool.execute(sql, [registerNumber]);
-    return rows;
+    try {
+        const sql = `
+            SELECT
+                regno,
+                COUNT(*)                                           AS totalDays,
+                SUM(CASE WHEN status = 'P' THEN 1 ELSE 0 END)    AS presentDays,
+                SUM(CASE WHEN status = 'A' THEN 1 ELSE 0 END)    AS absentDays,
+                ROUND(
+                    SUM(CASE WHEN status = 'P' THEN 1 ELSE 0 END)
+                    / NULLIF(COUNT(*), 0) * 100,
+                    1
+                )                                                  AS attendancePct,
+                MIN(attendanceDate)                                AS firstRecorded,
+                MAX(attendanceDate)                                AS lastRecorded,
+                semesterNumber,
+                COUNT(DISTINCT semesterNumber)                     AS semestersRecorded
+            FROM ims.dayattendance
+            WHERE regno = ?
+            GROUP BY regno, semesterNumber
+            ORDER BY semesterNumber ASC
+        `;
+        const [rows] = await pool.execute(sql, [registerNumber]);
+        return rows;
+    } catch (err) {
+        console.warn('[IMS] IMS attendance query failed:', err.message);
+        return [];
+    }
 };

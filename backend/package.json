@@ -9,7 +9,8 @@
   "scripts": {
     "start": "cross-env NODE_ENV=production node src/index.js",
     "dev": "cross-env NODE_ENV=development nodemon src/index.js",
-    "seed": "node src/data/seedDummyData.js",
+    "migrate": "node src/scripts/runMigrations.js",
+    "seed": "node src/data/seedData.js",
     "seed:dummy": "node src/data/seedDummyData.js",
     "provision:demo-accounts": "node src/data/provisionDemoAccounts.js",
     "seed:v2": "node src/data/seedRoleHierarchyV2.js",

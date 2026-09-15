@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { matchesApi, leaderboardApi, announcementsApi } from "../../services/api/apiServices";
+import { matchesApi, leaderboardApi, announcementsApi, statsApi } from "../../services/api/apiServices";
 import { useAuth, ROLES } from "../../context/AuthContext";
 import { Card, StatCard } from "../../components/common/Card";
 import Badge from "../../components/common/Badge";
@@ -14,6 +14,7 @@ export default function PublicHome({ onNavigate }) {
   const [liveMatches, setLiveMatches] = useState([]);
   const [leaderboard, setLeaderboard] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
+  const [stats, setStats] = useState({ sportsCount: "8+", athletesCount: "500+" });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -21,14 +22,16 @@ export default function PublicHome({ onNavigate }) {
     setLoading(true);
     setError(null);
     try {
-      const [matches, board, anns] = await Promise.all([
+      const [matches, board, anns, statsData] = await Promise.all([
         matchesApi.getMatches(),
         leaderboardApi.getLeaderboard(),
-        announcementsApi.getAll()
+        announcementsApi.getAll(),
+        statsApi.getOverview().catch(() => ({ sportsCount: "8+", athletesCount: "500+" }))
       ]);
       setLiveMatches(matches.filter(m => m.status === "Ongoing"));
       setLeaderboard(board.slice(0, 5));
       setAnnouncements(anns.slice(0, 3));
+      if (statsData) setStats(statsData);
     } catch (err) {
       console.error(err);
       setError(err.message);
@@ -106,8 +109,8 @@ export default function PublicHome({ onNavigate }) {
         <>
           {/* Public Dashboard Statistics */}
           <div className="nec-home-stats-grid nec-guest-stats-grid">
-            <StatCard title="Sports" value="8+" icon={Trophy} subtext="Active Disciplines" color="gold" onClick={() => onNavigate("public_leaderboard")} />
-            <StatCard title="Athletes" value="500+" icon={Users} subtext="Registered Players" color="navy" onClick={() => onNavigate("login")} />
+            <StatCard title="Sports" value={stats.sportsCount} icon={Trophy} subtext="Active Disciplines" color="gold" onClick={() => onNavigate("public_leaderboard")} />
+            <StatCard title="Athletes" value={stats.athletesCount} icon={Users} subtext="Registered Players" color="navy" onClick={() => onNavigate("login")} />
             <StatCard title="Live Matches" value={liveMatches.length} icon={Radio} subtext="Currently Playing" color="navy" trend={liveMatches.length > 0 ? "+ Active" : undefined} onClick={() => onNavigate("public_live")} />
             <StatCard title="Announcements" value={announcements.length} icon={Megaphone} subtext="Recent Notices" color="navy" onClick={() => onNavigate("public_announcements")} />
           </div>

@@ -98,14 +98,20 @@ export const updateScore = async (req, res, next) => {
             return res.status(400).json({ success: false, error: { code: 'INVALID_ID', message: 'Match ID must be a number.' } });
         }
 
-        const { scoreA, scoreB, detailScore = '', isFinal = false } = req.body;
+        const rawA = req.body.scoreA !== undefined ? req.body.scoreA : req.body.score_a;
+        const rawB = req.body.scoreB !== undefined ? req.body.scoreB : req.body.score_b;
+        const rawDetail = req.body.detailScore !== undefined ? req.body.detailScore : req.body.detail_score;
+        const rawFinal = req.body.isFinal !== undefined ? req.body.isFinal : (req.body.is_final || false);
 
-        if (scoreA === undefined || scoreB === undefined) {
+        if (rawA === undefined || rawB === undefined) {
             return res.status(400).json({ success: false, error: { code: 'MISSING_SCORES', message: 'scoreA and scoreB are required.' } });
         }
 
-        const a = Number(scoreA);
-        const b = Number(scoreB);
+        const a = Number(rawA);
+        const b = Number(rawB);
+        const detailScore = rawDetail !== undefined && rawDetail !== null ? String(rawDetail) : '';
+        const isFinal = Boolean(rawFinal);
+
         if (isNaN(a) || isNaN(b) || a < 0 || b < 0) {
             return res.status(400).json({ success: false, error: { code: 'INVALID_SCORES', message: 'Scores must be non-negative numbers.' } });
         }
@@ -119,7 +125,7 @@ export const updateScore = async (req, res, next) => {
             return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: `Match ${matchId} not found.` } });
         }
 
-        // Server-side winner resolution — frontend never decides this
+        // Server-side winner resolution - frontend never decides this
         let winnerTeamId = null;
         let winnerLabel = null;
 
@@ -131,7 +137,7 @@ export const updateScore = async (req, res, next) => {
                 winnerTeamId = match.team_b_id;
                 winnerLabel = 'Team B';
             } else {
-                winnerTeamId = null; // Draw — no winner FK, handled by winnerLabel
+                winnerTeamId = null; // Draw - no winner FK, handled by winnerLabel
                 winnerLabel = 'Draw';
             }
         }
@@ -157,12 +163,17 @@ export const updateScore = async (req, res, next) => {
             success: true,
             data: {
                 matchId,
+                match_id: matchId,
                 scoreA: a,
+                score_a: a,
                 scoreB: b,
+                score_b: b,
                 detailScore,
+                detail_score: detailScore,
                 status,
                 winner: winnerLabel,
                 winnerTeamId,
+                winner_team_id: winnerTeamId,
                 isFinal
             }
         });

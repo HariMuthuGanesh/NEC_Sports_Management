@@ -22,7 +22,8 @@ app.use(auditLogger);
 // 1. Universal Security Headers (OWASP standards via Helmet)
 app.use(helmet({
     contentSecurityPolicy: false, // Customized for API / frontend integration
-    crossOriginEmbedderPolicy: false
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 
 // 2. Restricted CORS Configuration (Strict Origins with Credentials)
@@ -69,9 +70,20 @@ app.use('/api/auth', authRoutes);
 app.use('/api/gallery', galleryRoutes);
 app.use('/api', apiRoutes);
 
+// 5.5 Serve static uploads with CORS and cross-origin CORP headers
+const getUploadsDir = () => {
+    const directPath = path.resolve(process.cwd(), 'uploads');
+    const backendPath = path.resolve(process.cwd(), 'backend', 'uploads');
+    if (path.basename(process.cwd()) === 'backend') return directPath;
+    return directPath;
+};
+const uploadsDir = getUploadsDir();
 
-// 5.5 Serve static uploads
-app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+app.use('/uploads', (req, res, next) => {
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    next();
+}, express.static(uploadsDir));
 
 app.get('/', (req, res) => {
     res.json({

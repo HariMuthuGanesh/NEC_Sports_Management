@@ -37,21 +37,26 @@ export default function MatchesManager() {
     setLoading(true);
     setError(null);
     Promise.all([
-      matchesApi.getMatches(),
-      sportsApi.getVenues(),
-      teamsApi.getTeams(),
-      tournamentsApi.getTournaments()
-    ]).then(([mList, vList, tList, tourList]) => {
-      setMatches(mList);
-      setVenues(vList);
-      setTeams(tList);
-      setTournaments(tourList);
-      if (tList.length >= 2) {
-        setTeamA(tList[0].name);
-        setTeamB(tList[1].name);
+      matchesApi.getMatches().catch(err => { console.warn("[MatchesManager] Failed to fetch matches:", err); return []; }),
+      sportsApi.getVenues().catch(err => { console.warn("[MatchesManager] Failed to fetch venues:", err); return []; }),
+      teamsApi.getTeams().catch(err => { console.warn("[MatchesManager] Failed to fetch teams:", err); return []; }),
+      tournamentsApi.getTournaments().catch(err => { console.warn("[MatchesManager] Failed to fetch tournaments:", err); return []; })
+    ]).then(([mList = [], vList = [], tList = [], tourList = []]) => {
+      const safeMatches = Array.isArray(mList) ? mList : [];
+      const safeVenues = Array.isArray(vList) ? vList : [];
+      const safeTeams = Array.isArray(tList) ? tList : [];
+      const safeTournaments = Array.isArray(tourList) ? tourList : [];
+
+      setMatches(safeMatches);
+      setVenues(safeVenues);
+      setTeams(safeTeams);
+      setTournaments(safeTournaments);
+      if (safeTeams.length >= 2) {
+        setTeamA(safeTeams[0].name);
+        setTeamB(safeTeams[1].name);
       }
-      if (vList.length > 0) setVenue(vList[0].name);
-      if (tourList.length > 0) setTournamentId(String(tourList[0].id || tourList[0].tournament_id));
+      if (safeVenues.length > 0) setVenue(safeVenues[0].name);
+      if (safeTournaments.length > 0) setTournamentId(String(safeTournaments[0].id || safeTournaments[0].tournament_id));
       setLoading(false);
     }).catch(err => {
       console.error(err);

@@ -6,8 +6,21 @@ import {
     deleteSport as deleteSportSql,
     assignSportCaptain as assignSportCaptainSql
 } from '../models/sql/sportSqlModel.js';
-import { getAllEvents, createEventSql, updateEventStatusSql } from '../models/sql/eventSqlModel.js';
-import { getAllTournaments, createTournament as createTournamentSql } from '../models/sql/tournamentSqlModel.js';
+import {
+    getAllEvents,
+    getEventByIdSql,
+    createEventSql,
+    updateEventSql,
+    deleteEventSql,
+    updateEventStatusSql
+} from '../models/sql/eventSqlModel.js';
+import {
+    getAllTournaments,
+    getTournamentById as getTournamentByIdSql,
+    createTournament as createTournamentSql,
+    updateTournament as updateTournamentSql,
+    deleteTournament as deleteTournamentSql
+} from '../models/sql/tournamentSqlModel.js';
 import { getAllVenues, createVenue as createVenueSql, updateVenue as updateVenueSql, deleteVenue as deleteVenueSql } from '../models/sql/venueSqlModel.js';
 import { getAllMatches, getMatchesByTournament, createMatch as createMatchSql } from '../models/sql/matchSqlModel.js';
 import { getTeamsByTournament } from '../models/sql/teamSqlModel.js';
@@ -19,7 +32,6 @@ import {
     getAvailableCoordinators
 } from '../models/sql/departmentSqlModel.js';
 import { getAllAnnouncements, createAnnouncement as createAnnouncementSql, deleteAnnouncement as deleteAnnouncementSql } from '../models/sql/announcementSqlModel.js';
-import { notifyAdmins } from '../services/emailService.js';
 import bcrypt from 'bcryptjs';
 import {
     searchStudents as searchStudentsSql,
@@ -29,7 +41,7 @@ import {
     getImsAttendanceSummary
 } from '../models/sql/studentSqlModel.js';
 
-
+/* --- Sports --- */
 export const getSports = async (req, res, next) => {
     try {
         const data = await getAllSports();
@@ -39,6 +51,57 @@ export const getSports = async (req, res, next) => {
     }
 };
 
+export const createSport = async (req, res, next) => {
+    try {
+        const sportId = await createSportSql(req.body);
+        return res.status(201).json({ success: true, data: { sport_id: sportId, id: sportId, ...req.body } });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const updateSport = async (req, res, next) => {
+    try {
+        const success = await updateSportSql(req.params.id, req.body);
+        if (!success) {
+            return res.status(404).json({ success: false, error: { message: "Sport not found" } });
+        }
+        return res.json({ success: true, data: { sport_id: req.params.id, id: req.params.id, ...req.body } });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const deleteSport = async (req, res, next) => {
+    try {
+        const success = await deleteSportSql(req.params.id);
+        if (!success) {
+            return res.status(404).json({ success: false, error: { message: "Sport not found" } });
+        }
+        return res.json({ success: true, data: { message: "Sport deleted successfully" } });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const assignCaptainToSportController = async (req, res, next) => {
+    try {
+        const sportId = Number(req.params.id);
+        const { captainUserId } = req.body;
+        if (!sportId) {
+            return res.status(400).json({ success: false, error: { message: "Valid sport ID is required" } });
+        }
+        await assignSportCaptainSql(sportId, captainUserId ? Number(captainUserId) : null);
+        return res.json({
+            success: true,
+            message: captainUserId ? "Sports Captain assigned successfully" : "Sports Captain unassigned"
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+/* --- Tournaments --- */
 export const getTournaments = async (req, res, next) => {
     try {
         const data = await getAllTournaments();
@@ -48,6 +111,152 @@ export const getTournaments = async (req, res, next) => {
     }
 };
 
+export const getTournamentByIdController = async (req, res, next) => {
+    try {
+        const data = await getTournamentByIdSql(req.params.id);
+        if (!data) {
+            return res.status(404).json({ success: false, error: { message: 'Tournament not found.' } });
+        }
+        return res.json({ success: true, data });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const createTournamentController = async (req, res, next) => {
+    try {
+        const tourId = await createTournamentSql(req.body);
+        return res.status(201).json({ success: true, data: { tournament_id: tourId, id: tourId, ...req.body } });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const updateTournamentController = async (req, res, next) => {
+    try {
+        const success = await updateTournamentSql(req.params.id, req.body);
+        if (!success) {
+            return res.status(404).json({ success: false, error: { message: 'Tournament not found.' } });
+        }
+        return res.json({ success: true, data: { tournament_id: req.params.id, id: req.params.id, ...req.body } });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const deleteTournamentController = async (req, res, next) => {
+    try {
+        const success = await deleteTournamentSql(req.params.id);
+        if (!success) {
+            return res.status(404).json({ success: false, error: { message: 'Tournament not found.' } });
+        }
+        return res.json({ success: true, data: { message: 'Tournament deleted successfully.' } });
+    } catch (err) {
+        next(err);
+    }
+};
+
+/* --- Events --- */
+export const getEvents = async (req, res, next) => {
+    try {
+        const data = await getAllEvents();
+        return res.json({ success: true, data });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const getEventByIdController = async (req, res, next) => {
+    try {
+        const rawId = req.params.id;
+        const parsedId = typeof rawId === 'string' && rawId.startsWith('ev_') ? Number(rawId.replace('ev_', '')) : Number(rawId);
+        const data = await getEventByIdSql(parsedId);
+        if (!data) {
+            return res.status(404).json({ success: false, error: { message: 'Event not found.' } });
+        }
+        return res.json({ success: true, data });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const createEventController = async (req, res, next) => {
+    try {
+        const eventId = await createEventSql(req.body);
+        return res.status(201).json({ success: true, data: { event_id: eventId, id: eventId, ...req.body } });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const updateEventController = async (req, res, next) => {
+    try {
+        const rawId = req.params.id;
+        const parsedId = typeof rawId === 'string' && rawId.startsWith('ev_') ? Number(rawId.replace('ev_', '')) : Number(rawId);
+        const success = await updateEventSql(parsedId, req.body);
+        if (!success) {
+            return res.status(404).json({ success: false, error: { message: 'Event not found.' } });
+        }
+        return res.json({ success: true, data: { event_id: parsedId, id: parsedId, ...req.body } });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const deleteEventController = async (req, res, next) => {
+    try {
+        const rawId = req.params.id;
+        const parsedId = typeof rawId === 'string' && rawId.startsWith('ev_') ? Number(rawId.replace('ev_', '')) : Number(rawId);
+        const success = await deleteEventSql(parsedId);
+        if (!success) {
+            return res.status(404).json({ success: false, error: { message: 'Event not found.' } });
+        }
+        return res.json({ success: true, data: { message: 'Event deleted successfully.' } });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const toggleEventStatusController = async (req, res, next) => {
+    try {
+        const rawId = req.params.id;
+        let { status } = req.body || {};
+        const isEvPrefix = typeof rawId === 'string' && rawId.startsWith('ev_');
+        const parsedId = isEvPrefix ? Number(rawId.replace('ev_', '')) : Number(rawId);
+
+        if (isNaN(parsedId)) {
+            return res.status(400).json({ success: false, error: { message: 'Invalid Event ID' } });
+        }
+
+        if (!status) {
+            const current = await getEventByIdSql(parsedId);
+            if (!current) {
+                return res.status(404).json({ success: false, error: { message: 'Event not found.' } });
+            }
+            const currentStatus = current.registration_status || current.status || 'Closed';
+            status = currentStatus === 'Open' || currentStatus === 'Registration Open' ? 'Closed' : 'Open';
+        }
+
+        const success = await updateEventStatusSql(parsedId, status);
+        if (!success) {
+            return res.status(404).json({ success: false, error: { message: 'Event not found.' } });
+        }
+        return res.json({
+            success: true,
+            data: {
+                id: parsedId,
+                event_id: parsedId,
+                status,
+                registration_status: status,
+                message: `Event registration is now ${status}`
+            }
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+/* --- Venues --- */
 export const getVenues = async (req, res, next) => {
     try {
         const data = await getAllVenues();
@@ -90,6 +299,7 @@ export const deleteVenueController = async (req, res, next) => {
     }
 };
 
+/* --- Matches & Tournaments Matches --- */
 export const getMatches = async (req, res, next) => {
     try {
         const data = await getAllMatches();
@@ -99,6 +309,55 @@ export const getMatches = async (req, res, next) => {
     }
 };
 
+export const getTournamentMatchesController = async (req, res, next) => {
+    try {
+        const tournamentId = Number(req.params.id);
+        if (!tournamentId) {
+            return res.status(400).json({ success: false, error: { message: "Valid tournament ID is required" } });
+        }
+        const data = await getMatchesByTournament(tournamentId);
+        return res.json({ success: true, data });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const createTournamentMatchController = async (req, res, next) => {
+    try {
+        const tournamentId = Number(req.params.id);
+        if (!tournamentId) {
+            return res.status(400).json({ success: false, error: { message: "Valid tournament ID is required" } });
+        }
+        const matchData = { ...req.body, tournament_id: tournamentId };
+        const matchId = await createMatchSql(matchData);
+        return res.status(201).json({
+            success: true,
+            data: { match_id: matchId, id: matchId, ...matchData }
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const getTournamentTeamsController = async (req, res, next) => {
+    try {
+        const tournamentId = Number(req.params.id);
+        if (!tournamentId) {
+            return res.status(400).json({ success: false, error: { message: "Valid tournament ID is required" } });
+        }
+
+        let data = await getTeamsByTournament(tournamentId);
+        if (req.user?.role === 'Coordinator' && req.user.dept_id) {
+            data = data.filter(team => Number(team.department_id ?? team.deptId ?? team.dept_id) === Number(req.user.dept_id));
+        }
+
+        return res.json({ success: true, data });
+    } catch (err) {
+        next(err);
+    }
+};
+
+/* --- Departments & Coordinators --- */
 export const getDepartments = async (req, res, next) => {
     try {
         const data = await getAllDepartments();
@@ -169,6 +428,7 @@ export const getCoordinatorsListController = async (req, res, next) => {
     }
 };
 
+/* --- Announcements --- */
 export const getAnnouncements = async (req, res, next) => {
     try {
         const data = await getAllAnnouncements();
@@ -178,39 +438,29 @@ export const getAnnouncements = async (req, res, next) => {
     }
 };
 
-export const createSport = async (req, res, next) => {
+export const createAnnouncementController = async (req, res, next) => {
     try {
-        const sportId = await createSportSql(req.body);
-        return res.status(201).json({ success: true, data: { sport_id: sportId, id: sportId, ...req.body } });
+        const authorId = req.user?.id || 1;
+        const id = await createAnnouncementSql({ ...req.body, author_user_id: authorId });
+        return res.status(201).json({ success: true, data: { announcement_id: id, ...req.body } });
     } catch (err) {
         next(err);
     }
 };
 
-export const updateSport = async (req, res, next) => {
+export const deleteAnnouncementController = async (req, res, next) => {
     try {
-        const success = await updateSportSql(req.params.id, req.body);
+        const success = await deleteAnnouncementSql(req.params.id);
         if (!success) {
-            return res.status(404).json({ success: false, error: { message: "Sport not found" } });
+            return res.status(404).json({ success: false, error: { message: "Announcement not found" } });
         }
-        return res.json({ success: true, data: { sport_id: req.params.id, id: req.params.id, ...req.body } });
+        return res.json({ success: true, data: { message: "Announcement deleted successfully" } });
     } catch (err) {
         next(err);
     }
 };
 
-export const deleteSport = async (req, res, next) => {
-    try {
-        const success = await deleteSportSql(req.params.id);
-        if (!success) {
-            return res.status(404).json({ success: false, error: { message: "Sport not found" } });
-        }
-        return res.json({ success: true, data: { message: "Sport deleted successfully" } });
-    } catch (err) {
-        next(err);
-    }
-};
-
+/* --- Leaderboard & Stats --- */
 export const getLeaderboard = async (req, res, next) => {
     try {
         const sql = `
@@ -242,59 +492,39 @@ export const getLeaderboard = async (req, res, next) => {
     }
 };
 
-export const getEvents = async (req, res, next) => {
+export const getOverviewStats = async (req, res, next) => {
     try {
-        const data = await getAllEvents();
-        return res.json({ success: true, data });
+        const [sportsRes] = await pool.execute('SELECT COUNT(*) as count FROM sports');
+        const [studentsRes] = await pool.execute('SELECT COUNT(*) as count FROM students');
+        
+        return res.json({
+            success: true,
+            data: {
+                sportsCount: sportsRes[0].count.toString(),
+                athletesCount: studentsRes[0].count.toString()
+            }
+        });
     } catch (err) {
         next(err);
     }
 };
 
-export const createEventController = async (req, res, next) => {
-    try {
-        const eventId = await createEventSql(req.body);
-        return res.status(201).json({ success: true, data: { event_id: eventId, id: eventId, ...req.body } });
-    } catch (err) {
-        next(err);
-    }
-};
-
-export const toggleEventStatusController = async (req, res, next) => {
-    try {
-        const rawId = req.params.id;
-        const { status } = req.body || {};
-        const isEvPrefix = typeof rawId === 'string' && rawId.startsWith('ev_');
-        const parsedId = isEvPrefix ? Number(rawId.replace('ev_', '')) : Number(rawId);
-
-        let success = false;
-        if (!isNaN(parsedId)) {
-            success = await updateEventStatusSql(parsedId, status || 'Closed');
-        }
-
-        if (!success) {
-            return res.status(404).json({ success: false, error: { message: 'Event not found.' } });
-        }
-        return res.json({ success: true, data: { message: `Event status updated to ${status || 'Closed'}` } });
-    } catch (err) {
-        next(err);
-    }
-};
-
+/* --- Students --- */
 export const searchStudentsController = async (req, res, next) => {
     try {
         const query = req.query.q || '';
-
-        // Try IMS first. If IMS has students, use that enriched source.
-        // Fall back to sportsdb-only when IMS has no personal_information rows yet.
         const imsPopulated = await hasImsStudents();
-        let data;
-        let source;
+        let data = null;
+        let source = 'sportsdb';
 
         if (imsPopulated) {
             data = await searchStudentsFromIms(query);
-            source = 'ims';
-        } else {
+            if (data !== null) {
+                source = 'ims';
+            }
+        }
+
+        if (data === null) {
             data = await searchStudentsSql(query);
             source = 'sportsdb';
         }
@@ -302,23 +532,18 @@ export const searchStudentsController = async (req, res, next) => {
         return res.json({
             success: true,
             data,
-            meta: { source, imsConnected: true, imsPopulated }
+            meta: { source, imsConnected: Boolean(imsPopulated && source === 'ims'), imsPopulated }
         });
     } catch (err) {
         next(err);
     }
 };
 
-/**
- * GET /api/students/:registerNumber/attendance
- * Returns per-semester attendance summary from IMS for a given register number.
- */
 export const getStudentAttendanceController = async (req, res, next) => {
     try {
         const { registerNumber } = req.params;
         const rows = await getImsAttendanceSummary(registerNumber);
 
-        // Compute overall attendance across all semesters
         const overall = rows.reduce(
             (acc, r) => ({
                 totalDays: acc.totalDays + (r.totalDays || 0),
@@ -374,7 +599,6 @@ export const createStudentController = async (req, res, next) => {
             return res.status(400).json({ success: false, error: { message: 'Student name and roll number are required.' } });
         }
 
-        // Resolve department ID
         let resolvedDeptId = departmentId || deptId;
         if (!resolvedDeptId && departmentCode) {
             const [deptRows] = await pool.execute('SELECT id FROM departments WHERE code = ? LIMIT 1', [departmentCode.toUpperCase()]);
@@ -385,7 +609,6 @@ export const createStudentController = async (req, res, next) => {
             resolvedDeptId = firstDept[0]?.id;
         }
 
-        // Check or create user account for student
         const [existingUser] = await pool.execute('SELECT id FROM users WHERE username = ? OR email = ? LIMIT 1', [cleanRegNo, cleanEmail]);
         let studentUserId;
         if (existingUser[0]) {
@@ -399,7 +622,6 @@ export const createStudentController = async (req, res, next) => {
             studentUserId = uRes.insertId;
         }
 
-        // Check if student already registered
         const [existingStudent] = await pool.execute('SELECT student_id FROM students WHERE register_number = ? LIMIT 1', [cleanRegNo]);
         if (existingStudent[0]) {
             return res.status(400).json({ success: false, error: { message: `Student with roll number ${cleanRegNo} is already registered.` } });
@@ -437,101 +659,3 @@ export const createStudentController = async (req, res, next) => {
         next(err);
     }
 };
-
-export const createTournamentController = async (req, res, next) => {
-    try {
-        const tourId = await createTournamentSql(req.body);
-        return res.status(201).json({ success: true, data: { tournament_id: tourId, ...req.body } });
-    } catch (err) {
-        next(err);
-    }
-};
-
-export const createAnnouncementController = async (req, res, next) => {
-    try {
-        const authorId = req.user?.id || 1;
-        const id = await createAnnouncementSql({ ...req.body, author_user_id: authorId });
-        return res.status(201).json({ success: true, data: { announcement_id: id, ...req.body } });
-    } catch (err) {
-        next(err);
-    }
-};
-
-export const deleteAnnouncementController = async (req, res, next) => {
-    try {
-        const success = await deleteAnnouncementSql(req.params.id);
-        if (!success) {
-            return res.status(404).json({ success: false, error: { message: "Announcement not found" } });
-        }
-        return res.json({ success: true, data: { message: "Announcement deleted successfully" } });
-    } catch (err) {
-        next(err);
-    }
-};
-
-export const assignCaptainToSportController = async (req, res, next) => {
-    try {
-        const sportId = Number(req.params.id);
-        const { captainUserId } = req.body;
-        if (!sportId) {
-            return res.status(400).json({ success: false, error: { message: "Valid sport ID is required" } });
-        }
-        await assignSportCaptainSql(sportId, captainUserId ? Number(captainUserId) : null);
-        return res.json({
-            success: true,
-            message: captainUserId ? "Sports Captain assigned successfully" : "Sports Captain unassigned"
-        });
-    } catch (err) {
-        next(err);
-    }
-};
-
-export const getTournamentMatchesController = async (req, res, next) => {
-    try {
-        const tournamentId = Number(req.params.id);
-        if (!tournamentId) {
-            return res.status(400).json({ success: false, error: { message: "Valid tournament ID is required" } });
-        }
-        const data = await getMatchesByTournament(tournamentId);
-        return res.json({ success: true, data });
-    } catch (err) {
-        next(err);
-    }
-};
-
-export const createTournamentMatchController = async (req, res, next) => {
-    try {
-        const tournamentId = Number(req.params.id);
-        if (!tournamentId) {
-            return res.status(400).json({ success: false, error: { message: "Valid tournament ID is required" } });
-        }
-        const matchData = { ...req.body, tournament_id: tournamentId };
-        const matchId = await createMatchSql(matchData);
-        return res.status(201).json({
-            success: true,
-            data: { match_id: matchId, id: matchId, ...matchData }
-        });
-    } catch (err) {
-        next(err);
-    }
-};
-
-export const getTournamentTeamsController = async (req, res, next) => {
-    try {
-        const tournamentId = Number(req.params.id);
-        if (!tournamentId) {
-            return res.status(400).json({ success: false, error: { message: "Valid tournament ID is required" } });
-        }
-
-        let data = await getTeamsByTournament(tournamentId);
-        if (req.user?.role === 'Coordinator' && req.user.dept_id) {
-            data = data.filter(team => Number(team.department_id ?? team.deptId ?? team.dept_id) === Number(req.user.dept_id));
-        }
-
-        return res.json({ success: true, data });
-    } catch (err) {
-        next(err);
-    }
-};
-
-

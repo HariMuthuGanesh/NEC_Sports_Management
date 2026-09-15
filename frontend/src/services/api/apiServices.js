@@ -1,5 +1,5 @@
 /* API Service Abstraction Layer for NEC Sports Management System
-   Provides JWT Authorization, Input Sanitization, and Category enrichment.
+   Provides JWT Authorization, Automated CSRF handling & retry, Typed ApiError, and Input Sanitization.
    STRICTLY BACKEND API ONLY - NO MOCK DATA OR LOCAL STORAGE FALLBACKS.
 */
 
@@ -7,44 +7,72 @@ import { getAuthToken, sanitizeInput } from "../../utils/security";
 
 const API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api`;
 
-// Helper for security header injection
-export const getSecurityHeaders = () => {
-  const token = getAuthToken();
-  return {
-    "Content-Type": "application/json",
-    "Authorization": token ? `Bearer ${token}` : "",
-    "X-Client-Version": "1.0.0",
-    "X-CSRF-Token": sessionStorage.getItem('nec_csrf_token') || "",
-  };
-};
+/**
+ * Custom Typed API Error
+ */
+export class ApiError extends Error {
+  constructor(message, status = 500, code = 'API_ERROR', data = null) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.code = code;
+    this.data = data;
+  }
+}
 
-// Fetch a CSRF token from the server and cache it in sessionStorage.
-// Must be called once on app mount before any state-changing request.
+// In-memory CSRF token cache
+let cachedCsrfToken = null;
+
+// Fetch a CSRF token from the server and cache it
 export const initCsrf = async () => {
   try {
     const res = await fetch(`${API_URL}/auth/csrf-token`, { credentials: 'include' });
     const json = await res.json();
     if (json?.data?.csrfToken) {
-      sessionStorage.setItem('nec_csrf_token', json.data.csrfToken);
+      cachedCsrfToken = json.data.csrfToken;
+      try {
+        sessionStorage.setItem('nec_csrf_token', json.data.csrfToken);
+      } catch {}
+      return cachedCsrfToken;
     }
   } catch {
-    // Non-fatal: requests will simply send an empty token and the server
-    // will reject mutating calls until a valid token is obtained on retry.
     console.warn('[CSRF] Failed to fetch CSRF token on init.');
   }
+  return null;
 };
 
-// Strict API fetcher: Primary fetch to backend API with NO fallback
-// Exported so auth pages (SignUpPage, LoginPage) can make unauthenticated calls
-// to /auth/* routes before a JWT is available.
-export const apiFetch = async (endpoint, method = 'GET', body = null) => {
+// Helper for security header injection
+export const getSecurityHeaders = () => {
+  const token = getAuthToken();
+  const csrf = cachedCsrfToken || (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('nec_csrf_token') : '') || '';
+  
+  return {
+    "Content-Type": "application/json",
+    "Authorization": token ? `Bearer ${token}` : "",
+    "X-Client-Version": "1.0.0",
+    "X-CSRF-Token": csrf,
+  };
+};
+
+/**
+ * Strict API fetcher with automatic CSRF initialization and single-retry on 403 CSRF error
+ */
+export const apiFetch = async (endpoint, method = 'GET', body = null, isRetry = false) => {
+  const upperMethod = method.toUpperCase();
+  const isMutating = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(upperMethod);
+
+  // Ensure we have a CSRF token before mutating requests
+  if (isMutating && !cachedCsrfToken && !sessionStorage.getItem('nec_csrf_token')) {
+    await initCsrf();
+  }
+
   try {
     const headers = getSecurityHeaders();
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
 
     const options = {
-      method,
+      method: upperMethod,
       headers,
       credentials: "include",
       signal: controller.signal
@@ -53,7 +81,7 @@ export const apiFetch = async (endpoint, method = 'GET', body = null) => {
     if (body) {
       if (body instanceof FormData) {
         options.body = body;
-        delete options.headers["Content-Type"]; // Let browser set multipart/form-data with boundary
+        delete options.headers["Content-Type"]; // Let browser set multipart/form-data boundary
       } else {
         options.body = JSON.stringify(body);
       }
@@ -65,24 +93,54 @@ export const apiFetch = async (endpoint, method = 'GET', body = null) => {
     if (response.ok) {
       const resJson = await response.json();
       return resJson.data !== undefined ? resJson.data : resJson;
-    } else {
-      const errorJson = await response.json().catch(() => null);
-      throw new Error(errorJson?.error?.message || `Server returned ${response.status}: ${response.statusText}`);
     }
+
+    const errorJson = await response.json().catch(() => null);
+    const errorMessage = errorJson?.error?.message || `Server returned ${response.status}: ${response.statusText}`;
+    const errorCode = errorJson?.error?.code || (response.status === 403 ? 'FORBIDDEN' : 'API_ERROR');
+
+    // If CSRF error occurred on a mutating call and we haven't retried yet, refresh token and retry
+    if (response.status === 403 && (errorMessage.toLowerCase().includes('csrf') || errorCode === 'EBADCSRFTOKEN') && !isRetry) {
+      console.log('[CSRF] Refreshing CSRF token and retrying request...');
+      await initCsrf();
+      return await apiFetch(endpoint, method, body, true);
+    }
+
+    throw new ApiError(errorMessage, response.status, errorCode, errorJson?.error);
   } catch (err) {
+    if (err instanceof ApiError) throw err;
     console.error(`[API Error] Failed to fetch ${endpoint}:`, err.message);
-    throw new Error(err.message || "Cannot reach server. Please check your connection and try again.", { cause: err });
+    throw new ApiError(
+      err.name === 'AbortError' ? "Request timed out. Please try again." : (err.message || "Cannot reach server. Please check your connection."),
+      0,
+      'NETWORK_ERROR'
+    );
   }
 };
 
-// Like apiFetch but returns the full response JSON instead of just .data.
-// Use for endpoints that include a `meta` field alongside `data`.
-const apiFetchFull = async (endpoint, method = 'GET', body = null) => {
+/**
+ * Full response fetcher (returns { success, data, meta })
+ */
+export const apiFetchFull = async (endpoint, method = 'GET', body = null, isRetry = false) => {
+  const upperMethod = method.toUpperCase();
+  const isMutating = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(upperMethod);
+
+  if (isMutating && !cachedCsrfToken && !sessionStorage.getItem('nec_csrf_token')) {
+    await initCsrf();
+  }
+
   try {
     const headers = getSecurityHeaders();
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000);
-    const options = { method, headers, credentials: "include", signal: controller.signal };
+
+    const options = {
+      method: upperMethod,
+      headers,
+      credentials: "include",
+      signal: controller.signal
+    };
+
     if (body) {
       if (body instanceof FormData) {
         options.body = body;
@@ -91,17 +149,32 @@ const apiFetchFull = async (endpoint, method = 'GET', body = null) => {
         options.body = JSON.stringify(body);
       }
     }
+
     const response = await fetch(`${API_URL}${endpoint}`, options);
     clearTimeout(timeoutId);
+
     if (response.ok) {
-      return await response.json(); // full body: { success, data, meta }
-    } else {
-      const errorJson = await response.json().catch(() => null);
-      throw new Error(errorJson?.error?.message || `Server returned ${response.status}: ${response.statusText}`);
+      return await response.json();
     }
+
+    const errorJson = await response.json().catch(() => null);
+    const errorMessage = errorJson?.error?.message || `Server returned ${response.status}: ${response.statusText}`;
+    const errorCode = errorJson?.error?.code || 'API_ERROR';
+
+    if (response.status === 403 && (errorMessage.toLowerCase().includes('csrf') || errorCode === 'EBADCSRFTOKEN') && !isRetry) {
+      await initCsrf();
+      return await apiFetchFull(endpoint, method, body, true);
+    }
+
+    throw new ApiError(errorMessage, response.status, errorCode, errorJson?.error);
   } catch (err) {
+    if (err instanceof ApiError) throw err;
     console.error(`[API Error] Failed to fetch ${endpoint}:`, err.message);
-    throw new Error(err.message || "Cannot reach server. Please check your connection and try again.", { cause: err });
+    throw new ApiError(
+      err.name === 'AbortError' ? "Request timed out." : (err.message || "Cannot reach server."),
+      0,
+      'NETWORK_ERROR'
+    );
   }
 };
 
@@ -125,31 +198,56 @@ export const sportsApi = {
   saveDepartments: (depts) => apiFetch("/departments", "POST", depts)
 };
 
-/* --- Tournaments & Events API --- */
+/* --- Tournaments API --- */
 export const tournamentsApi = {
   getTournaments: () => apiFetch("/tournaments"),
+  getTournamentById: (id) => apiFetch(`/tournaments/${id}`),
+  createTournament: (data) => apiFetch("/tournaments", "POST", {
+    ...data,
+    name: sanitizeInput(data.name || data.title),
+    title: sanitizeInput(data.title || data.name)
+  }),
+  updateTournament: (id, data) => apiFetch(`/tournaments/${id}`, "PUT", data),
+  deleteTournament: (id) => apiFetch(`/tournaments/${id}`, "DELETE"),
   getTournamentMatches: (tournamentId) => apiFetch(`/tournaments/${tournamentId}/matches`),
   createTournamentMatch: (tournamentId, matchData) => apiFetch(`/tournaments/${tournamentId}/matches`, "POST", matchData),
   getTournamentTeams: (tournamentId) => apiFetch(`/tournaments/${tournamentId}/teams`),
+  
+  // Legacy aliases
+  getEvents: (tournamentId = null) => eventsApi.getEvents(tournamentId),
+  getEventById: (eventId) => eventsApi.getEventById(eventId),
+  createEvent: (data) => eventsApi.createEvent(data),
+  updateEvent: (eventId, data) => eventsApi.updateEvent(eventId, data),
+  deleteEvent: (eventId) => eventsApi.deleteEvent(eventId),
+  toggleEventStatus: (eventId, status) => eventsApi.toggleEventStatus(eventId, status)
+};
+
+/* --- Events API --- */
+export const eventsApi = {
   getEvents: (tournamentId = null) => {
-    return apiFetch("/events").then(events => tournamentId ? events.filter(e => e.tournamentId === tournamentId) : events);
+    return apiFetch("/events").then(events => {
+      const evList = Array.isArray(events) ? events : [];
+      return tournamentId ? evList.filter(e => String(e.tournament_id || e.tournamentId) === String(tournamentId)) : evList;
+    });
   },
-  createTournament: (data) => apiFetch("/tournaments", "POST", {
-    ...data,
-    title: sanitizeInput(data.title),
-    description: sanitizeInput(data.description)
-  }),
+  getEventById: (eventId) => apiFetch(`/events/${eventId}`),
   createEvent: (data) => apiFetch("/events", "POST", {
     ...data,
-    title: sanitizeInput(data.title)
+    name: sanitizeInput(data.name || data.title),
+    title: sanitizeInput(data.title || data.name)
   }),
-  toggleEventStatus: (eventId) => apiFetch(`/events/${eventId}/toggle`, "POST")
+  updateEvent: (eventId, data) => apiFetch(`/events/${eventId}`, "PUT", data),
+  deleteEvent: (eventId) => apiFetch(`/events/${eventId}`, "DELETE"),
+  toggleEventStatus: (eventId, status) => apiFetch(`/events/${eventId}/toggle`, "POST", { status })
 };
 
 /* --- Teams & Roster API --- */
 export const teamsApi = {
   getTeams: (deptId = null) => {
-    return apiFetch("/teams").then(teams => deptId ? teams.filter(t => t.dept_id === deptId || t.deptId === deptId) : teams);
+    return apiFetch("/teams").then(teams => {
+      const tList = Array.isArray(teams) ? teams : [];
+      return deptId ? tList.filter(t => t.department_id === deptId || t.dept_id === deptId || t.deptId === deptId) : tList;
+    });
   },
   getTeamDetails: (teamId) => apiFetch(`/teams/${teamId}`),
   getCaptainTeams: () => apiFetch("/captain/teams"),
@@ -162,18 +260,16 @@ export const teamsApi = {
 export const attendanceApi = {
   saveSquadAttendance: (teamId, attendanceMap, matchId = null) => apiFetch(`/teams/${teamId}/attendance`, "POST", { attendance: attendanceMap, matchId }),
   getTeamAttendance: (teamId) => apiFetch(`/teams/${teamId}/attendance`),
-  getDepartmentAttendance: (deptId) => apiFetch(`/departments/${deptId}/attendance`)
+  getDepartmentAttendance: (deptId) => apiFetch(`/departments/${deptId}/attendance`),
+  getMatchAttendance: (matchId) => apiFetch(`/attendance/match/${matchId}`)
 };
 
-
-/* --- Student Lookup API --- */
+/* --- Student Lookup & Players API --- */
 export const studentLookupApi = {
   searchStudent: (query) => apiFetch(`/students/search?q=${encodeURIComponent(query)}`)
 };
 
-/* --- Players API --- */
 export const playersApi = {
-  // Returns the full response { success, data, meta } so callers can read meta.source and meta.imsPopulated
   getAllPlayers: (query = "") => apiFetchFull(`/students?q=${encodeURIComponent(query)}`),
   createStudent: (studentData) => apiFetch("/students", "POST", studentData),
   getPlayersByTeam: (teamId) => apiFetch(`/teams/${teamId}/players`),
@@ -181,7 +277,6 @@ export const playersApi = {
   removePlayer: (playerId) => apiFetch(`/players/${playerId}`, "DELETE"),
   saveSquadAttendance: (teamId, attendanceMap, matchId = null) => apiFetch(`/teams/${teamId}/attendance`, "POST", { attendance: attendanceMap, matchId }),
   getSquadAttendance: (teamId) => apiFetch(`/teams/${teamId}/attendance`),
-  // IMS attendance per student (by register number)
   getStudentAttendance: (registerNumber) => apiFetch(`/students/${encodeURIComponent(registerNumber)}/attendance`)
 };
 
@@ -189,12 +284,23 @@ export const playersApi = {
 export const matchesApi = {
   getMatches: () => apiFetch("/matches"),
   createMatch: (matchData) => apiFetch("/matches", "POST", matchData),
-  // scheduleMatch is an alias for createMatch used by MatchesManager
   scheduleMatch: (matchData) => apiFetch("/matches", "POST", matchData),
   updateMatchStatus: (matchId, status) => apiFetch(`/matches/${matchId}/status`, "PATCH", { status }),
   deleteMatch: (matchId) => apiFetch(`/matches/${matchId}`, "DELETE"),
-  updateScore: (matchId, scoreA, scoreB, detailScore, isFinal) => apiFetch(`/matches/${matchId}/score`, "PATCH", { scoreA, scoreB, detailScore, isFinal }),
-  updateMatchScore: (matchId, scoreA, scoreB, detailScore, isFinal) => apiFetch(`/matches/${matchId}/score`, "PATCH", { scoreA, scoreB, detailScore, isFinal })
+  updateScore: (matchId, scoreA, scoreB, detailScore = "", isFinal = false) => 
+    apiFetch(`/matches/${matchId}/score`, "PATCH", { 
+      scoreA: Number(scoreA), 
+      scoreB: Number(scoreB), 
+      detailScore: String(detailScore), 
+      isFinal: Boolean(isFinal) 
+    }),
+  updateMatchScore: (matchId, scoreA, scoreB, detailScore = "", isFinal = false) => 
+    apiFetch(`/matches/${matchId}/score`, "PATCH", { 
+      scoreA: Number(scoreA), 
+      scoreB: Number(scoreB), 
+      detailScore: String(detailScore), 
+      isFinal: Boolean(isFinal) 
+    })
 };
 
 /* --- Reports API --- */
@@ -221,6 +327,7 @@ export const galleryApi = {
   getGallery: () => apiFetch("/gallery"),
   getAll: () => apiFetch("/gallery"),
   uploadMedia: (formData) => apiFetch("/gallery/upload", "POST", formData),
+  updateMedia: (id, data) => apiFetch(`/gallery/${id}`, "PUT", data),
   deleteMedia: (id) => apiFetch(`/gallery/${id}`, "DELETE")
 };
 
@@ -238,30 +345,22 @@ export const auditApi = {
 
 /* --- OD (On Duty) API --- */
 export const odApi = {
-  // Coordinator/Admin: batch-create OD for all players in a match
   createForMatch: (matchId) => apiFetch(`/od/match/${matchId}`, 'POST'),
-  // Coordinator/Admin: get OD status for all players in a match
   getMatchOdStatus: (matchId) => apiFetch(`/od/match/${matchId}`),
-  // Admin: bulk-approve all pending OD for a match
   bulkApproveForMatch: (matchId) => apiFetch(`/od/match/${matchId}/bulk-approve`, 'POST'),
-  // Player: own OD list
   getMyOd: () => apiFetch('/od/my'),
-  // Admin/Coordinator: list all OD requests
   getAll: (params = {}) => {
     const qs = new URLSearchParams(
       Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
     ).toString();
     return apiFetch(`/od${qs ? '?' + qs : ''}`);
   },
-  // Admin/Coordinator: get single OD by ID
   getById: (requestId) => apiFetch(`/od/${requestId}`),
-  // Admin: approve
   approve: (requestId) => apiFetch(`/od/${requestId}/approve`, 'PATCH'),
-  // Admin: reject with reason
   reject: (requestId, reason) => apiFetch(`/od/${requestId}/reject`, 'PATCH', { reason })
 };
 
-/* --- Department Teams & Role Hierarchy v2 API --- */
+/* --- Department Teams API --- */
 export const departmentTeamsApi = {
   getDepartmentTeams: () => apiFetch("/department-teams"),
   getMyDepartmentTeam: () => apiFetch("/department-teams/my"),

@@ -1,44 +1,49 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { teamsApi } from '../../services/api/apiServices';
-import { 
-  Shield, 
-  User, 
-  Award, 
-  Calendar, 
-  MapPin, 
-  ChevronLeft, 
-  Users, 
-  CheckCircle2, 
-  Clock, 
+import React, { useState, useEffect } from "react";
+import { teamsApi } from "../../services/api/apiServices";
+import {
+  Shield,
+  Award,
+  Calendar,
+  MapPin,
+  ChevronLeft,
+  Users,
+  CheckCircle2,
   AlertCircle,
   Activity,
   Layers,
   Phone,
   Mail,
   Shirt
-} from 'lucide-react';
+} from "lucide-react";
+import { Card } from "../../components/common/Card";
+import Button from "../../components/common/Button";
+import Badge from "../../components/common/Badge";
+import "../captain/CaptainPortal.css";
 
-const TeamProfile = () => {
-  const { id } = useParams();
-  const navigate = useNavigate();
+export default function TeamProfile({ teamId, id: propId, onNavigate }) {
+  const targetId = teamId || propId;
   const [team, setTeam] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetchTeamDetails();
-  }, [id]);
+    if (targetId) {
+      fetchTeamDetails();
+    } else {
+      setLoading(false);
+      setError("No team ID specified");
+    }
+  }, [targetId]);
 
   const fetchTeamDetails = async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await teamsApi.getTeamDetails(id);
+      const data = await teamsApi.getTeamDetails(targetId);
       setTeam(data);
     } catch (err) {
-      console.error('Failed to load team profile:', err);
-      setError(err.message || 'Could not load team details');
+      console.error("Failed to load team profile:", err);
+      setError(err.message || "Could not load team details");
     } finally {
       setLoading(false);
     }
@@ -46,127 +51,93 @@ const TeamProfile = () => {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
-        <div className="w-12 h-12 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
-        <p className="text-gray-400 font-medium">Loading team profile & roster...</p>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "50vh", gap: "12px" }}>
+        <div style={{ width: "36px", height: "36px", border: "4px solid var(--nec-border)", borderTopColor: "var(--nec-blue)", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+        <p style={{ color: "var(--nec-text-muted)", fontSize: "0.9rem" }}>Loading team profile & athlete roster...</p>
+        <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
       </div>
     );
   }
 
   if (error || !team) {
     return (
-      <div className="max-w-4xl mx-auto py-12 px-4">
-        <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-8 text-center space-y-4">
-          <AlertCircle className="w-12 h-12 text-red-400 mx-auto" />
-          <h2 className="text-2xl font-bold text-white">Team Profile Not Found</h2>
-          <p className="text-gray-400">{error || 'The requested team could not be loaded.'}</p>
-          <button
-            onClick={() => navigate(-1)}
-            className="px-6 py-2.5 bg-gray-800 hover:bg-gray-700 text-white rounded-xl transition inline-flex items-center space-x-2"
+      <div style={{ maxWidth: "600px", margin: "40px auto", padding: "20px" }}>
+        <Card style={{ textAlign: "center", padding: "36px 20px" }}>
+          <AlertCircle size={44} style={{ color: "var(--nec-danger)", margin: "0 auto 12px auto" }} />
+          <h2 style={{ margin: "0 0 6px 0", fontSize: "1.3rem" }}>Team Profile Not Found</h2>
+          <p style={{ color: "var(--nec-text-muted)", fontSize: "0.85rem", marginBottom: "20px" }}>
+            {error || "The requested team details could not be loaded."}
+          </p>
+          <Button
+            variant="outline"
+            icon={ChevronLeft}
+            onClick={() => onNavigate ? onNavigate("captain_dash") : window.history.back()}
           >
-            <ChevronLeft className="w-4 h-4" />
-            <span>Go Back</span>
-          </button>
-        </div>
+            Back to Dashboard
+          </Button>
+        </Card>
       </div>
     );
   }
 
-  const deptColors = {
-    CSE: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-    ECE: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
-    MECH: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-    CIVIL: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-    EEE: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
-    IT: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20',
-    AIDS: 'bg-pink-500/10 text-pink-400 border-pink-500/20',
-    OTHER: 'bg-gray-500/10 text-gray-400 border-gray-500/20'
-  };
-
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case 'Approved':
-        return (
-          <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-            <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>Approved Team</span>
-          </span>
-        );
-      case 'Pending':
-        return (
-          <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
-            <Clock className="w-3.5 h-3.5" />
-            <span>Pending Review</span>
-          </span>
-        );
-      default:
-        return (
-          <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-red-500/10 text-red-400 border border-red-500/20">
-            <AlertCircle className="w-3.5 h-3.5" />
-            <span>{status || 'Disqualified'}</span>
-          </span>
-        );
-    }
-  };
-
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
-      {/* Navigation & Header */}
-      <div className="flex items-center justify-between">
-        <button
-          onClick={() => navigate(-1)}
-          className="inline-flex items-center space-x-2 text-gray-400 hover:text-white transition px-3 py-1.5 rounded-lg hover:bg-gray-800/60"
+    <div className="nec-team-profile-page">
+      {/* Navigation Header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <Button
+          variant="ghost"
+          size="sm"
+          icon={ChevronLeft}
+          onClick={() => onNavigate ? onNavigate("captain_dash") : window.history.back()}
         >
-          <ChevronLeft className="w-5 h-5" />
-          <span>Back to Overview</span>
-        </button>
-        {getStatusBadge(team.status)}
+          Back to Overview
+        </Button>
+        <Badge status={team.status === "Approved" ? "success" : "warning"}>
+          {team.status || "Pending Review"}
+        </Badge>
       </div>
 
       {/* Main Team Banner Card */}
-      <div className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 border border-gray-800 rounded-3xl p-8 relative overflow-hidden shadow-2xl">
-        <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-gradient-to-l from-indigo-500/10 to-transparent pointer-events-none"></div>
-        
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
-          <div className="space-y-3">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <span className="px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 rounded-lg text-xs font-semibold uppercase tracking-wider">
-                {team.sportName} • {team.sportCategory || 'Outdoor'}
+      <div className="nec-team-profile-banner">
+        <div className="nec-team-profile-banner-top">
+          <div className="nec-team-profile-title-group">
+            <div className="nec-team-profile-pill-row">
+              <span className="nec-team-profile-pill">
+                {team.sportName} • {team.sportCategory || "Outdoor"}
               </span>
-              <span className="px-3 py-1 bg-gray-800 border border-gray-700 text-gray-300 rounded-lg text-xs font-medium">
+              <span className="nec-team-profile-pill">
                 {team.deptName || team.deptCode}
               </span>
               {team.academicYear && (
-                <span className="px-3 py-1 bg-gray-800 border border-gray-700 text-gray-300 rounded-lg text-xs font-medium">
+                <span className="nec-team-profile-pill">
                   {team.academicYear}
                 </span>
               )}
             </div>
-            
-            <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight flex items-center gap-3">
-              <Shield className="w-9 h-9 md:w-12 md:h-12 text-indigo-400" />
+
+            <h1 className="nec-team-profile-name">
+              <Shield size={32} />
               <span>{team.name}</span>
             </h1>
-            
-            <p className="text-gray-400 text-sm max-w-2xl flex items-center gap-2">
-              <Award className="w-4 h-4 text-amber-400" />
-              <span>Registered in <strong>{team.tournamentName || 'Inter-Collegiate Tournament'}</strong> ({team.tournamentTier || 'Institutional'})</span>
+
+            <p className="nec-team-profile-sub">
+              Registered in <strong>{team.tournamentName || "Inter-Collegiate Tournament"}</strong>
             </p>
           </div>
 
-          <div className="flex flex-wrap md:flex-col gap-3 shrink-0">
+          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
             {team.coachName && (
-              <div className="bg-gray-800/80 border border-gray-700/60 rounded-xl px-4 py-2.5">
-                <p className="text-xs text-gray-400">Head Coach</p>
-                <p className="text-sm font-semibold text-white">{team.coachName}</p>
+              <div style={{ background: "rgba(255,255,255,0.1)", padding: "10px 16px", borderRadius: "8px" }}>
+                <span style={{ fontSize: "0.72rem", opacity: 0.8, textTransform: "uppercase", display: "block" }}>Head Coach</span>
+                <span style={{ fontWeight: 700, fontSize: "0.9rem" }}>{team.coachName}</span>
               </div>
             )}
             {team.jerseyColor && (
-              <div className="bg-gray-800/80 border border-gray-700/60 rounded-xl px-4 py-2.5 flex items-center space-x-2">
-                <Shirt className="w-4 h-4 text-indigo-400" />
+              <div style={{ background: "rgba(255,255,255,0.1)", padding: "10px 16px", borderRadius: "8px", display: "flex", alignItems: "center", gap: "8px" }}>
+                <Shirt size={16} />
                 <div>
-                  <p className="text-xs text-gray-400">Jersey Color</p>
-                  <p className="text-sm font-semibold text-white">{team.jerseyColor}</p>
+                  <span style={{ fontSize: "0.72rem", opacity: 0.8, textTransform: "uppercase", display: "block" }}>Jersey Color</span>
+                  <span style={{ fontWeight: 700, fontSize: "0.9rem" }}>{team.jerseyColor}</span>
                 </div>
               </div>
             )}
@@ -174,166 +145,128 @@ const TeamProfile = () => {
         </div>
       </div>
 
-      {/* Grid: Captain & Multi-Department Representation */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Captain and Cross-Department Athlete Breakdown */}
+      <div className="nec-team-profile-grid">
         {/* Captain Profile Card */}
-        <div className="bg-gray-900/90 border border-gray-800 rounded-2xl p-6 space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-gray-800">
-            <h3 className="text-base font-bold text-white flex items-center space-x-2">
-              <Award className="w-5 h-5 text-amber-400" />
-              <span>Team Captain</span>
-            </h3>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
-              Squad Lead
-            </span>
-          </div>
-
+        <Card title="Team Captain" subtitle="Designated squad lead">
           {team.captain ? (
-            <div className="space-y-3">
-              <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg">
-                  {team.captain.name?.charAt(0) || 'C'}
+            <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <div style={{ width: "42px", height: "42px", borderRadius: "50%", background: "var(--nec-navy)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: "1.1rem" }}>
+                  {team.captain.name?.charAt(0) || "C"}
                 </div>
                 <div>
-                  <p className="text-base font-bold text-white">{team.captain.name}</p>
-                  <p className="text-xs text-gray-400">Roll: {team.captain.rollNo || team.captain.studentId}</p>
+                  <h4 style={{ margin: 0, fontSize: "1rem" }}>{team.captain.name}</h4>
+                  <span style={{ fontSize: "0.78rem", color: "var(--nec-text-muted)", fontFamily: "monospace" }}>
+                    Roll: {team.captain.rollNo || team.captain.studentId}
+                  </span>
                 </div>
               </div>
 
-              <div className="pt-2 space-y-2 text-xs">
-                <div className="flex items-center justify-between py-1 border-b border-gray-800/60">
-                  <span className="text-gray-400">Department</span>
-                  <span className="font-semibold text-white">{team.captain.dept_code || team.captain.dept}</span>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px", fontSize: "0.825rem", borderTop: "1px solid var(--nec-border)", paddingTop: "12px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "var(--nec-text-muted)" }}>Department</span>
+                  <Badge status="neutral">{team.captain.dept_code || team.captain.dept}</Badge>
                 </div>
-                <div className="flex items-center justify-between py-1 border-b border-gray-800/60">
-                  <span className="text-gray-400">Batch / Year</span>
-                  <span className="font-semibold text-white">Class of {team.captain.year || 2026}</span>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "var(--nec-text-muted)" }}>Batch / Year</span>
+                  <span style={{ fontWeight: 600 }}>Class of {team.captain.year || 2026}</span>
                 </div>
                 {team.captain.personal_email && (
-                  <div className="flex items-center justify-between py-1 border-b border-gray-800/60">
-                    <span className="text-gray-400 flex items-center gap-1"><Mail className="w-3 h-3" /> Email</span>
-                    <span className="font-medium text-gray-300 truncate max-w-[160px]">{team.captain.personal_email}</span>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ color: "var(--nec-text-muted)" }}>Email</span>
+                    <span style={{ fontWeight: 500 }}>{team.captain.personal_email}</span>
                   </div>
                 )}
                 {team.captain.personal_phone && (
-                  <div className="flex items-center justify-between py-1">
-                    <span className="text-gray-400 flex items-center gap-1"><Phone className="w-3 h-3" /> Phone</span>
-                    <span className="font-medium text-gray-300">{team.captain.personal_phone}</span>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ color: "var(--nec-text-muted)" }}>Phone</span>
+                    <span style={{ fontWeight: 500 }}>{team.captain.personal_phone}</span>
                   </div>
                 )}
               </div>
             </div>
           ) : (
-            <div className="py-6 text-center text-gray-400 text-sm">
-              No designated team captain found for this squad.
-            </div>
+            <p style={{ margin: 0, color: "var(--nec-text-muted)", fontSize: "0.85rem" }}>
+              No captain assigned to this squad yet.
+            </p>
           )}
-        </div>
+        </Card>
 
-        {/* Cross-Department Roster Breakdown */}
-        <div className="lg:col-span-2 bg-gray-900/90 border border-gray-800 rounded-2xl p-6 space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-gray-800">
-            <h3 className="text-base font-bold text-white flex items-center space-x-2">
-              <Layers className="w-5 h-5 text-indigo-400" />
-              <span>Multi-Department Athlete Representation</span>
-            </h3>
-            <span className="text-xs text-gray-400 font-medium">
-              Total Roster: {team.players?.length || 0} Athletes
-            </span>
-          </div>
-
-          <p className="text-xs text-gray-400">
-            This sport squad represents athletes from across academic branches. Matchday attendance logs route back to each player's respective academic coordinator.
+        {/* Multi-Department Roster Breakdown */}
+        <Card
+          title="Multi-Department Athlete Representation"
+          subtitle={`Total squad roster: ${team.players?.length || 0} athletes`}
+        >
+          <p style={{ margin: 0, fontSize: "0.825rem", color: "var(--nec-text-muted)" }}>
+            Athletes representing this squad across academic branches. Matchday attendance logs automatically route to each athlete's department coordinator.
           </p>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-            {Object.entries(team.deptBreakdown || {}).map(([dept, count]) => {
-              const colorClass = deptColors[dept] || deptColors.OTHER;
-              return (
-                <div 
-                  key={dept}
-                  className={`p-3.5 rounded-xl border flex flex-col justify-between ${colorClass}`}
-                >
-                  <p className="text-xs font-bold uppercase tracking-wider">{dept}</p>
-                  <div className="mt-2 flex items-baseline justify-between">
-                    <span className="text-2xl font-black">{count}</span>
-                    <span className="text-xs opacity-70">
-                      {Math.round((count / (team.players?.length || 1)) * 100)}%
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
+          <div className="nec-dept-breakdown-grid">
+            {Object.entries(team.deptBreakdown || {}).map(([dept, count]) => (
+              <div key={dept} className="nec-dept-box">
+                <span className="nec-dept-box-label">{dept}</span>
+                <span className="nec-dept-box-count">{count}</span>
+                <span style={{ fontSize: "0.72rem", color: "var(--nec-text-muted)", marginTop: "4px" }}>
+                  {Math.round((count / (team.players?.length || 1)) * 100)}%
+                </span>
+              </div>
+            ))}
           </div>
-        </div>
+        </Card>
       </div>
 
-      {/* Full Player Roster Table */}
-      <div className="bg-gray-900/90 border border-gray-800 rounded-2xl overflow-hidden shadow-xl space-y-4 p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-800">
-          <div>
-            <h3 className="text-lg font-bold text-white flex items-center space-x-2">
-              <Users className="w-5 h-5 text-indigo-400" />
-              <span>Official Squad Roster</span>
-            </h3>
-            <p className="text-xs text-gray-400 mt-1">
-              Verified players enrolled for official inter-departmental and collegiate fixtures
-            </p>
-          </div>
-          <div className="flex items-center space-x-2">
-            <span className="px-3 py-1 bg-gray-800 text-gray-300 text-xs font-semibold rounded-lg">
-              {team.players?.length || 0} Players
-            </span>
-          </div>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+      {/* Official Squad Roster Table */}
+      <Card
+        title="Official Squad Roster"
+        subtitle="Verified athletes enrolled for inter-departmental and collegiate fixtures"
+        headerAction={
+          <span style={{ fontSize: "0.8rem", color: "var(--nec-text-muted)", fontWeight: 600 }}>
+            {team.players?.length || 0} Athletes
+          </span>
+        }
+      >
+        <div className="nec-attendance-table-wrap">
+          <table className="nec-attendance-table">
             <thead>
-              <tr className="border-b border-gray-800 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                <th className="py-3 px-4">#</th>
-                <th className="py-3 px-4">Athlete Name</th>
-                <th className="py-3 px-4">Register Number</th>
-                <th className="py-3 px-4">Department</th>
-                <th className="py-3 px-4">Squad Role</th>
-                <th className="py-3 px-4">Blood Group</th>
-                <th className="py-3 px-4">Fitness Status</th>
+              <tr>
+                <th style={{ width: "60px" }}>#</th>
+                <th>Athlete Name</th>
+                <th>Register Number</th>
+                <th>Department</th>
+                <th>Squad Role</th>
+                <th>Medical Fitness</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-800/60 text-sm">
+            <tbody>
               {team.players && team.players.length > 0 ? (
                 team.players.map((player, idx) => (
-                  <tr key={player.id || idx} className="hover:bg-gray-800/40 transition">
-                    <td className="py-3.5 px-4 font-mono font-bold text-indigo-400">
-                      {player.jerseyNo ? `#${player.jerseyNo}` : `${idx + 1}`}
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <div className="font-semibold text-white flex items-center space-x-2">
-                        <span>{player.name}</span>
-                        {player.role === 'Captain' && (
-                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                            CAPTAIN
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="py-3.5 px-4 font-mono text-gray-300 text-xs">
-                      {player.rollNo || player.studentId}
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-gray-800 text-gray-200 border border-gray-700">
-                        {player.dept_code || player.dept}
+                  <tr key={player.id || idx}>
+                    <td>
+                      <span className="nec-jersey-badge">
+                        {player.jerseyNo ? `#${player.jerseyNo}` : `${idx + 1}`}
                       </span>
                     </td>
-                    <td className="py-3.5 px-4 text-gray-300 text-xs font-medium">
-                      {player.role || player.position || 'Player'}
+                    <td style={{ fontWeight: 600 }}>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
+                        <span>{player.name}</span>
+                        {player.role === "Captain" && (
+                          <Badge status="warning">CAPTAIN</Badge>
+                        )}
+                      </span>
                     </td>
-                    <td className="py-3.5 px-4 text-gray-400 text-xs font-mono">
-                      {player.blood_group || 'O+'}
+                    <td style={{ fontFamily: "monospace", fontSize: "0.8rem", color: "var(--nec-text-muted)" }}>
+                      {player.rollNo || player.studentId}
                     </td>
-                    <td className="py-3.5 px-4">
-                      <span className="inline-flex items-center space-x-1 text-xs text-emerald-400 font-medium">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
+                    <td>
+                      <Badge status="neutral">{player.dept_code || player.dept}</Badge>
+                    </td>
+                    <td style={{ color: "var(--nec-text-muted)" }}>
+                      {player.role || player.position || "Player"}
+                    </td>
+                    <td>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", color: "var(--nec-success)", fontSize: "0.8rem", fontWeight: 600 }}>
+                        <CheckCircle2 size={14} />
                         <span>Medical Fit</span>
                       </span>
                     </td>
@@ -341,61 +274,51 @@ const TeamProfile = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="7" className="py-8 text-center text-gray-400 text-sm">
-                    No players registered in this squad roster yet.
+                  <td colSpan="6" style={{ padding: "36px", textAlign: "center", color: "var(--nec-text-muted)" }}>
+                    No athletes enrolled in this squad roster yet.
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
-      </div>
+      </Card>
 
-      {/* Match History & Schedule */}
+      {/* Match Fixtures Log */}
       {team.matches && team.matches.length > 0 && (
-        <div className="bg-gray-900/90 border border-gray-800 rounded-2xl p-6 space-y-4">
-          <h3 className="text-lg font-bold text-white flex items-center space-x-2">
-            <Activity className="w-5 h-5 text-indigo-400" />
-            <span>Fixtures & Match Log</span>
-          </h3>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card title="Fixtures & Match Log" subtitle="Scheduled and completed matches">
+          <div className="nec-fixtures-grid">
             {team.matches.map((m) => (
-              <div 
-                key={m.id}
-                className="bg-gray-800/50 border border-gray-700/60 rounded-xl p-4 flex flex-col justify-between space-y-3"
-              >
-                <div className="flex items-center justify-between text-xs text-gray-400">
-                  <span className="px-2 py-0.5 rounded bg-gray-700 text-gray-300 font-semibold">
-                    {m.pool || 'Pool A'} • {m.round}
+              <div key={m.id} className="nec-fixture-card">
+                <div className="nec-fixture-header">
+                  <span className="nec-fixture-pool-tag">
+                    {m.pool || "Pool A"} • {m.round}
                   </span>
                   <span>{new Date(m.date).toLocaleDateString()}</span>
                 </div>
 
-                <div className="flex items-center justify-between font-bold text-white">
+                <div className="nec-fixture-teams-row">
                   <span>{m.teamA}</span>
-                  <div className="px-3 py-1 bg-gray-900 rounded-lg text-sm font-mono text-indigo-400">
+                  <div className="nec-fixture-score-box">
                     {m.scoreA} : {m.scoreB}
                   </div>
                   <span>{m.teamB}</span>
                 </div>
 
-                <div className="flex items-center justify-between text-xs text-gray-400 pt-1 border-t border-gray-700/40">
-                  <span className="flex items-center gap-1">
-                    <MapPin className="w-3 h-3 text-gray-400" />
-                    {m.ground || m.venue || 'Main Ground'}
+                <div className="nec-fixture-footer">
+                  <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                    <MapPin size={14} />
+                    <span>{m.ground || m.venue || "Main Ground"}</span>
                   </span>
-                  <span className={m.status === 'Completed' ? 'text-emerald-400 font-semibold' : 'text-amber-400'}>
+                  <Badge status={m.status === "Completed" ? "success" : "warning"}>
                     {m.status}
-                  </span>
+                  </Badge>
                 </div>
               </div>
             ))}
           </div>
-        </div>
+        </Card>
       )}
     </div>
   );
-};
-
-export default TeamProfile;
+}

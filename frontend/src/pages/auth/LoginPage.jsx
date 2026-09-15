@@ -133,10 +133,13 @@ export default function LoginPage({ onLoginSuccess, onNavigate }) {
 
         login(
           {
+            ...userData,
             role: userData.role,
             name: userData.username,
             email: userData.email,
-            dept: userData.studentProfile?.department_code || "Sports Office",
+            dept: userData.dept || userData.studentProfile?.department_code || "Sports Office",
+            deptId: userData.deptId || userData.studentProfile?.department_id || null,
+            deptName: userData.deptName || "Sports Directorate",
             title: userData.role,
             id: userData.username || cleanId
           },

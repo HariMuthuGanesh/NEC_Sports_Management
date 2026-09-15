@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { tournamentsApi, teamsApi } from "../../services/api/apiServices";
+import { tournamentsApi, teamsApi, sportsApi } from "../../services/api/apiServices";
 import { useAuth } from "../../context/AuthContext";
 import Table from "../../components/common/Table";
 import Badge from "../../components/common/Badge";
@@ -26,6 +26,8 @@ export default function EventRegistration() {
   const pageSize = 4;
 
   const [selectedEventId, setSelectedEventId] = useState("");
+  const [sports, setSports] = useState([]);
+  const [selectedSportId, setSelectedSportId] = useState("");
   const [teamName, setTeamName] = useState("");
   const [captainName, setCaptainName] = useState(currentUser.name || "Rahul Sharma");
   const [captainRoll, setCaptainRoll] = useState(currentUser.id || "2112045");
@@ -37,13 +39,15 @@ export default function EventRegistration() {
   const loadData = () => {
     setLoading(true);
     setError(null);
-    Promise.all([tournamentsApi.getEvents(), teamsApi.getTeams()]).then(([evList, tList]) => {
+    Promise.all([tournamentsApi.getEvents(), teamsApi.getTeams(), sportsApi.getSports()]).then(([evList, tList, sList]) => {
       const activeEv = evList.filter(e => e.status === "Open" || e.status === "Registration Open");
       setOpenEvents(activeEv);
       if (activeEv.length > 0) setSelectedEventId(activeEv[0].id);
 
       const filteredTeams = tList.filter(t => t.deptCode === myDept || myDept === "All");
       setDeptTeams(filteredTeams);
+      setSports(sList || []);
+      if (sList?.length > 0) setSelectedSportId(sList[0].sport_id || sList[0].id);
       setLoading(false);
     }).catch(err => {
       console.error(err);
@@ -52,16 +56,27 @@ export default function EventRegistration() {
     });
   };
 
+  const handleEventChange = (eventId) => {
+    setSelectedEventId(eventId);
+    const ev = openEvents.find(e => String(e.id || e.event_id) === String(eventId));
+    if (ev && (ev.sportId || ev.sport_id)) {
+      setSelectedSportId(ev.sportId || ev.sport_id);
+    }
+  };
+
   const handleRegisterTeam = (e) => {
     e.preventDefault();
     if (!teamName.trim() || !selectedEventId) return;
 
-    const evObj = openEvents.find(e => e.id === selectedEventId);
+    const evObj = openEvents.find(e => String(e.id || e.event_id) === String(selectedEventId));
+    const resolvedSportId = selectedSportId || evObj?.sportId || evObj?.sport_id;
 
     teamsApi.registerTeam({
       name: teamName,
       deptCode: myDept,
-      tournamentId: evObj?.tournamentId,
+      tournamentId: evObj?.tournamentId || evObj?.tournament_id,
+      eventId: evObj?.id || evObj?.event_id || selectedEventId,
+      sportId: resolvedSportId,
       captainName,
       captainRoll,
       memberCount: 1,
@@ -70,6 +85,8 @@ export default function EventRegistration() {
       setIsModalOpen(false);
       setTeamName("");
       loadData();
+    }).catch(err => {
+      alert("Registration failed: " + (err.message || "Unknown error"));
     });
   };
 
@@ -185,10 +202,24 @@ export default function EventRegistration() {
               className="nec-table-search-input"
               style={{ maxWidth: "100%" }}
               value={selectedEventId}
-              onChange={(e) => setSelectedEventId(e.target.value)}
+              onChange={(e) => handleEventChange(e.target.value)}
             >
               {openEvents.map(ev => (
                 <option key={ev.id} value={ev.id}>{ev.title} ({ev.category}) - Deadline: {ev.regDeadline}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: "4px" }}>Select Sport</label>
+            <select
+              className="nec-table-search-input"
+              style={{ maxWidth: "100%" }}
+              value={selectedSportId}
+              onChange={(e) => setSelectedSportId(e.target.value)}
+            >
+              {sports.map(s => (
+                <option key={s.sport_id || s.id} value={s.sport_id || s.id}>{s.name}</option>
               ))}
             </select>
           </div>

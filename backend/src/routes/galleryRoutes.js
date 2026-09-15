@@ -7,9 +7,9 @@ const router = express.Router();
 // Publicly accessible to view gallery
 router.get('/', getGallery);
 
-// Admin and Coordinator only for modifying
-router.post('/upload', protect, authorize('Admin', 'Coordinator'), uploadMiddleware, uploadMedia);
-router.put('/:id', protect, authorize('Admin', 'Coordinator'), updateMedia);
-router.delete('/:id', protect, authorize('Admin', 'Coordinator'), deleteMedia);
+// Admin, Coordinator, and Sports President can manage media
+router.post('/upload', protect, authorize('Admin', 'Coordinator', 'Sports President', 'President'), uploadMiddleware, uploadMedia);
+router.put('/:id', protect, authorize('Admin', 'Coordinator', 'Sports President', 'President'), updateMedia);
+router.delete('/:id', protect, authorize('Admin', 'Coordinator', 'Sports President', 'President'), deleteMedia);
 
 export default router;

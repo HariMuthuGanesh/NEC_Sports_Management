@@ -24,6 +24,17 @@ export const errorHandler = (err, req, res, next) => {
         ? 'An unexpected internal server error occurred. Please contact the Sports Directorate IT support.' 
         : err.message;
 
+    // CSRF Error Mapping
+    if (err.code === 'EBADCSRFTOKEN' || err.message?.toLowerCase().includes('csrf')) {
+        return res.status(403).json({
+            success: false,
+            error: {
+                code: 'CSRF_ERROR',
+                message: 'Invalid or missing CSRF token. Please refresh the page.'
+            }
+        });
+    }
+
     res.status(statusCode).json({
         success: false,
         error: {

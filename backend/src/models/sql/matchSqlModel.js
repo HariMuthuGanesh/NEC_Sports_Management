@@ -113,11 +113,11 @@ export const getAllMatches = async () => {
             s.name AS sport_name,
             s.name AS sport
         FROM matches m
-        JOIN teams t1 ON m.team_a_id = t1.team_id
-        JOIN departments d1 ON t1.department_id = d1.id
-        JOIN teams t2 ON m.team_b_id = t2.team_id
-        JOIN departments d2 ON t2.department_id = d2.id
-        JOIN sports s ON m.sport_id = s.sport_id
+        LEFT JOIN teams t1 ON m.team_a_id = t1.team_id
+        LEFT JOIN departments d1 ON t1.department_id = d1.id
+        LEFT JOIN teams t2 ON m.team_b_id = t2.team_id
+        LEFT JOIN departments d2 ON t2.department_id = d2.id
+        LEFT JOIN sports s ON m.sport_id = s.sport_id
         LEFT JOIN venues v ON m.venue_id = v.venue_id
         ORDER BY m.scheduled_time DESC
     `;
@@ -162,11 +162,11 @@ export const getMatchesByTournament = async (tournamentId) => {
             s.name AS sport_name,
             s.name AS sport
         FROM matches m
-        JOIN teams t1 ON m.team_a_id = t1.team_id
-        JOIN departments d1 ON t1.department_id = d1.id
-        JOIN teams t2 ON m.team_b_id = t2.team_id
-        JOIN departments d2 ON t2.department_id = d2.id
-        JOIN sports s ON m.sport_id = s.sport_id
+        LEFT JOIN teams t1 ON m.team_a_id = t1.team_id
+        LEFT JOIN departments d1 ON t1.department_id = d1.id
+        LEFT JOIN teams t2 ON m.team_b_id = t2.team_id
+        LEFT JOIN departments d2 ON t2.department_id = d2.id
+        LEFT JOIN sports s ON m.sport_id = s.sport_id
         LEFT JOIN venues v ON m.venue_id = v.venue_id
         WHERE m.tournament_id = ?
         ORDER BY m.pool ASC, m.scheduled_time ASC

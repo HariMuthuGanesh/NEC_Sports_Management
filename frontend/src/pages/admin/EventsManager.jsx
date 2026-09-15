@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { tournamentsApi } from "../../services/api/apiServices";
+import { eventsApi } from "../../services/api/apiServices";
+import { useToast } from "../../context/ToastContext";
 import Table from "../../components/common/Table";
 import Badge from "../../components/common/Badge";
 import Button from "../../components/common/Button";
@@ -9,13 +10,14 @@ import { Plus, ToggleLeft, ToggleRight } from "lucide-react";
 import "./AdminPortal.css";
 
 export default function EventsManager() {
+  const toast = useToast();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [title, setTitle] = useState("");
-  const [sportId, setSportId] = useState("sp_football");
+  const [sportId, setSportId] = useState(1);
   const [category, setCategory] = useState("Men");
   const [eventCategory, setEventCategory] = useState("Inter-Department");
   const [maxTeams, setMaxTeams] = useState(8);
@@ -28,22 +30,23 @@ export default function EventsManager() {
   const loadEvents = () => {
     setLoading(true);
     setError(null);
-    tournamentsApi.getEvents().then(data => {
-      setEvents(data);
+    eventsApi.getEvents().then(data => {
+      setEvents(data || []);
       setLoading(false);
     }).catch(err => {
       console.error(err);
-      setError(err.message);
+      setError(err.message || "Failed to load events");
       setLoading(false);
     });
   };
 
   const handleToggleRegistration = async (eventId) => {
     try {
-      await tournamentsApi.toggleEventStatus(eventId);
+      await eventsApi.toggleEventStatus(eventId);
+      toast.success("Event registration status updated!");
       await loadEvents();
     } catch (err) {
-      alert("Failed to toggle registration status: " + err.message);
+      toast.error("Failed to toggle registration status: " + err.message);
     }
   };
 
@@ -52,39 +55,79 @@ export default function EventsManager() {
     if (!title.trim()) return;
 
     try {
-      await tournamentsApi.createTournament({
-        title,
-        tier: eventCategory,
-        startDate: regDeadline,
-        endDate: regDeadline,
-        status: "Upcoming",
-        sportId,
+      await eventsApi.createEvent({
+        title: title.trim(),
+        eventCategory,
+        regDeadline,
+        status: "Open",
+        sportId: Number(sportId) || 1,
         category,
-        maxTeams: Number(maxTeams),
+        maxTeams: Number(maxTeams) || 8,
       });
+      toast.success("Sports event created successfully!");
       await loadEvents();
       setIsModalOpen(false);
       setTitle("");
     } catch (err) {
-      setError(err.message);
+      toast.error(err.message || "Failed to create sports event");
     }
   };
 
   const columns = [
-    { key: "title", label: "Event Name", render: (val, row) => <div><strong>{val}</strong><br /><small style={{ color: 'var(--nec-text-muted)' }}>{row.category} Category</small></div> },
-    { key: "eventCategory", label: "Event Category", width: "140px", render: (val) => <Badge status={val === "Inter-College" ? "danger" : "info"}>{val}</Badge> },
-    { key: "sportId", label: "Sport", width: "130px", render: (val, row) => String(row.sportName || val || "General").replace("sp_", "").toUpperCase() },
-    { key: "teamsLimit", label: "Teams Registered", width: "150px", render: (_, row) => <span>{row.registeredTeams || 0} / {row.maxTeams || 0} Teams</span> },
-    { key: "regDeadline", label: "Entry Deadline", width: "130px", render: (val) => <span>📅 {val || "TBD"}</span> },
+    {
+      key: "title",
+      label: "Event Name",
+      render: (val, row) => (
+        <div>
+          <strong>{val || row.name || "Sports Event"}</strong>
+          <br />
+          <small style={{ color: 'var(--nec-text-muted)' }}>{row.category || "Open"} Category</small>
+        </div>
+      )
+    },
+    {
+      key: "eventCategory",
+      label: "Event Category",
+      width: "140px",
+      render: (val, row) => {
+        const cat = val || row.event_category || row.tier || "Inter-Department";
+        return <Badge status={cat === "Inter-College" ? "danger" : "info"}>{cat}</Badge>;
+      }
+    },
+    {
+      key: "sportId",
+      label: "Sport",
+      width: "130px",
+      render: (val, row) => {
+        const name = row.sportName || row.sport_name || (val ? `Sport #${val}` : "General");
+        return String(name).replace("sp_", "").toUpperCase();
+      }
+    },
+    {
+      key: "teamsLimit",
+      label: "Teams Registered",
+      width: "150px",
+      render: (_, row) => <span>{row.registeredTeams ?? 0} / {row.maxTeams || row.max_teams || 32} Teams</span>
+    },
+    {
+      key: "regDeadline",
+      label: "Entry Deadline",
+      width: "130px",
+      render: (val, row) => <span>📅 {val || row.reg_deadline || "TBD"}</span>
+    },
     {
       key: "status",
       label: "Registration Status",
       width: "150px",
-      render: (val) => (
-        <Badge status={val === "Open" || val === "Registration Open" ? "success" : val === "Ongoing" ? "live" : "danger"}>
-          {val === "Open" || val === "Registration Open" ? "OPEN ✓" : val === "Closed" ? "CLOSED ×" : val}
-        </Badge>
-      )
+      render: (val, row) => {
+        const st = val || row.registration_status || "Open";
+        const isOpen = st === "Open" || st === "Registration Open";
+        return (
+          <Badge status={isOpen ? "success" : st === "Ongoing" ? "live" : "danger"}>
+            {isOpen ? "OPEN ✓" : st === "Closed" ? "CLOSED ×" : st}
+          </Badge>
+        );
+      }
     },
     {
       key: "actions",
@@ -92,13 +135,15 @@ export default function EventsManager() {
       width: "180px",
       sortable: false,
       render: (_, row) => {
-        const isOpen = row.status === "Open" || row.status === "Registration Open";
+        const eventId = row.id || row.event_id;
+        const st = row.status || row.registration_status || "Open";
+        const isOpen = st === "Open" || st === "Registration Open";
         return (
           <Button
             variant={isOpen ? "danger" : "primary"}
             size="sm"
             icon={isOpen ? ToggleRight : ToggleLeft}
-            onClick={() => handleToggleRegistration(row.id)}
+            onClick={() => handleToggleRegistration(eventId)}
           >
             {isOpen ? "Close Reg" : "Open Reg"}
           </Button>
@@ -161,14 +206,14 @@ export default function EventsManager() {
                 value={sportId}
                 onChange={(e) => setSportId(e.target.value)}
               >
-                <option value="sp_football">Football</option>
-                <option value="sp_cricket">Cricket</option>
-                <option value="sp_basketball">Basketball</option>
-                <option value="sp_volleyball">Volleyball</option>
-                <option value="sp_badminton">Badminton</option>
-                <option value="sp_tt">Table Tennis</option>
-                <option value="sp_athletics">Athletics</option>
-                <option value="sp_chess">Chess</option>
+                <option value="1">Football</option>
+                <option value="2">Cricket</option>
+                <option value="3">Basketball</option>
+                <option value="4">Volleyball</option>
+                <option value="5">Badminton</option>
+                <option value="6">Table Tennis</option>
+                <option value="7">Athletics</option>
+                <option value="8">Chess</option>
               </select>
             </div>
 

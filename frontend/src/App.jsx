@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { AuthProvider, useAuth, ROLES } from "./context/AuthContext";
+import { ToastProvider } from "./context/ToastContext";
 import AppShell from "./components/layout/AppShell";
 import ProtectedRoute from "./components/common/ProtectedRoute";
 import ErrorBoundary from "./components/common/ErrorBoundary";
@@ -101,13 +102,13 @@ function MainApp() {
     if (activeNav === "settings" || activeNav === "login" || activeNav === "signup" || activeNav === "notifications" || activeNav === "player_notifs" || activeNav.startsWith("team_profile_")) return;
     if (role === ROLES.ADMIN && !activeNav.startsWith("admin_") && !activeNav.startsWith("public_") && !activeNav.startsWith("team_")) {
       setActiveNav("admin_dash");
-    } else if (role === ROLES.PRESIDENT && !activeNav.startsWith("president_") && activeNav !== "college_teams" && !activeNav.startsWith("public_") && !activeNav.startsWith("team_")) {
+    } else if (role === ROLES.PRESIDENT && !activeNav.startsWith("president_") && activeNav !== "college_teams" && activeNav !== "admin_tournaments" && !activeNav.startsWith("public_") && !activeNav.startsWith("team_")) {
       setActiveNav("president_dash");
     } else if (role === ROLES.COORDINATOR && !activeNav.startsWith("coord_") && !activeNav.startsWith("public_") && !activeNav.startsWith("team_")) {
       setActiveNav("coord_dash");
-    } else if (role === ROLES.CAPTAIN && !activeNav.startsWith("captain_") && !activeNav.startsWith("public_") && !activeNav.startsWith("team_")) {
+    } else if (role === ROLES.CAPTAIN && !activeNav.startsWith("captain_") && activeNav !== "coord_matches" && !activeNav.startsWith("public_") && !activeNav.startsWith("team_")) {
       setActiveNav("captain_dash");
-    } else if (role === ROLES.SCORE_UPDATER && activeNav !== "coord_score_entry" && !activeNav.startsWith("public_")) {
+    } else if (role === ROLES.SCORE_UPDATER && activeNav !== "coord_score_entry" && activeNav !== "coord_matches" && !activeNav.startsWith("public_")) {
       setActiveNav("coord_score_entry");
     } else if (role === ROLES.PLAYER && !activeNav.startsWith("player_") && !activeNav.startsWith("public_") && !activeNav.startsWith("team_")) {
       setActiveNav("player_dash");
@@ -191,7 +192,7 @@ function MainApp() {
         );
       case "admin_tournaments":
         return (
-          <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={redirectNav}>
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.PRESIDENT]} onRedirectPublic={redirectNav}>
             <TournamentsManager />
           </ProtectedRoute>
         );
@@ -366,7 +367,7 @@ function MainApp() {
       case "notifications":
       case "player_notifs":
         return (
-          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.COORDINATOR, ROLES.CAPTAIN, ROLES.PLAYER]} onRedirectPublic={redirectNav}>
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.PRESIDENT, ROLES.COORDINATOR, ROLES.CAPTAIN, ROLES.SCORE_UPDATER, ROLES.PLAYER]} onRedirectPublic={redirectNav}>
             <PlayerNotifications />
           </ProtectedRoute>
         );
@@ -381,14 +382,15 @@ function MainApp() {
       // Settings — accessible to all logged-in roles
       case "settings":
         return (
-          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.COORDINATOR, ROLES.CAPTAIN, ROLES.PLAYER]} onRedirectPublic={redirectNav}>
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.PRESIDENT, ROLES.COORDINATOR, ROLES.CAPTAIN, ROLES.SCORE_UPDATER, ROLES.PLAYER]} onRedirectPublic={redirectNav}>
             <SettingsPage onNavigate={(nav) => setActiveNav(nav)} />
           </ProtectedRoute>
         );
 
       default:
         if (activeNav.startsWith("team_profile_")) {
-          return <TeamProfile />;
+          const teamId = activeNav.replace("team_profile_", "");
+          return <TeamProfile teamId={teamId} onNavigate={(nav) => setActiveNav(nav)} />;
         }
         return <PublicHome onNavigate={(nav) => setActiveNav(nav)} />;
     }
@@ -407,8 +409,10 @@ function MainApp() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <MainApp />
-    </AuthProvider>
+    <ToastProvider>
+      <AuthProvider>
+        <MainApp />
+      </AuthProvider>
+    </ToastProvider>
   );
 }

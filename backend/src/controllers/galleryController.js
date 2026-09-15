@@ -4,18 +4,23 @@ import path from 'path';
 import multer from 'multer';
 
 // Multer storage setup
+const getGalleryUploadsPath = () => {
+    const directPath = path.resolve(process.cwd(), 'uploads', 'gallery');
+    if (!fs.existsSync(directPath)) {
+        fs.mkdirSync(directPath, { recursive: true });
+    }
+    return directPath;
+};
+
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        const uploadPath = path.join(process.cwd(), 'uploads', 'gallery');
-        if (!fs.existsSync(uploadPath)) {
-            fs.mkdirSync(uploadPath, { recursive: true });
-        }
+        const uploadPath = getGalleryUploadsPath();
         cb(null, uploadPath);
     },
     filename: function (req, file, cb) {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        const ext = path.extname(file.originalname);
-        cb(null, file.fieldname + '-' + uniqueSuffix + ext);
+        const ext = path.extname(file.originalname).toLowerCase();
+        cb(null, 'media-' + uniqueSuffix + ext);
     }
 });
 
@@ -48,7 +53,7 @@ const FALLBACK_GALLERY = [
 export const getGallery = async (req, res) => {
     try {
         const [rows] = await db.execute(`
-            SELECT g.gallery_id as id, g.media_url as url, g.media_type, g.created_at as date,
+            SELECT g.gallery_id as id, g.media_url as url, g.title, g.caption, g.media_type, g.created_at as date,
                    u.username as uploadedBy
             FROM gallery g
             LEFT JOIN users u ON g.uploaded_by = u.id
@@ -64,7 +69,8 @@ export const getGallery = async (req, res) => {
             id: item.id,
             url: item.url,
             title: item.title || ('Campus Sports ' + (item.media_type === 'Video' ? 'Video' : 'Photo')),
-            sport: item.sport || 'Campus Sports',
+            caption: item.caption || '',
+            sport: 'Campus Sports',
             date: item.date ? new Date(item.date).toLocaleDateString() : 'Recent',
             created_at: item.date,
             type: (item.media_type || 'image').toLowerCase(),
@@ -84,19 +90,22 @@ export const getGallery = async (req, res) => {
 
 // @desc    Upload media to gallery
 // @route   POST /api/gallery/upload
-// @access  Protected (Admin, Coordinator)
+// @access  Protected (Admin, Coordinator, Sports President)
 export const uploadMedia = async (req, res) => {
     try {
         if (!req.file) {
-            return res.status(400).json({ success: false, message: 'No file uploaded' });
+            return res.status(400).json({ success: false, error: { message: 'No media file provided.' } });
         }
 
         const mediaType = req.file.mimetype.startsWith('video/') ? 'Video' : 'Image';
         const mediaUrl = '/uploads/gallery/' + req.file.filename;
+        const title = (req.body?.title || '').trim() || (mediaType === 'Video' ? 'Campus Sports Video' : 'Campus Sports Photo');
+        const caption = (req.body?.caption || '').trim() || null;
+        const userId = req.user?.id || 1;
 
         const [result] = await db.execute(
-            'INSERT INTO gallery (media_type, media_url, uploaded_by) VALUES (?, ?, ?)',
-            [mediaType, mediaUrl, req.user.id]
+            'INSERT INTO gallery (title, caption, media_type, media_url, uploaded_by) VALUES (?, ?, ?, ?, ?)',
+            [title, caption, mediaType, mediaUrl, userId]
         );
 
         res.status(201).json({
@@ -104,42 +113,51 @@ export const uploadMedia = async (req, res) => {
             message: 'Media uploaded successfully',
             data: {
                 id: result.insertId,
+                title,
+                caption,
                 url: mediaUrl,
-                type: mediaType
+                type: mediaType.toLowerCase(),
+                media_type: mediaType.toLowerCase()
             }
         });
     } catch (error) {
         console.error('Error uploading media:', error);
-        res.status(500).json({ success: false, message: 'Failed to upload media' });
+        res.status(500).json({ success: false, error: { message: 'Failed to upload media.' } });
     }
 };
 
-// @desc    Update media details (stub — schema does not yet store title/sport)
+// @desc    Update media details
 // @route   PUT /api/gallery/:id
-// @access  Protected (Admin, Coordinator)
+// @access  Protected (Admin, Coordinator, Sports President)
 export const updateMedia = async (req, res) => {
     try {
         const { id } = req.params;
-        // Verify the record exists before claiming success
+        const { title, caption } = req.body || {};
+
         const [rows] = await db.execute('SELECT gallery_id FROM gallery WHERE gallery_id = ?', [id]);
         if (rows.length === 0) {
             return res.status(404).json({ success: false, error: { message: 'Media item not found.' } });
         }
-        // The gallery table currently has no title/sport columns.
-        // Return 501 so callers know the update is not yet persisted.
-        return res.status(501).json({
-            success: false,
-            error: { message: 'Gallery item update is not yet implemented. The schema does not store title or sport metadata.' }
+
+        await db.execute(
+            'UPDATE gallery SET title = COALESCE(?, title), caption = COALESCE(?, caption) WHERE gallery_id = ?',
+            [title || null, caption || null, id]
+        );
+
+        return res.json({
+            success: true,
+            data: { id: Number(id), title, caption },
+            message: 'Gallery item updated successfully.'
         });
     } catch (error) {
         console.error('Error updating media:', error);
-        res.status(500).json({ success: false, message: 'Failed to update media' });
+        res.status(500).json({ success: false, error: { message: 'Failed to update media.' } });
     }
 };
 
 // @desc    Delete media from gallery
 // @route   DELETE /api/gallery/:id
-// @access  Protected (Admin, Coordinator)
+// @access  Protected (Admin, Coordinator, Sports President)
 export const deleteMedia = async (req, res) => {
     try {
         const { id } = req.params;
@@ -147,23 +165,31 @@ export const deleteMedia = async (req, res) => {
         // Find media url to delete file
         const [rows] = await db.execute('SELECT media_url FROM gallery WHERE gallery_id = ?', [id]);
         if (rows.length === 0) {
-            return res.status(404).json({ success: false, message: 'Media not found' });
+            return res.status(404).json({ success: false, error: { message: 'Media not found.' } });
         }
 
         const mediaUrl = rows[0].media_url;
-        const filePath = path.join(process.cwd(), mediaUrl);
-
+        
         // Delete from DB
         await db.execute('DELETE FROM gallery WHERE gallery_id = ?', [id]);
 
-        // Delete file from disk
-        if (fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
+        // If stored in local /uploads/gallery/, remove from disk safely
+        if (mediaUrl && mediaUrl.startsWith('/uploads/gallery/')) {
+            const fileName = path.basename(mediaUrl);
+            const uploadDir = getGalleryUploadsPath();
+            const filePath = path.join(uploadDir, fileName);
+            if (fs.existsSync(filePath)) {
+                try {
+                    fs.unlinkSync(filePath);
+                } catch (unlinkErr) {
+                    console.warn('[Gallery] Could not unlink file:', filePath, unlinkErr.message);
+                }
+            }
         }
 
         res.json({ success: true, message: 'Media deleted successfully' });
     } catch (error) {
         console.error('Error deleting media:', error);
-        res.status(500).json({ success: false, message: 'Failed to delete media' });
+        res.status(500).json({ success: false, error: { message: 'Failed to delete media.' } });
     }
 };

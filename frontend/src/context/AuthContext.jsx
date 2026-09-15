@@ -30,16 +30,7 @@ const IDLE_WARNING_MS = 2 * 60 * 1000;
 
 export function AuthProvider({ children }) {
   const publicUser = { role: ROLES.PUBLIC, name: "Guest Visitor", dept: "All", id: null };
-  const [currentUser, setCurrentUser] = useState(() => {
-    try {
-      const token = getAuthToken();
-      if (token && !isTokenExpired(token)) {
-        const saved = localStorage.getItem("nec_sports_auth_user");
-        if (saved) return JSON.parse(saved);
-      }
-    } catch { }
-    return publicUser;
-  });
+  const [currentUser, setCurrentUser] = useState(publicUser);
 
   const [authToken, setTokenState] = useState(() => getAuthToken());
   const [sessionExpiresAt, setSessionExpiresAt] = useState(() => {
@@ -54,19 +45,11 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     const token = getAuthToken();
-    if (!token || isTokenExpired(token)) {
-      if (currentUser.role !== ROLES.PUBLIC) {
-        setCurrentUser(publicUser);
-        removeAuthToken();
-        localStorage.removeItem("nec_sports_auth_user");
-      }
-      return;
-    }
-
+    
     fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/me`, {
       credentials: "include",
       headers: {
-        "Authorization": `Bearer ${token}`
+        ...(token ? { "Authorization": `Bearer ${token}` } : {})
       }
     })
       .then(response => {
@@ -74,7 +57,6 @@ export function AuthProvider({ children }) {
         if (response.status === 401 || response.status === 403) {
           setCurrentUser(publicUser);
           removeAuthToken();
-          localStorage.removeItem("nec_sports_auth_user");
           setTokenState(null);
           setSessionExpiresAt(null);
         }
@@ -83,12 +65,13 @@ export function AuthProvider({ children }) {
       .then(result => {
         if (result?.success && result.data) {
           setCurrentUser(result.data);
-          localStorage.setItem("nec_sports_auth_user", JSON.stringify(result.data));
-          setSessionExpiresAt(getTokenExpiry(token));
+          if (token) {
+            setSessionExpiresAt(getTokenExpiry(token));
+          }
         }
       })
       .catch(() => {
-        // Keep cached user if server is temporarily unreachable
+        // Server unreachable
       });
   }, []);
 
@@ -182,7 +165,6 @@ export function AuthProvider({ children }) {
     setIdleWarning(false);
     const publicUser = { role: ROLES.PUBLIC, name: "Guest Visitor", dept: "All", id: null };
     setCurrentUser(publicUser);
-    localStorage.setItem("nec_sports_auth_user", JSON.stringify(publicUser));
   }, []);
 
   const clearIdleTimers = useCallback(() => {
@@ -241,7 +223,6 @@ export function AuthProvider({ children }) {
         setSessionExpiresAt(null);
         const publicUser = { role: ROLES.PUBLIC, name: "Guest Visitor", dept: "All", id: null };
         setCurrentUser(publicUser);
-        localStorage.setItem("nec_sports_auth_user", JSON.stringify(publicUser));
       }
     }, 60_000);
     return () => clearInterval(interval);
@@ -260,7 +241,6 @@ export function AuthProvider({ children }) {
       setSessionExpiresAt(null);
     }
     setCurrentUser(userData);
-    localStorage.setItem("nec_sports_auth_user", JSON.stringify(userData));
     SecurityLogger.logLogin(userData);
     resetIdleTimer(userData);
   };
@@ -280,7 +260,6 @@ export function AuthProvider({ children }) {
     setTokenState(null);
     setSessionExpiresAt(null);
     setCurrentUser(publicUser);
-    localStorage.setItem("nec_sports_auth_user", JSON.stringify(publicUser));
   };
 
   // "Stay logged in" — user dismissed idle warning

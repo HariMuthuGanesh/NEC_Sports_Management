@@ -1,0 +1,315 @@
+/* Tournaments Manager Styling - National Engineering College Sports Portal */
+
+.nec-tournaments-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Tournaments Grid */
+.nec-tournaments-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 20px;
+}
+
+/* Tournament Card */
+.nec-tournament-card {
+  background: var(--nec-surface);
+  border: 1px solid var(--nec-border);
+  border-radius: var(--nec-radius-xl, 12px);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--nec-shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.05));
+}
+
+[data-theme="dark"] .nec-tournament-card {
+  background: var(--nec-solid-card, #111827);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.nec-tournament-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--nec-shadow-lg, 0 10px 25px -5px rgba(0, 0, 0, 0.1));
+  border-color: var(--nec-blue, #0274be);
+}
+
+.nec-tournament-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.nec-tournament-year-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: var(--nec-accent-light, #e8f2f9);
+  color: var(--nec-accent, #0274be);
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: var(--nec-radius-sm, 6px);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+[data-theme="dark"] .nec-tournament-year-badge {
+  background: rgba(2, 116, 190, 0.18);
+  color: #60a5fa;
+}
+
+.nec-tournament-title {
+  margin: 8px 0 6px 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--nec-text-main, #111827);
+  line-height: 1.35;
+  transition: color 0.15s ease;
+}
+
+.nec-tournament-card:hover .nec-tournament-title {
+  color: var(--nec-blue, #0274be);
+}
+
+.nec-tournament-desc {
+  margin: 0;
+  font-size: 0.825rem;
+  color: var(--nec-text-muted, #6b7280);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.nec-tournament-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--nec-border, #e5e7eb);
+  font-size: 0.8rem;
+  color: var(--nec-text-muted, #6b7280);
+}
+
+[data-theme="dark"] .nec-tournament-meta {
+  border-top-color: rgba(255, 255, 255, 0.08);
+}
+
+.nec-tournament-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nec-tournament-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 8px;
+  color: var(--nec-blue, #0274be);
+  font-size: 0.825rem;
+  font-weight: 700;
+}
+
+.nec-tournament-card-footer span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: transform 0.2s ease;
+}
+
+.nec-tournament-card:hover .nec-tournament-card-footer span {
+  transform: translateX(3px);
+}
+
+/* ── Workspace View Styles ─────────────────────────────── */
+
+.nec-workspace-header-card {
+  background: var(--nec-surface);
+  border: 1px solid var(--nec-border);
+  border-radius: var(--nec-radius-xl, 16px);
+  padding: 28px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--nec-shadow-md);
+  margin-bottom: 24px;
+}
+
+[data-theme="dark"] .nec-workspace-header-card {
+  background: var(--nec-solid-card, #111827);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.nec-workspace-header-content {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.nec-workspace-title {
+  margin: 10px 0 8px 0;
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--nec-text-main);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nec-workspace-subtitle {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--nec-text-muted);
+}
+
+.nec-workspace-tabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 2px solid var(--nec-border);
+  margin-bottom: 20px;
+}
+
+.nec-workspace-tab-btn {
+  padding: 12px 20px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  color: var(--nec-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: -2px;
+  transition: all 0.15s ease;
+}
+
+.nec-workspace-tab-btn:hover {
+  color: var(--nec-blue, #0274be);
+}
+
+.nec-workspace-tab-btn.active {
+  color: var(--nec-blue, #0274be);
+  border-bottom-color: var(--nec-blue, #0274be);
+}
+
+.nec-workspace-section-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.nec-workspace-section-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--nec-text-main);
+}
+
+.nec-workspace-section-desc {
+  margin: 4px 0 0 0;
+  font-size: 0.825rem;
+  color: var(--nec-text-muted);
+}
+
+/* Back Button */
+.nec-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: var(--nec-surface);
+  border: 1px solid var(--nec-border);
+  border-radius: var(--nec-radius-md, 8px);
+  color: var(--nec-text-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-bottom: 16px;
+}
+
+.nec-back-btn:hover {
+  background: var(--nec-surface-hover, #f3f4f6);
+  color: var(--nec-text-main);
+  border-color: var(--nec-border-dark, #d1d5db);
+}
+
+/* Modal Form Styles */
+.nec-form-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+@media (max-width: 640px) {
+  .nec-form-grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.nec-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nec-form-label {
+  font-size: 0.825rem;
+  font-weight: 600;
+  color: var(--nec-text-main);
+}
+
+.nec-form-input,
+.nec-form-select {
+  width: 100%;
+  padding: 9px 13px;
+  border-radius: var(--nec-radius-md, 8px);
+  border: 1px solid var(--nec-border, #d1d5db);
+  background: var(--nec-surface, #ffffff);
+  color: var(--nec-text-main, #111827);
+  font-size: 0.875rem;
+  font-family: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  box-sizing: border-box;
+}
+
+[data-theme="dark"] .nec-form-input,
+[data-theme="dark"] .nec-form-select {
+  background: #1f2937;
+  border-color: #374151;
+  color: #f9fafb;
+}
+
+.nec-form-input:focus,
+.nec-form-select:focus {
+  outline: none;
+  border-color: var(--nec-blue, #0274be);
+  box-shadow: 0 0 0 3px rgba(2, 116, 190, 0.15);
+}
+
+.nec-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 10px;
+  margin-top: 8px;
+  border-top: 1px solid var(--nec-border);
+}

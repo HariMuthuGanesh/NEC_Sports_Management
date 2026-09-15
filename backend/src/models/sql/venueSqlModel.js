@@ -19,7 +19,7 @@ export const getAllVenues = async () => {
             is_external,
             COALESCE(college_name, 'National Engineering College') AS college_name,
             COALESCE(college_name, 'National Engineering College') AS collegeName,
-            COALESCE(type, 'Outdoor') AS type,
+            'Outdoor' AS type,
             incharge_user_id, 
             created_at
         FROM venues

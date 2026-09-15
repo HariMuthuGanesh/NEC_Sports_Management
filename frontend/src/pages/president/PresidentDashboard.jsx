@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Trophy, Users, Award, FileText, CheckCircle, Clock, Search, AlertCircle } from "lucide-react";
+import { Trophy, Users, Award, FileText, CheckCircle, Clock, Search } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import "./PresidentDashboard.css";
 
@@ -116,12 +116,6 @@ export default function PresidentDashboard({ onSelectNav }) {
             <span className="metric-value">{stats.upcomingTournaments}</span>
           </div>
         </div>
-      </div>
-
-      {/* Chain of Command Note */}
-      <div className="nec-command-chain-banner">
-        <AlertCircle size={18} />
-        <span><strong>Chain of Command:</strong> PET Sir / Admin → <strong>Sports President</strong> → Department Coordinator → Team Captain → Player</span>
       </div>
 
       {/* OD Information Matrix */}

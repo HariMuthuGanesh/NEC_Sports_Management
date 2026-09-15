@@ -205,14 +205,15 @@ export const getPlayersByTeam = async (teamId) => {
 
 export const createTeam = async (teamData) => {
     const sql = `
-        INSERT INTO teams (name, department_id, sport_id, tournament_id, captain_id, coach_name, jersey_color, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO teams (name, department_id, sport_id, tournament_id, event_id, captain_id, coach_name, jersey_color, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const [result] = await pool.execute(sql, [
         teamData.name,
         teamData.department_id,
         teamData.sport_id,
         teamData.tournament_id,
+        teamData.event_id || null,
         teamData.captain_id || null,
         teamData.coach_name || null,
         teamData.jersey_color || null,

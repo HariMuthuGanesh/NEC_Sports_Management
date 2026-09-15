@@ -117,7 +117,7 @@ export default function Sidebar({ activeNav, onSelectNav, isOpen, onCloseMobile 
           {
             category: "Squad & Fixtures",
             items: [
-              { id: "captain_dash", label: "My Sports Squad", icon: Users },
+              { id: "captain_roster", label: "My Sports Squad", icon: Users },
               { id: "coord_matches", label: "Tournament Fixtures", icon: Calendar },
               { id: "notifications", label: t.notifications || "Notifications", icon: Bell }
             ]

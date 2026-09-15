@@ -3,6 +3,10 @@ import { protect, authorize, requireAdminScope } from '../middleware/authMiddlew
 import {
     getSports,
     getTournaments,
+    getTournamentByIdController,
+    createTournamentController,
+    updateTournamentController,
+    deleteTournamentController,
     getVenues,
     createVenueController,
     updateVenueController,
@@ -16,11 +20,13 @@ import {
     getAnnouncements,
     getLeaderboard,
     getEvents,
+    getEventByIdController,
     createEventController,
+    updateEventController,
+    deleteEventController,
     toggleEventStatusController,
     searchStudentsController,
     createStudentController,
-    createTournamentController,
     createAnnouncementController,
     deleteAnnouncementController,
     createSport,
@@ -30,7 +36,8 @@ import {
     getTournamentMatchesController,
     createTournamentMatchController,
     getTournamentTeamsController,
-    getStudentAttendanceController
+    getStudentAttendanceController,
+    getOverviewStats
 } from '../controllers/sportsController.js';
 import { createMatch, deleteMatch, updateScore } from '../controllers/matchController.js';
 import { 
@@ -47,11 +54,12 @@ import {
 import { 
     saveSquadAttendanceController, 
     getTeamAttendanceController,
-    getDepartmentAttendanceController 
+    getDepartmentAttendanceController,
+    getMatchAttendanceController
 } from '../controllers/attendanceController.js';
 import { getPerformanceReportController } from '../controllers/reportsController.js';
 import { validateScoreInput, validateTeamRegistration } from '../middleware/validatorMiddleware.js';
-import { getAuditEntries } from '../services/auditStore.js';
+import { getAuditEntries, addAuditEntry } from '../services/auditStore.js';
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from '../controllers/notificationController.js';
 import {
     createOdForMatchController,
@@ -82,15 +90,33 @@ import {
     confirmCollegeTeamV2
 } from '../controllers/squadController.js';
 import { doubleCsrfProtection } from '../middleware/csrfMiddleware.js';
+import { listUsersController, updateUserRoleController } from '../controllers/userController.js';
+
+import { generateCsrfToken } from '../middleware/csrfMiddleware.js';
 
 const router = express.Router();
+
+// Double CSRF Token endpoint
+router.get('/csrf-token', (req, res) => {
+    const csrfToken = generateCsrfToken(req, res);
+    return res.json({ success: true, csrfToken, data: { csrfToken } });
+});
 
 // CSRF protection on all state-changing routes (POST/PUT/PATCH/DELETE).
 // GET/HEAD/OPTIONS are automatically excluded via ignoredMethods in csrfMiddleware.js.
 router.use(doubleCsrfProtection);
 
-router.get('/admin/audit-log', protect, authorize('Admin'), (req, res) => {
-    return res.json({ success: true, data: getAuditEntries(req.query.limit) });
+// User & Role Management (Admin only)
+router.get('/users', protect, authorize('Admin'), listUsersController);
+router.patch('/users/:id/role', protect, authorize('Admin'), updateUserRoleController);
+
+router.get('/admin/audit-log', protect, authorize('Admin'), async (req, res, next) => {
+    try {
+        const data = await getAuditEntries(req.query.limit);
+        return res.json({ success: true, data });
+    } catch (err) {
+        next(err);
+    }
 });
 
 // Publicly accessible endpoints (MySQL-backed)
@@ -102,6 +128,7 @@ router.get('/announcements', getAnnouncements);
 router.get('/matches', getMatches);
 router.get('/leaderboard', getLeaderboard);
 router.get('/events', getEvents);
+router.get('/stats/overview', getOverviewStats);
 router.get('/students', protect, searchStudentsController);
 router.get('/students/search', protect, searchStudentsController);
 // Must be before any /students/:param routes that could clash
@@ -157,6 +184,9 @@ router.put('/sports/:id/captain', protect, authorize('Admin'), assignCaptainToSp
 router.delete('/sports/:id', protect, authorize('Admin'), deleteSport);
 
 router.post('/tournaments', protect, authorize('Admin'), createTournamentController);
+router.get('/tournaments/:id', getTournamentByIdController);
+router.put('/tournaments/:id', protect, authorize('Admin'), updateTournamentController);
+router.delete('/tournaments/:id', protect, authorize('Admin'), deleteTournamentController);
 router.get('/tournaments/:id/matches', getTournamentMatchesController);
 router.post('/tournaments/:id/matches', protect, authorize('Admin'), createTournamentMatchController);
 router.get('/tournaments/:id/teams', getTournamentTeamsController);
@@ -175,16 +205,51 @@ router.put('/departments/:id', protect, authorize('Admin'), updateDepartmentCont
 router.delete('/departments/:id', protect, authorize('Admin'), deleteDepartmentController);
 
 // Events / Tournament Registration Control
+router.get('/events/:id', getEventByIdController);
 router.post('/events', protect, authorize('Admin'), createEventController);
+router.put('/events/:id', protect, authorize('Admin'), updateEventController);
+router.delete('/events/:id', protect, authorize('Admin'), deleteEventController);
 router.post('/events/:id/toggle', protect, authorize('Admin'), toggleEventStatusController);
 
 // Squad Matchday Attendance (Admin, Coordinator & Captain)
 router.post('/teams/:id/attendance', protect, authorize('Admin', 'Coordinator', 'Captain'), saveSquadAttendanceController);
 router.get('/teams/:id/attendance', protect, authorize('Admin', 'Coordinator', 'Captain'), getTeamAttendanceController);
 router.get('/departments/:id/attendance', protect, authorize('Admin', 'Coordinator'), getDepartmentAttendanceController);
+router.get('/attendance/match/:matchId', protect, authorize('Admin', 'Coordinator'), getMatchAttendanceController);
 
 // Dynamic Institutional Performance Reports (Admin & Coordinator)
 router.get('/reports/performance', protect, authorize('Admin', 'Coordinator'), getPerformanceReportController);
+
+// Audit Logs (Admin & Client Ingestion)
+router.get('/audit-logs', protect, authorize('Admin'), async (req, res, next) => {
+    try {
+        const data = await getAuditEntries(req.query.limit || 100);
+        return res.json({ success: true, data });
+    } catch (err) {
+        next(err);
+    }
+});
+router.get('/audit/logs', protect, authorize('Admin'), async (req, res, next) => {
+    try {
+        const data = await getAuditEntries(req.query.limit || 100);
+        return res.json({ success: true, data });
+    } catch (err) {
+        next(err);
+    }
+});
+router.post('/audit/log', async (req, res, next) => {
+    try {
+        await addAuditEntry({
+            ...req.body,
+            userId: req.user?.id || req.body.userId || null,
+            role: req.user?.role || req.body.role || 'Public',
+            ipAddress: req.ip || req.headers['x-forwarded-for'] || ''
+        });
+        return res.json({ success: true });
+    } catch (err) {
+        next(err);
+    }
+});
 
 // ── OD (On Duty) Routes ────────────────────────────────────────────────────
 // Coordinator/Admin: batch-create OD for all rostered players in a match
@@ -214,8 +279,8 @@ router.post('/my-squad/members', protect, authorize('Captain'), addSquadMember);
 router.delete('/my-squad/members/:studentId', protect, authorize('Captain'), removeSquadMember);
 
 // ── College Team Builder Routes (Real match_attendance Data) ──────────────
-router.get('/college-teams/:sportId/suggestions', protect, authorize('Admin'), requireAdminScope('CollegeTeamOnly'), getCollegeTeamSuggestionsV2);
-router.post('/college-teams/:sportId/confirm', protect, authorize('Admin'), requireAdminScope('CollegeTeamOnly'), confirmCollegeTeamV2);
+router.get('/college-teams/:sportId/suggestions', protect, authorize('Admin', 'President'), requireAdminScope('CollegeTeamOnly'), getCollegeTeamSuggestionsV2);
+router.post('/college-teams/:sportId/confirm', protect, authorize('Admin', 'President'), requireAdminScope('CollegeTeamOnly'), confirmCollegeTeamV2);
 
 export default router;
 

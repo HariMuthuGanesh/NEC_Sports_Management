@@ -15,8 +15,14 @@ import pool from '../config/db.js';
 export const getTeams = async (req, res, next) => {
     try {
         let data = await getAllTeams();
-        if (req.user?.role === 'Coordinator' && req.user.dept_id && req.query.scoped === 'true') {
-            data = data.filter(t => t.department_id === req.user.dept_id || t.deptId === req.user.dept_id);
+        if (req.user?.role === 'Coordinator' && req.user.dept_id) {
+            data = data.filter(t => Number(t.department_id || t.deptId || t.dept_id) === Number(req.user.dept_id));
+        } else if (req.query.deptId || req.query.dept_id) {
+            const filterId = Number(req.query.deptId || req.query.dept_id);
+            data = data.filter(t => Number(t.department_id || t.deptId || t.dept_id) === filterId);
+        } else if (req.query.deptCode || req.query.dept) {
+            const filterCode = (req.query.deptCode || req.query.dept).toUpperCase();
+            data = data.filter(t => (t.deptCode || t.dept_code || '').toUpperCase() === filterCode);
         }
         return res.json({ success: true, data });
     } catch (err) {
@@ -99,6 +105,8 @@ export const createTeam = async (req, res, next) => {
             sportId,
             tournament_id,
             tournamentId,
+            event_id,
+            eventId,
             captain_id,
             coach_name,
             coachName,
@@ -128,8 +136,7 @@ export const createTeam = async (req, res, next) => {
         // Resolve sport_id
         let resolvedSportId = Number(sport_id || sportId) || null;
         if (!resolvedSportId) {
-            const [firstSport] = await pool.execute('SELECT sport_id FROM sports ORDER BY sport_id ASC LIMIT 1');
-            resolvedSportId = firstSport[0]?.sport_id;
+            return res.status(400).json({ success: false, error: { message: 'A sport selection is required.' } });
         }
 
         // Resolve tournament_id
@@ -139,6 +146,7 @@ export const createTeam = async (req, res, next) => {
             resolvedTourId = firstTour[0]?.tournament_id;
         }
 
+        const resolvedEventId = Number(event_id || eventId) || null;
         const resolvedCaptainId = captain_id || (req.user?.role === 'Captain' ? req.user.id : null);
 
         const teamId = await createTeamSql({
@@ -146,11 +154,21 @@ export const createTeam = async (req, res, next) => {
             department_id: resolvedDeptId,
             sport_id: resolvedSportId,
             tournament_id: resolvedTourId,
+            event_id: resolvedEventId,
             captain_id: resolvedCaptainId,
             coach_name: coach_name || coachName || null,
             jersey_color: jersey_color || jerseyColor || null,
             status: req.user?.role === 'Admin' ? (status || 'Approved') : 'Pending'
         });
+
+        const captainRoll = req.body.captainRoll;
+        if (captainRoll) {
+            try {
+                await addPlayerToTeamSql(teamId, captainRoll, 'Captain', null);
+            } catch (err) {
+                console.warn(`[Team Creation] Could not add captain ${captainRoll} to roster:`, err);
+            }
+        }
 
         // Trigger notification to Admins
         await notifyAdmins({
