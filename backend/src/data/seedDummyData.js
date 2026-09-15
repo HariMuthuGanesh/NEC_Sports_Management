@@ -188,7 +188,7 @@ async function seedSchema(conn) {
 
     await conn.execute(`
         CREATE TABLE IF NOT EXISTS od_requests (
-            od_id INT AUTO_INCREMENT PRIMARY KEY,
+            request_id INT AUTO_INCREMENT PRIMARY KEY,
             student_id INT NOT NULL,
             tournament_id INT NOT NULL,
             event_id INT NULL,

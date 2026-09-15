@@ -119,6 +119,7 @@ uploads/
 **/uploads/
 *.sql
 !backend/src/data/schema.sql
+!backend/src/data/migrations/*.sql
 backend/src/data/seed.sql
 backend/src/data/mockDb.js
 backend/src/data/seedDb.js

@@ -70,6 +70,79 @@ export const assignDepartmentSportCaptain = async (req, res, next) => {
 };
 
 /**
+ * GET /api/department-sport-captains
+ * Role check: Coordinator (scoped to their own department_id).
+ * Lists all Active department-sport-captain assignments for the
+ * coordinator's own department, one row per sport, alongside the sport's
+ * name so the UI can render "Sport -> Current Captain".
+ */
+export const listDepartmentSportCaptains = async (req, res, next) => {
+    try {
+        const deptIdNum = req.user.dept_id || req.user.department_id;
+
+        if (!deptIdNum) {
+            return res.status(400).json({
+                success: false,
+                error: { code: 'NO_DEPARTMENT', message: 'Coordinator does not have an assigned department ID.' }
+            });
+        }
+
+        const sql = `
+            SELECT
+                dsc.id,
+                dsc.department_id,
+                dsc.sport_id,
+                sp.name AS sport_name,
+                dsc.user_id AS captain_user_id,
+                u.username AS captain_username,
+                s.student_name AS captain_name,
+                s.register_number AS captain_register_number,
+                dsc.status,
+                dsc.assigned_at
+            FROM department_sport_captains dsc
+            JOIN sports sp ON sp.sport_id = dsc.sport_id
+            JOIN users u ON u.id = dsc.user_id
+            LEFT JOIN students s ON s.user_id = u.id
+            WHERE dsc.department_id = ? AND dsc.status = 'Active'
+            ORDER BY sp.name ASC
+        `;
+
+        const [rows] = await pool.execute(sql, [deptIdNum]);
+        return res.json({ success: true, data: rows });
+    } catch (err) {
+        next(err);
+    }
+};
+
+/**
+ * GET /api/department-sport-captains/eligible-captains
+ * Role check: Coordinator.
+ * Lists users with role 'Captain' so the coordinator can pick one to assign.
+ * (There is no per-department scoping on the Captain role itself, so this
+ * returns every Captain-role account; the coordinator narrows down by name
+ * or register number in the UI.)
+ */
+export const listEligibleCaptains = async (req, res, next) => {
+    try {
+        const sql = `
+            SELECT
+                u.id AS user_id,
+                u.username,
+                s.student_name,
+                s.register_number
+            FROM users u
+            LEFT JOIN students s ON s.user_id = u.id
+            WHERE u.role = 'Captain' AND u.is_active = 1
+            ORDER BY COALESCE(s.student_name, u.username) ASC
+        `;
+        const [rows] = await pool.execute(sql);
+        return res.json({ success: true, data: rows });
+    } catch (err) {
+        next(err);
+    }
+};
+
+/**
  * Helper to resolve active captain assignment for req.user
  */
 const getActiveCaptainAssignment = async (userId) => {
@@ -86,7 +159,9 @@ const getActiveCaptainAssignment = async (userId) => {
 /**
  * GET /api/my-squad
  * Role check: Captain.
- * Returns active department_squad_members for captain's assigned department_id + sport_id.
+ * Returns the captain's active department/sport assignment (with sport &
+ * department names for display) plus the active department_squad_members
+ * roster for that department_id + sport_id.
  */
 export const getMySquad = async (req, res, next) => {
     try {
@@ -98,16 +173,36 @@ export const getMySquad = async (req, res, next) => {
             });
         }
 
+        const [assignmentRows] = await pool.execute(
+            `SELECT sp.sport_id, sp.name AS sport_name, d.id AS department_id, d.name AS department_name, d.code AS department_code
+             FROM sports sp, departments d
+             WHERE sp.sport_id = ? AND d.id = ?`,
+            [assignment.sport_id, assignment.department_id]
+        );
+
         const sql = `
             SELECT dsm.id, dsm.department_id, dsm.sport_id, dsm.student_id, dsm.added_by, dsm.status, dsm.joined_at,
-                   s.student_name, s.register_number, s.section, s.batch, s.personal_email
+                   s.student_name, s.register_number, s.section, s.batch, s.personal_email, u.username
             FROM department_squad_members dsm
             JOIN students s ON s.student_id = dsm.student_id
+            LEFT JOIN users u ON u.id = s.user_id
             WHERE dsm.department_id = ? AND dsm.sport_id = ? AND dsm.status = 'Active'
+            ORDER BY s.student_name ASC
         `;
 
         const [rows] = await pool.execute(sql, [assignment.department_id, assignment.sport_id]);
-        return res.json({ success: true, data: rows });
+
+        return res.json({
+            success: true,
+            data: {
+                department_id: assignment.department_id,
+                sport_id: assignment.sport_id,
+                sport_name: assignmentRows[0]?.sport_name || null,
+                department_name: assignmentRows[0]?.department_name || null,
+                department_code: assignmentRows[0]?.department_code || null,
+                players: rows
+            }
+        });
     } catch (err) {
         next(err);
     }

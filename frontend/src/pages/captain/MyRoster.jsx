@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from "react";
-import { departmentTeamsApi, studentLookupApi } from "../../services/api/apiServices";
+import { squadApi, studentLookupApi } from "../../services/api/apiServices";
 import Table from "../../components/common/Table";
 import Button from "../../components/common/Button";
 import "../coordinator/CoordinatorPortal.css";
 
 export default function MyRoster() {
-  const [team, setTeam] = useState(null);
+  const [squad, setSquad] = useState(null);
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   // Add player form state
-  const [newPlayerUserId, setNewPlayerUserId] = useState("");
+  const [newStudentId, setNewStudentId] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
@@ -21,12 +21,12 @@ export default function MyRoster() {
     setLoading(true);
     setError(null);
     try {
-      const res = await departmentTeamsApi.getMyDepartmentTeam();
+      const res = await squadApi.getMySquad();
       if (res) {
-        setTeam(res);
+        setSquad(res);
         setPlayers(res.players || []);
       } else {
-        setTeam(null);
+        setSquad(null);
         setPlayers([]);
       }
       setLoading(false);
@@ -58,12 +58,12 @@ export default function MyRoster() {
 
   const handleAddPlayer = async (e) => {
     e.preventDefault();
-    if (!team?.id || !newPlayerUserId) return;
+    if (!newStudentId) return;
     setAdding(true);
     setError(null);
     try {
-      await departmentTeamsApi.addPlayer(team.id, Number(newPlayerUserId));
-      setNewPlayerUserId("");
+      await squadApi.addSquadMember(Number(newStudentId));
+      setNewStudentId("");
       setSearchQuery("");
       setSearchResults([]);
       await loadMyRoster();
@@ -75,11 +75,10 @@ export default function MyRoster() {
     }
   };
 
-  const handleRemovePlayer = async (playerUserId) => {
-    if (!team?.id) return;
+  const handleRemovePlayer = async (studentId) => {
     setError(null);
     try {
-      await departmentTeamsApi.removePlayer(team.id, playerUserId);
+      await squadApi.removeSquadMember(studentId);
       await loadMyRoster();
     } catch (err) {
       console.error(err);
@@ -88,8 +87,8 @@ export default function MyRoster() {
   };
 
   const columns = [
-    { key: "player_user_id", label: "User ID", width: "90px" },
-    { key: "username", label: "Username", render: (val) => <strong>{val}</strong> },
+    { key: "student_id", label: "Student ID", width: "90px" },
+    { key: "username", label: "Username", render: (val, row) => <strong>{val || row.student_name}</strong> },
     { key: "student_name", label: "Student Name", render: (val, row) => val || row.username },
     { key: "register_number", label: "Register #", render: (val) => val || "N/A" },
     { key: "status", label: "Status", render: (val) => <span style={{ color: "#28a745", fontWeight: 600 }}>{val || "Active"}</span> },
@@ -102,7 +101,7 @@ export default function MyRoster() {
         <Button
           variant="danger"
           size="sm"
-          onClick={() => handleRemovePlayer(row.player_user_id)}
+          onClick={() => handleRemovePlayer(row.student_id)}
         >
           Remove
         </Button>
@@ -114,11 +113,11 @@ export default function MyRoster() {
     return <div style={{ padding: "30px", textAlign: "center" }}>Loading your roster...</div>;
   }
 
-  if (!team) {
+  if (!squad) {
     return (
       <div className="nec-portal-page" style={{ padding: "30px" }}>
         <h2>Team Captain Roster Management</h2>
-        <p>No assigned department team was found for your account.</p>
+        <p>No active department/sport captain assignment was found for your account. Ask your Coordinator to assign you as captain for a sport.</p>
       </div>
     );
   }
@@ -127,8 +126,8 @@ export default function MyRoster() {
     <div className="nec-portal-page">
       <div className="nec-page-header">
         <div>
-          <h2 className="nec-page-title">My Team Roster — {team.sport_name}</h2>
-          <p className="nec-page-desc">Department: {team.department_name}</p>
+          <h2 className="nec-page-title">My Team Roster — {squad.sport_name}</h2>
+          <p className="nec-page-desc">Department: {squad.department_name}</p>
         </div>
       </div>
 
@@ -141,16 +140,16 @@ export default function MyRoster() {
       {/* Add Player Box */}
       <div className="nec-card" style={{ padding: "16px 20px", marginBottom: "20px" }}>
         <h4 style={{ margin: "0 0 12px 0" }}>Add Player to Roster</h4>
-        
+
         {/* Quick ID Entry Form */}
         <form onSubmit={handleAddPlayer} style={{ display: "flex", gap: "12px", alignItems: "center", marginBottom: "12px" }}>
           <input
             type="number"
             className="nec-table-search-input"
             style={{ width: "220px" }}
-            placeholder="Enter Player User ID..."
-            value={newPlayerUserId}
-            onChange={(e) => setNewPlayerUserId(e.target.value)}
+            placeholder="Enter Student ID..."
+            value={newStudentId}
+            onChange={(e) => setNewStudentId(e.target.value)}
             required
           />
           <Button type="submit" variant="primary" disabled={adding}>
@@ -180,14 +179,14 @@ export default function MyRoster() {
           {searchResults.length > 0 && (
             <div style={{ marginTop: "10px", background: "var(--nec-surface-raised, #f9f9f9)", padding: "10px", borderRadius: "6px" }}>
               {searchResults.map((s) => (
-                <div key={s.studentId || s.user_id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 0" }}>
-                  <span>{s.name} ({s.registerNumber || s.studentId}) — User ID: <strong>{s.userId || s.user_id}</strong></span>
+                <div key={s.id || s.student_id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 0" }}>
+                  <span>{s.name} ({s.register_number || s.studentId}) — Student ID: <strong>{s.id || s.student_id}</strong></span>
                   <Button
                     variant="primary"
                     size="sm"
-                    onClick={() => setNewPlayerUserId(String(s.userId || s.user_id))}
+                    onClick={() => setNewStudentId(String(s.id || s.student_id))}
                   >
-                    Use User ID
+                    Use Student ID
                   </Button>
                 </div>
               ))}

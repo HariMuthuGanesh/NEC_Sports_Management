@@ -37,10 +37,14 @@ const allowedOrigins = [
 
 app.use(cors({
     origin: (origin, callback) => {
+        // Allow non-browser/same-origin requests (no Origin header) and any
+        // explicitly allow-listed origin. Reject everything else — this was
+        // previously always returning `true`, which silently disabled the
+        // allow-list and permitted credentialed requests from ANY origin.
         if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
             return callback(null, true);
         }
-        return callback(null, true);
+        return callback(new Error('Not allowed by CORS'));
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],

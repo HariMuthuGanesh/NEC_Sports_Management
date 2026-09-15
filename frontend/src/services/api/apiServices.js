@@ -360,14 +360,22 @@ export const odApi = {
   reject: (requestId, reason) => apiFetch(`/od/${requestId}/reject`, 'PATCH', { reason })
 };
 
-/* --- Department Teams API --- */
-export const departmentTeamsApi = {
-  getDepartmentTeams: () => apiFetch("/department-teams"),
-  getMyDepartmentTeam: () => apiFetch("/department-teams/my"),
-  createDepartmentTeam: (data) => apiFetch("/department-teams", "POST", data),
-  assignCaptain: (id, captainUserId) => apiFetch(`/department-teams/${id}/captain`, "PATCH", { captain_user_id: captainUserId }),
-  addPlayer: (id, playerUserId) => apiFetch(`/department-teams/${id}/players`, "POST", { player_user_id: playerUserId }),
-  removePlayer: (id, playerId) => apiFetch(`/department-teams/${id}/players/${playerId}`, "DELETE")
+/* --- Department Sport Captains & Squad API ---
+   Backed by squadController.js / department_sport_captains + department_squad_members
+   (the live V2 tables — see schema.sql's "DEPRECATED V2 PARALLEL TABLES" note,
+   which documents that the older department_teams / department_team_members
+   tables and their V1 endpoints are no longer wired up). */
+export const squadApi = {
+  // Coordinator: list this coordinator's own department's sport-captain assignments
+  getDepartmentSportCaptains: () => apiFetch("/department-sport-captains"),
+  // Coordinator: list users with the Captain role, to pick from when assigning
+  getEligibleCaptains: () => apiFetch("/department-sport-captains/eligible-captains"),
+  // Coordinator: assign (or transfer) the captain for a sport in their department
+  assignDepartmentSportCaptain: (sportId, userId) => apiFetch("/department-sport-captains", "POST", { sport_id: sportId, user_id: userId }),
+  // Captain: view their own assigned squad (sport + department + active roster)
+  getMySquad: () => apiFetch("/my-squad"),
+  addSquadMember: (studentId) => apiFetch("/my-squad/members", "POST", { student_id: studentId }),
+  removeSquadMember: (studentId) => apiFetch(`/my-squad/members/${studentId}`, "DELETE")
 };
 
 /* --- College Team Builder API --- */

@@ -197,7 +197,7 @@ CREATE TABLE IF NOT EXISTS matches (
 
 -- 12. On Duty (OD) Requests & Approvals Matrix
 CREATE TABLE IF NOT EXISTS od_requests (
-  od_id INT PRIMARY KEY AUTO_INCREMENT,
+  request_id INT PRIMARY KEY AUTO_INCREMENT,
   student_id INT NOT NULL,
   tournament_id INT NOT NULL,
   event_id INT NULL,

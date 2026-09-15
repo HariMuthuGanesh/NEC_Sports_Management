@@ -71,18 +71,15 @@ import {
     bulkApproveMatchOdController,
     getOdRequestController
 } from '../controllers/odController.js';
-import {
-    createDepartmentTeam,
-    assignDepartmentTeamCaptain,
-    addPlayerToDepartmentTeam,
-    removePlayerFromDepartmentTeam,
-    getCollegeTeamSuggestions,
-    confirmCollegeTeam,
-    getDepartmentTeams,
-    getMyDepartmentTeam
-} from '../controllers/departmentTeamController.js';
+// NOTE: departmentTeamController.js (department_teams / department_team_members
+// V1 endpoints) is intentionally NOT imported here. Those tables are marked
+// deprecated in schema.sql; the live implementation is the V2
+// squadController.js (department_sport_captains / department_squad_members)
+// wired in below.
 import {
     assignDepartmentSportCaptain,
+    listDepartmentSportCaptains,
+    listEligibleCaptains,
     getMySquad,
     addSquadMember,
     removeSquadMember,
@@ -271,6 +268,8 @@ router.patch('/od/:requestId/approve', protect, authorize('Admin'), approveOdCon
 router.patch('/od/:requestId/reject', protect, authorize('Admin'), rejectOdController);
 
 // ── Department Sport Captains & Squad Routes ─────────────────────────────
+router.get('/department-sport-captains', protect, authorize('Coordinator'), listDepartmentSportCaptains);
+router.get('/department-sport-captains/eligible-captains', protect, authorize('Coordinator'), listEligibleCaptains);
 router.post('/department-sport-captains', protect, authorize('Coordinator'), assignDepartmentSportCaptain);
 
 // ── Captain Squad Routes ───────────────────────────────────────────────────

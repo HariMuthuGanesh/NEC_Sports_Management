@@ -1,16 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { useAuth } from "../../context/AuthContext";
-import { departmentTeamsApi, sportsApi, playersApi } from "../../services/api/apiServices";
+import { squadApi, sportsApi } from "../../services/api/apiServices";
 import Table from "../../components/common/Table";
 import Button from "../../components/common/Button";
 import "./CoordinatorPortal.css";
 
 export default function DepartmentTeams() {
-  const { currentUser } = useAuth();
-  const [teams, setTeams] = useState([]);
-  const [sports, setSports] = useState([]);
   const [captains, setCaptains] = useState([]);
+  const [sports, setSports] = useState([]);
+  const [eligibleCaptains, setEligibleCaptains] = useState([]);
   const [selectedSportId, setSelectedSportId] = useState("");
+  const [selectedCaptainId, setSelectedCaptainId] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -19,18 +18,15 @@ export default function DepartmentTeams() {
     setLoading(true);
     setError(null);
     try {
-      const [teamsData, sportsData, playersRes] = await Promise.all([
-        departmentTeamsApi.getDepartmentTeams(),
+      const [captainsData, sportsData, eligibleData] = await Promise.all([
+        squadApi.getDepartmentSportCaptains(),
         sportsApi.getSports(),
-        playersApi.getAllPlayers()
+        squadApi.getEligibleCaptains()
       ]);
 
-      setTeams(teamsData || []);
+      setCaptains(captainsData || []);
       setSports(sportsData || []);
-
-      // Filter potential team captains from players/users list
-      const allPlayers = playersRes?.data || (Array.isArray(playersRes) ? playersRes : []);
-      setCaptains(allPlayers);
+      setEligibleCaptains(eligibleData || []);
       setLoading(false);
     } catch (err) {
       console.error(err);
@@ -43,69 +39,34 @@ export default function DepartmentTeams() {
     loadData();
   }, []);
 
-  const handleCreateTeam = async (e) => {
+  const handleAssignCaptain = async (e) => {
     e.preventDefault();
-    if (!selectedSportId) return;
+    if (!selectedSportId || !selectedCaptainId) return;
     setSubmitting(true);
     setError(null);
 
-    const deptId = currentUser?.deptId || currentUser?.dept_id;
     try {
-      await departmentTeamsApi.createDepartmentTeam({
-        department_id: deptId,
-        sport_id: Number(selectedSportId)
-      });
+      await squadApi.assignDepartmentSportCaptain(Number(selectedSportId), Number(selectedCaptainId));
       setSelectedSportId("");
+      setSelectedCaptainId("");
       await loadData();
     } catch (err) {
       console.error(err);
-      setError(err.message || "Failed to create department team.");
+      setError(err.message || "Failed to assign team captain.");
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleAssignCaptain = async (teamId, captainUserId) => {
-    if (!captainUserId) return;
-    setError(null);
-    try {
-      await departmentTeamsApi.assignCaptain(teamId, Number(captainUserId));
-      await loadData();
-    } catch (err) {
-      console.error(err);
-      setError(err.message || "Failed to assign team captain.");
-    }
-  };
-
   const columns = [
-    { key: "id", label: "Team ID", width: "80px" },
     { key: "sport_name", label: "Sport", render: (val, row) => <strong>{val || `Sport #${row.sport_id}`}</strong> },
-    { key: "department_name", label: "Department", render: (val, row) => row.department_code || val },
     {
       key: "captain_name",
       label: "Current Captain",
-      render: (val) => (val ? <span style={{ color: "var(--nec-primary, #0056b3)", fontWeight: 600 }}>{val}</span> : <em>Unassigned</em>)
+      render: (val, row) => (val || row.captain_username ? <span style={{ color: "var(--nec-primary, #0056b3)", fontWeight: 600 }}>{val || row.captain_username}</span> : <em>Unassigned</em>)
     },
-    {
-      key: "assign_captain",
-      label: "Assign / Change Captain",
-      sortable: false,
-      render: (_, row) => (
-        <select
-          className="nec-table-search-input"
-          style={{ width: "auto", padding: "4px 8px" }}
-          defaultValue=""
-          onChange={(e) => handleAssignCaptain(row.id, e.target.value)}
-        >
-          <option value="" disabled>Select Team Captain...</option>
-          {captains.map((c) => (
-            <option key={c.id || c.player_user_id} value={c.id || c.player_user_id}>
-              {c.student_name || c.username} ({c.register_number || c.email})
-            </option>
-          ))}
-        </select>
-      )
-    }
+    { key: "captain_register_number", label: "Register #", render: (val) => val || "N/A" },
+    { key: "assigned_at", label: "Assigned On", render: (val) => (val ? new Date(val).toLocaleDateString() : "N/A") }
   ];
 
   if (loading) {
@@ -117,7 +78,7 @@ export default function DepartmentTeams() {
       <div className="nec-page-header">
         <div>
           <h2 className="nec-page-title">Department Teams</h2>
-          <p className="nec-page-desc">Manage sports teams and assign Team Captains for your department.</p>
+          <p className="nec-page-desc">Assign or transfer Sport Captains for your department.</p>
         </div>
       </div>
 
@@ -127,10 +88,10 @@ export default function DepartmentTeams() {
         </div>
       )}
 
-      {/* Create Department Team Form */}
+      {/* Assign Captain Form */}
       <div className="nec-card" style={{ padding: "16px 20px", marginBottom: "20px" }}>
-        <h4 style={{ margin: "0 0 12px 0" }}>Create New Department Team</h4>
-        <form onSubmit={handleCreateTeam} style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+        <h4 style={{ margin: "0 0 12px 0" }}>Assign Sport Captain</h4>
+        <form onSubmit={handleAssignCaptain} style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
           <select
             className="nec-table-search-input"
             style={{ width: "260px" }}
@@ -146,19 +107,37 @@ export default function DepartmentTeams() {
             ))}
           </select>
 
+          <select
+            className="nec-table-search-input"
+            style={{ width: "260px" }}
+            value={selectedCaptainId}
+            onChange={(e) => setSelectedCaptainId(e.target.value)}
+            required
+          >
+            <option value="">-- Pick a Captain --</option>
+            {eligibleCaptains.map((c) => (
+              <option key={c.user_id} value={c.user_id}>
+                {c.student_name || c.username} {c.register_number ? `(${c.register_number})` : ""}
+              </option>
+            ))}
+          </select>
+
           <Button type="submit" variant="primary" disabled={submitting}>
-            {submitting ? "Creating..." : "Create Team"}
+            {submitting ? "Assigning..." : "Assign Captain"}
           </Button>
         </form>
+        <p style={{ fontSize: "0.8rem", color: "var(--nec-text-muted, #666)", marginTop: "8px" }}>
+          Assigning a new captain for a sport automatically transfers out any previously-active captain for that sport in your department.
+        </p>
       </div>
 
-      {/* Teams List */}
+      {/* Captains List */}
       <Table
         columns={columns}
-        data={teams}
+        data={captains}
         loading={false}
         searchPlaceholder="Search department teams..."
-        emptyMessage="No department teams created yet."
+        emptyMessage="No sport captains assigned in your department yet."
       />
     </div>
   );

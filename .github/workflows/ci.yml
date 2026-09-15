@@ -13,10 +13,12 @@ on:
   workflow_dispatch:
   push:
     branches:
+      - main
       - Frontend
       - Backend
   pull_request:
     branches:
+      - main
       - Frontend
       - Backend
 

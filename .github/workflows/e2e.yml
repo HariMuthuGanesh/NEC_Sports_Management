@@ -9,10 +9,12 @@ on:
   workflow_dispatch:
   push:
     branches:
+      - main
       - Frontend
       - Backend
   pull_request:
     branches:
+      - main
       - Frontend
       - Backend
 
@@ -47,10 +49,24 @@ jobs:
 
       - name: 📦 Install Backend Dependencies & Seed DB
         working-directory: backend
+        env:
+          MYSQL_HOST: 127.0.0.1
+          MYSQL_USER: root
+          MYSQL_PASSWORD: root
+          MYSQL_DATABASE: SportsDB
+          JWT_SECRET: testing_secret
+          COOKIE_SECRET: testing_cookie_secret
+          CSRF_SECRET: testing_csrf_secret
         run: |
           npm ci
-          docker exec -i mysql-test mysql -uroot -proot SportsDB < src/data/schema.sql
-          docker exec -i mysql-test mysql -uroot -proot SportsDB < src/data/seed.sql
+          # backend/src/data/seed.sql was never committed (it is intentionally
+          # gitignored — see .gitignore's "Database, Local Data & Uploads"
+          # section). The real seeding mechanism is the `seed` npm script,
+          # which creates all tables itself (see seedData.js::ensureTables)
+          # and inserts demo users/departments/teams/matches with properly
+          # bcrypt-hashed passwords, so schema.sql does not need to be piped
+          # in separately beforehand.
+          npm run seed
 
       - name: 🚀 Start Backend Server
         working-directory: backend
@@ -59,7 +75,14 @@ jobs:
           MYSQL_USER: root
           MYSQL_PASSWORD: root
           MYSQL_DATABASE: SportsDB
+          # `npm start` runs with NODE_ENV=production (see package.json), and
+          # backend/src/config/securityConfig.js exits the process immediately
+          # if JWT_SECRET, COOKIE_SECRET, or CSRF_SECRET are unset in
+          # production — all three must be provided here or the server never
+          # comes up and the wait-on step below times out.
           JWT_SECRET: testing_secret
+          COOKIE_SECRET: testing_cookie_secret
+          CSRF_SECRET: testing_csrf_secret
         run: |
           npm start &
           npx wait-on http://127.0.0.1:5000/api/sports
