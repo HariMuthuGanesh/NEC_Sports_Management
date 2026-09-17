@@ -1,4 +1,5 @@
 import pool from '../config/db.js';
+import { sendSystemNotification } from '../services/emailService.js';
 
 /**
  * POST /api/department-sport-captains
@@ -38,6 +39,13 @@ export const assignDepartmentSportCaptain = async (req, res, next) => {
             });
         }
 
+        // Find existing active captain
+        const [existing] = await pool.execute(
+            `SELECT user_id FROM department_sport_captains WHERE department_id = ? AND sport_id = ? AND status = 'Active' LIMIT 1`,
+            [deptIdNum, sportIdNum]
+        );
+        const previousCaptainId = existing[0]?.user_id;
+
         // Set any existing Active captain row for this department_id + sport_id to Transferred
         await pool.execute(
             `UPDATE department_sport_captains 
@@ -53,6 +61,25 @@ export const assignDepartmentSportCaptain = async (req, res, next) => {
              VALUES (?, ?, ?, ?, 'Active')`,
             [deptIdNum, sportIdNum, userIdNum, req.user.id]
         );
+        
+        const [sportRows] = await pool.execute('SELECT name FROM sports WHERE sport_id = ?', [sportIdNum]);
+        const sportName = sportRows[0]?.name || `Sport ID ${sportIdNum}`;
+
+        await sendSystemNotification({
+            userId: userIdNum,
+            title: 'Captain Assignment',
+            message: `You have been assigned as the captain for ${sportName}.`,
+            type: 'ROSTER_ALERT'
+        });
+
+        if (previousCaptainId && previousCaptainId !== userIdNum) {
+            await sendSystemNotification({
+                userId: previousCaptainId,
+                title: 'Captaincy Transferred',
+                message: `Your captaincy for ${sportName} has been transferred to another student.`,
+                type: 'ROSTER_ALERT'
+            });
+        }
 
         return res.status(201).json({
             success: true,

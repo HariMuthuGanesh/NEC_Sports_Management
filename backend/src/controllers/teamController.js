@@ -10,7 +10,12 @@ import {
     getTeamsByCaptain as getTeamsByCaptainSql,
     updateTeamDetails as updateTeamDetailsSql
 } from '../models/sql/teamSqlModel.js';
-import { notifyAdmins, sendSystemNotification } from '../services/emailService.js';
+import { 
+    notifyAdmins, 
+    notifyDepartmentCoordinator,
+    resolveTeamCaptainUserId,
+    sendSystemNotification
+} from '../services/emailService.js';
 import pool from '../config/db.js';
 
 export const getTeams = async (req, res, next) => {
@@ -171,11 +176,19 @@ export const createTeam = async (req, res, next) => {
             }
         }
 
-        // Trigger notification to Admins
+        // Trigger notification to Admins and Coordinator
         await notifyAdmins({
             title: 'New Team Registration',
-            message: `Team "${name}" has been registered for tournament event by ${req.user?.username || 'Team Lead'} and is pending review.`
+            message: `Team "${name}" has been registered for tournament event by ${req.user?.username || 'Team Lead'} and is pending review.`,
+            type: 'TEAM_ALERT'
         });
+        if (resolvedDeptId) {
+            await notifyDepartmentCoordinator(resolvedDeptId, {
+                title: 'New Team Registration',
+                message: `Team "${name}" has been registered in your department and is pending review.`,
+                type: 'TEAM_ALERT'
+            });
+        }
 
         return res.status(201).json({
             success: true,
@@ -204,14 +217,24 @@ export const updateTeamStatus = async (req, res, next) => {
             return res.status(404).json({ success: false, error: { message: "Team not found" } });
         }
 
-        // Notify team captain if status changed to Approved
-        const [tRows] = await pool.execute('SELECT name, captain_id FROM teams WHERE team_id = ? LIMIT 1', [teamId]);
-        if (tRows[0] && tRows[0].captain_id) {
-            await sendSystemNotification({
-                userId: tRows[0].captain_id,
-                title: 'Team Approval Status',
-                message: `Your team "${tRows[0].name}" registration status has been updated to "${newStatus}".`
-            });
+        const [tRows] = await pool.execute('SELECT name, department_id FROM teams WHERE team_id = ? LIMIT 1', [teamId]);
+        if (tRows[0]) {
+            const captainId = await resolveTeamCaptainUserId(teamId);
+            if (captainId) {
+                await sendSystemNotification({
+                    userId: captainId,
+                    title: 'Team Approval Status',
+                    message: `Your team "${tRows[0].name}" registration status has been updated to "${newStatus}".`,
+                    type: 'TEAM_ALERT'
+                });
+            }
+            if (tRows[0].department_id) {
+                await notifyDepartmentCoordinator(tRows[0].department_id, {
+                    title: 'Team Status Updated',
+                    message: `Team "${tRows[0].name}" registration status has been updated to "${newStatus}".`,
+                    type: 'TEAM_ALERT'
+                });
+            }
         }
 
         return res.json({ success: true, data: { team_id: teamId, status: newStatus } });
@@ -282,6 +305,20 @@ export const addPlayerToTeam = async (req, res, next) => {
         if (!member) {
             return res.status(404).json({ success: false, error: { message: 'Student was not found in the sports registry.' } });
         }
+        
+        if (!member.alreadyMember) {
+            const [sRows] = await pool.execute('SELECT user_id FROM students WHERE student_id = ? LIMIT 1', [studentId]);
+            if (sRows[0] && sRows[0].user_id) {
+                const [tRows] = await pool.execute('SELECT name FROM teams WHERE team_id = ? LIMIT 1', [teamId]);
+                await sendSystemNotification({
+                    userId: sRows[0].user_id,
+                    title: 'Added to Roster',
+                    message: `You have been added to the roster for team "${tRows[0]?.name || 'Unknown'}". Role: ${role}.`,
+                    type: 'ROSTER_ALERT'
+                });
+            }
+        }
+
         return res.status(member.alreadyMember ? 200 : 201).json({ success: true, data: member });
     } catch (error) {
         next(error);
@@ -290,19 +327,28 @@ export const addPlayerToTeam = async (req, res, next) => {
 
 export const removePlayer = async (req, res, next) => {
     try {
-        if (req.user?.role === 'Coordinator' && req.user.dept_id) {
-            const [memberRows] = await pool.execute(
-                `SELECT t.department_id 
-                 FROM team_members tm 
-                 JOIN teams t ON tm.team_id = t.team_id 
-                 WHERE tm.member_id = ? LIMIT 1`,
-                [req.params.id]
-            );
-            if (memberRows[0] && memberRows[0].department_id !== req.user.dept_id) {
-                return res.status(403).json({
-                    success: false,
-                    error: { message: 'You are only authorized to remove players from teams in your assigned department.' }
-                });
+        let userIdToNotify = null;
+        let teamNameForNotify = null;
+        
+        const [memberRows] = await pool.execute(
+            `SELECT tm.team_id, s.user_id, t.name as team_name, t.department_id 
+             FROM team_members tm 
+             JOIN students s ON tm.student_id = s.student_id
+             JOIN teams t ON tm.team_id = t.team_id
+             WHERE tm.member_id = ? LIMIT 1`,
+            [req.params.id]
+        );
+        
+        if (memberRows[0]) {
+            userIdToNotify = memberRows[0].user_id;
+            teamNameForNotify = memberRows[0].team_name;
+            if (req.user?.role === 'Coordinator' && req.user.dept_id) {
+                if (memberRows[0].department_id !== req.user.dept_id) {
+                    return res.status(403).json({
+                        success: false,
+                        error: { message: 'You are only authorized to remove players from teams in your assigned department.' }
+                    });
+                }
             }
         }
 
@@ -310,6 +356,16 @@ export const removePlayer = async (req, res, next) => {
         if (!deleted) {
             return res.status(404).json({ success: false, error: { message: 'Roster member not found.' } });
         }
+        
+        if (userIdToNotify) {
+            await sendSystemNotification({
+                userId: userIdToNotify,
+                title: 'Removed from Roster',
+                message: `You have been removed from the roster for team "${teamNameForNotify || 'Unknown'}".`,
+                type: 'ROSTER_ALERT'
+            });
+        }
+        
         return res.json({ success: true, data: { id: Number(req.params.id) } });
     } catch (error) {
         next(error);

@@ -1,5 +1,13 @@
 import express from 'express';
-import { loginUser, signupUser, logoutUser, getCurrentUser } from '../controllers/authController.js';
+import { 
+    loginUser, 
+    signupUser, 
+    logoutUser, 
+    getCurrentUser,
+    oauthProvidersList,
+    oauthStart,
+    oauthCallback
+} from '../controllers/authController.js';
 import { protect } from '../middleware/authMiddleware.js';
 import { loginRateLimiter } from '../middleware/rateLimiter.js';
 import { validateLoginInput } from '../middleware/validatorMiddleware.js';
@@ -14,7 +22,12 @@ router.get('/csrf-token', (req, res) => {
     return res.json({ success: true, data: { csrfToken } });
 });
 
-// Public manual login route
+// OAuth 2.0 routes
+router.get('/oauth/providers', oauthProvidersList);
+router.get('/oauth/:provider/start', loginRateLimiter(), oauthStart);
+router.get('/oauth/:provider/callback', loginRateLimiter(), oauthCallback);
+
+// Public manual login route (Staff only)
 router.post('/login', loginRateLimiter(), validateLoginInput, loginUser);
 
 // Public manual signup route

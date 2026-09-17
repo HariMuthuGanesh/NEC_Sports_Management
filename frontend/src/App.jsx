@@ -62,6 +62,7 @@ import PresidentDashboard from "./pages/president/PresidentDashboard";
 // Auth Pages
 import LoginPage from "./pages/auth/LoginPage";
 import SignUpPage from "./pages/auth/SignUpPage";
+import OAuthCallbackPage from "./pages/auth/OAuthCallbackPage";
 
 function MainApp() {
   const { currentUser, ROLES } = useAuth();
@@ -79,6 +80,9 @@ function MainApp() {
 
   const [activeNav, setActiveNavState] = useState(() => {
     try {
+      if (window.location.pathname === "/oauth/callback") {
+        return "oauth_callback";
+      }
       const savedNav = sessionStorage.getItem("nec_sports_active_nav");
       if (savedNav) return savedNav;
     } catch { }
@@ -99,7 +103,7 @@ function MainApp() {
   useEffect(() => {
     const role = currentUser?.role;
     // Don't redirect away from shared routes accessible to all roles
-    if (activeNav === "settings" || activeNav === "login" || activeNav === "signup" || activeNav === "notifications" || activeNav === "player_notifs" || activeNav.startsWith("team_profile_")) return;
+    if (activeNav === "settings" || activeNav === "login" || activeNav === "signup" || activeNav === "oauth_callback" || activeNav === "notifications" || activeNav === "player_notifs" || activeNav.startsWith("team_profile_")) return;
     if (role === ROLES.ADMIN && !activeNav.startsWith("admin_") && !activeNav.startsWith("public_") && !activeNav.startsWith("team_")) {
       setActiveNav("admin_dash");
     } else if (role === ROLES.PRESIDENT && !activeNav.startsWith("president_") && activeNav !== "college_teams" && activeNav !== "admin_tournaments" && !activeNav.startsWith("public_") && !activeNav.startsWith("team_")) {
@@ -134,6 +138,28 @@ function MainApp() {
             }
           }}
           onNavigate={(nav) => setActiveNav(nav)}
+        />
+      );
+    }
+
+    if (activeNav === "oauth_callback") {
+      return (
+        <OAuthCallbackPage
+          onLoginSuccess={() => {
+            // Clean up the URL
+            window.history.replaceState({}, document.title, "/");
+            try {
+              const saved = localStorage.getItem("nec_sports_auth_user");
+              const userObj = saved ? JSON.parse(saved) : currentUser;
+              setActiveNav(getDefaultNav(userObj?.role));
+            } catch {
+              setActiveNav(getDefaultNav(currentUser?.role));
+            }
+          }}
+          onNavigate={(nav) => {
+            window.history.replaceState({}, document.title, "/");
+            setActiveNav(nav);
+          }}
         />
       );
     }

@@ -442,6 +442,29 @@ export const createAnnouncementController = async (req, res, next) => {
     try {
         const authorId = req.user?.id || 1;
         const id = await createAnnouncementSql({ ...req.body, author_user_id: authorId });
+        
+        if (req.body.priority === 'High' || req.body.priority === 'Urgent') {
+            const title = req.body.title || 'New Announcement';
+            const message = req.body.content || 'A high-priority announcement has been posted.';
+            
+            if (req.body.department_id) {
+                await notifyDepartmentStudents(req.body.department_id, {
+                    title: `[Urgent] ${title}`,
+                    message,
+                    type: 'ANNOUNCEMENT'
+                });
+            } else {
+                const [allUsers] = await pool.execute('SELECT id FROM users WHERE is_active = 1');
+                if (allUsers.length > 0) {
+                    await notifyUsers(allUsers.map(u => u.id), {
+                        title: `[Urgent] ${title}`,
+                        message,
+                        type: 'ANNOUNCEMENT'
+                    });
+                }
+            }
+        }
+        
         return res.status(201).json({ success: true, data: { announcement_id: id, ...req.body } });
     } catch (err) {
         next(err);

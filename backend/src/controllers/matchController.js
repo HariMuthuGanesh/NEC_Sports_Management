@@ -1,5 +1,6 @@
 import { createMatch as createMatchSql, deleteMatch as deleteMatchSql, updateMatchScore, getAllMatches } from '../models/sql/matchSqlModel.js';
 import pool from '../config/db.js';
+import { resolveTeamCaptainUserId, sendSystemNotification, notifyDepartmentCoordinator, notifyTeamMembers } from '../services/emailService.js';
 
 /**
  * POST /api/matches
@@ -58,6 +59,21 @@ export const createMatch = async (req, res, next) => {
             scheduled_time,
             round: round || 'League'
         });
+
+        if (team_a_id) {
+            const captainA = await resolveTeamCaptainUserId(team_a_id);
+            if (captainA) await sendSystemNotification({ userId: captainA, title: 'New Match Scheduled', message: `Your team ${team_a_name || 'A'} has a new match scheduled for ${scheduled_time}.`, type: 'MATCH_ALERT' });
+            
+            const [tA] = await pool.execute('SELECT department_id FROM teams WHERE team_id = ? LIMIT 1', [team_a_id]);
+            if (tA[0]?.department_id) await notifyDepartmentCoordinator(tA[0].department_id, { title: 'New Match Scheduled', message: `Team ${team_a_name || 'A'} has a match scheduled for ${scheduled_time}.`, type: 'MATCH_ALERT' });
+        }
+        if (team_b_id) {
+            const captainB = await resolveTeamCaptainUserId(team_b_id);
+            if (captainB) await sendSystemNotification({ userId: captainB, title: 'New Match Scheduled', message: `Your team ${team_b_name || 'B'} has a new match scheduled for ${scheduled_time}.`, type: 'MATCH_ALERT' });
+
+            const [tB] = await pool.execute('SELECT department_id FROM teams WHERE team_id = ? LIMIT 1', [team_b_id]);
+            if (tB[0]?.department_id) await notifyDepartmentCoordinator(tB[0].department_id, { title: 'New Match Scheduled', message: `Team ${team_b_name || 'B'} has a match scheduled for ${scheduled_time}.`, type: 'MATCH_ALERT' });
+        }
 
         return res.status(201).json({ success: true, data: { match_id: matchId, scheduled_time, round } });
     } catch (err) {
@@ -149,14 +165,28 @@ export const updateScore = async (req, res, next) => {
             matchId,
             scoreA: a,
             scoreB: b,
-            detailScore: String(detailScore),
+            detailScore,
             status,
             winnerTeamId,
-            updatedBy: req.user?.id || null
+            winnerLabel,
+            recordedBy: req.user.id
         });
 
         if (!updated) {
-            return res.status(500).json({ success: false, error: { code: 'UPDATE_FAILED', message: 'Score update failed. Match may not exist.' } });
+            return res.status(500).json({ success: false, error: { code: 'UPDATE_FAILED', message: 'Failed to update match score.' } });
+        }
+
+        if (isFinal) {
+            if (match.team_a_id) {
+                await notifyTeamMembers(match.team_a_id, { title: 'Match Result Finalized', message: `Match ${matchId} results are final: ${a} - ${b}.`, type: 'MATCH_ALERT' });
+                const [tA] = await pool.execute('SELECT department_id FROM teams WHERE team_id = ? LIMIT 1', [match.team_a_id]);
+                if (tA[0]?.department_id) await notifyDepartmentCoordinator(tA[0].department_id, { title: 'Match Result Finalized', message: `Match ${matchId} results are final.`, type: 'MATCH_ALERT' });
+            }
+            if (match.team_b_id) {
+                await notifyTeamMembers(match.team_b_id, { title: 'Match Result Finalized', message: `Match ${matchId} results are final: ${a} - ${b}.`, type: 'MATCH_ALERT' });
+                const [tB] = await pool.execute('SELECT department_id FROM teams WHERE team_id = ? LIMIT 1', [match.team_b_id]);
+                if (tB[0]?.department_id) await notifyDepartmentCoordinator(tB[0].department_id, { title: 'Match Result Finalized', message: `Match ${matchId} results are final.`, type: 'MATCH_ALERT' });
+            }
         }
 
         return res.json({

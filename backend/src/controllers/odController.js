@@ -1,3 +1,4 @@
+import pool from '../config/db.js';
 import {
     createOdForMatch,
     getOdRequests,
@@ -8,16 +9,24 @@ import {
     bulkApproveOdForMatch,
     getOdRequestById
 } from '../models/sql/odSqlModel.js';
+import { 
+    notifyLeadership, 
+    notifyDepartmentCoordinator, 
+    sendSystemNotification 
+} from '../services/emailService.js';
 
-/**
- * POST /api/od/match/:matchId
- * Coordinator/Admin: batch-create OD requests for all rostered players in a match.
- * Allowed up to 7 days after the match date.
- */
 export const createOdForMatchController = async (req, res, next) => {
     try {
         const { matchId } = req.params;
         const result = await createOdForMatch(Number(matchId), req.user.id);
+
+        if (result.created > 0) {
+            await notifyLeadership({ 
+                title: "OD Requests Pending Approval", 
+                message: `Match ID ${matchId} — ${result.created} students awaiting OD approval.`,
+                type: 'OD_STATUS'
+            });
+        }
 
         return res.status(201).json({
             success: true,
@@ -29,11 +38,6 @@ export const createOdForMatchController = async (req, res, next) => {
     }
 };
 
-/**
- * GET /api/od
- * Admin: list all OD requests with optional filters.
- * Query params: status (Pending|Approved|Rejected|ALL), tournamentId, q (student name/reg no)
- */
 export const listOdRequestsController = async (req, res, next) => {
     try {
         const { status, tournamentId, q } = req.query;
@@ -50,10 +54,6 @@ export const listOdRequestsController = async (req, res, next) => {
     }
 };
 
-/**
- * GET /api/od/my
- * Player: own OD requests (linked via student.user_id = req.user.id).
- */
 export const getMyOdRequestsController = async (req, res, next) => {
     try {
         const data = await getOdRequestsByStudentUserId(req.user.id);
@@ -63,10 +63,6 @@ export const getMyOdRequestsController = async (req, res, next) => {
     }
 };
 
-/**
- * GET /api/od/match/:matchId
- * Coordinator/Admin: OD status for all players in a specific match.
- */
 export const getMatchOdStatusController = async (req, res, next) => {
     try {
         const data = await getOdRequestsByMatch(Number(req.params.matchId));
@@ -76,52 +72,129 @@ export const getMatchOdStatusController = async (req, res, next) => {
     }
 };
 
-/**
- * PATCH /api/od/:requestId/approve
- * Admin only.
- */
 export const approveOdController = async (req, res, next) => {
     try {
-        const success = await approveOdRequest(Number(req.params.requestId), req.user.id);
+        const requestId = Number(req.params.requestId);
+        
+        const [odRows] = await pool.execute(`
+            SELECT o.match_id, s.user_id, s.department_id, s.student_name 
+            FROM od_requests o
+            JOIN students s ON o.student_id = s.student_id
+            WHERE o.request_id = ?
+        `, [requestId]);
+        
+        const success = await approveOdRequest(requestId, req.user.id);
         if (!success) {
             return res.status(404).json({
                 success: false,
                 error: { message: 'OD request not found or already processed.' }
             });
         }
+        
+        if (odRows[0]) {
+            const { match_id, user_id, department_id, student_name } = odRows[0];
+            if (user_id) {
+                await sendSystemNotification({ 
+                    userId: user_id, 
+                    title: "OD Approved", 
+                    message: `Your OD for Match ID ${match_id} was approved.`, 
+                    type: 'OD_STATUS' 
+                });
+            }
+            if (department_id) {
+                await notifyDepartmentCoordinator(department_id, { 
+                    title: "OD Approved", 
+                    message: `OD for ${student_name} (Match ID ${match_id}) was approved.`, 
+                    type: 'OD_STATUS' 
+                });
+            }
+        }
+        
         return res.json({ success: true, data: { message: 'OD request approved.' } });
     } catch (err) {
         next(err);
     }
 };
 
-/**
- * PATCH /api/od/:requestId/reject
- * Admin only. Body: { reason: string }
- */
 export const rejectOdController = async (req, res, next) => {
     try {
         const { reason } = req.body;
-        const success = await rejectOdRequest(Number(req.params.requestId), req.user.id, reason);
+        const requestId = Number(req.params.requestId);
+        
+        const [odRows] = await pool.execute(`
+            SELECT o.match_id, s.user_id, s.department_id, s.student_name 
+            FROM od_requests o
+            JOIN students s ON o.student_id = s.student_id
+            WHERE o.request_id = ?
+        `, [requestId]);
+        
+        const success = await rejectOdRequest(requestId, req.user.id, reason);
         if (!success) {
             return res.status(404).json({
                 success: false,
                 error: { message: 'OD request not found or already processed.' }
             });
         }
+        
+        if (odRows[0]) {
+            const { match_id, user_id, department_id, student_name } = odRows[0];
+            if (user_id) {
+                await sendSystemNotification({ 
+                    userId: user_id, 
+                    title: "OD Rejected", 
+                    message: `Your OD for Match ID ${match_id} was rejected. Reason: ${reason || 'Not specified'}`, 
+                    type: 'OD_STATUS' 
+                });
+            }
+            if (department_id) {
+                await notifyDepartmentCoordinator(department_id, { 
+                    title: "OD Rejected", 
+                    message: `OD for ${student_name} (Match ID ${match_id}) was rejected.`, 
+                    type: 'OD_STATUS' 
+                });
+            }
+        }
+        
         return res.json({ success: true, data: { message: 'OD request rejected.' } });
     } catch (err) {
         next(err);
     }
 };
 
-/**
- * POST /api/od/match/:matchId/bulk-approve
- * Admin only: approve all pending OD for a match in one shot.
- */
 export const bulkApproveMatchOdController = async (req, res, next) => {
     try {
-        const count = await bulkApproveOdForMatch(Number(req.params.matchId), req.user.id);
+        const matchId = Number(req.params.matchId);
+        
+        // Find all pending ODs for this match
+        const [pendingOds] = await pool.execute(`
+            SELECT o.request_id, s.user_id, s.department_id, s.student_name 
+            FROM od_requests o
+            JOIN students s ON o.student_id = s.student_id
+            WHERE o.match_id = ? AND o.status = 'Pending'
+        `, [matchId]);
+
+        const count = await bulkApproveOdForMatch(matchId, req.user.id);
+        
+        if (count > 0 && pendingOds.length > 0) {
+            for (const od of pendingOds) {
+                if (od.user_id) {
+                    await sendSystemNotification({ 
+                        userId: od.user_id, 
+                        title: "OD Approved", 
+                        message: `Your OD for Match ID ${matchId} was approved.`, 
+                        type: 'OD_STATUS' 
+                    });
+                }
+                if (od.department_id) {
+                    await notifyDepartmentCoordinator(od.department_id, { 
+                        title: "OD Approved", 
+                        message: `OD for ${od.student_name} (Match ID ${matchId}) was approved.`, 
+                        type: 'OD_STATUS' 
+                    });
+                }
+            }
+        }
+        
         return res.json({
             success: true,
             data: { approved: count, message: `${count} OD request(s) approved.` }
@@ -131,19 +204,11 @@ export const bulkApproveMatchOdController = async (req, res, next) => {
     }
 };
 
-/**
- * GET /api/od/:requestId
- * Admin/Coordinator/Player: fetch a single OD request (used before PDF generation).
- */
 export const getOdRequestController = async (req, res, next) => {
     try {
         const od = await getOdRequestById(Number(req.params.requestId));
         if (!od) {
             return res.status(404).json({ success: false, error: { message: 'OD request not found.' } });
-        }
-        // Players can only see their own OD
-        if (req.user.role === 'Player') {
-            // Would need student lookup — skip for now, Admin/Coordinator can access all
         }
         return res.json({ success: true, data: od });
     } catch (err) {

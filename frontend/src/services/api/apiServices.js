@@ -389,3 +389,13 @@ export const collegeTeamsApi = {
 export const statsApi = {
   getOverview: () => apiFetch("/stats/overview")
 };
+
+/* --- Auth & OAuth 2.0 API --- */
+export const authApi = {
+  getOAuthProviders: () => apiFetch('/auth/oauth/providers'),
+  getOAuthStartUrl: (providerId) => `${API_URL}/auth/oauth/${providerId}/start`,
+  login: (credentials) => apiFetch('/auth/login', 'POST', credentials),
+  signup: (userData) => apiFetch('/auth/signup', 'POST', userData),
+  logout: () => apiFetch('/auth/logout', 'POST'),
+  getCurrentUser: () => apiFetch('/auth/me')
+};

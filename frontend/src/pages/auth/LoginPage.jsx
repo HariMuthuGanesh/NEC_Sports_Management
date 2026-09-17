@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
+import { authApi } from "../../services/api/apiServices";
 import Button from "../../components/common/Button";
 import { Modal } from "../../components/common/Modal";
 import {
@@ -45,6 +46,13 @@ export default function LoginPage({ onLoginSuccess, onNavigate }) {
   const [locked, setLocked] = useState(false);
   const [lockCountdown, setLockCountdown] = useState(0);
   const [showHelpModal, setShowHelpModal] = useState(false);
+  const [oauthProviders, setOauthProviders] = useState([]);
+
+  useEffect(() => {
+    authApi.getOAuthProviders().then(res => {
+      if (res && Array.isArray(res)) setOauthProviders(res);
+    }).catch(err => console.error("Failed to fetch OAuth providers:", err));
+  }, []);
 
   // ── Lockout countdown timer ──
   useEffect(() => {
@@ -242,7 +250,7 @@ export default function LoginPage({ onLoginSuccess, onNavigate }) {
               <div className="nec-auth-card-header">
                 <div className="nec-header-text">
                   <h2 className="nec-card-title">Sign In to Sports Portal</h2>
-                  <p className="nec-card-desc">Enter your Roll Number or Staff ID to log in</p>
+                  <p className="nec-card-desc">Login with your college account or staff credentials</p>
                 </div>
               </div>
 
@@ -368,22 +376,37 @@ export default function LoginPage({ onLoginSuccess, onNavigate }) {
                     ? "Authenticating Credentials…"
                     : locked
                       ? `Locked — ${formatCountdown(lockCountdown)}`
-                      : (t.signInBtn || "Sign In to Sports Portal")}
+                      : (t.signInBtn || "Sign In")}
                 </Button>
               </form>
 
-              {/* Guest / Visitor Alternative */}
+              {/* ── OAuth Login Options ── */}
+              {oauthProviders.length > 0 && (
+                <div className="nec-oauth-container" style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '20px 0 0 0' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
+                    <div style={{ flex: 1, height: '1px', backgroundColor: '#e2e8f0' }}></div>
+                    <span style={{ padding: '0 10px', color: '#64748b', fontSize: '0.85rem' }}>Or continue with</span>
+                    <div style={{ flex: 1, height: '1px', backgroundColor: '#e2e8f0' }}></div>
+                  </div>
+                  {oauthProviders.map(provider => (
+                    <Button 
+                      key={provider.id}
+                      variant="outline"
+                      size="lg"
+                      type="button"
+                      onClick={() => window.location.href = authApi.getOAuthStartUrl(provider.id)}
+                      className="nec-oauth-btn"
+                      style={{ width: '100%', justifyContent: 'center', borderColor: provider.color || '#ccc', color: provider.color || 'inherit' }}
+                    >
+                      <UserCheck size={18} style={{ marginRight: '8px' }} />
+                      Sign in with {provider.name}
+                    </Button>
+                  ))}
+                </div>
+              )}
+
               <div className="nec-auth-card-footer">
-                <span className="nec-footer-text">Don't have login credentials?</span>
-                <button
-                  type="button"
-                  className="nec-guest-link"
-                  onClick={() => {
-                    if (typeof onNavigate === "function") onNavigate("signup");
-                  }}
-                >
-                  Create Account <ArrowRight size={14} />
-                </button>
+                <span className="nec-footer-text">Welcome to the Student Sports Portal</span>
                 <button
                   type="button"
                   className="nec-guest-link"
