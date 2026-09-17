@@ -316,9 +316,6 @@ export default function StudentManager() {
 
   const columns = dataSource === "ims" ? imsColumns : sportsdbColumns;
 
-  // ── IMS-connected-but-empty banner ────────────────────────────────────────
-  const showImsBanner = imsPopulated === false && dataSource !== "ims";
-
   return (
     <div className="nec-portal-page">
       {/* ── Header ──────────────────────────────────────────────────────────── */}
@@ -392,23 +389,6 @@ export default function StudentManager() {
             >
               <X size={12} />
             </button>
-          </span>
-        </div>
-      )}
-
-      {/* ── IMS-connected but not yet populated banner ───────────────────────── */}
-      {showImsBanner && (
-        <div style={{
-          display: "flex", alignItems: "center", gap: "10px",
-          background: "#eff6ff", border: "1px solid #bfdbfe",
-          borderRadius: "8px", padding: "10px 16px", marginBottom: "14px",
-          fontSize: "0.83rem", color: "#1d4ed8"
-        }}>
-          <Database size={16} />
-          <span>
-            <strong>IMS database is connected</strong> — student profiles from IMS will appear here automatically once
-            <code style={{ margin: "0 4px", padding: "1px 4px", background: "#dbeafe", borderRadius: "3px" }}>ims.personal_information</code>
-            is populated. Showing Sports DB records in the meantime.
           </span>
         </div>
       )}

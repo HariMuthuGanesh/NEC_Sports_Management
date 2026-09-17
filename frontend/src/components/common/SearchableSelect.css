@@ -1,0 +1,256 @@
+/* SearchableSelect Component Styles - National Engineering College Sports Portal */
+
+.nec-searchable-select {
+  position: relative;
+  width: 100%;
+  font-family: var(--nec-font, inherit);
+  box-sizing: border-box;
+}
+
+.nec-select-trigger {
+  width: 100%;
+  min-height: 42px;
+  padding: 8px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background-color: var(--nec-surface, #ffffff);
+  border: 1px solid var(--nec-border, #e5e7eb);
+  border-radius: var(--nec-radius-md, 6px);
+  color: var(--nec-text-main, #1f2937);
+  font-size: 0.925rem;
+  text-align: left;
+  cursor: pointer;
+  outline: none;
+  transition: var(--nec-transition, all 0.15s ease);
+  box-sizing: border-box;
+}
+
+.nec-select-trigger:hover:not(:disabled) {
+  border-color: var(--nec-navy-light, #134080);
+}
+
+.nec-select-trigger:focus-visible,
+.nec-searchable-select.is-open .nec-select-trigger {
+  border-color: var(--nec-blue, #0274be);
+  box-shadow: 0 0 0 3px rgba(2, 116, 190, 0.15);
+}
+
+.nec-select-trigger:disabled {
+  background-color: var(--nec-surface-raised, #f8fafc);
+  color: var(--nec-text-light, #9ca3af);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.nec-select-trigger.has-error {
+  border-color: var(--nec-danger, #ef4444);
+}
+
+.nec-select-value-display {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nec-select-placeholder {
+  color: var(--nec-text-muted, #6b7280);
+  font-size: 0.9rem;
+}
+
+.nec-select-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.nec-select-clear-btn {
+  background: none;
+  border: none;
+  padding: 3px;
+  color: var(--nec-text-muted, #6b7280);
+  cursor: pointer;
+  border-radius: var(--nec-radius-xs, 4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--nec-transition-fast, all 0.1s ease);
+}
+
+.nec-select-clear-btn:hover {
+  color: var(--nec-danger, #ef4444);
+  background-color: var(--nec-danger-bg, #fef2f2);
+}
+
+.nec-select-arrow {
+  color: var(--nec-text-muted, #6b7280);
+  transition: transform 0.15s ease;
+  display: flex;
+  align-items: center;
+}
+
+.nec-searchable-select.is-open .nec-select-arrow {
+  transform: rotate(180deg);
+}
+
+.nec-select-dropdown {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 0;
+  right: 0;
+  z-index: 1100;
+  background-color: var(--nec-surface, #ffffff);
+  border: 1px solid var(--nec-border, #e5e7eb);
+  border-radius: var(--nec-radius-lg, 8px);
+  box-shadow: var(--nec-shadow-lg, 0 10px 28px rgba(0, 0, 0, 0.14));
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: necSelectDropdownFade 0.12s ease-out;
+}
+
+@keyframes necSelectDropdownFade {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.nec-select-search-box {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--nec-border, #e5e7eb);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--nec-surface-raised, #f8fafc);
+}
+
+.nec-select-search-icon {
+  color: var(--nec-text-muted, #6b7280);
+  flex-shrink: 0;
+}
+
+.nec-select-search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 0.9rem;
+  color: var(--nec-text-main, #1f2937);
+  font-family: inherit;
+  width: 100%;
+}
+
+.nec-select-search-input::placeholder {
+  color: var(--nec-text-muted, #6b7280);
+}
+
+.nec-select-options-list {
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  max-height: 250px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.nec-select-option {
+  padding: 10px 14px;
+  border-radius: var(--nec-radius-sm, 4px);
+  font-size: 0.9rem;
+  color: var(--nec-text-main, #1f2937);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  transition: var(--nec-transition-fast, all 0.1s ease);
+}
+
+.nec-select-option:hover,
+.nec-select-option.is-highlighted {
+  background-color: var(--nec-surface-hover, #edf2f7);
+  color: var(--nec-navy, #0b2c5d);
+}
+
+.nec-select-option.is-selected {
+  background-color: var(--nec-accent-light, #e8f2f9);
+  color: var(--nec-blue, #0274be);
+  font-weight: 600;
+}
+
+.nec-select-option-empty {
+  padding: 18px 14px;
+  text-align: center;
+  color: var(--nec-text-muted, #6b7280);
+  font-size: 0.85rem;
+}
+
+/* Chip and Badge utilities for rich dropdown rendering */
+.nec-select-team-option,
+.nec-select-venue-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 10px;
+}
+
+.nec-select-team-name {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nec-select-chips {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.nec-chip {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2.5px 8px;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.nec-chip-dept {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.nec-chip-sport {
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.nec-chip-venue {
+  background: #faf5ff;
+  color: #7e22ce;
+  border: 1px solid #e9d5ff;
+}
+
+.nec-select-selected-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+}

@@ -4,4 +4,11 @@ import react from '@vitejs/plugin-react'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  server: {
+    allowedHosts: [
+      'customable-donald-bigwigged.ngrok-free.dev',
+      // Or use true to allow all tunnel hostnames:
+      // allowedHosts: true
+    ]
+  }
 })

@@ -3,7 +3,7 @@ import { X } from "lucide-react";
 import Button from "./Button";
 import "./Modal.css";
 
-export function Modal({ isOpen, onClose, title, children, footer }) {
+export function Modal({ isOpen, onClose, title, children, footer, size = "md", maxWidth, className = "" }) {
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === "Escape") onClose();
@@ -20,9 +20,18 @@ export function Modal({ isOpen, onClose, title, children, footer }) {
 
   if (!isOpen) return null;
 
+  const sizeClass = size ? `nec-modal-${size}` : "";
+  const customStyle = maxWidth ? { maxWidth } : {};
+
   return (
     <div className="nec-modal-backdrop" onClick={onClose}>
-      <div className="nec-modal-content" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+      <div
+        className={`nec-modal-content ${sizeClass} ${className}`.trim()}
+        style={customStyle}
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+      >
         <div className="nec-modal-header">
           <h3 className="nec-modal-title">{title}</h3>
           <button className="nec-modal-close" onClick={onClose} aria-label="Close modal">

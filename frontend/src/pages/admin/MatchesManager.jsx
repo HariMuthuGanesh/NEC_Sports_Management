@@ -4,6 +4,7 @@ import Table from "../../components/common/Table";
 import Badge from "../../components/common/Badge";
 import Button from "../../components/common/Button";
 import { Modal } from "../../components/common/Modal";
+import SearchableSelect from "../../components/common/SearchableSelect";
 import ErrorState from "../../components/common/ErrorState";
 import EmptyState from "../../components/common/EmptyState";
 import { Calendar, Plus, Trash2, AlertTriangle } from "lucide-react";
@@ -165,82 +166,136 @@ export default function MatchesManager() {
         isOpen={isModalOpen}
         onClose={() => { setIsModalOpen(false); setScheduleError(""); }}
         title="Schedule Match & Assign Venue"
+        size="lg"
       >
         <form onSubmit={handleSchedule} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
 
-          {/* Tournament — required FK */}
+          {/* Tournament: required FK */}
           <div>
             <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: "4px" }}>Tournament *</label>
-            <select
-              className="nec-table-search-input"
-              style={{ maxWidth: "100%" }}
+            <SearchableSelect
+              options={tournaments}
               value={tournamentId}
               onChange={(e) => setTournamentId(e.target.value)}
+              getValue={(t) => String(t.id || t.tournament_id)}
+              getLabel={(t) => t.title || t.name || ""}
+              getSearchText={(t) => `${t.title || t.name || ""} ${t.event_category || t.category || ""}`}
+              placeholder="-- Select Tournament --"
+              searchPlaceholder="Search tournament..."
               required
-            >
-              <option value="">-- Select Tournament --</option>
-              {tournaments.map(t => (
-                <option key={t.id || t.tournament_id} value={t.id || t.tournament_id}>{t.title || t.name}</option>
-              ))}
-            </select>
+            />
           </div>
 
           {/* Sport */}
           <div>
             <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: "4px" }}>Sport</label>
-            <select
-              className="nec-table-search-input"
-              style={{ maxWidth: "100%" }}
+            <SearchableSelect
+              options={["Football", "Cricket", "Basketball", "Volleyball", "Badminton", "Table Tennis", "Athletics", "Chess"]}
               value={sport}
               onChange={(e) => setSport(e.target.value)}
-            >
-              {["Football", "Cricket", "Basketball", "Volleyball", "Badminton", "Table Tennis", "Athletics", "Chess"].map(s => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
+              placeholder="-- Select Sport --"
+              searchPlaceholder="Search sport..."
+            />
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
             <div>
               <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: "4px" }}>Team A *</label>
-              <select
-                className="nec-table-search-input"
-                style={{ maxWidth: "100%" }}
+              <SearchableSelect
+                options={teams}
                 value={teamA}
                 onChange={(e) => setTeamA(e.target.value)}
+                getValue={(t) => t.name}
+                getLabel={(t) => t.name}
+                getSearchText={(t) => `${t.name} ${t.deptCode || t.dept_code || ""} ${t.sportName || t.sport || ""}`}
+                placeholder="-- Select Team --"
+                searchPlaceholder="Search team, dept, or sport..."
                 required
-              >
-                <option value="">-- Select Team --</option>
-                {teams.map(t => <option key={t.id} value={t.name}>{t.name} ({t.deptCode})</option>)}
-              </select>
+                renderOption={(t) => (
+                  <div className="nec-select-team-option">
+                    <span className="nec-select-team-name">{t.name}</span>
+                    <div className="nec-select-chips">
+                      {(t.deptCode || t.dept_code) && (
+                        <span className="nec-chip nec-chip-dept">{t.deptCode || t.dept_code}</span>
+                      )}
+                      {(t.sportName || t.sport) && (
+                        <span className="nec-chip nec-chip-sport">{t.sportName || t.sport}</span>
+                      )}
+                    </div>
+                  </div>
+                )}
+                renderSelected={(t) => (
+                  <div className="nec-select-selected-wrap">
+                    <span>{t.name}</span>
+                    {(t.deptCode || t.dept_code) && (
+                      <span className="nec-chip nec-chip-dept">{t.deptCode || t.dept_code}</span>
+                    )}
+                  </div>
+                )}
+              />
             </div>
             <div>
               <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: "4px" }}>Team B *</label>
-              <select
-                className="nec-table-search-input"
-                style={{ maxWidth: "100%" }}
+              <SearchableSelect
+                options={teams}
                 value={teamB}
                 onChange={(e) => setTeamB(e.target.value)}
+                getValue={(t) => t.name}
+                getLabel={(t) => t.name}
+                getSearchText={(t) => `${t.name} ${t.deptCode || t.dept_code || ""} ${t.sportName || t.sport || ""}`}
+                placeholder="-- Select Team --"
+                searchPlaceholder="Search team, dept, or sport..."
                 required
-              >
-                <option value="">-- Select Team --</option>
-                {teams.map(t => <option key={t.id} value={t.name}>{t.name} ({t.deptCode})</option>)}
-              </select>
+                renderOption={(t) => (
+                  <div className="nec-select-team-option">
+                    <span className="nec-select-team-name">{t.name}</span>
+                    <div className="nec-select-chips">
+                      {(t.deptCode || t.dept_code) && (
+                        <span className="nec-chip nec-chip-dept">{t.deptCode || t.dept_code}</span>
+                      )}
+                      {(t.sportName || t.sport) && (
+                        <span className="nec-chip nec-chip-sport">{t.sportName || t.sport}</span>
+                      )}
+                    </div>
+                  </div>
+                )}
+                renderSelected={(t) => (
+                  <div className="nec-select-selected-wrap">
+                    <span>{t.name}</span>
+                    {(t.deptCode || t.dept_code) && (
+                      <span className="nec-chip nec-chip-dept">{t.deptCode || t.dept_code}</span>
+                    )}
+                  </div>
+                )}
+              />
             </div>
           </div>
 
           <div>
             <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: "4px" }}>Official Campus Venue *</label>
-            <select
-              className="nec-table-search-input"
-              style={{ maxWidth: "100%" }}
+            <SearchableSelect
+              options={venues}
               value={venue}
               onChange={(e) => setVenue(e.target.value)}
+              getValue={(v) => v.name}
+              getLabel={(v) => v.name}
+              getSearchText={(v) => `${v.name} ${v.type || ""} ${v.location || ""}`}
+              placeholder="-- Select Venue --"
+              searchPlaceholder="Search venue..."
               required
-            >
-              <option value="">-- Select Venue --</option>
-              {venues.map(v => <option key={v.id} value={v.name}>{v.name} ({v.type})</option>)}
-            </select>
+              renderOption={(v) => (
+                <div className="nec-select-venue-option">
+                  <span className="nec-select-team-name">{v.name}</span>
+                  {v.type && <span className="nec-chip nec-chip-venue">{v.type}</span>}
+                </div>
+              )}
+              renderSelected={(v) => (
+                <div className="nec-select-selected-wrap">
+                  <span>{v.name}</span>
+                  {v.type && <span className="nec-chip nec-chip-venue">{v.type}</span>}
+                </div>
+              )}
+            />
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px" }}>

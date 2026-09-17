@@ -266,3 +266,20 @@ export const deleteTeam = async (teamId) => {
     return result.affectedRows > 0;
 };
 
+export const updateTeamDetails = async (teamId, updates) => {
+    const { name, sport_id, coach_name, jersey_color } = updates;
+    const sql = `
+        UPDATE teams
+        SET name = ?, sport_id = ?, coach_name = ?, jersey_color = ?
+        WHERE team_id = ?
+    `;
+    const [result] = await pool.execute(sql, [
+        name,
+        sport_id,
+        coach_name || null,
+        jersey_color || null,
+        teamId
+    ]);
+    return result.affectedRows > 0;
+};
+

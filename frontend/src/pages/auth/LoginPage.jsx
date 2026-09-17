@@ -24,7 +24,6 @@ import {
 } from "lucide-react";
 import {
   sanitizeInput,
-  validatePasswordStrength,
   isRateLimited,
   getLockoutRemainingSeconds,
   recordFailedAttempt,
@@ -33,9 +32,6 @@ import {
   setAuthToken,
 } from "../../utils/security";
 import "./LoginPage.css";
-
-// Password strength colors
-const STRENGTH_COLORS = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#16a34a"];
 
 export default function LoginPage({ onLoginSuccess, onNavigate }) {
   const { login, t } = useAuth();
@@ -48,7 +44,6 @@ export default function LoginPage({ onLoginSuccess, onNavigate }) {
   const [loading, setLoading] = useState(false);
   const [locked, setLocked] = useState(false);
   const [lockCountdown, setLockCountdown] = useState(0);
-  const [pwStrength, setPwStrength] = useState(null);
   const [showHelpModal, setShowHelpModal] = useState(false);
 
   // ── Lockout countdown timer ──
@@ -78,13 +73,8 @@ export default function LoginPage({ onLoginSuccess, onNavigate }) {
     }
   }, []);
 
-
-
   const handlePasswordChange = (e) => {
-    const val = e.target.value;
-    setPassword(val);
-    if (val.length > 0) setPwStrength(validatePasswordStrength(val));
-    else setPwStrength(null);
+    setPassword(e.target.value);
   };
 
   const executeLogin = async (idToUse, pwToUse) => {
@@ -334,35 +324,6 @@ export default function LoginPage({ onLoginSuccess, onNavigate }) {
                       {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
                   </div>
-
-                  {/* Password Strength Meter */}
-                  {pwStrength && (
-                    <div className="nec-pw-strength-box">
-                      <div className="nec-strength-bars">
-                        {[0, 1, 2, 3].map((i) => (
-                          <div
-                            key={i}
-                            className="nec-strength-bar"
-                            style={{
-                              background:
-                                i < pwStrength.score
-                                  ? STRENGTH_COLORS[pwStrength.score]
-                                  : "var(--nec-border)",
-                            }}
-                          />
-                        ))}
-                      </div>
-                      <div
-                        className="nec-strength-caption"
-                        style={{ color: STRENGTH_COLORS[pwStrength.score] }}
-                      >
-                        <span>Strength: <strong>{pwStrength.label}</strong></span>
-                        {pwStrength.suggestions[0] && (
-                          <span className="nec-strength-tip">{pwStrength.suggestions[0]}</span>
-                        )}
-                      </div>
-                    </div>
-                  )}
                 </div>
 
                 {/* Remember Me & Help Row */}

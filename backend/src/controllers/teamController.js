@@ -7,7 +7,8 @@ import {
     removePlayerFromTeam,
     updateTeamStatus as updateTeamStatusSql,
     getTeamDetailsById as getTeamDetailsByIdSql,
-    getTeamsByCaptain as getTeamsByCaptainSql
+    getTeamsByCaptain as getTeamsByCaptainSql,
+    updateTeamDetails as updateTeamDetailsSql
 } from '../models/sql/teamSqlModel.js';
 import { notifyAdmins, sendSystemNotification } from '../services/emailService.js';
 import pool from '../config/db.js';
@@ -312,6 +313,49 @@ export const removePlayer = async (req, res, next) => {
         return res.json({ success: true, data: { id: Number(req.params.id) } });
     } catch (error) {
         next(error);
+    }
+};
+
+export const updateTeamDetailsController = async (req, res, next) => {
+    try {
+        const teamId = req.params.id;
+        const { name, sport_id, sportId, coach_name, coachName, jersey_color, jerseyColor } = req.body;
+
+        if (req.user?.role === 'Coordinator' && req.user.dept_id) {
+            const [teamRows] = await pool.execute('SELECT department_id FROM teams WHERE team_id = ? LIMIT 1', [teamId]);
+            if (!teamRows[0]) {
+                return res.status(404).json({ success: false, error: { message: "Team not found" } });
+            }
+            if (Number(teamRows[0].department_id) !== Number(req.user.dept_id)) {
+                return res.status(403).json({
+                    success: false,
+                    error: { message: 'You are only authorized to manage teams in your assigned department.' }
+                });
+            }
+        }
+
+        const resolvedSportId = sport_id || sportId;
+        const resolvedCoachName = coach_name || coachName;
+        const resolvedJerseyColor = jersey_color || jerseyColor;
+
+        if (!name || !resolvedSportId) {
+            return res.status(400).json({ success: false, error: { message: 'Team name and sport are required.' } });
+        }
+
+        const success = await updateTeamDetailsSql(teamId, {
+            name,
+            sport_id: resolvedSportId,
+            coach_name: resolvedCoachName,
+            jersey_color: resolvedJerseyColor
+        });
+
+        if (!success) {
+            return res.status(404).json({ success: false, error: { message: "Team not found" } });
+        }
+        
+        return res.json({ success: true, data: { team_id: teamId, message: "Team updated successfully" } });
+    } catch (err) {
+        next(err);
     }
 };
 

@@ -49,7 +49,8 @@ import {
     removePlayer, 
     updateTeamStatus,
     getTeamDetailsController,
-    getCaptainTeamsController
+    getCaptainTeamsController,
+    updateTeamDetailsController
 } from '../controllers/teamController.js';
 import { 
     saveSquadAttendanceController, 
@@ -192,6 +193,7 @@ router.post('/announcements', protect, authorize('Admin'), createAnnouncementCon
 router.delete('/announcements/:id', protect, authorize('Admin'), deleteAnnouncementController);
 
 router.post('/teams', protect, authorize('Admin', 'Coordinator', 'Captain'), validateTeamRegistration, createTeam);
+router.put('/teams/:id', protect, authorize('Admin', 'Coordinator'), updateTeamDetailsController);
 router.put('/teams/:id/status', protect, authorize('Admin', 'Coordinator'), updateTeamStatus);
 router.delete('/teams/:id', protect, authorize('Admin', 'Coordinator'), deleteTeam);
 

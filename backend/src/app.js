@@ -31,6 +31,7 @@ const allowedOrigins = [
     'http://localhost:5173',
     'http://localhost:3000',
     'https://nec.edu.in',
+    'https://customable-donald-bigwigged.ngrok-free.dev',
     ...(process.env.CLIENT_URL ? process.env.CLIENT_URL.split(',').map(s => s.trim()) : []),
     ...(process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',').map(s => s.trim()) : [])
 ];

@@ -21,12 +21,28 @@
   border: 1px solid var(--nec-border);
   border-radius: var(--nec-radius-lg);
   width: 100%;
-  max-width: 520px;
+  max-width: 560px;
   box-shadow: var(--nec-shadow-lg);
   overflow: hidden;
   display: flex;
   flex-direction: column;
   max-height: 90vh;
+}
+
+.nec-modal-content.nec-modal-sm {
+  max-width: 440px;
+}
+
+.nec-modal-content.nec-modal-md {
+  max-width: 560px;
+}
+
+.nec-modal-content.nec-modal-lg {
+  max-width: 680px;
+}
+
+.nec-modal-content.nec-modal-xl {
+  max-width: 860px;
 }
 
 .nec-modal-header {

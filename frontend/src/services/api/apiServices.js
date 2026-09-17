@@ -252,6 +252,7 @@ export const teamsApi = {
   getTeamDetails: (teamId) => apiFetch(`/teams/${teamId}`),
   getCaptainTeams: () => apiFetch("/captain/teams"),
   registerTeam: (teamData) => apiFetch("/teams", "POST", teamData),
+  updateTeam: (teamId, teamData) => apiFetch(`/teams/${teamId}`, "PUT", teamData),
   updateTeamStatus: (teamId, status) => apiFetch(`/teams/${teamId}/status`, "PUT", { status }),
   deleteTeam: (teamId) => apiFetch(`/teams/${teamId}`, "DELETE")
 };
