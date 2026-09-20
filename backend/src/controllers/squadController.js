@@ -9,15 +9,14 @@ import { sendSystemNotification } from '../services/emailService.js';
  */
 export const assignDepartmentSportCaptain = async (req, res, next) => {
     try {
-        const { sport_id, user_id } = req.body || {};
+        const { sport_id, user_id, register_number } = req.body || {};
         const sportIdNum = Number(sport_id);
-        const userIdNum = Number(user_id);
         const deptIdNum = req.user.dept_id || req.user.department_id;
 
-        if (!sportIdNum || !userIdNum) {
+        if (!sportIdNum || (!user_id && !register_number)) {
             return res.status(400).json({
                 success: false,
-                error: { code: 'INVALID_INPUT', message: 'sport_id and user_id are required.' }
+                error: { code: 'INVALID_INPUT', message: 'sport_id and a valid student identifier are required.' }
             });
         }
 
@@ -28,15 +27,33 @@ export const assignDepartmentSportCaptain = async (req, res, next) => {
             });
         }
 
-        // Verify user_id belongs to a user with role 'Captain'
+        let userIdNum = Number(user_id) || null;
+
+        if (register_number) {
+            const [sRows] = await pool.execute('SELECT user_id, student_id FROM students WHERE register_number = ? OR student_id = ? LIMIT 1', [register_number, register_number]);
+            if (sRows[0] && sRows[0].user_id) {
+                userIdNum = sRows[0].user_id;
+            } else {
+                return res.status(404).json({
+                    success: false,
+                    error: { code: 'NOT_REGISTERED', message: 'This student has not activated their sports portal account yet. They must log in once before they can be assigned as a Captain.' }
+                });
+            }
+        }
+
+        // Verify and upgrade user role to 'Captain' if they are just a 'Player'
         const [users] = await pool.execute('SELECT id, role FROM users WHERE id = ? LIMIT 1', [userIdNum]);
         const targetUser = users[0];
 
-        if (!targetUser || targetUser.role !== 'Captain') {
-            return res.status(400).json({
+        if (!targetUser) {
+            return res.status(404).json({
                 success: false,
-                error: { code: 'INVALID_CAPTAIN_ROLE', message: 'Target user must have the Captain role.' }
+                error: { code: 'USER_NOT_FOUND', message: 'Target user account could not be found.' }
             });
+        }
+
+        if (targetUser.role !== 'Captain') {
+            await pool.execute('UPDATE users SET role = "Captain" WHERE id = ?', [userIdNum]);
         }
 
         // Find existing active captain

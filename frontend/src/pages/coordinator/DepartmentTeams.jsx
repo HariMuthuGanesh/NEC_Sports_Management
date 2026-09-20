@@ -1,32 +1,37 @@
 import React, { useState, useEffect } from "react";
-import { squadApi, sportsApi } from "../../services/api/apiServices";
+import { squadApi, sportsApi, studentLookupApi } from "../../services/api/apiServices";
 import Table from "../../components/common/Table";
 import Button from "../../components/common/Button";
+import { Modal } from "../../components/common/Modal";
+import { Search, UserPlus } from "lucide-react";
 import "./CoordinatorPortal.css";
 
 export default function DepartmentTeams() {
   const [captains, setCaptains] = useState([]);
   const [sports, setSports] = useState([]);
-  const [eligibleCaptains, setEligibleCaptains] = useState([]);
   const [selectedSportId, setSelectedSportId] = useState("");
   const [selectedCaptainId, setSelectedCaptainId] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  
+  // Search state
+  const [searchModalOpen, setSearchModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState(null);
 
   const loadData = async () => {
     setLoading(true);
     setError(null);
     try {
-      const [captainsData, sportsData, eligibleData] = await Promise.all([
+      const [captainsData, sportsData] = await Promise.all([
         squadApi.getDepartmentSportCaptains(),
-        sportsApi.getSports(),
-        squadApi.getEligibleCaptains()
+        sportsApi.getSports()
       ]);
-
       setCaptains(captainsData || []);
       setSports(sportsData || []);
-      setEligibleCaptains(eligibleData || []);
       setLoading(false);
     } catch (err) {
       console.error(err);
@@ -39,16 +44,27 @@ export default function DepartmentTeams() {
     loadData();
   }, []);
 
+  const handleSearchStudent = () => {
+    if (!searchQuery.trim()) return;
+    setSearching(true);
+    studentLookupApi.searchStudent(searchQuery).then(res => {
+      setSearchResults(res);
+      setSearching(false);
+    });
+  };
+
   const handleAssignCaptain = async (e) => {
     e.preventDefault();
-    if (!selectedSportId || !selectedCaptainId) return;
+    if (!selectedSportId || !selectedStudent) return;
     setSubmitting(true);
     setError(null);
 
     try {
-      await squadApi.assignDepartmentSportCaptain(Number(selectedSportId), Number(selectedCaptainId));
+      await squadApi.assignDepartmentSportCaptain(Number(selectedSportId), selectedStudent.studentId);
       setSelectedSportId("");
       setSelectedCaptainId("");
+      setSelectedStudent(null);
+      setSearchModalOpen(false);
       await loadData();
     } catch (err) {
       console.error(err);
@@ -91,13 +107,12 @@ export default function DepartmentTeams() {
       {/* Assign Captain Form */}
       <div className="nec-card" style={{ padding: "16px 20px", marginBottom: "20px" }}>
         <h4 style={{ margin: "0 0 12px 0" }}>Assign Sport Captain</h4>
-        <form onSubmit={handleAssignCaptain} style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
           <select
             className="nec-table-search-input"
             style={{ width: "260px" }}
             value={selectedSportId}
             onChange={(e) => setSelectedSportId(e.target.value)}
-            required
           >
             <option value="">-- Pick a Sport --</option>
             {sports.map((s) => (
@@ -107,25 +122,10 @@ export default function DepartmentTeams() {
             ))}
           </select>
 
-          <select
-            className="nec-table-search-input"
-            style={{ width: "260px" }}
-            value={selectedCaptainId}
-            onChange={(e) => setSelectedCaptainId(e.target.value)}
-            required
-          >
-            <option value="">-- Pick a Captain --</option>
-            {eligibleCaptains.map((c) => (
-              <option key={c.user_id} value={c.user_id}>
-                {c.student_name || c.username} {c.register_number ? `(${c.register_number})` : ""}
-              </option>
-            ))}
-          </select>
-
-          <Button type="submit" variant="primary" disabled={submitting}>
-            {submitting ? "Assigning..." : "Assign Captain"}
+          <Button type="button" variant="outline" icon={UserPlus} onClick={() => setSearchModalOpen(true)}>
+            Lookup Student by Roll No
           </Button>
-        </form>
+        </div>
         <p style={{ fontSize: "0.8rem", color: "var(--nec-text-muted, #666)", marginTop: "8px" }}>
           Assigning a new captain for a sport automatically transfers out any previously-active captain for that sport in your department.
         </p>
@@ -139,6 +139,65 @@ export default function DepartmentTeams() {
         searchPlaceholder="Search department teams..."
         emptyMessage="No sport captains assigned in your department yet."
       />
+
+      {/* External Student Lookup Modal */}
+      <Modal
+        isOpen={searchModalOpen}
+        onClose={() => { setSearchModalOpen(false); setSearchQuery(""); setSearchResults([]); }}
+        title="Lookup Student in IMS"
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+          <div className="nec-student-search-box">
+            <input
+              type="text"
+              className="nec-table-search-input"
+              style={{ maxWidth: "100%" }}
+              placeholder="Enter Student Roll Number (e.g. 2112045)..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <Button variant="primary" icon={Search} onClick={handleSearchStudent} loading={searching}>
+              Search
+            </Button>
+          </div>
+
+          {searchResults.length > 0 && !selectedStudent && (
+            <div className="nec-student-results-list">
+              <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--nec-text-muted)" }}>Search Results:</span>
+              {searchResults.map(s => (
+                <div key={s.studentId} className="nec-student-result-card">
+                  <div className="nec-sr-info">
+                    <span className="nec-sr-name">{s.name} ({s.studentId})</span>
+                    <span className="nec-sr-sub">{s.dept} • {s.year}</span>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => setSelectedStudent(s)}>
+                    Select Captain
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {selectedStudent && (
+            <form onSubmit={handleAssignCaptain} style={{ display: "flex", flexDirection: "column", gap: "12px", borderTop: "1px solid var(--nec-border)", paddingTop: "14px" }}>
+              <div style={{ background: "var(--nec-surface-raised)", padding: "10px 14px", borderRadius: "8px" }}>
+                <strong>Selected Captain:</strong> {selectedStudent.name} ({selectedStudent.studentId}) — {selectedStudent.dept}
+              </div>
+
+              {!selectedSportId && (
+                <div style={{ color: "#d9534f", fontSize: "0.85rem" }}>
+                  Please select a Sport in the main form before assigning.
+                </div>
+              )}
+
+              <Button type="submit" variant="primary" disabled={submitting || !selectedSportId}>
+                {submitting ? "Assigning..." : "Assign Captain"}
+              </Button>
+            </form>
+          )}
+        </div>
+      </Modal>
+
     </div>
   );
 }

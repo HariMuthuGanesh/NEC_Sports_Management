@@ -301,9 +301,30 @@ export const addPlayerToTeam = async (req, res, next) => {
             return res.status(400).json({ success: false, error: { message: 'A valid student and jersey number are required.' } });
         }
 
-        const member = await addPlayerToTeamSql(teamId, studentId, role, jerseyNumber);
+        let member = await addPlayerToTeamSql(teamId, studentId, role, jerseyNumber);
         if (!member) {
-            return res.status(404).json({ success: false, error: { message: 'Student was not found in the sports registry.' } });
+            const { name, dept, year } = req.body;
+            if (name && dept) {
+                let deptId = null;
+                const [dRows] = await pool.execute('SELECT id FROM departments WHERE name = ? OR code = ? LIMIT 1', [dept, dept]);
+                if (dRows[0]) {
+                    deptId = dRows[0].id;
+                } else {
+                    const [firstDept] = await pool.execute('SELECT id FROM departments ORDER BY id ASC LIMIT 1');
+                    deptId = firstDept[0]?.id;
+                }
+                
+                await pool.execute(
+                    'INSERT IGNORE INTO students (student_name, register_number, department_id, batch, user_id, medical_fitness) VALUES (?, ?, ?, ?, NULL, 1)',
+                    [name, studentId, deptId, year || null]
+                );
+                
+                member = await addPlayerToTeamSql(teamId, studentId, role, jerseyNumber);
+            }
+        }
+
+        if (!member) {
+            return res.status(404).json({ success: false, error: { message: 'Student was not found in the sports registry and could not be auto-registered.' } });
         }
         
         if (!member.alreadyMember) {

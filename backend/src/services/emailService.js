@@ -34,7 +34,7 @@ export const notifyUsers = async (userIds, { title, message, type = 'GENERAL' })
     let sent = 0;
     let skipped = 0;
     const recipientIds = [];
-    
+
     if (!userIds || userIds.length === 0) {
         console.warn(`[NOTIFY] notifyUsers called with empty userIds list — notification NOT delivered for [${title}]`);
         return { sent, skipped, recipientIds };
@@ -97,17 +97,17 @@ export const notifyDepartmentCoordinator = async (departmentId, { title, message
             'SELECT id, coordinator_user_id FROM departments WHERE id = ? LIMIT 1',
             [departmentId]
         );
-        
+
         if (!depts[0]) {
             console.warn(`[NOTIFY] departmentId ${departmentId} not found — notification NOT delivered for [${title}]`);
             return { sent: 0, skipped: 0, recipientIds: [] };
         }
-        
+
         if (!depts[0].coordinator_user_id) {
             console.warn(`[NOTIFY] dept ${departmentId} has no coordinator_user_id — notification NOT delivered for [${title}]`);
             return { sent: 0, skipped: 0, recipientIds: [] };
         }
-        
+
         return await notifyUsers([depts[0].coordinator_user_id], { title, message, type });
     } catch (err) {
         console.error('[NOTIFY COORD ERROR]', err.message);
@@ -146,7 +146,7 @@ export const notifyTeamMembers = async (teamId, { title, message, type = 'TEAM_A
             JOIN students s ON tm.student_id = s.student_id
             WHERE tm.team_id = ? AND s.user_id IS NOT NULL
         `, [teamId]);
-        
+
         if (members.length === 0) {
             console.warn(`[NOTIFY] team ${teamId} has no mapped members — notification NOT delivered for [${title}]`);
             return { sent: 0, skipped: 0, recipientIds: [] };
@@ -169,7 +169,7 @@ export const resolveTeamCaptainUserId = async (teamId) => {
             const [users] = await pool.execute('SELECT id FROM users WHERE id = ? LIMIT 1', [team[0].captain_id]);
             if (users[0]) return users[0].id;
         }
-        
+
         // Fallback: check team_members
         const [members] = await pool.execute(`
             SELECT s.user_id 
@@ -178,11 +178,11 @@ export const resolveTeamCaptainUserId = async (teamId) => {
             WHERE tm.team_id = ? AND tm.role = 'Captain' AND s.user_id IS NOT NULL
             LIMIT 1
         `, [teamId]);
-        
+
         if (members[0] && members[0].user_id) {
             return members[0].user_id;
         }
-        
+
         return null;
     } catch (err) {
         console.error('[RESOLVE CAPTAIN ERROR]', err.message);

@@ -35,11 +35,13 @@ import { getAllAnnouncements, createAnnouncement as createAnnouncementSql, delet
 import bcrypt from 'bcryptjs';
 import {
     searchStudents as searchStudentsSql,
-    createStudent as createStudentSql,
-    searchStudentsFromIms,
+    createStudent as createStudentSql
+} from '../models/sql/studentSqlModel.js';
+import {
+    searchImsStudents,
     hasImsStudents,
     getImsAttendanceSummary
-} from '../models/sql/studentSqlModel.js';
+} from '../models/sql/imsStudentModel.js';
 
 /* --- Sports --- */
 export const getSports = async (req, res, next) => {
@@ -541,7 +543,7 @@ export const searchStudentsController = async (req, res, next) => {
         let source = 'sportsdb';
 
         if (imsPopulated) {
-            data = await searchStudentsFromIms(query);
+            data = await searchImsStudents(query);
             if (data !== null) {
                 source = 'ims';
             }

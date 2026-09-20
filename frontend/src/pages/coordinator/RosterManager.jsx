@@ -187,6 +187,8 @@ export default function RosterManager() {
       setSearchQuery("");
       setSearchResults([]);
       loadRoster(selectedTeamId);
+    }).catch(err => {
+      alert(err.message || "Failed to add player to roster.");
     });
   };
 

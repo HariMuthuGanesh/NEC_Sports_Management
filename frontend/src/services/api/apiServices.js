@@ -372,7 +372,7 @@ export const squadApi = {
   // Coordinator: list users with the Captain role, to pick from when assigning
   getEligibleCaptains: () => apiFetch("/department-sport-captains/eligible-captains"),
   // Coordinator: assign (or transfer) the captain for a sport in their department
-  assignDepartmentSportCaptain: (sportId, userId) => apiFetch("/department-sport-captains", "POST", { sport_id: sportId, user_id: userId }),
+  assignDepartmentSportCaptain: (sportId, identifier) => apiFetch("/department-sport-captains", "POST", { sport_id: sportId, register_number: identifier }),
   // Captain: view their own assigned squad (sport + department + active roster)
   getMySquad: () => apiFetch("/my-squad"),
   addSquadMember: (studentId) => apiFetch("/my-squad/members", "POST", { student_id: studentId }),
