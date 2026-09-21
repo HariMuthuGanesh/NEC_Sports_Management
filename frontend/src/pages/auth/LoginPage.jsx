@@ -30,6 +30,7 @@ import {
   recordFailedAttempt,
   clearRateLimit,
   SecurityLogger,
+  getAuthToken,
   setAuthToken,
 } from "../../utils/security";
 import "./LoginPage.css";
@@ -144,24 +145,23 @@ export default function LoginPage({ onLoginSuccess, onNavigate }) {
           return;
         }
 
-        login(
-          {
-            ...userData,
-            role: userData.role,
-            name: userData.username,
-            email: userData.email,
-            dept: userData.dept || userData.studentProfile?.department_code || "Sports Office",
-            deptId: userData.deptId || userData.studentProfile?.department_id || null,
-            deptName: userData.deptName || "Sports Directorate",
-            title: userData.role,
-            id: userData.username || cleanId
-          },
-          jwtToken
-        );
+        const sessionUser = {
+          ...userData,
+          role: userData.role,
+          name: userData.username,
+          email: userData.email,
+          dept: userData.dept || userData.studentProfile?.department_code || "Sports Office",
+          deptId: userData.deptId || userData.studentProfile?.department_id || null,
+          deptName: userData.deptName || "Sports Directorate",
+          title: userData.role,
+          id: userData.username || cleanId
+        };
+
+        login(sessionUser, jwtToken);
 
         setLoading(false);
         if (typeof onLoginSuccess === "function") {
-          onLoginSuccess();
+          onLoginSuccess(sessionUser);
         }
         return;
       }
@@ -220,25 +220,24 @@ export default function LoginPage({ onLoginSuccess, onNavigate }) {
       setAuthToken(newToken);
 
       const uData = pendingUserSession.userData;
-      login(
-        {
-          ...uData,
-          role: uData.role,
-          name: uData.username,
-          email: uData.email,
-          dept: uData.dept || uData.studentProfile?.department_code || "Sports Office",
-          deptId: uData.deptId || uData.studentProfile?.department_id || null,
-          deptName: uData.deptName || "Sports Directorate",
-          title: uData.role,
-          id: uData.username || pendingUserSession.cleanId,
-          mustChangePassword: false
-        },
-        newToken
-      );
+      const sessionUser = {
+        ...uData,
+        role: uData.role,
+        name: uData.username,
+        email: uData.email,
+        dept: uData.dept || uData.studentProfile?.department_code || "Sports Office",
+        deptId: uData.deptId || uData.studentProfile?.department_id || null,
+        deptName: uData.deptName || "Sports Directorate",
+        title: uData.role,
+        id: uData.username || pendingUserSession.cleanId,
+        mustChangePassword: false
+      };
+
+      login(sessionUser, newToken);
 
       setMustChangeModalOpen(false);
       if (typeof onLoginSuccess === "function") {
-        onLoginSuccess();
+        onLoginSuccess(sessionUser);
       }
     } catch (err) {
       console.error(err);

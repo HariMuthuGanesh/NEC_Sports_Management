@@ -128,14 +128,9 @@ function MainApp() {
     if (activeNav === "login") {
       return (
         <LoginPage
-          onLoginSuccess={() => {
-            try {
-              const saved = localStorage.getItem("nec_sports_auth_user");
-              const userObj = saved ? JSON.parse(saved) : currentUser;
-              setActiveNav(getDefaultNav(userObj?.role));
-            } catch {
-              setActiveNav(getDefaultNav(currentUser?.role));
-            }
+          onLoginSuccess={(userObj) => {
+            const role = userObj?.role || currentUser?.role;
+            setActiveNav(getDefaultNav(role));
           }}
           onNavigate={(nav) => setActiveNav(nav)}
         />
@@ -145,16 +140,10 @@ function MainApp() {
     if (activeNav === "oauth_callback") {
       return (
         <OAuthCallbackPage
-          onLoginSuccess={() => {
-            // Clean up the URL
+          onLoginSuccess={(userObj) => {
             window.history.replaceState({}, document.title, "/");
-            try {
-              const saved = localStorage.getItem("nec_sports_auth_user");
-              const userObj = saved ? JSON.parse(saved) : currentUser;
-              setActiveNav(getDefaultNav(userObj?.role));
-            } catch {
-              setActiveNav(getDefaultNav(currentUser?.role));
-            }
+            const role = userObj?.role || currentUser?.role;
+            setActiveNav(getDefaultNav(role));
           }}
           onNavigate={(nav) => {
             window.history.replaceState({}, document.title, "/");
@@ -167,14 +156,9 @@ function MainApp() {
     if (activeNav === "signup") {
       return (
         <SignUpPage
-          onLoginSuccess={() => {
-            try {
-              const saved = localStorage.getItem("nec_sports_auth_user");
-              const userObj = saved ? JSON.parse(saved) : currentUser;
-              setActiveNav(getDefaultNav(userObj?.role));
-            } catch {
-              setActiveNav(getDefaultNav(currentUser?.role));
-            }
+          onLoginSuccess={(userObj) => {
+            const role = userObj?.role || currentUser?.role;
+            setActiveNav(getDefaultNav(role));
           }}
           onNavigate={(nav) => setActiveNav(nav)}
         />

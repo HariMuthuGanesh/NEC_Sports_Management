@@ -9,6 +9,7 @@ export default function AppShell({ activeNav, onSelectNav, onRoleChange, childre
   return (
     <div className="nec-app-shell">
       <Header
+        activeNav={activeNav}
         onToggleSidebar={() => setIsSidebarOpen(prev => !prev)}
         isSidebarOpen={isSidebarOpen}
         onRoleChange={onRoleChange}

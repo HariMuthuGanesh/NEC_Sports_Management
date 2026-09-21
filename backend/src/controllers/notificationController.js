@@ -1,12 +1,12 @@
 import {
-    getAnnouncementNotifications,
-    markAllAnnouncementsRead,
-    markAnnouncementRead
+    getUserNotifications,
+    markAllNotificationsRead as markAllModel,
+    markNotificationRead as markNotificationModel
 } from '../models/sql/notificationSqlModel.js';
 
 export const getNotifications = async (req, res, next) => {
     try {
-        const notifications = await getAnnouncementNotifications(req.user);
+        const notifications = await getUserNotifications(req.user);
         return res.json({ success: true, data: notifications });
     } catch (error) {
         next(error);
@@ -15,12 +15,12 @@ export const getNotifications = async (req, res, next) => {
 
 export const markNotificationRead = async (req, res, next) => {
     try {
-        const announcementId = Number(req.params.id);
-        if (!Number.isInteger(announcementId) || announcementId < 1) {
+        const rawId = req.params.id;
+        if (!rawId || String(rawId).trim().length === 0) {
             return res.status(400).json({ success: false, error: { message: 'Invalid notification id.' } });
         }
-        await markAnnouncementRead(req.user.id, announcementId);
-        return res.json({ success: true, data: { id: announcementId, read: true } });
+        await markNotificationModel(req.user.id, rawId);
+        return res.json({ success: true, data: { id: rawId, read: true } });
     } catch (error) {
         next(error);
     }
@@ -28,10 +28,10 @@ export const markNotificationRead = async (req, res, next) => {
 
 export const markAllNotificationsRead = async (req, res, next) => {
     try {
-        await markAllAnnouncementsRead(req.user);
-        const notifications = await getAnnouncementNotifications(req.user);
+        const notifications = await markAllModel(req.user);
         return res.json({ success: true, data: notifications });
     } catch (error) {
         next(error);
     }
 };
+

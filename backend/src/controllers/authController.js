@@ -13,8 +13,7 @@ import {
 } from '../models/sql/userSqlModel.js';
 import { getStudentByUserId, createStudent } from '../models/sql/studentSqlModel.js';
 import { generateCsrfToken } from '../middleware/csrfMiddleware.js';
-import { getOAuthProviders, getProviderConfig } from '../services/oauthProviders.js';
-import { notifyAdmins } from '../services/emailService.js';
+import { notifyAdmins, sendPasswordResetEmail } from '../services/emailService.js';
 
 const generateToken = (id, role, dept = 'All', tokenVersion = 0, deptId = null) => {
     return jwt.sign({ id, role, dept, dept_id: deptId, token_version: tokenVersion }, JWT_SECRET, {
@@ -504,3 +503,206 @@ export const oauthCallback = async (req, res, next) => {
         return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/callback#error=OAUTH_FAILED`);
     }
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 5. Public Forgot Password (no SMTP — generates a temp password, stores as
+//    in-app notification for Admin relay. Timing-safe: always returns 200.)
+// ─────────────────────────────────────────────────────────────────────────────
+export const forgotPasswordRequest = async (req, res, next) => {
+    try {
+        const { identifier } = req.body || {};
+
+        if (!identifier || typeof identifier !== 'string' || identifier.trim().length < 3) {
+            // Still return 200 — never reveal whether a user exists
+            return res.json({
+                success: true,
+                message: 'If that account exists, a temporary password has been sent to the administrator.'
+            });
+        }
+
+        const user = await findUserByUsernameOrEmail(identifier.trim());
+
+        // Always hash something to prevent timing attacks even when user is not found
+        const tempPassword = crypto.randomBytes(4).toString('hex').toUpperCase(); // e.g. "A3F9B2C1"
+        const tempHash = await bcrypt.hash(tempPassword, 10);
+
+        if (user && user.is_active) {
+            // Set the temp password and flag must_change_password
+            await pool.execute(
+                'UPDATE users SET password_hash = ?, must_change_password = 1, token_version = token_version + 1 WHERE id = ?',
+                [tempHash, user.id]
+            );
+
+            // Notify the user themselves (in-app)
+            await pool.execute(
+                'INSERT INTO notifications (user_id, message, status, type) VALUES (?, ?, ?, ?)',
+                [
+                    user.id,
+                    `[Password Reset] A temporary password has been set for your account: ${tempPassword} — Please log in and change it immediately.`,
+                    'Unread',
+                    'SECURITY'
+                ]
+            );
+
+            // Dispatch password reset email directly to the user's email address
+            await sendPasswordResetEmail({
+                to: user.email,
+                username: user.username,
+                tempPassword,
+                resetBy: 'Self-Service Password Reset'
+            });
+
+            // Notify all Admins for audit awareness
+            await notifyAdmins({
+                title: 'Password Reset Requested',
+                message: `User "${user.username}" (${user.email}) requested a password reset. Temporary credentials have been emailed directly to them.`
+            });
+
+            console.log(`[FORGOT PASSWORD] Sent direct email to: ${user.email} (${user.username})`);
+        }
+
+        // Generic response — timing is consistent whether user exists or not
+        return res.json({
+            success: true,
+            message: 'If that account exists, a temporary password has been sent directly to the registered email address.'
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 6. Admin Reset Password (protected — Admin / Sports President may reset any
+//    user; Coordinator may only reset Players in their own department)
+// ─────────────────────────────────────────────────────────────────────────────
+export const adminResetPassword = async (req, res, next) => {
+    try {
+        const requestingUser = req.user;
+        const { targetUserId, newPassword } = req.body || {};
+
+        // ── Role gate ──────────────────────────────────────────────────────
+        const privilegedRoles = ['Admin', 'Sports President'];
+        const coordinatorRole = 'Coordinator';
+        const isPrivileged = privilegedRoles.includes(requestingUser.role);
+        const isCoordinator = requestingUser.role === coordinatorRole;
+
+        if (!isPrivileged && !isCoordinator) {
+            return res.status(403).json({
+                success: false,
+                error: { code: 'FORBIDDEN', message: 'You do not have permission to reset passwords.' }
+            });
+        }
+
+        if (!targetUserId) {
+            return res.status(400).json({
+                success: false,
+                error: { code: 'MISSING_FIELDS', message: 'targetUserId is required.' }
+            });
+        }
+
+        // ── Fetch target user ──────────────────────────────────────────────
+        const [targetRows] = await pool.execute(
+            'SELECT id, username, email, role, is_active FROM users WHERE id = ? LIMIT 1',
+            [targetUserId]
+        );
+        const targetUser = targetRows[0];
+
+        if (!targetUser) {
+            return res.status(404).json({
+                success: false,
+                error: { code: 'USER_NOT_FOUND', message: 'Target user not found.' }
+            });
+        }
+
+        // ── Coordinator scope check: only Players in their own department ──
+        if (isCoordinator && !isPrivileged) {
+            if (targetUser.role !== 'Player' && targetUser.role !== 'Captain' && targetUser.role !== 'Score Updater') {
+                return res.status(403).json({
+                    success: false,
+                    error: { code: 'FORBIDDEN', message: 'Coordinators can only reset Player / Captain / Score Updater passwords.' }
+                });
+            }
+
+            // Verify the target student belongs to the coordinator's department
+            const [deptCheck] = await pool.execute(
+                `SELECT d.id FROM departments d
+                 JOIN students s ON s.department_id = d.id
+                 WHERE d.coordinator_user_id = ? AND s.user_id = ?
+                 LIMIT 1`,
+                [requestingUser.id, targetUserId]
+            );
+
+            if (!deptCheck[0]) {
+                return res.status(403).json({
+                    success: false,
+                    error: { code: 'FORBIDDEN', message: 'You can only reset passwords for students in your own department.' }
+                });
+            }
+        }
+
+        // ── Prevent admins resetting their own or other admins' passwords ──
+        if (isCoordinator && privilegedRoles.includes(targetUser.role)) {
+            return res.status(403).json({
+                success: false,
+                error: { code: 'FORBIDDEN', message: 'Cannot reset passwords for Admin or Sports President accounts.' }
+            });
+        }
+
+        // ── Generate or use provided temp password ─────────────────────────
+        const tempPassword = newPassword?.trim()
+            ? newPassword.trim()
+            : crypto.randomBytes(4).toString('hex').toUpperCase();
+
+        if (tempPassword.length < 8) {
+            return res.status(400).json({
+                success: false,
+                error: { code: 'WEAK_PASSWORD', message: 'Password must be at least 8 characters.' }
+            });
+        }
+
+        const tempHash = await bcrypt.hash(tempPassword, 10);
+
+        await pool.execute(
+            'UPDATE users SET password_hash = ?, must_change_password = 1, token_version = token_version + 1 WHERE id = ?',
+            [tempHash, targetUserId]
+        );
+
+        // Notify target user
+        await pool.execute(
+            'INSERT INTO notifications (user_id, message, status, type) VALUES (?, ?, ?, ?)',
+            [
+                targetUserId,
+                `[Security] Your password was reset by ${requestingUser.role} "${requestingUser.username || requestingUser.id}". Temporary password: ${tempPassword} — log in and change it immediately.`,
+                'Unread',
+                'SECURITY'
+            ]
+        );
+
+        // Send password reset email directly to the target user's email
+        const emailResult = await sendPasswordResetEmail({
+            to: targetUser.email,
+            username: targetUser.username,
+            tempPassword,
+            resetBy: `${requestingUser.role} (${requestingUser.username || 'Staff'})`
+        });
+
+        console.log(`[ADMIN RESET] Resetter: ${requestingUser.id} (${requestingUser.role}) | Target: ${targetUser.username} (${targetUser.email}) | Email Sent: ${emailResult.success}`);
+
+        return res.json({
+            success: true,
+            message: `Password for "${targetUser.username}" reset successfully. Temporary credentials have been emailed to ${targetUser.email}.`,
+            data: {
+                targetUserId,
+                targetUsername: targetUser.username,
+                targetEmail: targetUser.email,
+                tempPassword, // provided as backup if mail service is unavailable or in dev
+                emailSent: emailResult.success,
+                mustChangePassword: true
+            }
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+

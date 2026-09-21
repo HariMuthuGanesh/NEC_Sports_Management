@@ -106,3 +106,58 @@ export const updateUserRoleController = async (req, res, next) => {
         next(err);
     }
 };
+
+/**
+ * GET /api/users/search?q=<query>
+ * Search users by username, email, or register_number.
+ * Protected: Admin, Sports President, Coordinator.
+ * Returns id, username, email, role — enough for admin reset UI.
+ */
+export const searchUsersController = async (req, res, next) => {
+    try {
+        const q = (req.query.q || '').trim();
+
+        if (!q || q.length < 2) {
+            return res.status(400).json({
+                success: false,
+                error: { code: 'QUERY_TOO_SHORT', message: 'Search query must be at least 2 characters.' }
+            });
+        }
+
+        const like = `%${q}%`;
+        const sql = `
+            SELECT 
+                u.id, u.username, u.email, u.role, u.is_active,
+                s.student_name AS name,
+                s.register_number
+            FROM users u
+            LEFT JOIN students s ON s.user_id = u.id
+            WHERE (
+                u.username LIKE ? OR
+                u.email    LIKE ? OR
+                s.register_number LIKE ?
+            )
+            AND u.role NOT IN ('Admin', 'Sports President')
+            ORDER BY u.username ASC
+            LIMIT 20
+        `;
+
+        const [rows] = await pool.execute(sql, [like, like, like]);
+
+        return res.json({
+            success: true,
+            data: rows.map(r => ({
+                id: r.id,
+                username: r.username,
+                name: r.name || r.username,
+                email: r.email,
+                role: r.role,
+                is_active: r.is_active,
+                register_number: r.register_number
+            }))
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+

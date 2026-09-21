@@ -178,6 +178,7 @@ export const apiFetchFull = async (endpoint, method = 'GET', body = null, isRetr
   }
 };
 
+
 /* --- Sports & Departments API --- */
 export const sportsApi = {
   getDepartments: () => apiFetch("/departments"),
@@ -333,11 +334,26 @@ export const galleryApi = {
 };
 
 /* --- Notifications API --- */
+export const dispatchNotificationUpdate = (count) => {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("notifications-updated", { detail: { unreadCount: count } }));
+  }
+};
+
 export const notificationsApi = {
   getNotifications: () => apiFetch("/notifications"),
-  markAsRead: (id) => apiFetch(`/notifications/${id}/read`, "PATCH"),
-  markAllRead: () => apiFetch("/notifications/read-all", "PATCH")
+  markAsRead: async (id) => {
+    const res = await apiFetch(`/notifications/${id}/read`, "PATCH");
+    dispatchNotificationUpdate();
+    return res;
+  },
+  markAllRead: async () => {
+    const res = await apiFetch("/notifications/read-all", "PATCH");
+    dispatchNotificationUpdate(0);
+    return res;
+  }
 };
+
 
 /* --- Audit Log API --- */
 export const auditApi = {
@@ -405,5 +421,15 @@ export const authApi = {
   signup: (userData) => apiFetch('/auth/signup', 'POST', userData),
   logout: () => apiFetch('/auth/logout', 'POST'),
   getCurrentUser: () => apiFetch('/auth/me'),
-  changePassword: (currentPassword, newPassword) => apiFetch('/auth/change-password', 'POST', { currentPassword, newPassword })
+  changePassword: (currentPassword, newPassword) =>
+    apiFetch('/auth/change-password', 'POST', { currentPassword, newPassword }),
+  // Self-service forgot password (public, timing-safe)
+  forgotPassword: (identifier) =>
+    apiFetch('/auth/forgot-password', 'POST', { identifier }),
+  // Admin / President / Coordinator reset another user's password
+  adminResetPassword: (targetUserId, newPassword = null) =>
+    apiFetch('/auth/admin-reset-password', 'POST', { targetUserId, newPassword }),
+  // Search users by username / email / roll for admin reset UI
+  searchUsers: (query) =>
+    apiFetch(`/users/search?q=${encodeURIComponent(query)}`),
 };

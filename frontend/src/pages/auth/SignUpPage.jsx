@@ -64,21 +64,20 @@ export default function SignUpPage({ onLoginSuccess, onNavigate }) {
         // Bug fix: pass the JWT token so AuthContext stores it via setAuthToken().
         // Without this, the session cookie works until a hard refresh, then the
         // token is missing and every authenticated API call fails with 401.
-        login(
-          {
-            role: userData.role,
-            name: userData.username,
-            email: userData.email,
-            dept: userData.studentProfile?.department_code || "Sports Office",
-            title: userData.role,
-            id: userData.username || cleanUsername,
-          },
-          userData.token || null
-        );
+        const sessionUser = {
+          role: userData.role,
+          name: userData.username,
+          email: userData.email,
+          dept: userData.studentProfile?.department_code || "Sports Office",
+          title: userData.role,
+          id: userData.username || cleanUsername,
+        };
+
+        login(sessionUser, userData.token || null);
 
         setLoading(false);
         if (typeof onLoginSuccess === "function") {
-          onLoginSuccess();
+          onLoginSuccess(sessionUser);
         }
         return;
       }

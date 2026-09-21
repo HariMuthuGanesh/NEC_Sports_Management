@@ -95,3 +95,31 @@
   font-size: 0.8125rem;
   color: var(--nec-text-muted);
 }
+
+.nec-notif-footer {
+  padding: 10px 16px;
+  background-color: var(--nec-surface-raised);
+  border-top: 1px solid var(--nec-border);
+  text-align: center;
+}
+
+.nec-notif-view-all-btn {
+  background: none;
+  border: none;
+  color: var(--nec-blue-accent, #0284c7);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: var(--nec-transition);
+}
+
+.nec-notif-view-all-btn:hover {
+  text-decoration: underline;
+}
+
+.nec-notif-item {
+  cursor: pointer;
+}
+

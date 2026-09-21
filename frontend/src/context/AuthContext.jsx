@@ -30,7 +30,13 @@ const IDLE_WARNING_MS = 2 * 60 * 1000;
 
 export function AuthProvider({ children }) {
   const publicUser = { role: ROLES.PUBLIC, name: "Guest Visitor", dept: "All", id: null };
-  const [currentUser, setCurrentUser] = useState(publicUser);
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem("nec_sports_auth_user");
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return publicUser;
+  });
 
   const [authToken, setTokenState] = useState(() => getAuthToken());
   const [sessionExpiresAt, setSessionExpiresAt] = useState(() => {
@@ -56,6 +62,7 @@ export function AuthProvider({ children }) {
         if (response.ok) return response.json();
         if (response.status === 401 || response.status === 403) {
           setCurrentUser(publicUser);
+          localStorage.removeItem("nec_sports_auth_user");
           removeAuthToken();
           setTokenState(null);
           setSessionExpiresAt(null);
@@ -65,6 +72,7 @@ export function AuthProvider({ children }) {
       .then(result => {
         if (result?.success && result.data) {
           setCurrentUser(result.data);
+          localStorage.setItem("nec_sports_auth_user", JSON.stringify(result.data));
           if (token) {
             setSessionExpiresAt(getTokenExpiry(token));
           }
@@ -160,6 +168,7 @@ export function AuthProvider({ children }) {
   const doIdleLogout = useCallback((user) => {
     SecurityLogger.logIdleTimeout(user);
     removeAuthToken();
+    localStorage.removeItem("nec_sports_auth_user");
     setTokenState(null);
     setSessionExpiresAt(null);
     setIdleWarning(false);
@@ -241,6 +250,7 @@ export function AuthProvider({ children }) {
       setSessionExpiresAt(null);
     }
     setCurrentUser(userData);
+    localStorage.setItem("nec_sports_auth_user", JSON.stringify(userData));
     SecurityLogger.logLogin(userData);
     resetIdleTimer(userData);
   };
@@ -257,6 +267,7 @@ export function AuthProvider({ children }) {
     }
     clearIdleTimers();
     removeAuthToken();
+    localStorage.removeItem("nec_sports_auth_user");
     setTokenState(null);
     setSessionExpiresAt(null);
     setCurrentUser(publicUser);

@@ -1,15 +1,18 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Sun, Moon, Bell, Menu, X, User, Globe, Settings, LogIn, LogOut } from "lucide-react";
 import { useAuth, ROLES } from "../../context/AuthContext";
 import { notificationsApi } from "../../services/api/apiServices";
+import NotificationDrawer from "../notifications/NotificationDrawer";
 import "./Header.css";
 
-export default function Header({ onToggleSidebar, isSidebarOpen, onSelectNav }) {
+export default function Header({ onToggleSidebar, isSidebarOpen, onSelectNav, activeNav }) {
   const { currentUser, logout, theme, toggleTheme, language, setLanguage, t } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
   const [showLangMenu, setShowLangMenu] = useState(false);
+  const [showNotifDrawer, setShowNotifDrawer] = useState(false);
+  const notifRef = useRef(null);
 
-  useEffect(() => {
+  const fetchUnreadCount = useCallback(() => {
     if (currentUser?.role && currentUser.role !== ROLES.PUBLIC) {
       notificationsApi.getNotifications()
         .then(data => {
@@ -24,6 +27,48 @@ export default function Header({ onToggleSidebar, isSidebarOpen, onSelectNav }) 
       setUnreadCount(0);
     }
   }, [currentUser?.role, currentUser?.id]);
+
+  useEffect(() => {
+    fetchUnreadCount();
+
+    const handleNotificationsUpdated = (e) => {
+      if (e?.detail?.unreadCount !== undefined) {
+        setUnreadCount(e.detail.unreadCount);
+      } else {
+        fetchUnreadCount();
+      }
+    };
+
+    const handleFocus = () => {
+      fetchUnreadCount();
+    };
+
+    window.addEventListener("notifications-updated", handleNotificationsUpdated);
+    window.addEventListener("focus", handleFocus);
+
+    const interval = setInterval(fetchUnreadCount, 45000);
+
+    return () => {
+      window.removeEventListener("notifications-updated", handleNotificationsUpdated);
+      window.removeEventListener("focus", handleFocus);
+      clearInterval(interval);
+    };
+  }, [fetchUnreadCount, activeNav]);
+
+  // Click outside to close notification drawer
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (notifRef.current && !notifRef.current.contains(event.target)) {
+        setShowNotifDrawer(false);
+      }
+    };
+    if (showNotifDrawer) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showNotifDrawer]);
 
   const LANGUAGES = [
     { code: "en", label: "English" },
@@ -85,22 +130,33 @@ export default function Header({ onToggleSidebar, isSidebarOpen, onSelectNav }) 
           )}
         </div>
 
-
-
         {/* Notifications Icon (Only for authenticated users, hidden for Guests) */}
         {currentUser.role !== ROLES.PUBLIC && (
-          <div className="nec-notif-wrapper">
+          <div className="nec-notif-wrapper" ref={notifRef}>
             <button
-              className="nec-icon-btn"
-              onClick={() => onSelectNav?.("notifications")}
+              className={`nec-icon-btn ${showNotifDrawer ? "active" : ""}`}
+              onClick={() => setShowNotifDrawer(prev => !prev)}
+              title={unreadCount > 0 ? `${unreadCount} unread notification${unreadCount > 1 ? "s" : ""}` : "Notifications"}
               aria-label="Notifications"
+              aria-expanded={showNotifDrawer}
             >
               <Bell size={18} />
               {unreadCount > 0 && <span className="nec-notif-dot" />}
             </button>
 
+            {showNotifDrawer && (
+              <NotificationDrawer
+                onClose={() => setShowNotifDrawer(false)}
+                onUpdateCount={(count) => setUnreadCount(count)}
+                onSelectNav={(nav) => {
+                  setShowNotifDrawer(false);
+                  onSelectNav?.(nav);
+                }}
+              />
+            )}
           </div>
         )}
+
 
         {/* Settings Button (Hidden for Guests) */}
         {currentUser.role !== ROLES.PUBLIC && (

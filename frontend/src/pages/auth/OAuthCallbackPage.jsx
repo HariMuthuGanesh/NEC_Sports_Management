@@ -41,9 +41,7 @@ export default function OAuthCallbackPage({ onLoginSuccess, onNavigate }) {
         const resData = await response.json();
         
         if (response.ok && resData.success) {
-          const userData = resData.data;
-          
-          login({
+          const sessionUser = {
             ...userData,
             role: userData.role,
             name: userData.username,
@@ -53,10 +51,11 @@ export default function OAuthCallbackPage({ onLoginSuccess, onNavigate }) {
             deptName: userData.deptName || 'Sports Directorate',
             title: userData.role,
             id: userData.username
-          }, token);
+          };
+          login(sessionUser, token);
 
           if (typeof onLoginSuccess === 'function') {
-            onLoginSuccess();
+            onLoginSuccess(sessionUser);
           }
         } else {
           setError(resData.error?.message || 'Failed to fetch user profile.');

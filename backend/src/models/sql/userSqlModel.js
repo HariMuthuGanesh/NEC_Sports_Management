@@ -1,14 +1,15 @@
 import pool from '../../config/db.js';
 
-// Find user by username or email
+// Find user by username, email, or student roll number
 export const findUserByUsernameOrEmail = async (identifier) => {
     const sql = `
-        SELECT id, username, email, password_hash, google_linked, role, admin_scope, token_version, is_active, login_attempts, last_login_at, created_at
-        FROM users
-        WHERE username = ? OR email = ?
+        SELECT u.id, u.username, u.email, u.password_hash, u.google_linked, u.role, u.admin_scope, u.token_version, u.is_active, u.login_attempts, u.last_login_at, u.created_at
+        FROM users u
+        LEFT JOIN students s ON s.user_id = u.id
+        WHERE u.username = ? OR u.email = ? OR s.register_number = ?
         LIMIT 1
     `;
-    const [rows] = await pool.execute(sql, [identifier, identifier]);
+    const [rows] = await pool.execute(sql, [identifier, identifier, identifier]);
     return rows[0] || null;
 };
 

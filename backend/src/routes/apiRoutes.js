@@ -88,7 +88,7 @@ import {
     confirmCollegeTeamV2
 } from '../controllers/squadController.js';
 import { doubleCsrfProtection } from '../middleware/csrfMiddleware.js';
-import { listUsersController, updateUserRoleController } from '../controllers/userController.js';
+import { listUsersController, updateUserRoleController, searchUsersController } from '../controllers/userController.js';
 
 import { generateCsrfToken } from '../middleware/csrfMiddleware.js';
 
@@ -106,6 +106,7 @@ router.use(doubleCsrfProtection);
 
 // User & Role Management (Admin only)
 router.get('/users', protect, authorize('Admin'), listUsersController);
+router.get('/users/search', protect, authorize('Admin', 'Sports President', 'Coordinator'), searchUsersController);
 router.patch('/users/:id/role', protect, authorize('Admin'), updateUserRoleController);
 
 router.get('/admin/audit-log', protect, authorize('Admin'), async (req, res, next) => {
