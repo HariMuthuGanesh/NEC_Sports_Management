@@ -53,14 +53,30 @@ export default function DepartmentTeams() {
     });
   };
 
+  const [successMsg, setSuccessMsg] = useState(null);
+
   const handleAssignCaptain = async (e) => {
     e.preventDefault();
     if (!selectedSportId || !selectedStudent) return;
     setSubmitting(true);
     setError(null);
+    setSuccessMsg(null);
 
     try {
-      await squadApi.assignDepartmentSportCaptain(Number(selectedSportId), selectedStudent.studentId);
+      const res = await squadApi.assignDepartmentSportCaptain(
+        Number(selectedSportId),
+        selectedStudent.studentId,
+        selectedStudent.name,
+        selectedStudent.dept,
+        selectedStudent.year
+      );
+
+      if (res.data?.isNewUser && res.data?.defaultPassword) {
+        setSuccessMsg(`Captain account auto-provisioned! Login Roll No: "${selectedStudent.studentId}" | Default Password: "${res.data.defaultPassword}". Student will be asked to set a new password on first login.`);
+      } else {
+        setSuccessMsg(`Captain assigned successfully for selected sport!`);
+      }
+
       setSelectedSportId("");
       setSelectedCaptainId("");
       setSelectedStudent(null);
@@ -97,6 +113,12 @@ export default function DepartmentTeams() {
           <p className="nec-page-desc">Assign or transfer Sport Captains for your department.</p>
         </div>
       </div>
+
+      {successMsg && (
+        <div style={{ color: "#065f46", backgroundColor: "#d1fae5", padding: "12px 16px", borderRadius: "6px", marginBottom: "16px", border: "1px solid #10b981", fontSize: "0.9rem", fontWeight: 500 }}>
+          {successMsg}
+        </div>
+      )}
 
       {error && (
         <div style={{ color: "#d9534f", backgroundColor: "#fdf7f7", padding: "12px", borderRadius: "6px", marginBottom: "16px", border: "1px solid #d9534f" }}>
@@ -179,9 +201,20 @@ export default function DepartmentTeams() {
           )}
 
           {selectedStudent && (
-            <form onSubmit={handleAssignCaptain} style={{ display: "flex", flexDirection: "column", gap: "12px", borderTop: "1px solid var(--nec-border)", paddingTop: "14px" }}>
+            <form onSubmit={handleAssignCaptain} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
               <div style={{ background: "var(--nec-surface-raised)", padding: "10px 14px", borderRadius: "8px" }}>
-                <strong>Selected Captain:</strong> {selectedStudent.name} ({selectedStudent.studentId}) — {selectedStudent.dept}
+                <div><strong>Roll Number:</strong> {selectedStudent.studentId} — {selectedStudent.dept} • {selectedStudent.year}</div>
+                <div style={{ marginTop: "8px" }}>
+                  <label style={{ display: "block", fontSize: "0.825rem", fontWeight: 600, marginBottom: "4px" }}>Athlete Name</label>
+                  <input
+                    type="text"
+                    className="nec-table-search-input"
+                    style={{ maxWidth: "100%", width: "100%" }}
+                    value={selectedStudent.name}
+                    onChange={(e) => setSelectedStudent({ ...selectedStudent, name: e.target.value })}
+                    placeholder="Enter or confirm athlete name"
+                  />
+                </div>
               </div>
 
               {!selectedSportId && (

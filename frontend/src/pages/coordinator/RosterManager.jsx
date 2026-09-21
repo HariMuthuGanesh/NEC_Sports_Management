@@ -170,6 +170,8 @@ export default function RosterManager() {
     });
   };
 
+  const [rosterFeedback, setRosterFeedback] = useState(null);
+
   const handleAddPlayer = (e) => {
     e.preventDefault();
     if (!selectedStudent || !selectedTeamId) return;
@@ -181,14 +183,33 @@ export default function RosterManager() {
       year: selectedStudent.year,
       position: position || "Player",
       jerseyNo: jerseyNo || "0"
-    }).then(() => {
+    }).then((res) => {
+      const isNew = res?.data?.isNewUser;
+      const pwd = res?.data?.defaultPassword;
+      const sName = res?.data?.studentName || selectedStudent.name;
+
+      if (isNew && pwd) {
+        setRosterFeedback({
+          type: "success",
+          text: `Athlete "${sName}" (${selectedStudent.studentId}) registered and added to squad! Temporary login password: "${pwd}". Student will be asked to set a new password on first login.`
+        });
+      } else {
+        setRosterFeedback({
+          type: "success",
+          text: `Athlete "${sName}" successfully added to roster!`
+        });
+      }
+
       setSelectedStudent(null);
       setSearchModalOpen(false);
       setSearchQuery("");
       setSearchResults([]);
       loadRoster(selectedTeamId);
     }).catch(err => {
-      alert(err.message || "Failed to add player to roster.");
+      setRosterFeedback({
+        type: "error",
+        text: err.message || "Failed to add player to roster."
+      });
     });
   };
 
@@ -233,6 +254,21 @@ export default function RosterManager() {
           </Button>
         </div>
       </div>
+
+      {rosterFeedback && (
+        <div style={{
+          padding: "12px 16px",
+          borderRadius: "6px",
+          marginBottom: "16px",
+          fontSize: "0.9rem",
+          fontWeight: 500,
+          border: rosterFeedback.type === "success" ? "1px solid #10b981" : "1px solid #ef4444",
+          background: rosterFeedback.type === "success" ? "#ecfdf5" : "#fef2f2",
+          color: rosterFeedback.type === "success" ? "#065f46" : "#b91c1c"
+        }}>
+          {rosterFeedback.text}
+        </div>
+      )}
 
       {/* Team Selection Bar */}
       <div className="nec-card" style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: "16px", overflow: "visible", position: "relative", zIndex: 20 }}>
@@ -347,7 +383,18 @@ export default function RosterManager() {
           {selectedStudent && (
             <form onSubmit={handleAddPlayer} style={{ display: "flex", flexDirection: "column", gap: "12px", borderTop: "1px solid var(--nec-border)", paddingTop: "14px" }}>
               <div style={{ background: "var(--nec-surface-raised)", padding: "10px 14px", borderRadius: "8px" }}>
-                <strong>Selected Athlete:</strong> {selectedStudent.name} ({selectedStudent.studentId}) — {selectedStudent.dept}
+                <div><strong>Roll Number:</strong> {selectedStudent.studentId} — {selectedStudent.dept} • {selectedStudent.year}</div>
+                <div style={{ marginTop: "8px" }}>
+                  <label style={{ display: "block", fontSize: "0.825rem", fontWeight: 600, marginBottom: "4px" }}>Athlete Name</label>
+                  <input
+                    type="text"
+                    className="nec-table-search-input"
+                    style={{ maxWidth: "100%", width: "100%" }}
+                    value={selectedStudent.name}
+                    onChange={(e) => setSelectedStudent({ ...selectedStudent, name: e.target.value })}
+                    placeholder="Enter or confirm athlete name"
+                  />
+                </div>
               </div>
 
               <div>

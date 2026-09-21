@@ -17,6 +17,7 @@ import {
     sendSystemNotification
 } from '../services/emailService.js';
 import pool from '../config/db.js';
+import { ensureStudentAndUserExists } from '../services/studentProvisionService.js';
 
 export const getTeams = async (req, res, next) => {
     try {
@@ -292,55 +293,50 @@ export const addPlayerToTeam = async (req, res, next) => {
             }
         }
 
-        const { studentId, position = 'Player', jerseyNo = null } = req.body;
+        const { studentId, name, dept, year, position = 'Player', jerseyNo = null } = req.body;
         const allowedRoles = ['Captain', 'Vice Captain', 'Player', 'Reserve', 'Goalkeeper'];
         const role = allowedRoles.includes(position) ? position : 'Player';
         const jerseyNumber = jerseyNo === '' || jerseyNo === null ? null : Number(jerseyNo);
 
         if (!studentId || (jerseyNumber !== null && !Number.isInteger(jerseyNumber))) {
-            return res.status(400).json({ success: false, error: { message: 'A valid student and jersey number are required.' } });
+            return res.status(400).json({ success: false, error: { message: 'A valid student identifier and jersey number are required.' } });
         }
 
-        let member = await addPlayerToTeamSql(teamId, studentId, role, jerseyNumber);
-        if (!member) {
-            const { name, dept, year } = req.body;
-            if (name && dept) {
-                let deptId = null;
-                const [dRows] = await pool.execute('SELECT id FROM departments WHERE name = ? OR code = ? LIMIT 1', [dept, dept]);
-                if (dRows[0]) {
-                    deptId = dRows[0].id;
-                } else {
-                    const [firstDept] = await pool.execute('SELECT id FROM departments ORDER BY id ASC LIMIT 1');
-                    deptId = firstDept[0]?.id;
-                }
-                
-                await pool.execute(
-                    'INSERT IGNORE INTO students (student_name, register_number, department_id, batch, user_id, medical_fitness) VALUES (?, ?, ?, ?, NULL, 1)',
-                    [name, studentId, deptId, year || null]
-                );
-                
-                member = await addPlayerToTeamSql(teamId, studentId, role, jerseyNumber);
-            }
-        }
+        // Auto-provision or verify both user account and sports registry entry exist
+        const provisionResult = await ensureStudentAndUserExists({
+            registerNumber: studentId,
+            name,
+            dept,
+            year,
+            role: role === 'Captain' ? 'Captain' : 'Player'
+        });
 
+        const member = await addPlayerToTeamSql(teamId, provisionResult.studentId, role, jerseyNumber);
         if (!member) {
-            return res.status(404).json({ success: false, error: { message: 'Student was not found in the sports registry and could not be auto-registered.' } });
+            return res.status(404).json({ success: false, error: { message: 'Failed to add student to team roster.' } });
         }
         
+        const [tRows] = await pool.execute('SELECT name FROM teams WHERE team_id = ? LIMIT 1', [teamId]);
+        const teamName = tRows[0]?.name || 'Department Squad';
+
         if (!member.alreadyMember) {
-            const [sRows] = await pool.execute('SELECT user_id FROM students WHERE student_id = ? LIMIT 1', [studentId]);
-            if (sRows[0] && sRows[0].user_id) {
-                const [tRows] = await pool.execute('SELECT name FROM teams WHERE team_id = ? LIMIT 1', [teamId]);
-                await sendSystemNotification({
-                    userId: sRows[0].user_id,
-                    title: 'Added to Roster',
-                    message: `You have been added to the roster for team "${tRows[0]?.name || 'Unknown'}". Role: ${role}.`,
-                    type: 'ROSTER_ALERT'
-                });
-            }
+            await sendSystemNotification({
+                userId: provisionResult.userId,
+                title: 'Added to Roster',
+                message: `You have been added to the squad roster for "${teamName}". Position: ${role}.`,
+                type: 'ROSTER_ALERT'
+            });
         }
 
-        return res.status(member.alreadyMember ? 200 : 201).json({ success: true, data: member });
+        return res.status(member.alreadyMember ? 200 : 201).json({
+            success: true,
+            data: {
+                ...member,
+                studentName: provisionResult.studentName,
+                isNewUser: provisionResult.isNewUser,
+                defaultPassword: provisionResult.defaultPassword
+            }
+        });
     } catch (error) {
         next(error);
     }

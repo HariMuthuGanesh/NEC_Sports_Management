@@ -69,13 +69,6 @@ export const loginUser = async (req, res, next) => {
         const isPasswordValid = await bcrypt.compare(password, hashToCompare);
 
         if (user && isPasswordValid) {
-            if (user.role === 'Player') {
-                return res.status(403).json({
-                    success: false,
-                    error: { code: 'USE_OAUTH', message: 'Student accounts must sign in with campus OAuth (Google / Microsoft / Institution SSO).' }
-                });
-            }
-
             if (!user.is_active) {
                 return res.status(403).json({
                     success: false,
@@ -86,8 +79,9 @@ export const loginUser = async (req, res, next) => {
             await updateLastLogin(user.id);
             const { deptId, deptCode, deptName, student } = await resolveUserDepartment(user);
 
-            const [vRows] = await pool.execute('SELECT token_version FROM users WHERE id = ?', [user.id]);
+            const [vRows] = await pool.execute('SELECT token_version, must_change_password FROM users WHERE id = ?', [user.id]);
             const tokenVersion = vRows[0]?.token_version ?? 0;
+            const mustChangePassword = Boolean(vRows[0]?.must_change_password);
 
             const token = generateToken(user.id, user.role, deptCode || 'Sports Office', tokenVersion, deptId);
 
@@ -106,7 +100,8 @@ export const loginUser = async (req, res, next) => {
                     playerName: student?.student_name || user.username,
                     admin_scope: user.admin_scope || null,
                     googleLinked: Boolean(user.google_linked),
-                    studentProfile: student || null
+                    studentProfile: student || null,
+                    mustChangePassword
                 }
             });
         }
@@ -240,7 +235,67 @@ export const getCurrentUser = async (req, res, next) => {
                 playerName: student?.student_name || user.username,
                 admin_scope: user.admin_scope || null,
                 googleLinked: Boolean(user.google_linked),
-                studentProfile: student || null
+                studentProfile: student || null,
+                mustChangePassword: Boolean(user.must_change_password)
+            }
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const changePasswordController = async (req, res, next) => {
+    try {
+        const userId = req.user?.id;
+        const { currentPassword, newPassword } = req.body || {};
+
+        if (!userId) {
+            return res.status(401).json({ success: false, error: { message: 'Authentication required.' } });
+        }
+
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({ success: false, error: { message: 'Current password and new password are required.' } });
+        }
+
+        if (newPassword.length < 8) {
+            return res.status(400).json({ success: false, error: { message: 'New password must be at least 8 characters long.' } });
+        }
+
+        const [users] = await pool.execute('SELECT id, username, password_hash FROM users WHERE id = ? LIMIT 1', [userId]);
+        const user = users[0];
+
+        if (!user) {
+            return res.status(404).json({ success: false, error: { message: 'User not found.' } });
+        }
+
+        const isMatch = await bcrypt.compare(currentPassword, user.password_hash);
+        if (!isMatch) {
+            return res.status(400).json({ success: false, error: { message: 'Current password does not match.' } });
+        }
+
+        if (newPassword === currentPassword) {
+            return res.status(400).json({ success: false, error: { message: 'New password cannot be the same as the temporary password.' } });
+        }
+
+        const newHash = await bcrypt.hash(newPassword, 10);
+        await pool.execute(
+            'UPDATE users SET password_hash = ?, must_change_password = 0, token_version = token_version + 1 WHERE id = ?',
+            [newHash, userId]
+        );
+
+        const [updatedRows] = await pool.execute('SELECT token_version, role FROM users WHERE id = ?', [userId]);
+        const tokenVersion = updatedRows[0]?.token_version ?? 0;
+        const { deptCode, deptId } = await resolveUserDepartment(user);
+        const newToken = generateToken(userId, user.role, deptCode || 'Sports Office', tokenVersion, deptId);
+
+        res.cookie('token', newToken, AUTH_COOKIE_OPTIONS);
+
+        return res.json({
+            success: true,
+            message: 'Password changed successfully. Your account is now secured.',
+            data: {
+                token: newToken,
+                mustChangePassword: false
             }
         });
     } catch (err) {

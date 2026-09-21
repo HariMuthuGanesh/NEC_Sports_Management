@@ -372,7 +372,14 @@ export const squadApi = {
   // Coordinator: list users with the Captain role, to pick from when assigning
   getEligibleCaptains: () => apiFetch("/department-sport-captains/eligible-captains"),
   // Coordinator: assign (or transfer) the captain for a sport in their department
-  assignDepartmentSportCaptain: (sportId, identifier) => apiFetch("/department-sport-captains", "POST", { sport_id: sportId, register_number: identifier }),
+  assignDepartmentSportCaptain: (sportId, identifier, name = "", dept = "", year = null) => 
+    apiFetch("/department-sport-captains", "POST", { 
+      sport_id: sportId, 
+      register_number: identifier,
+      name,
+      dept,
+      year
+    }),
   // Captain: view their own assigned squad (sport + department + active roster)
   getMySquad: () => apiFetch("/my-squad"),
   addSquadMember: (studentId) => apiFetch("/my-squad/members", "POST", { student_id: studentId }),
@@ -397,5 +404,6 @@ export const authApi = {
   login: (credentials) => apiFetch('/auth/login', 'POST', credentials),
   signup: (userData) => apiFetch('/auth/signup', 'POST', userData),
   logout: () => apiFetch('/auth/logout', 'POST'),
-  getCurrentUser: () => apiFetch('/auth/me')
+  getCurrentUser: () => apiFetch('/auth/me'),
+  changePassword: (currentPassword, newPassword) => apiFetch('/auth/change-password', 'POST', { currentPassword, newPassword })
 };

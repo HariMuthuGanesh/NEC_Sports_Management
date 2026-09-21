@@ -4,47 +4,53 @@ import pool from '../../config/db.js';
  * Maps a raw row from ims.student_details (joined with ims.departments and nec_sports_db.students)
  * into a consistent standard format across the application.
  */
-const mapImsStudent = (row) => ({
-    imsId: row.imsId,
-    registerNumber: row.registerNumber,
-    studentName: row.studentName || 'Name Not Provided',
-    email: row.email,
-    phone: row.phone,
-    gender: row.gender,
-    dateOfBirth: row.date_of_birth,
-    departmentId: row.imsDeptId,
-    departmentName: row.department_name,
-    departmentCode: row.department_code,
-    batch: row.batchYear,
-    section: row.section,
-    semester: row.semester,
-    dataSource: 'ims',
+const mapImsStudent = (row) => {
+    const cleanName = (row.studentName && row.studentName.trim().length > 0)
+        ? row.studentName.trim()
+        : `Student ${row.registerNumber}`;
 
-    // Compatible aliases for legacy/existing front-end code
-    studentId: row.registerNumber,
-    rollNo: row.registerNumber,
-    register_number: row.registerNumber,
-    name: row.studentName || 'Name Not Provided',
-    student_name: row.studentName || 'Name Not Provided',
-    personal_email: row.email,
-    personal_phone: row.phone,
-    imsRawDept: row.department_code,
-    dept: row.department_name,
-    deptCode: row.department_code,
-    year: row.batchYear,
+    return {
+        imsId: row.imsId,
+        registerNumber: row.registerNumber,
+        studentName: cleanName,
+        email: row.email,
+        phone: row.phone,
+        gender: row.gender,
+        dateOfBirth: row.date_of_birth,
+        departmentId: row.imsDeptId,
+        departmentName: row.department_name,
+        departmentCode: row.department_code,
+        batch: row.batchYear,
+        section: row.section,
+        semester: row.semester,
+        dataSource: 'ims',
 
-    // Attendance stats
-    totalDays: row.totalDays || 0,
-    presentDays: row.presentDays || 0,
-    attendancePct: row.attendancePct || 0,
+        // Compatible aliases for legacy/existing front-end code
+        studentId: row.registerNumber,
+        rollNo: row.registerNumber,
+        register_number: row.registerNumber,
+        name: cleanName,
+        student_name: cleanName,
+        personal_email: row.email,
+        personal_phone: row.phone,
+        imsRawDept: row.department_code,
+        dept: row.department_name,
+        deptCode: row.department_code,
+        year: row.batchYear,
 
-    // Sports registration metadata
-    sportsStudentId: row.sportsStudentId || null,
-    bloodGroup: row.bloodGroup || null,
-    studentType: row.studentType || null,
-    medicalFitness: row.medicalFitness || null,
-    sportsEligibility: row.sportsEligibility || 'not_registered'
-});
+        // Attendance stats
+        totalDays: row.totalDays || 0,
+        presentDays: row.presentDays || 0,
+        attendancePct: row.attendancePct || 0,
+
+        // Sports registration metadata
+        sportsStudentId: row.sportsStudentId || null,
+        bloodGroup: row.bloodGroup || null,
+        studentType: row.studentType || null,
+        medicalFitness: row.medicalFitness || null,
+        sportsEligibility: row.sportsEligibility || 'not_registered'
+    };
+};
 
 const BASE_IMS_SELECT = `
     SELECT

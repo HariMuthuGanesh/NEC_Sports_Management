@@ -4,6 +4,7 @@ import {
     signupUser, 
     logoutUser, 
     getCurrentUser,
+    changePasswordController,
     oauthProvidersList,
     oauthStart,
     oauthCallback
@@ -27,7 +28,7 @@ router.get('/oauth/providers', oauthProvidersList);
 router.get('/oauth/:provider/start', loginRateLimiter(), oauthStart);
 router.get('/oauth/:provider/callback', loginRateLimiter(), oauthCallback);
 
-// Public manual login route (Staff only)
+// Public manual login route (Students & Staff)
 router.post('/login', loginRateLimiter(), validateLoginInput, loginUser);
 
 // Public manual signup route
@@ -38,5 +39,8 @@ router.post('/logout', protect, logoutUser);
 
 // Protected user profile route
 router.get('/me', protect, getCurrentUser);
+
+// Protected change password route (for first-time login and regular updates)
+router.post('/change-password', protect, changePasswordController);
 
 export default router;

@@ -137,9 +137,9 @@ export default function PublicHome({ onNavigate }) {
                 onAction={() => onNavigate("public_fixtures")}
               />
             ) : (
-              <div className="nec-live-cards-grid">
+              <div className={`nec-live-cards-grid ${liveMatches.length === 1 ? "single-match" : ""}`}>
                 {liveMatches.map(m => (
-                  <Card key={m.id} className="nec-live-match-card">
+                  <Card key={m.id} className={`nec-live-match-card ${liveMatches.length === 1 ? "featured-single" : ""}`}>
                     <div className="nec-live-card-head">
                       <span className="nec-sport-tag">{m.sport} • {m.round}</span>
                       <Badge status="live">{t.live}</Badge>
@@ -149,7 +149,12 @@ export default function PublicHome({ onNavigate }) {
                         <span className="nec-team-code">{m.deptA}</span>
                         <span className="nec-team-name">{m.teamA}</span>
                       </div>
-                      <div className="nec-score-val">{m.scoreA} - {m.scoreB}</div>
+                      <div className="nec-score-center">
+                        <div className="nec-score-val">{m.scoreA} - {m.scoreB}</div>
+                        {m.detailScore && (
+                          <span className="nec-score-overs-badge">{m.detailScore}</span>
+                        )}
+                      </div>
                       <div className="nec-team-col text-right">
                         <span className="nec-team-code">{m.deptB}</span>
                         <span className="nec-team-name">{m.teamB}</span>
@@ -157,7 +162,13 @@ export default function PublicHome({ onNavigate }) {
                     </div>
                     <div className="nec-live-card-sub">
                       <span>📍 {m.venue}</span>
-                      <span className="nec-detail-score">{m.detailScore}</span>
+                      <button 
+                        type="button" 
+                        className="nec-view-live-btn"
+                        onClick={() => onNavigate("public_live")}
+                      >
+                        Match Center <ArrowRight size={13} />
+                      </button>
                     </div>
                   </Card>
                 ))}

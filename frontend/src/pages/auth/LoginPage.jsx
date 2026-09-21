@@ -48,6 +48,14 @@ export default function LoginPage({ onLoginSuccess, onNavigate }) {
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [oauthProviders, setOauthProviders] = useState([]);
 
+  // Mandatory Password Change on First Login
+  const [mustChangeModalOpen, setMustChangeModalOpen] = useState(false);
+  const [pendingUserSession, setPendingUserSession] = useState(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [changePwError, setChangePwError] = useState("");
+  const [changingPw, setChangingPw] = useState(false);
+
   useEffect(() => {
     authApi.getOAuthProviders().then(res => {
       if (res && Array.isArray(res)) setOauthProviders(res);
@@ -129,6 +137,13 @@ export default function LoginPage({ onLoginSuccess, onNavigate }) {
 
         clearRateLimit();
 
+        if (userData.mustChangePassword) {
+          setPendingUserSession({ userData, cleanPw, cleanId });
+          setMustChangeModalOpen(true);
+          setLoading(false);
+          return;
+        }
+
         login(
           {
             ...userData,
@@ -179,6 +194,59 @@ export default function LoginPage({ onLoginSuccess, onNavigate }) {
     executeLogin(userId, password);
   };
 
+  const handleForcePasswordChange = async (e) => {
+    e.preventDefault();
+    setChangePwError("");
+
+    if (!newPassword || newPassword.length < 8) {
+      setChangePwError("New password must be at least 8 characters long.");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setChangePwError("New password and confirmation do not match.");
+      return;
+    }
+
+    if (newPassword === pendingUserSession?.cleanPw) {
+      setChangePwError("New password cannot be the same as the temporary default password.");
+      return;
+    }
+
+    setChangingPw(true);
+    try {
+      const res = await authApi.changePassword(pendingUserSession.cleanPw, newPassword);
+      const newToken = res?.data?.token || getAuthToken();
+      setAuthToken(newToken);
+
+      const uData = pendingUserSession.userData;
+      login(
+        {
+          ...uData,
+          role: uData.role,
+          name: uData.username,
+          email: uData.email,
+          dept: uData.dept || uData.studentProfile?.department_code || "Sports Office",
+          deptId: uData.deptId || uData.studentProfile?.department_id || null,
+          deptName: uData.deptName || "Sports Directorate",
+          title: uData.role,
+          id: uData.username || pendingUserSession.cleanId,
+          mustChangePassword: false
+        },
+        newToken
+      );
+
+      setMustChangeModalOpen(false);
+      if (typeof onLoginSuccess === "function") {
+        onLoginSuccess();
+      }
+    } catch (err) {
+      console.error(err);
+      setChangePwError(err.message || "Failed to update password.");
+    } finally {
+      setChangingPw(false);
+    }
+  };
 
   const formatCountdown = (secs) => {
     const m = Math.floor(secs / 60).toString().padStart(2, "0");
@@ -473,6 +541,93 @@ export default function LoginPage({ onLoginSuccess, onNavigate }) {
             </Button>
           </div>
         </div>
+      </Modal>
+
+      {/* ── First-Time Login / Force Password Change Modal ── */}
+      <Modal
+        isOpen={mustChangeModalOpen}
+        onClose={() => {}}
+        title="First-Time Activation: Create Your Password"
+      >
+        <form onSubmit={handleForcePasswordChange} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+          <div style={{
+            padding: "12px 14px",
+            backgroundColor: "#eff6ff",
+            border: "1px solid #bfdbfe",
+            borderRadius: "8px",
+            color: "#1e3a8a",
+            fontSize: "0.875rem",
+            lineHeight: 1.5
+          }}>
+            <strong>Welcome to the NEC Sports Portal!</strong>
+            <p style={{ margin: "4px 0 0 0" }}>
+              Your account was provisioned with a temporary default password. To secure your account, please set a new personal password before accessing your sports dashboard.
+            </p>
+          </div>
+
+          <div>
+            <label style={{ display: "block", marginBottom: "6px", fontSize: "0.875rem", fontWeight: 600, color: "#334155" }}>
+              New Password <span style={{ color: "#ef4444" }}>*</span>
+            </label>
+            <input
+              type="password"
+              className="nec-form-control"
+              placeholder="Minimum 8 characters"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              required
+              autoFocus
+            />
+          </div>
+
+          <div>
+            <label style={{ display: "block", marginBottom: "6px", fontSize: "0.875rem", fontWeight: 600, color: "#334155" }}>
+              Confirm New Password <span style={{ color: "#ef4444" }}>*</span>
+            </label>
+            <input
+              type="password"
+              className="nec-form-control"
+              placeholder="Re-enter your new password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+            />
+          </div>
+
+          {changePwError && (
+            <div style={{
+              padding: "10px 12px",
+              backgroundColor: "#fef2f2",
+              border: "1px solid #fecaca",
+              borderRadius: "6px",
+              color: "#991b1b",
+              fontSize: "0.85rem"
+            }}>
+              {changePwError}
+            </div>
+          )}
+
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "8px" }}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setMustChangeModalOpen(false);
+                setPendingUserSession(null);
+              }}
+              disabled={changingPw}
+            >
+              Cancel & Sign Out
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              disabled={changingPw}
+            >
+              {changingPw ? "Updating Password..." : "Set Password & Continue"}
+            </Button>
+          </div>
+        </form>
       </Modal>
     </div>
   );

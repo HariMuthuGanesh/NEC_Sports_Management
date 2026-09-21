@@ -1,5 +1,6 @@
 import pool from '../config/db.js';
 import { sendSystemNotification } from '../services/emailService.js';
+import { ensureStudentAndUserExists } from '../services/studentProvisionService.js';
 
 /**
  * POST /api/department-sport-captains
@@ -9,7 +10,7 @@ import { sendSystemNotification } from '../services/emailService.js';
  */
 export const assignDepartmentSportCaptain = async (req, res, next) => {
     try {
-        const { sport_id, user_id, register_number } = req.body || {};
+        const { sport_id, user_id, register_number, name, dept, year } = req.body || {};
         const sportIdNum = Number(sport_id);
         const deptIdNum = req.user.dept_id || req.user.department_id;
 
@@ -28,17 +29,18 @@ export const assignDepartmentSportCaptain = async (req, res, next) => {
         }
 
         let userIdNum = Number(user_id) || null;
+        let provisionResult = null;
 
         if (register_number) {
-            const [sRows] = await pool.execute('SELECT user_id, student_id FROM students WHERE register_number = ? OR student_id = ? LIMIT 1', [register_number, register_number]);
-            if (sRows[0] && sRows[0].user_id) {
-                userIdNum = sRows[0].user_id;
-            } else {
-                return res.status(404).json({
-                    success: false,
-                    error: { code: 'NOT_REGISTERED', message: 'This student has not activated their sports portal account yet. They must log in once before they can be assigned as a Captain.' }
-                });
-            }
+            // Auto-provision user account with Captain role if not present
+            provisionResult = await ensureStudentAndUserExists({
+                registerNumber: register_number,
+                name,
+                dept: dept || req.user.dept || req.user.deptCode,
+                year,
+                role: 'Captain'
+            });
+            userIdNum = provisionResult.userId;
         }
 
         // Verify and upgrade user role to 'Captain' if they are just a 'Player'
@@ -105,7 +107,9 @@ export const assignDepartmentSportCaptain = async (req, res, next) => {
                 department_id: deptIdNum,
                 sport_id: sportIdNum,
                 user_id: userIdNum,
-                status: 'Active'
+                status: 'Active',
+                isNewUser: provisionResult?.isNewUser || false,
+                defaultPassword: provisionResult?.defaultPassword || null
             }
         });
     } catch (err) {
