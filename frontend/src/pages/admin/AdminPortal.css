@@ -215,29 +215,30 @@
 .nec-gallery-lightbox-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.88);
-  backdrop-filter: blur(8px);
+  background: rgba(8, 14, 26, 0.94);
+  backdrop-filter: blur(12px);
   z-index: 9999;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: 16px;
 }
 
 .nec-gallery-lightbox-content {
   background: var(--nec-surface);
-  border-radius: 14px;
-  max-width: 860px;
-  width: 100%;
-  max-height: 90vh;
+  border: 1px solid var(--nec-border);
+  border-radius: 16px;
+  max-width: 1180px;
+  width: 95vw;
+  max-height: 94vh;
   overflow: hidden;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+  box-shadow: 0 32px 64px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05);
   display: flex;
   flex-direction: column;
 }
 
 .nec-gallery-lightbox-header {
-  padding: 12px 18px;
+  padding: 14px 22px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -246,7 +247,7 @@
 }
 
 .nec-gallery-lightbox-type {
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   font-weight: 700;
   text-transform: uppercase;
   color: var(--nec-primary);
@@ -258,8 +259,8 @@
   border: none;
   color: var(--nec-text-muted);
   cursor: pointer;
-  padding: 4px;
-  border-radius: 6px;
+  padding: 6px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -267,14 +268,15 @@
 }
 
 .nec-gallery-lightbox-close:hover {
-  background: var(--nec-border-light);
-  color: var(--nec-text-main);
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--nec-danger, #ef4444);
 }
 
 .nec-gallery-lightbox-media {
   width: 100%;
-  max-height: 60vh;
-  background: #0f172a;
+  min-height: 360px;
+  max-height: 74vh;
+  background: #000;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -282,13 +284,15 @@
 
 .nec-gallery-lightbox-media img {
   max-width: 100%;
-  max-height: 60vh;
+  max-height: 74vh;
   object-fit: contain;
 }
 
 .nec-gallery-lightbox-media video {
   max-width: 100%;
-  max-height: 60vh;
+  max-height: 74vh;
+  object-fit: contain;
+  outline: none;
 }
 
 .nec-gallery-lightbox-footer {

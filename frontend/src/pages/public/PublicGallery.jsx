@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { galleryApi } from "../../services/api/apiServices";
 import { Card } from "../../components/common/Card";
 import SkeletonLoader from "../../components/common/SkeletonLoader";
 import PublicInfoCard from "../../components/common/PublicInfoCard";
 import Button from "../../components/common/Button";
-import { Image as ImageIcon, Video as VideoIcon, PlayCircle, Maximize2, X } from "lucide-react";
+import { Image as ImageIcon, Video as VideoIcon, PlayCircle, Maximize2, X, Film, Volume2 } from "lucide-react";
 import "./PublicPortal.css";
 
 const getMediaUrl = (url) => {
@@ -20,6 +20,7 @@ export default function PublicGallery({ onNavigate }) {
   const [error, setError] = useState(null);
   const [filterType, setFilterType] = useState("all");
   const [activeLightboxItem, setActiveLightboxItem] = useState(null);
+  const videoRef = useRef(null);
 
   const fetchGallery = () => {
     setLoading(true);
@@ -40,6 +41,29 @@ export default function PublicGallery({ onNavigate }) {
   useEffect(() => {
     fetchGallery();
   }, []);
+
+  // Keyboard shortcut listener
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        setActiveLightboxItem(null);
+      }
+    };
+    if (activeLightboxItem) {
+      window.addEventListener("keydown", handleKeyDown);
+    }
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [activeLightboxItem]);
+
+  const toggleFullScreen = () => {
+    if (videoRef.current) {
+      if (videoRef.current.requestFullscreen) {
+        videoRef.current.requestFullscreen();
+      } else if (videoRef.current.webkitRequestFullscreen) {
+        videoRef.current.webkitRequestFullscreen();
+      }
+    }
+  };
 
   const filteredItems = items.filter((item) => {
     const isVid = (item.media_type || item.type) === "video";
@@ -191,29 +215,50 @@ export default function PublicGallery({ onNavigate }) {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="nec-gallery-lightbox-header">
-              <span className="nec-gallery-lightbox-type">
-                {(activeLightboxItem.media_type || activeLightboxItem.type) === "video" ? "🎬 Video Player" : "📷 Photo Viewer"}
-              </span>
-              <button
-                type="button"
-                className="nec-gallery-lightbox-close"
-                onClick={() => setActiveLightboxItem(null)}
-                aria-label="Close"
-              >
-                <X size={20} />
-              </button>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <span className="nec-gallery-lightbox-type">
+                  {(activeLightboxItem.media_type || activeLightboxItem.type) === "video" ? "🎬 Campus Sports Theater" : "📷 Photo Viewer"}
+                </span>
+                <span style={{ fontSize: "0.8rem", color: "var(--nec-text-muted)", fontWeight: 500 }}>
+                  • {activeLightboxItem.title}
+                </span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                {(activeLightboxItem.media_type || activeLightboxItem.type) === "video" && (
+                  <button
+                    type="button"
+                    className="nec-gallery-lightbox-tool-btn"
+                    onClick={toggleFullScreen}
+                    title="Full Screen (F)"
+                    aria-label="Full Screen"
+                  >
+                    <Maximize2 size={16} />
+                    <span className="nec-hide-mobile" style={{ fontSize: "0.75rem", marginLeft: 4 }}>Full Screen</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="nec-gallery-lightbox-close"
+                  onClick={() => setActiveLightboxItem(null)}
+                  title="Close (Esc)"
+                  aria-label="Close"
+                >
+                  <X size={20} />
+                </button>
+              </div>
             </div>
 
             <div className="nec-gallery-lightbox-media">
               {(activeLightboxItem.media_type || activeLightboxItem.type) === "video" ? (
                 <video
+                  ref={videoRef}
                   key={activeLightboxItem.id || activeLightboxItem.url}
                   src={getMediaUrl(activeLightboxItem.url || activeLightboxItem.media_url)}
                   controls
                   autoPlay
                   playsInline
                   preload="auto"
-                  style={{ width: "100%", maxHeight: "65vh", backgroundColor: "#000", outline: "none" }}
+                  className="nec-gallery-cinema-video"
                   onError={(e) => {
                     console.error("Video load error:", e);
                   }}
@@ -225,6 +270,7 @@ export default function PublicGallery({ onNavigate }) {
                 <img
                   src={getMediaUrl(activeLightboxItem.url || activeLightboxItem.media_url)}
                   alt={activeLightboxItem.title}
+                  className="nec-gallery-cinema-img"
                 />
               )}
             </div>
