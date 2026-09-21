@@ -5,11 +5,15 @@ import multer from 'multer';
 
 // Multer storage setup
 const getGalleryUploadsPath = () => {
+    const backendPath = path.resolve(process.cwd(), 'backend', 'uploads', 'gallery');
     const directPath = path.resolve(process.cwd(), 'uploads', 'gallery');
-    if (!fs.existsSync(directPath)) {
-        fs.mkdirSync(directPath, { recursive: true });
+    const target = (fs.existsSync(path.resolve(process.cwd(), 'backend')) && path.basename(process.cwd()) !== 'backend')
+        ? backendPath
+        : directPath;
+    if (!fs.existsSync(target)) {
+        fs.mkdirSync(target, { recursive: true });
     }
-    return directPath;
+    return target;
 };
 
 const storage = multer.diskStorage({

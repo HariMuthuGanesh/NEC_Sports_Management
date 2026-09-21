@@ -387,21 +387,18 @@ export default function GalleryManager() {
                   onClick={() => setActiveLightboxItem(item)}
                 >
                   {isVideo ? (
-                    <div
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "8px",
-                        background: "linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%)",
-                        color: "#fff"
-                      }}
-                    >
-                      <Film size={40} />
-                      <span style={{ fontSize: "0.78rem", opacity: 0.9 }}>Click to Play Video</span>
+                    <div className="nec-gallery-video-container" style={{ width: "100%", height: "100%", position: "relative", background: "#0f172a" }}>
+                      <video
+                        src={mediaUrl}
+                        preload="metadata"
+                        className="nec-admin-gallery-thumb"
+                        muted
+                        playsInline
+                        style={{ objectFit: "cover", width: "100%", height: "100%", pointerEvents: "none" }}
+                      />
+                      <div className="nec-gallery-video-overlay">
+                        <Film size={36} className="nec-gallery-play-icon" />
+                      </div>
                     </div>
                   ) : (
                     <img
@@ -448,17 +445,12 @@ export default function GalleryManager() {
                       onClick={() => handleDelete(item.id, item.title)}
                       className="nec-icon-btn"
                       style={{
+                        padding: "4px 8px",
                         color: "var(--nec-danger, #ef4444)",
-                        border: "1px solid rgba(239, 68, 68, 0.2)",
-                        background: "rgba(239, 68, 68, 0.06)",
-                        padding: "6px",
-                        borderRadius: "6px",
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center"
+                        background: "rgba(239, 68, 68, 0.08)",
+                        borderRadius: "6px"
                       }}
-                      title="Delete from Gallery"
+                      title="Delete media item"
                     >
                       <Trash2 size={15} />
                     </button>
@@ -470,7 +462,7 @@ export default function GalleryManager() {
         </div>
       )}
 
-      {/* Full-Screen Lightbox Modal */}
+      {/* Lightbox Modal */}
       {activeLightboxItem && (
         <div
           className="nec-gallery-lightbox-overlay"
@@ -480,14 +472,32 @@ export default function GalleryManager() {
             className="nec-gallery-lightbox-content"
             onClick={(e) => e.stopPropagation()}
           >
+            <div className="nec-gallery-lightbox-header">
+              <span className="nec-gallery-lightbox-type">
+                {(activeLightboxItem.media_type || activeLightboxItem.type) === "video" ? "Video Player" : "Photo Viewer"}
+              </span>
+              <button
+                type="button"
+                className="nec-gallery-lightbox-close"
+                onClick={() => setActiveLightboxItem(null)}
+                aria-label="Close"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
             <div className="nec-gallery-lightbox-media">
               {(activeLightboxItem.media_type || activeLightboxItem.type) === "video" ? (
                 <video
                   src={getMediaUrl(activeLightboxItem.url || activeLightboxItem.media_url)}
                   controls
                   autoPlay
-                  style={{ width: "100%", maxHeight: "60vh" }}
-                />
+                  playsInline
+                  preload="auto"
+                  style={{ width: "100%", maxHeight: "65vh", backgroundColor: "#000" }}
+                >
+                  Your browser does not support HTML5 video playback.
+                </video>
               ) : (
                 <img
                   src={getMediaUrl(activeLightboxItem.url || activeLightboxItem.media_url)}

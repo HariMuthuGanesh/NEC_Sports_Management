@@ -131,9 +131,17 @@ export default function PublicGallery({ onNavigate }) {
               >
                 <div className="nec-gallery-media-wrap">
                   {isVideo ? (
-                    <div className="nec-gallery-video-ph">
-                      <PlayCircle size={48} />
-                      <span>{item.title || "Campus Sports Video"}</span>
+                    <div className="nec-gallery-video-container">
+                      <video
+                        src={finalUrl}
+                        preload="metadata"
+                        className="nec-gallery-video-preview"
+                        muted
+                        playsInline
+                      />
+                      <div className="nec-gallery-video-overlay">
+                        <PlayCircle size={44} className="nec-gallery-play-icon" />
+                      </div>
                     </div>
                   ) : (
                     <img 
@@ -175,14 +183,32 @@ export default function PublicGallery({ onNavigate }) {
             className="nec-gallery-lightbox-content"
             onClick={(e) => e.stopPropagation()}
           >
+            <div className="nec-gallery-lightbox-header">
+              <span className="nec-gallery-lightbox-type">
+                {(activeLightboxItem.media_type || activeLightboxItem.type) === "video" ? "Video Player" : "Photo Viewer"}
+              </span>
+              <button
+                type="button"
+                className="nec-gallery-lightbox-close"
+                onClick={() => setActiveLightboxItem(null)}
+                aria-label="Close"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
             <div className="nec-gallery-lightbox-media">
               {(activeLightboxItem.media_type || activeLightboxItem.type) === "video" ? (
                 <video
                   src={getMediaUrl(activeLightboxItem.url || activeLightboxItem.media_url)}
                   controls
                   autoPlay
-                  style={{ width: "100%", maxHeight: "60vh" }}
-                />
+                  playsInline
+                  preload="auto"
+                  style={{ width: "100%", maxHeight: "65vh", backgroundColor: "#000" }}
+                >
+                  Your browser does not support HTML5 video playback.
+                </video>
               ) : (
                 <img
                   src={getMediaUrl(activeLightboxItem.url || activeLightboxItem.media_url)}
@@ -206,7 +232,7 @@ export default function PublicGallery({ onNavigate }) {
                 </span>
               </div>
 
-              <Button variant="primary" onClick={() => setActiveLightboxItem(null)}>
+              <Button variant="primary" size="sm" onClick={() => setActiveLightboxItem(null)}>
                 Close
               </Button>
             </div>

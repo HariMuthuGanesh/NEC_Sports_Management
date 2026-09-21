@@ -75,20 +75,21 @@ app.use('/api/auth', authRoutes);
 app.use('/api/gallery', galleryRoutes);
 app.use('/api', apiRoutes);
 
-// 5.5 Serve static uploads with CORS and cross-origin CORP headers
-const getUploadsDir = () => {
-    const directPath = path.resolve(process.cwd(), 'uploads');
-    const backendPath = path.resolve(process.cwd(), 'backend', 'uploads');
-    if (path.basename(process.cwd()) === 'backend') return directPath;
-    return directPath;
-};
-const uploadsDir = getUploadsDir();
+// 5.5 Serve static uploads with CORS, cross-origin CORP headers, and Accept-Ranges for video streaming
+const directUploads = path.resolve(process.cwd(), 'uploads');
+const backendUploads = path.resolve(process.cwd(), 'backend', 'uploads');
 
-app.use('/uploads', (req, res, next) => {
+const serveStaticUploads = (req, res, next) => {
     res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
     res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Accept-Ranges', 'bytes');
     next();
-}, express.static(uploadsDir));
+};
+
+if (directUploads !== backendUploads) {
+    app.use('/uploads', serveStaticUploads, express.static(backendUploads));
+}
+app.use('/uploads', serveStaticUploads, express.static(directUploads));
 
 app.get('/', (req, res) => {
     res.json({
