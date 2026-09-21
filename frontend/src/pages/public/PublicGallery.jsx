@@ -124,10 +124,14 @@ export default function PublicGallery({ onNavigate }) {
               : "Campus Sports";
 
             return (
-              <Card
+              <div
                 key={item.id || idx}
                 className="nec-gallery-card"
                 onClick={() => setActiveLightboxItem(item)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => e.key === "Enter" && setActiveLightboxItem(item)}
+                style={{ cursor: "pointer" }}
               >
                 <div className="nec-gallery-media-wrap">
                   {isVideo ? (
@@ -140,7 +144,10 @@ export default function PublicGallery({ onNavigate }) {
                         playsInline
                       />
                       <div className="nec-gallery-video-overlay">
-                        <PlayCircle size={44} className="nec-gallery-play-icon" />
+                        <PlayCircle size={48} className="nec-gallery-play-icon" />
+                        <span style={{ color: "#fff", fontSize: "0.8rem", fontWeight: 600, marginTop: "6px", textShadow: "0 2px 4px rgba(0,0,0,0.8)" }}>
+                          Play Video
+                        </span>
                       </div>
                     </div>
                   ) : (
@@ -155,7 +162,7 @@ export default function PublicGallery({ onNavigate }) {
                     />
                   )}
                   <div className="nec-gallery-badge">
-                    {isVideo ? <VideoIcon size={14} /> : <ImageIcon size={14} />}
+                    {isVideo ? <><VideoIcon size={13} style={{ marginRight: 4 }} /> Video</> : <><ImageIcon size={13} style={{ marginRight: 4 }} /> Photo</>}
                   </div>
                 </div>
                 <div className="nec-gallery-content">
@@ -167,7 +174,7 @@ export default function PublicGallery({ onNavigate }) {
                   )}
                   <span className="nec-gallery-date" style={{ marginTop: "6px" }}>{dateStr}</span>
                 </div>
-              </Card>
+              </div>
             );
           })}
         </div>
@@ -185,7 +192,7 @@ export default function PublicGallery({ onNavigate }) {
           >
             <div className="nec-gallery-lightbox-header">
               <span className="nec-gallery-lightbox-type">
-                {(activeLightboxItem.media_type || activeLightboxItem.type) === "video" ? "Video Player" : "Photo Viewer"}
+                {(activeLightboxItem.media_type || activeLightboxItem.type) === "video" ? "🎬 Video Player" : "📷 Photo Viewer"}
               </span>
               <button
                 type="button"
@@ -200,13 +207,18 @@ export default function PublicGallery({ onNavigate }) {
             <div className="nec-gallery-lightbox-media">
               {(activeLightboxItem.media_type || activeLightboxItem.type) === "video" ? (
                 <video
+                  key={activeLightboxItem.id || activeLightboxItem.url}
                   src={getMediaUrl(activeLightboxItem.url || activeLightboxItem.media_url)}
                   controls
                   autoPlay
                   playsInline
                   preload="auto"
-                  style={{ width: "100%", maxHeight: "65vh", backgroundColor: "#000" }}
+                  style={{ width: "100%", maxHeight: "65vh", backgroundColor: "#000", outline: "none" }}
+                  onError={(e) => {
+                    console.error("Video load error:", e);
+                  }}
                 >
+                  <source src={getMediaUrl(activeLightboxItem.url || activeLightboxItem.media_url)} type="video/mp4" />
                   Your browser does not support HTML5 video playback.
                 </video>
               ) : (
