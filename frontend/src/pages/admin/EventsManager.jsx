@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { eventsApi } from "../../services/api/apiServices";
 import { useToast } from "../../context/ToastContext";
 import Table from "../../components/common/Table";
@@ -6,14 +6,12 @@ import Badge from "../../components/common/Badge";
 import Button from "../../components/common/Button";
 import { Modal } from "../../components/common/Modal";
 import ErrorState from "../../components/common/ErrorState";
-import { Plus, ToggleLeft, ToggleRight } from "lucide-react";
+import { Plus, ToggleLeft, ToggleRight, Trash2 } from "lucide-react";
+import { useAutoRefresh } from "../../hooks/useAutoRefresh";
 import "./AdminPortal.css";
 
 export default function EventsManager() {
   const toast = useToast();
-  const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [title, setTitle] = useState("");
@@ -22,31 +20,34 @@ export default function EventsManager() {
   const [eventCategory, setEventCategory] = useState("Inter-Department");
   const [maxTeams, setMaxTeams] = useState(8);
   const [regDeadline, setRegDeadline] = useState("2026-08-20");
+  const [startTime, setStartTime] = useState("");
+  const [durationMinutes, setDurationMinutes] = useState(120);
 
-  useEffect(() => {
-    loadEvents();
-  }, []);
+  const { data: rawEvents, loading, error, refetch } = useAutoRefresh(
+    () => eventsApi.getEvents(),
+    { interval: 15000 }
+  );
 
-  const loadEvents = () => {
-    setLoading(true);
-    setError(null);
-    eventsApi.getEvents().then(data => {
-      setEvents(data || []);
-      setLoading(false);
-    }).catch(err => {
-      console.error(err);
-      setError(err.message || "Failed to load events");
-      setLoading(false);
-    });
-  };
+  const events = Array.isArray(rawEvents) ? rawEvents : [];
 
   const handleToggleRegistration = async (eventId) => {
     try {
       await eventsApi.toggleEventStatus(eventId);
       toast.success("Event registration status updated!");
-      await loadEvents();
+      refetch();
     } catch (err) {
       toast.error("Failed to toggle registration status: " + err.message);
+    }
+  };
+
+  const handleDeleteEvent = async (eventId) => {
+    if (!window.confirm("Are you sure you want to permanently delete this event?")) return;
+    try {
+      await eventsApi.deleteEvent(eventId);
+      toast.success("Event deleted successfully!");
+      refetch();
+    } catch (err) {
+      toast.error("Failed to delete event: " + err.message);
     }
   };
 
@@ -59,15 +60,18 @@ export default function EventsManager() {
         title: title.trim(),
         eventCategory,
         regDeadline,
+        startTime: startTime || null,
+        durationMinutes: Number(durationMinutes) || 120,
         status: "Open",
         sportId: Number(sportId) || 1,
         category,
         maxTeams: Number(maxTeams) || 8,
       });
       toast.success("Sports event created successfully!");
-      await loadEvents();
+      refetch();
       setIsModalOpen(false);
       setTitle("");
+      setStartTime("");
     } catch (err) {
       toast.error(err.message || "Failed to create sports event");
     }
@@ -118,7 +122,7 @@ export default function EventsManager() {
     {
       key: "status",
       label: "Registration Status",
-      width: "150px",
+      width: "140px",
       render: (val, row) => {
         const st = val || row.registration_status || "Open";
         const isOpen = st === "Open" || st === "Registration Open";
@@ -132,21 +136,32 @@ export default function EventsManager() {
     {
       key: "actions",
       label: "Registration Control",
-      width: "180px",
+      width: "210px",
       sortable: false,
       render: (_, row) => {
         const eventId = row.id || row.event_id;
         const st = row.status || row.registration_status || "Open";
         const isOpen = st === "Open" || st === "Registration Open";
         return (
-          <Button
-            variant={isOpen ? "danger" : "primary"}
-            size="sm"
-            icon={isOpen ? ToggleRight : ToggleLeft}
-            onClick={() => handleToggleRegistration(eventId)}
-          >
-            {isOpen ? "Close Reg" : "Open Reg"}
-          </Button>
+          <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+            <Button
+              variant={isOpen ? "outline" : "primary"}
+              size="sm"
+              icon={isOpen ? ToggleRight : ToggleLeft}
+              onClick={() => handleToggleRegistration(eventId)}
+            >
+              {isOpen ? "Close Reg" : "Open Reg"}
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
+              icon={Trash2}
+              onClick={() => handleDeleteEvent(eventId)}
+              title="Delete Event"
+            >
+              Delete
+            </Button>
+          </div>
         );
       }
     }
@@ -271,6 +286,31 @@ export default function EventsManager() {
                 style={{ maxWidth: "100%" }}
                 value={regDeadline}
                 onChange={(e) => setRegDeadline(e.target.value)}
+              />
+            </div>
+            <div>
+              <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: "4px" }}>Event Start Date & Time (Optional)</label>
+              <input
+                type="datetime-local"
+                className="nec-table-search-input"
+                style={{ maxWidth: "100%" }}
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+            <div>
+              <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: "4px" }}>Estimated Duration (Minutes)</label>
+              <input
+                type="number"
+                min="10"
+                max="1440"
+                className="nec-table-search-input"
+                style={{ maxWidth: "100%" }}
+                value={durationMinutes}
+                onChange={(e) => setDurationMinutes(e.target.value)}
               />
             </div>
           </div>

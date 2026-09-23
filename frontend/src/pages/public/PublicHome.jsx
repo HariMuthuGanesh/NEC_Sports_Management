@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useMemo } from "react";
 import { matchesApi, leaderboardApi, announcementsApi, statsApi } from "../../services/api/apiServices";
 import { useAuth, ROLES } from "../../context/AuthContext";
 import { Card, StatCard } from "../../components/common/Card";
@@ -6,43 +6,41 @@ import Badge from "../../components/common/Badge";
 import Button from "../../components/common/Button";
 import PublicInfoCard from "../../components/common/PublicInfoCard";
 import { Trophy, Users, Radio, Calendar, Megaphone, ArrowRight, LogIn } from "lucide-react";
+import { useAutoRefresh } from "../../hooks/useAutoRefresh";
 import "./PublicPortal.css";
 
 export default function PublicHome({ onNavigate }) {
   const { t, currentUser } = useAuth();
 
-  const [liveMatches, setLiveMatches] = useState([]);
-  const [leaderboard, setLeaderboard] = useState([]);
-  const [announcements, setAnnouncements] = useState([]);
-  const [stats, setStats] = useState({ sportsCount: "8+", athletesCount: "500+" });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const fetchPublicHomeData = async () => {
+    const [matches = [], board = [], anns = [], statsData = null] = await Promise.all([
+      matchesApi.getMatches().catch(err => { console.warn("[PublicHome] matches error:", err); return []; }),
+      leaderboardApi.getLeaderboard().catch(err => { console.warn("[PublicHome] leaderboard error:", err); return []; }),
+      announcementsApi.getAll().catch(err => { console.warn("[PublicHome] announcements error:", err); return []; }),
+      statsApi.getOverview().catch(() => ({ sportsCount: "8+", athletesCount: "500+" }))
+    ]);
 
-  const fetchData = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [matches, board, anns, statsData] = await Promise.all([
-        matchesApi.getMatches(),
-        leaderboardApi.getLeaderboard(),
-        announcementsApi.getAll(),
-        statsApi.getOverview().catch(() => ({ sportsCount: "8+", athletesCount: "500+" }))
-      ]);
-      setLiveMatches(matches.filter(m => m.status === "Ongoing"));
-      setLeaderboard(board.slice(0, 5));
-      setAnnouncements(anns.slice(0, 3));
-      if (statsData) setStats(statsData);
-    } catch (err) {
-      console.error(err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+    const matchList = Array.isArray(matches) ? matches : [];
+    const boardList = Array.isArray(board) ? board : [];
+    const annList = Array.isArray(anns) ? anns : [];
+
+    return {
+      liveMatches: matchList.filter(m => m.status === "Ongoing"),
+      leaderboard: boardList.slice(0, 5),
+      announcements: annList.slice(0, 3),
+      stats: statsData || { sportsCount: "8+", athletesCount: "500+" }
+    };
   };
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  const { data: homeData, loading, error } = useAutoRefresh(
+    fetchPublicHomeData,
+    { interval: 15000 }
+  );
+
+  const liveMatches = homeData?.liveMatches || [];
+  const leaderboard = homeData?.leaderboard || [];
+  const announcements = homeData?.announcements || [];
+  const stats = homeData?.stats || { sportsCount: "8+", athletesCount: "500+" };
 
   return (
     <div className="nec-portal-page nec-guest-home">

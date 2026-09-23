@@ -5,7 +5,7 @@ import Badge from "../../components/common/Badge";
 import Button from "../../components/common/Button";
 import { Modal } from "../../components/common/Modal";
 import ErrorState from "../../components/common/ErrorState";
-import { Users, Filter, Plus, Trophy, Calendar, Eye, Activity, CheckCircle2, AlertCircle, X } from "lucide-react";
+import { Users, Filter, Plus, Trophy, Calendar, Eye, Activity, CheckCircle2, AlertCircle, X, Trash2 } from "lucide-react";
 import "./AdminPortal.css";
 
 export default function TeamsManager() {
@@ -72,6 +72,16 @@ export default function TeamsManager() {
   useEffect(() => {
     loadTeams();
   }, []);
+
+  const handleDeleteTeam = async (teamId) => {
+    if (!window.confirm("Are you sure you want to permanently delete this team?")) return;
+    try {
+      await teamsApi.deleteTeam(teamId);
+      loadTeams();
+    } catch (err) {
+      alert("Failed to delete team: " + err.message);
+    }
+  };
 
   const handleOpenRegisterModal = () => {
     setFormError(null);
@@ -202,10 +212,10 @@ export default function TeamsManager() {
     {
       key: "actions",
       label: "Actions",
-      width: "140px",
+      width: "210px",
       sortable: false,
       render: (_, row) => (
-        <div style={{ display: "flex", gap: "8px" }}>
+        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
           {row.status === "Pending" && (
             <Button variant="outline" size="sm" onClick={() => handleUpdateStatus(row.team_id || row.id, "Approved")}>
               Approve
@@ -213,6 +223,15 @@ export default function TeamsManager() {
           )}
           <Button variant="ghost" size="sm" icon={Eye} onClick={() => handleViewRoster(row)}>
             Roster
+          </Button>
+          <Button
+            variant="danger"
+            size="sm"
+            icon={Trash2}
+            onClick={() => handleDeleteTeam(row.team_id || row.id)}
+            title="Delete Team"
+          >
+            Delete
           </Button>
         </div>
       )

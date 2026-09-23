@@ -2,22 +2,6 @@ import pool from '../../config/db.js';
 
 export const getAllEvents = async () => {
     try {
-        await pool.execute(`
-            CREATE TABLE IF NOT EXISTS events (
-                event_id INT AUTO_INCREMENT PRIMARY KEY,
-                tournament_id INT NOT NULL,
-                sport_id INT NOT NULL,
-                name VARCHAR(255) NOT NULL,
-                category ENUM('Men', 'Women', 'Mixed', 'Open') DEFAULT 'Open',
-                registration_status ENUM('Open', 'Closed') DEFAULT 'Open',
-                min_players INT DEFAULT 1,
-                max_players INT DEFAULT 15,
-                max_teams INT DEFAULT 32,
-                rules TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        `);
-
         const sql = `
             SELECT 
                 e.event_id,
@@ -39,13 +23,21 @@ export const getAllEvents = async () => {
                 e.max_teams AS maxTeams,
                 (SELECT COUNT(*) FROM teams tm WHERE tm.sport_id = e.sport_id) AS registeredTeams,
                 e.rules,
+                e.start_time,
+                e.start_time AS startTime,
+                e.end_time,
+                e.end_time AS endTime,
+                e.duration_minutes,
+                e.duration_minutes AS durationMinutes,
+                COALESCE(e.reg_deadline, t.start_date) AS regDeadline,
+                COALESCE(e.reg_deadline, t.start_date) AS reg_deadline,
+                e.status_updated_at AS statusUpdatedAt,
+                e.manual_status_override AS manualStatusOverride,
                 e.created_at,
                 COALESCE(t.tier, 'Inter-Department') AS eventCategory,
                 COALESCE(t.tier, 'Inter-Department') AS event_category,
                 t.name AS tournament_name,
                 t.name AS tournamentName,
-                COALESCE(DATE_FORMAT(t.start_date, '%Y-%m-%d'), '2026-09-30') AS regDeadline,
-                COALESCE(DATE_FORMAT(t.start_date, '%Y-%m-%d'), '2026-09-30') AS reg_deadline,
                 s.name AS sport_name,
                 s.name AS sportName
             FROM events e
@@ -75,11 +67,18 @@ export const createEventSql = async (eventData) => {
     const minPlayers = Number(eventData.min_players || eventData.minPlayers) || 1;
     const maxPlayers = Number(eventData.max_players || eventData.maxPlayers) || 15;
     const maxTeams = Number(eventData.max_teams || eventData.maxTeams) || 32;
+    const durationMinutes = Number(eventData.duration_minutes || eventData.durationMinutes) || 120;
+    const startTime = eventData.start_time || eventData.startTime || null;
+    const endTime = eventData.end_time || eventData.endTime || null;
+    const regDeadline = eventData.reg_deadline || eventData.regDeadline || null;
     const rules = eventData.rules || null;
 
     const sql = `
-        INSERT INTO events (tournament_id, sport_id, name, category, registration_status, min_players, max_players, max_teams, rules)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO events (
+            tournament_id, sport_id, name, category, registration_status, 
+            min_players, max_players, max_teams, duration_minutes, start_time, end_time, reg_deadline, rules
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const [result] = await pool.execute(sql, [
         tourId,
@@ -90,6 +89,10 @@ export const createEventSql = async (eventData) => {
         minPlayers,
         maxPlayers,
         maxTeams,
+        durationMinutes,
+        startTime,
+        endTime,
+        regDeadline,
         rules
     ]);
     return result.insertId;
@@ -117,13 +120,21 @@ export const getEventByIdSql = async (eventId) => {
             e.max_teams AS maxTeams,
             (SELECT COUNT(*) FROM teams tm WHERE tm.sport_id = e.sport_id) AS registeredTeams,
             e.rules,
+            e.start_time,
+            e.start_time AS startTime,
+            e.end_time,
+            e.end_time AS endTime,
+            e.duration_minutes,
+            e.duration_minutes AS durationMinutes,
+            COALESCE(e.reg_deadline, t.start_date) AS regDeadline,
+            COALESCE(e.reg_deadline, t.start_date) AS reg_deadline,
+            e.status_updated_at AS statusUpdatedAt,
+            e.manual_status_override AS manualStatusOverride,
             e.created_at,
             COALESCE(t.tier, 'Inter-Department') AS eventCategory,
             COALESCE(t.tier, 'Inter-Department') AS event_category,
             t.name AS tournament_name,
             t.name AS tournamentName,
-            COALESCE(DATE_FORMAT(t.start_date, '%Y-%m-%d'), '2026-09-30') AS regDeadline,
-            COALESCE(DATE_FORMAT(t.start_date, '%Y-%m-%d'), '2026-09-30') AS reg_deadline,
             s.name AS sport_name,
             s.name AS sportName
         FROM events e
@@ -148,7 +159,13 @@ export const updateEventSql = async (eventId, eventData) => {
             min_players = COALESCE(?, min_players),
             max_players = COALESCE(?, max_players),
             max_teams = COALESCE(?, max_teams),
-            rules = COALESCE(?, rules)
+            duration_minutes = COALESCE(?, duration_minutes),
+            start_time = COALESCE(?, start_time),
+            end_time = COALESCE(?, end_time),
+            reg_deadline = COALESCE(?, reg_deadline),
+            rules = COALESCE(?, rules),
+            status_updated_at = NOW(),
+            manual_status_override = COALESCE(?, manual_status_override)
         WHERE event_id = ?
     `;
     const [result] = await pool.execute(sql, [
@@ -160,7 +177,12 @@ export const updateEventSql = async (eventId, eventData) => {
         eventData.min_players || eventData.minPlayers || null,
         eventData.max_players || eventData.maxPlayers || null,
         eventData.max_teams || eventData.maxTeams || null,
+        eventData.duration_minutes || eventData.durationMinutes || null,
+        eventData.start_time || eventData.startTime || null,
+        eventData.end_time || eventData.endTime || null,
+        eventData.reg_deadline || eventData.regDeadline || null,
         eventData.rules !== undefined ? eventData.rules : null,
+        eventData.manual_status_override !== undefined ? (eventData.manual_status_override ? 1 : 0) : null,
         eventId
     ]);
     return result.affectedRows > 0;
@@ -173,8 +195,13 @@ export const deleteEventSql = async (eventId) => {
 };
 
 export const updateEventStatusSql = async (eventId, status) => {
-    const sql = `UPDATE events SET registration_status = ? WHERE event_id = ?`;
+    const sql = `
+        UPDATE events 
+        SET registration_status = ?, 
+            status_updated_at = NOW(), 
+            manual_status_override = 1 
+        WHERE event_id = ?
+    `;
     const [result] = await pool.execute(sql, [status, eventId]);
     return result.affectedRows > 0;
 };
-

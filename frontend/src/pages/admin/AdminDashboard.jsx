@@ -1,18 +1,62 @@
-import React, { useEffect, useState } from "react";
+import React, { useMemo } from "react";
 import { StatCard, Card } from "../../components/common/Card";
 import Button from "../../components/common/Button";
 import Badge from "../../components/common/Badge";
 import Table from "../../components/common/Table";
-import { tournamentsApi, teamsApi, matchesApi, sportsApi } from "../../services/api/apiServices";
+import { tournamentsApi, teamsApi, matchesApi, sportsApi, eventsApi } from "../../services/api/apiServices";
 import { useAuth } from "../../context/AuthContext";
 import { Trophy, Calendar, CheckSquare, Users, Plus, Radio, ArrowRight, Activity, Award } from "lucide-react";
 import ErrorState from "../../components/common/ErrorState";
 import EmptyState from "../../components/common/EmptyState";
+import { useAutoRefresh } from "../../hooks/useAutoRefresh";
 import "./AdminPortal.css";
 
 export default function AdminDashboard({ onNavigate }) {
   const { t } = useAuth();
-  const [stats, setStats] = useState({
+
+  const fetchDashboardData = async () => {
+    const [tournaments = [], teams = [], matches = [], venues = [], sports = [], events = []] = await Promise.all([
+      tournamentsApi.getTournaments().catch(err => { console.warn("[AdminDashboard] Failed to fetch tournaments:", err); return []; }),
+      teamsApi.getTeams().catch(err => { console.warn("[AdminDashboard] Failed to fetch teams:", err); return []; }),
+      matchesApi.getMatches().catch(err => { console.warn("[AdminDashboard] Failed to fetch matches:", err); return []; }),
+      sportsApi.getVenues().catch(err => { console.warn("[AdminDashboard] Failed to fetch venues:", err); return []; }),
+      sportsApi.getSports().catch(err => { console.warn("[AdminDashboard] Failed to fetch sports:", err); return []; }),
+      eventsApi.getEvents().catch(err => { console.warn("[AdminDashboard] Failed to fetch events:", err); return []; })
+    ]);
+
+    const teamList = Array.isArray(teams) ? teams : [];
+    const tournamentList = Array.isArray(tournaments) ? tournaments : [];
+    const matchList = Array.isArray(matches) ? matches : [];
+    const venueList = Array.isArray(venues) ? venues : [];
+    const sportList = Array.isArray(sports) ? sports : [];
+    const eventList = Array.isArray(events) ? events : [];
+
+    const pending = teamList.filter(t => t.status === "Pending");
+    const activeEventsCount = eventList.filter(e => {
+      const st = (e.status || e.registration_status || "").toLowerCase();
+      return st === "open" || st === "registration open" || st === "ongoing";
+    }).length;
+
+    return {
+      pendingTeams: pending,
+      stats: {
+        tournamentsCount: tournamentList.length,
+        openRegsCount: activeEventsCount,
+        pendingApprovals: pending.length,
+        upcomingMatches: matchList.filter(m => m.status === "Scheduled" || m.status === "Ongoing").length,
+        totalTeams: teamList.length,
+        totalVenues: venueList.length,
+        totalSports: sportList.length
+      }
+    };
+  };
+
+  const { data: dashboardData, loading, error } = useAutoRefresh(
+    fetchDashboardData,
+    { interval: 20000 }
+  );
+
+  const stats = dashboardData?.stats || {
     tournamentsCount: 0,
     openRegsCount: 0,
     pendingApprovals: 0,
@@ -20,50 +64,9 @@ export default function AdminDashboard({ onNavigate }) {
     totalTeams: 0,
     totalVenues: 0,
     totalSports: 0
-  });
-
-  const [pendingTeams, setPendingTeams] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  const fetchDashboardData = () => {
-    setLoading(true);
-    setError(null);
-    Promise.all([
-      tournamentsApi.getTournaments().catch(err => { console.warn("[AdminDashboard] Failed to fetch tournaments:", err); return []; }),
-      teamsApi.getTeams().catch(err => { console.warn("[AdminDashboard] Failed to fetch teams:", err); return []; }),
-      matchesApi.getMatches().catch(err => { console.warn("[AdminDashboard] Failed to fetch matches:", err); return []; }),
-      sportsApi.getVenues().catch(err => { console.warn("[AdminDashboard] Failed to fetch venues:", err); return []; }),
-      sportsApi.getSports().catch(err => { console.warn("[AdminDashboard] Failed to fetch sports:", err); return []; })
-    ]).then(([tournaments = [], teams = [], matches = [], venues = [], sports = []]) => {
-      const teamList = Array.isArray(teams) ? teams : [];
-      const tournamentList = Array.isArray(tournaments) ? tournaments : [];
-      const matchList = Array.isArray(matches) ? matches : [];
-      const venueList = Array.isArray(venues) ? venues : [];
-      const sportList = Array.isArray(sports) ? sports : [];
-
-      const pending = teamList.filter(t => t.status === "Pending");
-      setPendingTeams(pending);
-      setStats({
-        tournamentsCount: tournamentList.length,
-        openRegsCount: tournamentList.filter(t => t.status === "Registration Open" || t.status === "Ongoing").length,
-        pendingApprovals: pending.length,
-        upcomingMatches: matchList.filter(m => m.status === "Scheduled" || m.status === "Ongoing").length,
-        totalTeams: teamList.length,
-        totalVenues: venueList.length,
-        totalSports: sportList.length
-      });
-      setLoading(false);
-    }).catch(err => {
-      console.error(err);
-      setError(err.message);
-      setLoading(false);
-    });
   };
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
+  const pendingTeams = dashboardData?.pendingTeams || [];
 
   const pendingColumns = [
     { key: "deptCode", label: "Dept", width: "90px", render: (val) => <strong>{val}</strong> },

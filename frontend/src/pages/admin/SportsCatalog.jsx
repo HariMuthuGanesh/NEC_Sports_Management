@@ -6,7 +6,7 @@ import Badge from "../../components/common/Badge";
 import Button from "../../components/common/Button";
 import { Modal } from "../../components/common/Modal";
 import ErrorState from "../../components/common/ErrorState";
-import { Plus, Trophy, Users, Trash2 } from "lucide-react";
+import { Plus, Trophy, Users, Trash2, Edit2 } from "lucide-react";
 import "./AdminPortal.css";
 
 export default function SportsCatalog() {
@@ -15,6 +15,7 @@ export default function SportsCatalog() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingSport, setEditingSport] = useState(null);
 
   const [name, setName] = useState("");
   const [category, setCategory] = useState("Team");
@@ -38,22 +39,48 @@ export default function SportsCatalog() {
     });
   };
 
-  const handleAddSport = (e) => {
+  const openAddModal = () => {
+    setEditingSport(null);
+    setName("");
+    setCategory("Team");
+    setMinPlayers(11);
+    setMaxPlayers(18);
+    setIsModalOpen(true);
+  };
+
+  const openEditModal = (sport) => {
+    setEditingSport(sport);
+    setName(sport.name || "");
+    setCategory(sport.category || "Team");
+    setMinPlayers(sport.min_players ?? 11);
+    setMaxPlayers(sport.max_players ?? 18);
+    setIsModalOpen(true);
+  };
+
+  const handleSaveSport = (e) => {
     e.preventDefault();
     if (!name.trim()) return;
 
-    sportsApi.addSport({
-      name,
+    const payload = {
+      name: name.trim(),
       category,
       min_players: Number(minPlayers),
       max_players: Number(maxPlayers),
-      points_rule: "Standard"
-    }).then(() => {
+      points_rule: editingSport?.points_rule || "Standard",
+      captain_user_id: editingSport?.captain_user_id || null
+    };
+
+    const action = editingSport
+      ? sportsApi.updateSport(editingSport.sport_id, payload)
+      : sportsApi.addSport(payload);
+
+    action.then(() => {
       setIsModalOpen(false);
+      setEditingSport(null);
       setName("");
       loadSports();
     }).catch(err => {
-      alert("Failed to add sport: " + err.message);
+      alert(`Failed to ${editingSport ? "update" : "add"} sport: ` + err.message);
     });
   };
 
@@ -72,23 +99,32 @@ export default function SportsCatalog() {
       key: "category",
       label: "Sport Category",
       width: "180px",
-      render: (val) => (
-        <Badge status={val === "Team" ? "info" : "neutral"}>
-          {val} Sport
-        </Badge>
-      )
+      render: (val) => {
+        const raw = String(val || "Open").replace(/ Sport$/i, "").trim();
+        const badgeStatus = raw === "Men" ? "info" : raw === "Women" ? "warning" : raw === "Open" ? "success" : raw === "Mixed" ? "live" : "neutral";
+        return (
+          <Badge status={badgeStatus}>
+            {raw} Sport
+          </Badge>
+        );
+      }
     },
     { key: "min_players", label: t.minSquadSize || "Min Squad Size", width: "140px", render: (val) => <span>{val} Players</span> },
     { key: "max_players", label: t.maxRosterLimit || "Max Roster Limit", width: "140px", render: (val) => <span>{val} Athletes</span> },
     {
       key: "actions",
       label: t.actions || "Actions",
-      width: "100px",
+      width: "180px",
       sortable: false,
       render: (_, row) => (
-        <Button variant="danger" size="sm" icon={Trash2} onClick={() => handleRemoveSport(row.sport_id)}>
-          {t.delete || "Remove"}
-        </Button>
+        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+          <Button variant="outline" size="sm" icon={Edit2} onClick={() => openEditModal(row)}>
+            {t.edit || "Edit"}
+          </Button>
+          <Button variant="danger" size="sm" icon={Trash2} onClick={() => handleRemoveSport(row.sport_id)}>
+            {t.delete || "Delete"}
+          </Button>
+        </div>
       )
     }
   ];
@@ -100,7 +136,7 @@ export default function SportsCatalog() {
           <h2 className="nec-page-title">{t.necSportsCatalog || "NEC Sports Catalog"}</h2>
           <p className="nec-page-desc">Manage institutional sports catalog, squad rules, and roster size limits.</p>
         </div>
-        <Button variant="primary" icon={Plus} onClick={() => setIsModalOpen(true)}>
+        <Button variant="primary" icon={Plus} onClick={openAddModal}>
           {t.addNewSport || "Add New Sport"}
         </Button>
       </div>
@@ -121,10 +157,13 @@ export default function SportsCatalog() {
 
       <Modal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title="Add New Sport to Catalog"
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingSport(null);
+        }}
+        title={editingSport ? `Edit Sport: ${editingSport.name}` : "Add New Sport to Catalog"}
       >
-        <form onSubmit={handleAddSport} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+        <form onSubmit={handleSaveSport} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
           <div>
             <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: "4px" }}>Sport Name</label>
             <input
@@ -139,13 +178,17 @@ export default function SportsCatalog() {
           </div>
 
           <div>
-            <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: "4px" }}>Sport Category</label>
+            <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: "4px" }}>Sport Category / Division</label>
             <select
               className="nec-table-search-input"
               style={{ maxWidth: "100%" }}
               value={category}
               onChange={(e) => setCategory(e.target.value)}
             >
+              <option value="Men">Men Sport</option>
+              <option value="Women">Women Sport</option>
+              <option value="Open">Open Sport (Co-Ed)</option>
+              <option value="Mixed">Mixed Sport</option>
               <option value="Team">Team Sport</option>
               <option value="Individual / Doubles">Individual / Doubles</option>
               <option value="Individual">Individual Sport</option>
@@ -158,6 +201,7 @@ export default function SportsCatalog() {
               <input
                 type="number"
                 required
+                min="1"
                 className="nec-table-search-input"
                 style={{ maxWidth: "100%" }}
                 value={minPlayers}
@@ -169,6 +213,7 @@ export default function SportsCatalog() {
               <input
                 type="number"
                 required
+                min="1"
                 className="nec-table-search-input"
                 style={{ maxWidth: "100%" }}
                 value={maxPlayers}
@@ -178,8 +223,13 @@ export default function SportsCatalog() {
           </div>
 
           <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "8px" }}>
-            <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-            <Button type="submit" variant="primary">Add Sport</Button>
+            <Button variant="outline" onClick={() => {
+              setIsModalOpen(false);
+              setEditingSport(null);
+            }}>Cancel</Button>
+            <Button type="submit" variant="primary">
+              {editingSport ? "Save Changes" : "Add Sport"}
+            </Button>
           </div>
         </form>
       </Modal>

@@ -6,7 +6,7 @@ import Button from "../../components/common/Button";
 import { Modal, ConfirmDialog } from "../../components/common/Modal";
 import ErrorState from "../../components/common/ErrorState";
 import EmptyState from "../../components/common/EmptyState";
-import { Check, X, Eye } from "lucide-react";
+import { Check, X, Eye, Trash2 } from "lucide-react";
 import "./AdminPortal.css";
 
 export default function RegistrationsManager() {
@@ -43,6 +43,15 @@ export default function RegistrationsManager() {
     });
   };
 
+  const handleDeleteTeam = (teamId) => {
+    if (!window.confirm("Are you sure you want to permanently delete this team and its roster assignments?")) return;
+    teamsApi.deleteTeam(teamId).then(() => {
+      loadTeams();
+    }).catch(err => {
+      alert("Failed to delete team: " + err.message);
+    });
+  };
+
   const handleAction = () => {
     const { teamId, action } = confirmDialog;
     if (!teamId || !action) return;
@@ -73,10 +82,10 @@ export default function RegistrationsManager() {
     {
       key: "actions",
       label: "Actions",
-      width: "200px",
+      width: "230px",
       sortable: false,
       render: (_, row) => (
-        <div style={{ display: "flex", gap: "6px" }}>
+        <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
           <Button variant="ghost" size="sm" icon={Eye} onClick={() => handleViewRoster(row)}>
             Roster
           </Button>
@@ -100,6 +109,15 @@ export default function RegistrationsManager() {
               </Button>
             </>
           )}
+          <Button
+            variant="danger"
+            size="sm"
+            icon={Trash2}
+            onClick={() => handleDeleteTeam(row.id || row.team_id)}
+            title="Delete Team"
+          >
+            Delete
+          </Button>
         </div>
       )
     }

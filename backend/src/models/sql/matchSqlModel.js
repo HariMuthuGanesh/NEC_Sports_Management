@@ -17,9 +17,12 @@ export const createMatch = async (data) => {
         venue_id,
         venue_name,
         scheduled_time,
+        duration_minutes = 60,
+        scheduled_end_time,
         round = 'League',
         pool: matchPool = 'Pool A',
-        status = 'Scheduled'
+        status = 'Scheduled',
+        manual_status_override = 0
     } = data;
 
     // Resolve sport_id if only a name was provided
@@ -53,9 +56,18 @@ export const createMatch = async (data) => {
         if (venue) resolvedVenueId = venue.venue_id;
     }
 
+    const durationNum = parseInt(duration_minutes, 10) || 60;
+    const computedEndTime = scheduled_end_time || null;
+
     const sql = `
-        INSERT INTO matches (tournament_id, sport_id, team_a_id, team_b_id, venue_id, scheduled_time, round, pool, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO matches (
+            tournament_id, sport_id, team_a_id, team_b_id, venue_id, 
+            scheduled_time, duration_minutes, scheduled_end_time, round, pool, status, manual_status_override
+        )
+        VALUES (
+            ?, ?, ?, ?, ?, 
+            ?, ?, COALESCE(?, DATE_ADD(?, INTERVAL ? MINUTE)), ?, ?, ?, ?
+        )
     `;
     const [result] = await pool.execute(sql, [
         tournament_id,
@@ -64,9 +76,14 @@ export const createMatch = async (data) => {
         resolvedTeamBId,
         resolvedVenueId,
         scheduled_time,
+        durationNum,
+        computedEndTime,
+        scheduled_time,
+        durationNum,
         round,
         matchPool,
-        status
+        status,
+        manual_status_override ? 1 : 0
     ]);
     return result.insertId;
 };
@@ -87,6 +104,10 @@ export const getAllMatches = async () => {
             m.sport_id AS sportId,
             m.scheduled_time,
             m.scheduled_time AS date,
+            m.duration_minutes,
+            m.duration_minutes AS durationMinutes,
+            m.scheduled_end_time,
+            m.scheduled_end_time AS scheduledEndTime,
             m.round,
             COALESCE(m.pool, 'Pool A') AS pool,
             m.score_a,
@@ -94,6 +115,8 @@ export const getAllMatches = async () => {
             m.score_b,
             m.score_b AS scoreB,
             m.status,
+            m.status_updated_at AS statusUpdatedAt,
+            m.manual_status_override AS manualStatusOverride,
             m.detail_score,
             m.detail_score AS detailScore,
             m.winner_team_id,
@@ -136,6 +159,10 @@ export const getMatchesByTournament = async (tournamentId) => {
             m.sport_id AS sportId,
             m.scheduled_time,
             m.scheduled_time AS date,
+            m.duration_minutes,
+            m.duration_minutes AS durationMinutes,
+            m.scheduled_end_time,
+            m.scheduled_end_time AS scheduledEndTime,
             m.round,
             COALESCE(m.pool, 'Pool A') AS pool,
             m.score_a,
@@ -143,6 +170,8 @@ export const getMatchesByTournament = async (tournamentId) => {
             m.score_b,
             m.score_b AS scoreB,
             m.status,
+            m.status_updated_at AS statusUpdatedAt,
+            m.manual_status_override AS manualStatusOverride,
             m.detail_score,
             m.detail_score AS detailScore,
             m.winner_team_id,
@@ -176,12 +205,17 @@ export const getMatchesByTournament = async (tournamentId) => {
 };
 
 export const updateMatchScore = async ({ matchId, scoreA, scoreB, detailScore, status, winnerTeamId, updatedBy }) => {
+    const isManualStatus = status === 'Completed' || status === 'Ongoing' || status === 'Postponed';
     const sql = `
         UPDATE matches
-        SET score_a = ?, score_b = ?, detail_score = ?, status = ?, winner_team_id = ?, updated_by = ?
+        SET score_a = ?, score_b = ?, detail_score = ?, status = ?, winner_team_id = ?, updated_by = ?, 
+            status_updated_at = NOW(), manual_status_override = ?
         WHERE match_id = ?
     `;
-    const [result] = await pool.execute(sql, [scoreA, scoreB, detailScore, status, winnerTeamId, updatedBy, matchId]);
+    const [result] = await pool.execute(sql, [
+        scoreA, scoreB, detailScore, status, winnerTeamId, updatedBy, 
+        isManualStatus ? 1 : 0, matchId
+    ]);
     return result.affectedRows > 0;
 };
 

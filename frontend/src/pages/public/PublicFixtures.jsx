@@ -1,38 +1,25 @@
-import React, { useEffect, useState } from "react";
+import React, { useMemo } from "react";
 import { matchesApi } from "../../services/api/apiServices";
 import Table from "../../components/common/Table";
 import Badge from "../../components/common/Badge";
 import PublicInfoCard from "../../components/common/PublicInfoCard";
 import { Calendar } from "lucide-react";
+import { useAutoRefresh } from "../../hooks/useAutoRefresh";
 
 export default function PublicFixtures({ departmentCode }) {
-  const [matches, setMatches] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const { data: rawMatches, loading, error } = useAutoRefresh(
+    () => matchesApi.getMatches(),
+    { interval: 15000, deps: [departmentCode] }
+  );
 
-  const fetchMatches = () => {
-    setLoading(true);
-    setError(null);
-    matchesApi.getMatches()
-      .then(data => {
-        const scheduledMatches = data.filter((match) => match.status === "Scheduled");
-        // "All" is the public guest's default dept value — treat it the same as no filter.
-        const effectiveDept = departmentCode && departmentCode !== "All" ? departmentCode : null;
-        setMatches(effectiveDept
-          ? scheduledMatches.filter((match) => match.deptA === effectiveDept || match.deptB === effectiveDept)
-          : scheduledMatches);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error(err);
-        setError(err.message);
-        setLoading(false);
-      });
-  };
-
-  useEffect(() => {
-    fetchMatches();
-  }, [departmentCode]);
+  const matches = useMemo(() => {
+    if (!rawMatches || !Array.isArray(rawMatches)) return [];
+    const scheduledMatches = rawMatches.filter((match) => match.status === "Scheduled");
+    const effectiveDept = departmentCode && departmentCode !== "All" ? departmentCode : null;
+    return effectiveDept
+      ? scheduledMatches.filter((match) => match.deptA === effectiveDept || match.deptB === effectiveDept)
+      : scheduledMatches;
+  }, [rawMatches, departmentCode]);
 
   const columns = [
     { key: "date", label: "Date & Time" },

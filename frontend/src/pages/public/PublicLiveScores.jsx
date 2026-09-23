@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback } from "react";
 import { matchesApi } from "../../services/api/apiServices";
 import { useAuth } from "../../context/AuthContext";
+import { useAutoRefresh } from "../../hooks/useAutoRefresh";
 import { Card } from "../../components/common/Card";
 import Badge from "../../components/common/Badge";
 import SkeletonLoader from "../../components/common/SkeletonLoader";
@@ -10,26 +11,14 @@ import "./PublicPortal.css";
 
 export default function PublicLiveScores({ onNavigate }) {
   const { t } = useAuth();
-  const [matches, setMatches] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  const fetchMatches = () => {
-    setLoading(true);
-    setError(null);
-    matchesApi.getMatches().then(data => {
-      setMatches(data);
-      setLoading(false);
-    }).catch(err => {
-      console.error(err);
-      setError(err.message);
-      setLoading(false);
-    });
-  };
-
-  useEffect(() => {
-    fetchMatches();
+  
+  const fetchMatches = useCallback(async () => {
+    const res = await matchesApi.getMatches();
+    return Array.isArray(res) ? res : [];
   }, []);
+
+  const { data: matchesData, loading, error } = useAutoRefresh(fetchMatches, { interval: 15000 });
+  const matches = matchesData || [];
 
   const liveList = matches.filter(m => m.status === "Ongoing");
   const recentList = matches.filter(m => m.status === "Completed");

@@ -1,5 +1,6 @@
 import express from 'express';
 import { protect, authorize, requireAdminScope } from '../middleware/authMiddleware.js';
+import { syncScheduledStatuses } from '../services/scheduledStatusService.js';
 import {
     getSports,
     getTournaments,
@@ -283,6 +284,16 @@ router.delete('/my-squad/members/:studentId', protect, authorize('Captain'), rem
 // ── College Team Builder Routes (Real match_attendance Data) ──────────────
 router.get('/college-teams/:sportId/suggestions', protect, authorize('Admin', 'President'), requireAdminScope('CollegeTeamOnly'), getCollegeTeamSuggestionsV2);
 router.post('/college-teams/:sportId/confirm', protect, authorize('Admin', 'President'), requireAdminScope('CollegeTeamOnly'), confirmCollegeTeamV2);
+
+// ── System & Real-Time Scheduled Status Synchronization ────────────────────
+router.post('/system/sync-scheduled-statuses', protect, authorize('Admin'), async (req, res, next) => {
+    try {
+        const result = await syncScheduledStatuses();
+        return res.json(result);
+    } catch (err) {
+        next(err);
+    }
+});
 
 export default router;
 

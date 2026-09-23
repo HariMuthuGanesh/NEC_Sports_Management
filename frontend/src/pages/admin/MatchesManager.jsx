@@ -31,11 +31,33 @@ export default function MatchesManager() {
   const [round, setRound] = useState("League");
 
   useEffect(() => {
-    loadData();
+    loadData(false);
+
+    // Auto-refresh match statuses every 15 seconds
+    const intervalId = setInterval(() => {
+      if (typeof document !== "undefined" && !document.hidden) {
+        loadData(true);
+      }
+    }, 15000);
+
+    const handleFocus = () => {
+      if (!document.hidden) loadData(true);
+    };
+
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleFocus);
+
+    return () => {
+      clearInterval(intervalId);
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleFocus);
+    };
   }, []);
 
-  const loadData = () => {
-    setLoading(true);
+  const loadData = (isBackground = false) => {
+    if (!isBackground) {
+      setLoading(true);
+    }
     setError(null);
     Promise.all([
       matchesApi.getMatches().catch(err => { console.warn("[MatchesManager] Failed to fetch matches:", err); return []; }),
@@ -52,16 +74,18 @@ export default function MatchesManager() {
       setVenues(safeVenues);
       setTeams(safeTeams);
       setTournaments(safeTournaments);
-      if (safeTeams.length >= 2) {
-        setTeamA(safeTeams[0].name);
-        setTeamB(safeTeams[1].name);
+      if (!isBackground) {
+        if (safeTeams.length >= 2) {
+          setTeamA(safeTeams[0].name);
+          setTeamB(safeTeams[1].name);
+        }
+        if (safeVenues.length > 0) setVenue(safeVenues[0].name);
+        if (safeTournaments.length > 0) setTournamentId(String(safeTournaments[0].id || safeTournaments[0].tournament_id));
       }
-      if (safeVenues.length > 0) setVenue(safeVenues[0].name);
-      if (safeTournaments.length > 0) setTournamentId(String(safeTournaments[0].id || safeTournaments[0].tournament_id));
       setLoading(false);
     }).catch(err => {
       console.error(err);
-      setError(err.message);
+      if (!isBackground) setError(err.message);
       setLoading(false);
     });
   };

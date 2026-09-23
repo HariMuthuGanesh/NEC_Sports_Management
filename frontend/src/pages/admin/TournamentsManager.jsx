@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { 
   tournamentsApi, 
   teamsApi, 
@@ -25,7 +25,11 @@ import {
   ArrowLeft,
   Edit,
   Check,
-  Award
+  Award,
+  Search,
+  ArrowUpDown,
+  Filter,
+  X
 } from "lucide-react";
 import "./AdminPortal.css";
 import "./TournamentsManager.css";
@@ -36,6 +40,13 @@ export default function TournamentsManager() {
   const [selectedTournament, setSelectedTournament] = useState(null);
   const [activeTab, setActiveTab] = useState("teams"); // 'teams' | 'fixtures'
   
+  // Search, Filter & Sort States
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [tierFilter, setTierFilter] = useState("ALL");
+  const [yearFilter, setYearFilter] = useState("ALL");
+  const [sortBy, setSortBy] = useState("created_desc"); // 'created_desc' | 'created_asc' | 'az' | 'za' | 'date_asc' | 'date_desc'
+
   // Data for selected tournament
   const [registeredTeams, setRegisteredTeams] = useState([]);
   const [tournamentMatches, setTournamentMatches] = useState([]);
@@ -243,6 +254,89 @@ export default function TournamentsManager() {
       setTimeout(() => setError(null), 4000);
     }
   };
+
+  // ─────────────────────────────────────────────────────────────
+  // Filter, Search & Sort Logic (MUST BE AT TOP LEVEL BEFORE CONDITIONAL RETURNS)
+  // ─────────────────────────────────────────────────────────────
+  const availableYears = useMemo(() => {
+    const years = new Set(tournaments.map(t => t.academicYear || t.academic_year).filter(Boolean));
+    return Array.from(years).sort().reverse();
+  }, [tournaments]);
+
+  const availableTiers = useMemo(() => {
+    const tiers = new Set(tournaments.map(t => t.eventCategory || t.tier).filter(Boolean));
+    return Array.from(tiers).sort();
+  }, [tournaments]);
+
+  const hasActiveFilters = searchQuery.trim() !== "" || statusFilter !== "ALL" || tierFilter !== "ALL" || yearFilter !== "ALL" || sortBy !== "created_desc";
+
+  const resetFilters = () => {
+    setSearchQuery("");
+    setStatusFilter("ALL");
+    setTierFilter("ALL");
+    setYearFilter("ALL");
+    setSortBy("created_desc");
+  };
+
+  const filteredTournaments = useMemo(() => {
+    let list = [...tournaments];
+
+    // 1. Search filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      list = list.filter(item => {
+        const title = (item.title || item.name || "").toLowerCase();
+        const org = (item.organizer || "").toLowerCase();
+        const tier = (item.eventCategory || item.tier || "").toLowerCase();
+        const year = (item.academicYear || item.academic_year || "").toLowerCase();
+        return title.includes(q) || org.includes(q) || tier.includes(q) || year.includes(q);
+      });
+    }
+
+    // 2. Status filter
+    if (statusFilter !== "ALL") {
+      list = list.filter(item => (item.status || "Upcoming").toLowerCase() === statusFilter.toLowerCase());
+    }
+
+    // 3. Tier / Category filter
+    if (tierFilter !== "ALL") {
+      list = list.filter(item => (item.eventCategory || item.tier || "").toLowerCase() === tierFilter.toLowerCase());
+    }
+
+    // 4. Academic Year filter
+    if (yearFilter !== "ALL") {
+      list = list.filter(item => (item.academicYear || item.academic_year || "") === yearFilter);
+    }
+
+    // 5. Sorting
+    list.sort((a, b) => {
+      const nameA = (a.title || a.name || "").trim().toLowerCase();
+      const nameB = (b.title || b.name || "").trim().toLowerCase();
+      const timeA = new Date(a.created_at || a.createdAt || a.startDate || a.start_date || 0).getTime();
+      const timeB = new Date(b.created_at || b.createdAt || b.startDate || b.start_date || 0).getTime();
+      const dateA = new Date(a.startDate || a.start_date || 0).getTime();
+      const dateB = new Date(b.startDate || b.start_date || 0).getTime();
+
+      switch (sortBy) {
+        case "az":
+          return nameA.localeCompare(nameB);
+        case "za":
+          return nameB.localeCompare(nameA);
+        case "created_asc":
+          return timeA - timeB;
+        case "created_desc":
+          return timeB - timeA;
+        case "date_asc":
+          return dateA - dateB;
+        case "date_desc":
+          return dateB - dateA;
+        default:
+          return timeB - timeA;
+      }
+    });
+
+    return list;
+  }, [tournaments, searchQuery, statusFilter, tierFilter, yearFilter, sortBy]);
 
   // ─────────────────────────────────────────────────────────────
   // 1. Unified Tournament Detail Workspace View
@@ -638,6 +732,117 @@ export default function TournamentsManager() {
         </div>
       )}
 
+      {/* Search, Filter & Sort Toolbar */}
+      <div className="nec-tournaments-toolbar">
+        <div className="nec-tournaments-controls-row">
+          {/* Search Box */}
+          <div className="nec-tournaments-search-wrap">
+            <Search size={16} className="nec-tournaments-search-icon" />
+            <input
+              type="text"
+              className="nec-tournaments-search-input"
+              placeholder="Search tournaments by name, tier, organizer..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                className="nec-tournaments-clear-btn"
+                onClick={() => setSearchQuery("")}
+                title="Clear search"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+
+          {/* Filters & Sorting */}
+          <div className="nec-tournaments-filters-wrap">
+            {/* Category / Tier Filter */}
+            <div className="nec-tournaments-select-group">
+              <label>Category:</label>
+              <select
+                className="nec-tournaments-filter-select"
+                value={tierFilter}
+                onChange={(e) => setTierFilter(e.target.value)}
+              >
+                <option value="ALL">All Categories</option>
+                {availableTiers.map(tier => (
+                  <option key={tier} value={tier}>{tier}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Status Filter */}
+            <div className="nec-tournaments-select-group">
+              <label>Status:</label>
+              <select
+                className="nec-tournaments-filter-select"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                <option value="ALL">All Statuses</option>
+                <option value="Upcoming">Upcoming</option>
+                <option value="Ongoing">Ongoing</option>
+                <option value="Registration Open">Registration Open</option>
+                <option value="Completed">Completed</option>
+              </select>
+            </div>
+
+            {/* Academic Year Filter */}
+            {availableYears.length > 0 && (
+              <div className="nec-tournaments-select-group">
+                <label>Year:</label>
+                <select
+                  className="nec-tournaments-filter-select"
+                  value={yearFilter}
+                  onChange={(e) => setYearFilter(e.target.value)}
+                >
+                  <option value="ALL">All Years</option>
+                  {availableYears.map(yr => (
+                    <option key={yr} value={yr}>{yr}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Sorting */}
+            <div className="nec-tournaments-select-group">
+              <label>Sort By:</label>
+              <select
+                className="nec-tournaments-filter-select"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+              >
+                <option value="created_desc">Time Added: Newest First</option>
+                <option value="created_asc">Time Added: Oldest First</option>
+                <option value="az">Tournament Name: A → Z</option>
+                <option value="za">Tournament Name: Z → A</option>
+                <option value="date_asc">Start Date: Earliest / Upcoming</option>
+                <option value="date_desc">Start Date: Latest</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Status Bar */}
+        <div className="nec-tournaments-stats-bar">
+          <span>
+            Showing <strong>{filteredTournaments.length}</strong> of <strong>{tournaments.length}</strong> tournaments
+          </span>
+          {hasActiveFilters && (
+            <button
+              type="button"
+              className="nec-tournaments-reset-link"
+              onClick={resetFilters}
+            >
+              Reset all filters
+            </button>
+          )}
+        </div>
+      </div>
+
       {error ? (
         <div style={{ padding: "40px" }}>
           <ErrorState onRetry={loadTournaments} />
@@ -649,9 +854,16 @@ export default function TournamentsManager() {
           <p style={{ color: "var(--nec-text-muted)", margin: "0 0 20px" }}>Get started by creating your first official tournament series.</p>
           <Button variant="primary" icon={Plus} onClick={() => setIsCreateModalOpen(true)}>Create Tournament</Button>
         </div>
+      ) : filteredTournaments.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "50px 20px", background: "var(--nec-surface)", borderRadius: "12px", border: "1px dashed var(--nec-border)" }}>
+          <Filter size={40} color="var(--nec-text-muted)" style={{ margin: "0 auto 12px", opacity: 0.6 }} />
+          <h3 style={{ margin: "0 0 6px" }}>No Matching Tournaments</h3>
+          <p style={{ color: "var(--nec-text-muted)", margin: "0 0 16px" }}>No tournaments matched your current search and filter criteria.</p>
+          <Button variant="outline" size="sm" onClick={resetFilters}>Clear Filters</Button>
+        </div>
       ) : (
         <div className="nec-tournaments-grid">
-          {tournaments.map((t) => (
+          {filteredTournaments.map((t) => (
             <div
               key={t.id || t.tournament_id}
               onClick={() => setSelectedTournament(t)}

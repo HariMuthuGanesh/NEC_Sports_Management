@@ -433,3 +433,9 @@ export const authApi = {
   searchUsers: (query) =>
     apiFetch(`/users/search?q=${encodeURIComponent(query)}`),
 };
+
+/* --- System & Lifecycle Sync API --- */
+export const systemApi = {
+  syncScheduledStatuses: () => apiFetch("/system/sync-scheduled-statuses", "POST")
+};
+
