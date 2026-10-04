@@ -29,21 +29,6 @@ function formatDateTime(val) {
   }
 }
 
-// Sport icon helper for visual distinction
-function getSportIcon(sportName = "") {
-  const s = String(sportName).toLowerCase();
-  if (s.includes("cricket")) return "🏏";
-  if (s.includes("football") || s.includes("soccer")) return "⚽";
-  if (s.includes("badminton")) return "🏸";
-  if (s.includes("volleyball")) return "🏐";
-  if (s.includes("basketball")) return "🏀";
-  if (s.includes("kabaddi")) return "🤼";
-  if (s.includes("chess")) return "♟️";
-  if (s.includes("table tennis")) return "🏓";
-  if (s.includes("athletic") || s.includes("track")) return "🏃";
-  return "🏆";
-}
-
 export default function PublicFixtures({ departmentCode }) {
   const { data: rawMatches, loading, error } = useAutoRefresh(
     () => matchesApi.getMatches(),
@@ -127,10 +112,7 @@ export default function PublicFixtures({ departmentCode }) {
       key: "sport",
       label: "Sport",
       render: (val) => (
-        <div className="nec-fixture-sport-cell">
-          <span className="nec-fixture-sport-icon">{getSportIcon(val)}</span>
-          <span className="nec-fixture-sport-name">{val}</span>
-        </div>
+        <span className="nec-fixture-sport-name" style={{ fontWeight: 600 }}>{val}</span>
       )
     },
     {

@@ -43,6 +43,7 @@ import CoordinatorDashboard from "./pages/coordinator/CoordinatorDashboard";
 import RosterManager from "./pages/coordinator/RosterManager";
 import EventRegistration from "./pages/coordinator/EventRegistration";
 import ScoreEntry from "./pages/coordinator/ScoreEntry";
+import ScoreSheet from "./pages/coordinator/ScoreSheet";
 import AttendanceMarker from "./pages/coordinator/AttendanceMarker";
 import ODRequestPanel from "./pages/coordinator/ODRequestPanel";
 
@@ -125,7 +126,7 @@ function MainApp() {
       setActiveNav("coord_dash");
     } else if (role === ROLES.CAPTAIN && !activeNav.startsWith("captain_") && activeNav !== "coord_matches" && !activeNav.startsWith("public_") && !activeNav.startsWith("team_")) {
       setActiveNav("captain_dash");
-    } else if (role === ROLES.SCORE_UPDATER && activeNav !== "coord_score_entry" && activeNav !== "coord_matches" && !activeNav.startsWith("public_")) {
+    } else if (role === ROLES.SCORE_UPDATER && activeNav !== "coord_score_entry" && activeNav !== "coord_score_sheet" && activeNav !== "coord_matches" && !activeNav.startsWith("public_")) {
       setActiveNav("coord_score_entry");
     } else if (role === ROLES.PLAYER && !activeNav.startsWith("player_") && !activeNav.startsWith("public_") && !activeNav.startsWith("team_")) {
       setActiveNav("player_dash");
@@ -331,7 +332,13 @@ function MainApp() {
       case "coord_score_entry":
         return (
           <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.SCORE_UPDATER]} onRedirectPublic={redirectNav}>
-            <ScoreEntry />
+            <ScoreEntry onNavigate={(nav) => setActiveNav(nav)} />
+          </ProtectedRoute>
+        );
+      case "coord_score_sheet":
+        return (
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.SCORE_UPDATER]} onRedirectPublic={redirectNav}>
+            <ScoreSheet onNavigate={(nav) => setActiveNav(nav)} />
           </ProtectedRoute>
         );
       case "coord_attendance":

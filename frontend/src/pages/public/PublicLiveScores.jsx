@@ -25,21 +25,6 @@ function formatMatchDate(val) {
   }
 }
 
-// Sport icon helper
-function getSportIcon(sportName = "") {
-  const s = String(sportName).toLowerCase();
-  if (s.includes("cricket")) return "🏏";
-  if (s.includes("football") || s.includes("soccer")) return "⚽";
-  if (s.includes("badminton")) return "🏸";
-  if (s.includes("volleyball")) return "🏐";
-  if (s.includes("basketball")) return "🏀";
-  if (s.includes("kabaddi")) return "🤼";
-  if (s.includes("chess")) return "♟️";
-  if (s.includes("table tennis")) return "🏓";
-  if (s.includes("athletic") || s.includes("track")) return "🏃";
-  return "🏆";
-}
-
 export default function PublicLiveScores({ onNavigate }) {
   const { t } = useAuth();
   
@@ -61,7 +46,9 @@ export default function PublicLiveScores({ onNavigate }) {
       </div>
 
       <div className="nec-portal-section">
-        <h3 className="nec-sub-title">🔴 {liveList.length} Live Matches in Progress</h3>
+        <h3 className="nec-sub-title" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <span className="nec-ssb-live-dot" aria-hidden="true" /> {liveList.length} Live Matches in Progress
+        </h3>
         {loading ? (
           <SkeletonLoader rows={2} type="cards" />
         ) : (error || liveList.length === 0) ? (
@@ -77,7 +64,7 @@ export default function PublicLiveScores({ onNavigate }) {
             {liveList.map(m => (
               <Card key={m.id} className="nec-score-card live">
                 <div className="nec-score-head">
-                  <span>{getSportIcon(m.sport)} {m.sport} • {m.round}</span>
+                  <span>{m.sport} • {m.round}</span>
                   <Badge status="live">{t.live || "LIVE SCORE"}</Badge>
                 </div>
                 <div className="nec-score-main">
@@ -92,7 +79,7 @@ export default function PublicLiveScores({ onNavigate }) {
                   </div>
                 </div>
                 <div className="nec-score-foot">
-                  <span>📍 {m.venue}</span>
+                  <span>{m.venue}</span>
                   <span>{m.detailScore}</span>
                 </div>
               </Card>
@@ -102,7 +89,7 @@ export default function PublicLiveScores({ onNavigate }) {
       </div>
 
       <div className="nec-portal-section">
-        <h3 className="nec-sub-title">🏆 Recent Completed Match Results</h3>
+        <h3 className="nec-sub-title">Recent Completed Match Results</h3>
         {loading ? (
           <SkeletonLoader rows={2} />
         ) : (error || recentList.length === 0) ? (
@@ -117,7 +104,7 @@ export default function PublicLiveScores({ onNavigate }) {
             {recentList.map(m => (
               <Card key={m.id} className="nec-score-card completed medium-box">
                 <div className="nec-score-head">
-                  <span>{getSportIcon(m.sport)} {m.sport} • {formatMatchDate(m.date)}</span>
+                  <span>{m.sport} • {formatMatchDate(m.date)}</span>
                   <Badge status="success">Completed</Badge>
                 </div>
                 <div className="nec-score-main">

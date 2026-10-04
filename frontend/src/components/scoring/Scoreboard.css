@@ -1,0 +1,881 @@
+/* ==========================================================================
+   Scoreboard.css
+   Styles for the Sports Score Board page and dedicated full-page Score Sheet.
+   ========================================================================== */
+
+/* ── Page Header ─────────────────────────────────────────────────────────── */
+.nec-ssb-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.nec-ssb-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nec-ssb-sport-label {
+  display: inline-block;
+  margin-left: 10px;
+  padding: 2px 10px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  background: var(--nec-info-bg, #eff6ff);
+  color: var(--nec-blue-accent, #1d4ed8);
+  border-radius: 20px;
+  letter-spacing: 0.02em;
+  vertical-align: middle;
+}
+
+[data-theme="dark"] .nec-ssb-sport-label {
+  background: rgba(59, 130, 246, 0.18);
+  color: #93c5fd;
+}
+
+.nec-ssb-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nec-ssb-match-count {
+  font-size: 0.8rem;
+  color: var(--nec-text-muted);
+}
+
+/* ── Sport Tabs ──────────────────────────────────────────────────────────── */
+.nec-ssb-sport-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.nec-ssb-sport-tab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: var(--nec-surface);
+  border: 1.5px solid var(--nec-border);
+  border-radius: var(--nec-radius-lg);
+  cursor: pointer;
+  font-family: var(--nec-font-body);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--nec-text-muted);
+  transition: all 0.18s ease;
+  outline: none;
+  box-shadow: var(--nec-shadow-sm);
+}
+
+.nec-ssb-sport-tab:hover {
+  border-color: var(--nec-navy);
+  color: var(--nec-navy);
+  background: var(--nec-surface-raised);
+  transform: translateY(-1px);
+}
+
+.nec-ssb-sport-tab.active {
+  background: var(--nec-navy);
+  border-color: var(--nec-navy);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(8, 25, 52, 0.25);
+}
+
+[data-theme="dark"] .nec-ssb-sport-tab {
+  background: var(--nec-solid-card);
+  border-color: var(--nec-border-dark);
+  color: var(--nec-text-muted);
+}
+
+[data-theme="dark"] .nec-ssb-sport-tab:hover {
+  border-color: var(--nec-accent-light);
+  color: var(--nec-accent-light);
+}
+
+[data-theme="dark"] .nec-ssb-sport-tab.active {
+  background: var(--nec-accent-light);
+  border-color: var(--nec-accent-light);
+  color: var(--nec-navy);
+}
+
+.nec-ssb-tab-name {
+  font-weight: 700;
+}
+
+.nec-ssb-tab-count {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.18);
+  color: inherit;
+  opacity: 0.9;
+}
+
+.nec-ssb-sport-tab:not(.active) .nec-ssb-tab-count {
+  background: var(--nec-surface-raised);
+}
+
+/* Pulsing red live indicator */
+.nec-ssb-live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ef4444;
+  box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5);
+  animation: nec-ssb-pulse 1.6s infinite;
+  flex-shrink: 0;
+}
+
+@keyframes nec-ssb-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5); }
+  70%  { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+/* ── Search & Filter Bar ─────────────────────────────────────────────────── */
+.nec-ssb-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.nec-ssb-search-input-wrap {
+  position: relative;
+  flex: 1;
+  max-width: 460px;
+}
+
+.nec-ssb-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--nec-text-muted);
+  pointer-events: none;
+}
+
+.nec-ssb-search-input {
+  width: 100%;
+  padding: 9px 12px 9px 36px;
+  font-size: 0.875rem;
+  font-family: var(--nec-font-body);
+  background: var(--nec-surface);
+  border: 1px solid var(--nec-border);
+  border-radius: var(--nec-radius-md);
+  color: var(--nec-text-main);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.nec-ssb-search-input:focus {
+  outline: none;
+  border-color: var(--nec-navy);
+  box-shadow: 0 0 0 3px rgba(8, 25, 52, 0.08);
+}
+
+[data-theme="dark"] .nec-ssb-search-input {
+  background: var(--nec-surface-raised);
+  border-color: var(--nec-border-dark);
+}
+
+[data-theme="dark"] .nec-ssb-search-input:focus {
+  border-color: var(--nec-accent-light);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+/* ── Full-Width Match Cards Grid ─────────────────────────────────────────── */
+.nec-ssb-matches-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.nec-ssb-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+  gap: 18px;
+}
+
+.nec-ssb-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: var(--nec-surface);
+  border: 1.5px solid var(--nec-border);
+  border-radius: var(--nec-radius-lg);
+  padding: 18px 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: var(--nec-shadow-sm);
+  outline: none;
+}
+
+.nec-ssb-card:hover,
+.nec-ssb-card:focus-visible {
+  border-color: var(--nec-navy);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(8, 25, 52, 0.09);
+}
+
+[data-theme="dark"] .nec-ssb-card {
+  background: var(--nec-solid-card);
+  border-color: var(--nec-border-dark);
+}
+
+[data-theme="dark"] .nec-ssb-card:hover,
+[data-theme="dark"] .nec-ssb-card:focus-visible {
+  border-color: var(--nec-accent-light);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.nec-ssb-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.nec-ssb-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nec-ssb-card-sport {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 8px;
+  background: var(--nec-info-bg, #eff6ff);
+  color: var(--nec-blue-accent, #1d4ed8);
+  border-radius: 6px;
+}
+
+[data-theme="dark"] .nec-ssb-card-sport {
+  background: rgba(59, 130, 246, 0.15);
+  color: #93c5fd;
+}
+
+.nec-ssb-card-round {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--nec-text-muted);
+}
+
+.nec-ssb-card-teams {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.nec-ssb-card-team {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nec-ssb-card-team--right {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.nec-ssb-card-team-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--nec-text-main);
+  line-height: 1.3;
+}
+
+.nec-ssb-card-dept {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--nec-text-muted);
+}
+
+.nec-ssb-card-score-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  background: var(--nec-surface-raised);
+  border-radius: var(--nec-radius-md);
+  border: 1px solid var(--nec-border);
+}
+
+[data-theme="dark"] .nec-ssb-card-score-box {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--nec-border-dark);
+}
+
+.nec-ssb-card-score {
+  font-family: var(--nec-font-display);
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: var(--nec-navy);
+  letter-spacing: 0.03em;
+}
+
+[data-theme="dark"] .nec-ssb-card-score {
+  color: var(--nec-accent-light);
+}
+
+.nec-ssb-card-detail-preview {
+  font-size: 0.78rem;
+  color: var(--nec-text-muted);
+  background: var(--nec-surface-raised);
+  padding: 6px 10px;
+  border-radius: var(--nec-radius-sm);
+  margin-bottom: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+[data-theme="dark"] .nec-ssb-card-detail-preview {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.nec-ssb-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--nec-border);
+  font-size: 0.75rem;
+  color: var(--nec-text-muted);
+}
+
+[data-theme="dark"] .nec-ssb-card-footer {
+  border-top-color: var(--nec-border-dark);
+}
+
+.nec-ssb-card-footer-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.nec-ssb-card-info-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.nec-ssb-card-action {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 700;
+  color: var(--nec-navy);
+  transition: gap 0.15s ease;
+}
+
+.nec-ssb-card:hover .nec-ssb-card-action {
+  color: var(--nec-blue-accent, #1d4ed8);
+  gap: 6px;
+}
+
+[data-theme="dark"] .nec-ssb-card-action {
+  color: var(--nec-accent-light);
+}
+
+/* ==========================================================================
+   DEDICATED FULL-PAGE SCORE SHEET STYLES
+   ========================================================================== */
+.nec-score-sheet-page {
+  max-width: 980px;
+  margin: 0 auto;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── Top Control & Navigation Bar ───────────────────────────────────────── */
+.nec-score-sheet-control-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding-bottom: 4px;
+}
+
+.nec-score-sheet-control-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.nec-score-sheet-control-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nec-score-sheet-back-btn {
+  font-weight: 600;
+}
+
+.nec-score-sheet-switcher {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nec-score-sheet-switcher-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--nec-text-muted);
+  white-space: nowrap;
+}
+
+.nec-score-sheet-select-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.nec-score-sheet-select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 6px 30px 6px 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-family: var(--nec-font-body);
+  background: var(--nec-surface);
+  border: 1px solid var(--nec-border);
+  border-radius: var(--nec-radius-md);
+  color: var(--nec-text-main);
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.nec-score-sheet-select:focus {
+  outline: none;
+  border-color: var(--nec-navy);
+}
+
+[data-theme="dark"] .nec-score-sheet-select {
+  background: var(--nec-surface-raised);
+  border-color: var(--nec-border-dark);
+}
+
+[data-theme="dark"] .nec-score-sheet-select:focus {
+  border-color: var(--nec-accent-light);
+}
+
+.nec-score-sheet-select-icon {
+  position: absolute;
+  right: 10px;
+  pointer-events: none;
+  color: var(--nec-text-muted);
+}
+
+/* ── Centered Hero Match Banner ─────────────────────────────────────────── */
+.nec-score-sheet-hero {
+  background: linear-gradient(135deg, var(--nec-surface) 0%, var(--nec-surface-raised) 100%);
+  border: 1.5px solid var(--nec-border);
+  border-radius: var(--nec-radius-lg);
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  box-shadow: var(--nec-shadow-sm);
+  position: relative;
+  overflow: hidden;
+}
+
+[data-theme="dark"] .nec-score-sheet-hero {
+  background: linear-gradient(135deg, var(--nec-solid-card) 0%, rgba(255, 255, 255, 0.02) 100%);
+  border-color: var(--nec-border-dark);
+}
+
+.nec-score-sheet-hero-badges {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nec-score-sheet-hero-sport {
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: var(--nec-navy);
+  color: #ffffff;
+}
+
+[data-theme="dark"] .nec-score-sheet-hero-sport {
+  background: var(--nec-accent-light);
+  color: var(--nec-navy);
+}
+
+.nec-score-sheet-hero-round {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--nec-text-muted);
+}
+
+.nec-score-sheet-hero-teams {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 20px;
+}
+
+.nec-score-sheet-hero-team {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.nec-score-sheet-hero-team--right {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.nec-score-sheet-hero-team-name {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--nec-text-main);
+  line-height: 1.25;
+}
+
+.nec-score-sheet-hero-dept {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--nec-text-muted);
+}
+
+.nec-score-sheet-hero-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.nec-score-sheet-hero-score {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--nec-font-display);
+  font-size: 2.2rem;
+  font-weight: 900;
+  color: var(--nec-navy);
+  padding: 6px 18px;
+  background: var(--nec-surface);
+  border: 1.5px solid var(--nec-border);
+  border-radius: var(--nec-radius-md);
+  box-shadow: var(--nec-shadow-sm);
+  letter-spacing: 0.02em;
+}
+
+[data-theme="dark"] .nec-score-sheet-hero-score {
+  color: var(--nec-accent-light);
+  background: var(--nec-solid-card);
+  border-color: var(--nec-border-dark);
+}
+
+.nec-score-sheet-hero-score-divider {
+  opacity: 0.6;
+}
+
+.nec-score-sheet-hero-vs {
+  font-family: var(--nec-font-display);
+  font-size: 0.8rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  color: var(--nec-text-muted);
+}
+
+.nec-score-sheet-hero-meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--nec-border);
+  font-size: 0.82rem;
+  color: var(--nec-text-muted);
+}
+
+[data-theme="dark"] .nec-score-sheet-hero-meta {
+  border-top-color: var(--nec-border-dark);
+}
+
+.nec-score-sheet-hero-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── Main Scoreboard Card Wrapper ────────────────────────────────────────── */
+.nec-score-sheet-main-card-wrap {
+  width: 100%;
+}
+
+.nec-score-sheet-card {
+  box-shadow: 0 4px 20px rgba(8, 25, 52, 0.06);
+}
+
+/* ── Generic & Shared Scoreboard Form Styles ─────────────────────────────── */
+.nec-scoreboard-form {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: 6px 0;
+}
+
+.nec-scoreboard-teams-grid {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 20px;
+  align-items: center;
+}
+
+.nec-scoreboard-team-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 22px 18px;
+  background: var(--nec-surface-raised);
+  border: 1.5px solid var(--nec-border);
+  border-radius: var(--nec-radius-lg);
+  text-align: center;
+  transition: border-color 0.15s ease;
+}
+
+.nec-scoreboard-team-block:focus-within {
+  border-color: var(--nec-navy);
+}
+
+[data-theme="dark"] .nec-scoreboard-team-block {
+  border-color: var(--nec-border-dark);
+}
+
+[data-theme="dark"] .nec-scoreboard-team-block:focus-within {
+  border-color: var(--nec-accent-light);
+}
+
+.nec-scoreboard-team-name {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--nec-text-main);
+  line-height: 1.3;
+}
+
+.nec-scoreboard-dept {
+  font-weight: 500;
+  color: var(--nec-text-muted);
+  font-size: 0.85rem;
+}
+
+.nec-scoreboard-vs {
+  font-family: var(--nec-font-display);
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: var(--nec-text-muted);
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+}
+
+.nec-scoreboard-score-input {
+  font-family: var(--nec-font-display);
+  font-size: 2.75rem;
+  font-weight: 900;
+  width: 120px;
+  text-align: center;
+  padding: 10px 8px;
+  background: var(--nec-surface);
+  border: 2.5px solid var(--nec-border);
+  border-radius: var(--nec-radius-md);
+  color: var(--nec-text-main);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  letter-spacing: -0.02em;
+}
+
+.nec-scoreboard-score-input:focus {
+  outline: none;
+  border-color: var(--nec-navy);
+  box-shadow: 0 0 0 4px rgba(8, 25, 52, 0.08);
+}
+
+[data-theme="dark"] .nec-scoreboard-score-input:focus {
+  border-color: var(--nec-accent-light);
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.18);
+}
+
+.nec-scoreboard-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.nec-scoreboard-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--nec-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.nec-scoreboard-final-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--nec-warning-bg, #fffbeb);
+  border: 1.5px solid var(--nec-warning-border, #fde68a);
+  border-radius: var(--nec-radius-md);
+  cursor: pointer;
+}
+
+.nec-scoreboard-final-check label {
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  color: var(--nec-text-main);
+}
+
+[data-theme="dark"] .nec-scoreboard-final-check {
+  background: rgba(251, 191, 36, 0.08);
+  border-color: rgba(251, 191, 36, 0.25);
+}
+
+/* ── Cricket-Specific Extra Fields ───────────────────────────────────────── */
+.nec-scoreboard-cricket-extras {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.nec-scoreboard-extra-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  background: var(--nec-surface-raised);
+  border: 1px solid var(--nec-border);
+  border-radius: var(--nec-radius-md);
+}
+
+[data-theme="dark"] .nec-scoreboard-extra-block {
+  border-color: var(--nec-border-dark);
+}
+
+.nec-scoreboard-extra-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--nec-text-muted);
+}
+
+.nec-scoreboard-extra-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.nec-scoreboard-extra-input {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  background: var(--nec-surface);
+  border: 1.5px solid var(--nec-border);
+  border-radius: var(--nec-radius-sm);
+  color: var(--nec-text-main);
+  text-align: center;
+  transition: border-color 0.15s ease;
+}
+
+.nec-scoreboard-extra-input:focus {
+  outline: none;
+  border-color: var(--nec-navy);
+}
+
+[data-theme="dark"] .nec-scoreboard-extra-input {
+  background: var(--nec-solid-card);
+  border-color: var(--nec-border-dark);
+}
+
+[data-theme="dark"] .nec-scoreboard-extra-input:focus {
+  border-color: var(--nec-accent-light);
+}
+
+/* ── Sport Type Badge in Scoreboard Header ───────────────────────────────── */
+.nec-scoreboard-sport-badge {
+  display: inline-block;
+  align-self: flex-start;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: var(--nec-info-bg, #eff6ff);
+  color: var(--nec-blue-accent, #1d4ed8);
+}
+
+[data-theme="dark"] .nec-scoreboard-sport-badge {
+  background: rgba(59, 130, 246, 0.15);
+  color: #93c5fd;
+}
+
+/* ── Responsive Rules ────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .nec-score-sheet-hero-teams {
+    grid-template-columns: 1fr;
+    text-align: center;
+    gap: 12px;
+  }
+  .nec-score-sheet-hero-team--right {
+    align-items: center;
+    text-align: center;
+  }
+  .nec-score-sheet-control-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .nec-score-sheet-control-left {
+    justify-content: space-between;
+  }
+  .nec-scoreboard-teams-grid {
+    grid-template-columns: 1fr;
+  }
+  .nec-scoreboard-vs {
+    text-align: center;
+  }
+  .nec-scoreboard-cricket-extras {
+    grid-template-columns: 1fr;
+  }
+  .nec-ssb-grid {
+    grid-template-columns: 1fr;
+  }
+  .nec-ssb-sport-tab {
+    padding: 8px 14px;
+    font-size: 0.8rem;
+  }
+}

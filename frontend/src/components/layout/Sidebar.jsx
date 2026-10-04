@@ -102,7 +102,7 @@ export default function Sidebar({ activeNav, onSelectNav, isOpen, onCloseMobile 
 
       case ROLES.SCORE_UPDATER:
         return [
-          { category: "Score Operations", items: [{ id: "coord_score_entry", label: "Live Score Desk", icon: Edit3 }] },
+          { category: "Score Operations", items: [{ id: "coord_score_entry", label: "Sports Score Board", icon: Edit3 }] },
           {
             category: "Matches",
             items: [
