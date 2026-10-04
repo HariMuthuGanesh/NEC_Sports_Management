@@ -14,6 +14,7 @@ import {
 import { getStudentByUserId, createStudent } from '../models/sql/studentSqlModel.js';
 import { generateCsrfToken } from '../middleware/csrfMiddleware.js';
 import { notifyAdmins, sendPasswordResetEmail } from '../services/emailService.js';
+import { getOAuthProviders, getProviderConfig } from '../services/oauthProviders.js';
 
 const generateToken = (id, role, dept = 'All', tokenVersion = 0, deptId = null) => {
     return jwt.sign({ id, role, dept, dept_id: deptId, token_version: tokenVersion }, JWT_SECRET, {

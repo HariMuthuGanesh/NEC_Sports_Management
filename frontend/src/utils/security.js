@@ -199,10 +199,14 @@ export const SecurityLogger = {
 
       // Async backend persistence
       const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      const csrf = (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('nec_csrf_token') : '') || '';
+      const headers = { "Content-Type": "application/json" };
+      if (csrf) headers["X-CSRF-Token"] = csrf;
+
       fetch(`${apiUrl}/api/audit/log`, {
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({
           action: payload.event || "SECURITY_EVENT",
           table_affected: "security_audit",

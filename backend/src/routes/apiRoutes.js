@@ -101,6 +101,21 @@ router.get('/csrf-token', (req, res) => {
     return res.json({ success: true, csrfToken, data: { csrfToken } });
 });
 
+// Client audit event ingestion (telemetry, exempt from CSRF token enforcement)
+router.post('/audit/log', async (req, res, next) => {
+    try {
+        await addAuditEntry({
+            ...req.body,
+            userId: req.user?.id || req.body.userId || null,
+            role: req.user?.role || req.body.role || 'Public',
+            ipAddress: req.ip || req.headers['x-forwarded-for'] || ''
+        });
+        return res.json({ success: true });
+    } catch (err) {
+        next(err);
+    }
+});
+
 // CSRF protection on all state-changing routes (POST/PUT/PATCH/DELETE).
 // GET/HEAD/OPTIONS are automatically excluded via ignoredMethods in csrfMiddleware.js.
 router.use(doubleCsrfProtection);
@@ -234,19 +249,6 @@ router.get('/audit/logs', protect, authorize('Admin'), async (req, res, next) =>
     try {
         const data = await getAuditEntries(req.query.limit || 100);
         return res.json({ success: true, data });
-    } catch (err) {
-        next(err);
-    }
-});
-router.post('/audit/log', async (req, res, next) => {
-    try {
-        await addAuditEntry({
-            ...req.body,
-            userId: req.user?.id || req.body.userId || null,
-            role: req.user?.role || req.body.role || 'Public',
-            ipAddress: req.ip || req.headers['x-forwarded-for'] || ''
-        });
-        return res.json({ success: true });
     } catch (err) {
         next(err);
     }

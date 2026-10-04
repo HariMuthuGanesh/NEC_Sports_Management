@@ -10,22 +10,12 @@ export const notFound = (req, res, next) => {
 };
 
 export const errorHandler = (err, req, res, next) => {
-    const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
+    const isCsrfError = err.code === 'EBADCSRFTOKEN' || err.message?.toLowerCase().includes('csrf');
     const isProduction = process.env.NODE_ENV === 'production';
     
-    // Internal server logging (sanitized)
-    console.error(`[ErrorHandler] [Status ${statusCode}] ${err.message}`);
-    if (!isProduction && err.stack) {
-        console.error(err.stack);
-    }
-    
-    // Client response: Never leak database schemas or system paths
-    const clientMessage = (statusCode === 500 && isProduction) 
-        ? 'An unexpected internal server error occurred. Please contact the Sports Directorate IT support.' 
-        : err.message;
-
-    // CSRF Error Mapping
-    if (err.code === 'EBADCSRFTOKEN' || err.message?.toLowerCase().includes('csrf')) {
+    // CSRF Error Mapping: expected client security denial (HTTP 403)
+    if (isCsrfError) {
+        console.warn(`[Security] [Status 403] CSRF rejection on ${req.method} ${req.originalUrl}: ${err.message}`);
         return res.status(403).json({
             success: false,
             error: {
@@ -35,12 +25,25 @@ export const errorHandler = (err, req, res, next) => {
         });
     }
 
+    const statusCode = err.status || err.statusCode || (res.statusCode === 200 ? 500 : res.statusCode);
+    
+    // Internal server logging (sanitized)
+    console.error(`[ErrorHandler] [Status ${statusCode}] ${err.message}`);
+    if (!isProduction && err.stack && statusCode >= 500) {
+        console.error(err.stack);
+    }
+    
+    // Client response: Never leak database schemas or system paths
+    const clientMessage = (statusCode === 500 && isProduction) 
+        ? 'An unexpected internal server error occurred. Please contact the Sports Directorate IT support.' 
+        : err.message;
+
     res.status(statusCode).json({
         success: false,
         error: {
             code: err.code || (statusCode === 404 ? 'NOT_FOUND' : statusCode === 403 ? 'FORBIDDEN' : statusCode === 401 ? 'UNAUTHORIZED' : 'SERVER_ERROR'),
             message: clientMessage
         },
-        ...(!isProduction && { stack: err.stack })
+        ...(!isProduction && statusCode >= 500 && { stack: err.stack })
     });
 };
