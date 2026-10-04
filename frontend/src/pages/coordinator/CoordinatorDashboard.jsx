@@ -6,7 +6,7 @@ import Table from "../../components/common/Table";
 import { teamsApi, matchesApi } from "../../services/api/apiServices";
 import { useAuth } from "../../context/AuthContext";
 import ErrorState from "../../components/common/ErrorState";
-import { Users, Calendar, CheckSquare, Edit3, UserCheck, ArrowRight } from "lucide-react";
+import { Users, Calendar, CheckSquare, UserCheck, ArrowRight, FileText } from "lucide-react";
 import "./CoordinatorPortal.css";
 
 export default function CoordinatorDashboard({ onNavigate }) {
@@ -71,13 +71,12 @@ export default function CoordinatorDashboard({ onNavigate }) {
             <StatCard title={t.myDeptTeams || "My Department Teams"} value={deptTeams.length} subtext="Registered Sports Squads" icon={Users} color="navy" onClick={() => onNavigate("coord_players")} />
             <StatCard title={t.upcomingMatches || "Upcoming Matches"} value={deptMatches.filter(m => m.status !== "Completed").length} subtext="Assigned Fixtures" icon={Calendar} color="gold" onClick={() => onNavigate("coord_matches")} />
             <StatCard title={t.quickAttendance || "Quick Attendance"} value="Squad Ready" subtext="Mark Matchday Attendance" icon={UserCheck} onClick={() => onNavigate("coord_attendance")} />
-            <StatCard title={t.scoreSubmission || "Score Submission"} value="Match Day" subtext="Record Final Scores" icon={Edit3} onClick={() => onNavigate("coord_score_entry")} />
+            <StatCard title="On Duty Requests" value="Portal" subtext="Generate & Track OD" icon={FileText} onClick={() => onNavigate("coord_od")} />
           </div>
 
           <div className="nec-admin-main-grid">
             <Card
               title="Department Sports Squads"
-              subtitle="Registered teams and student athlete counts"
               headerAction={
                 <Button variant="ghost" size="sm" onClick={() => onNavigate("coord_players")}>
                   Manage Roster <ArrowRight size={14} />
@@ -93,16 +92,13 @@ export default function CoordinatorDashboard({ onNavigate }) {
               />
             </Card>
 
-            <Card title="Coordinator Quick Actions" subtitle="Match day tasks">
+            <Card title="Coordinator Quick Actions">
               <div className="nec-quick-actions-list">
                 <Button variant="primary" icon={Users} onClick={() => onNavigate("coord_players")}>
                   Search Student & Add to Squad
                 </Button>
                 <Button variant="outline" icon={UserCheck} onClick={() => onNavigate("coord_attendance")}>
                   Mark Squad Match Attendance
-                </Button>
-                <Button variant="outline" icon={Edit3} onClick={() => onNavigate("coord_score_entry")}>
-                  Enter Final Match Scores
                 </Button>
                 <Button variant="ghost" icon={CheckSquare} onClick={() => onNavigate("coord_event_reg")}>
                   Register Team for Tournament

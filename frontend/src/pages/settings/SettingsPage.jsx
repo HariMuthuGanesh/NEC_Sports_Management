@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from "react";
 import { useAuth } from "../../context/AuthContext";
+import { useToast } from "../../context/ToastContext";
 import { Card } from "../../components/common/Card";
 import Button from "../../components/common/Button";
 import Badge from "../../components/common/Badge";
@@ -8,7 +9,8 @@ import ForgotPasswordModal from "../../components/common/ForgotPasswordModal";
 import {
   Sun, Moon, Globe, User, ShieldCheck, Info, Lock,
   LogOut, RefreshCw, CheckCircle2, Clock, Languages,
-  Eye, EyeOff, ShieldAlert, UserCog, Search, KeyRound, Copy, Check, Mail
+  Eye, EyeOff, ShieldAlert, UserCog, Search, KeyRound, Copy, Check, Mail,
+  Palette, Zap, HelpCircle, Bug, Bell, LifeBuoy
 } from "lucide-react";
 import { getTokenExpiry, getAuthToken, SecurityLogger, invalidateTranslationCache } from "../../utils/security";
 import { hasTranslationCache, getTranslationCacheInfo } from "../../utils/liveTranslator";
@@ -428,133 +430,376 @@ function AdminResetCard({ currentUser }) {
 }
 
 /* ── Main SettingsPage ──────────────────────────────────────── */
-export default function SettingsPage() {
+export default function SettingsPage({ onNavigate }) {
   const {
     currentUser, theme, toggleTheme, language, setLanguage,
     logout, ROLES, sessionExpiresAt, t
   } = useAuth();
+  const { toast } = useToast();
 
-  const [resetConfirm, setResetConfirm] = useState(false);
-  const [cacheCleared, setCacheCleared] = useState(false);
+  const handleSignOut = async () => {
+    try {
+      await logout();
+      if (toast?.success) {
+        toast.success("Signed out successfully.");
+      } else if (typeof toast === "function") {
+        toast({ type: "success", message: "Signed out successfully." });
+      }
+    } finally {
+      if (onNavigate) {
+        onNavigate("public_home");
+      } else {
+        window.location.href = "/";
+      }
+    }
+  };
+
+  const [contactModalOpen, setContactModalOpen] = useState(false);
+  const [bugModalOpen, setBugModalOpen] = useState(false);
+  const [helpModalOpen, setHelpModalOpen] = useState(false);
+  const [bugReport, setBugReport] = useState("");
+  const [bugSubmitted, setBugSubmitted] = useState(false);
+  const [notifEnabled, setNotifEnabled] = useState(() => localStorage.getItem("nec_notif_pref") !== "disabled");
 
   const tokenExpiry = sessionExpiresAt || getTokenExpiry(getAuthToken());
   const isLoggedIn  = currentUser?.role !== ROLES.PUBLIC;
 
-  // Only Admin and Sports President see the full admin reset card
-  // Coordinator sees it too but with scoped permissions (enforced server-side)
   const canAdminReset = isLoggedIn && [
     ROLES.ADMIN, ROLES.PRESIDENT, ROLES.COORDINATOR
   ].includes(currentUser?.role);
 
-  const handleResetData = () => {
-    if (!resetConfirm) { setResetConfirm(true); return; }
-    Object.keys(localStorage).filter(k => k.startsWith("nec_")).forEach(k => localStorage.removeItem(k));
-    setResetConfirm(false);
-    window.location.reload();
+  const handleToggleNotif = () => {
+    const nextVal = !notifEnabled;
+    setNotifEnabled(nextVal);
+    localStorage.setItem("nec_notif_pref", nextVal ? "enabled" : "disabled");
+    window.dispatchEvent(new CustomEvent("notifications-updated"));
+    if (nextVal) {
+      toast?.success("In-app notifications enabled.");
+    } else {
+      toast?.info("In-app notifications disabled.");
+    }
   };
 
-  const handleClearTransCache = (lang) => {
-    invalidateTranslationCache(lang);
-    setCacheCleared(true);
-    setTimeout(() => setCacheCleared(false), 2000);
+  const handleBugSubmit = (e) => {
+    e.preventDefault();
+    if (!bugReport.trim()) return;
+    SecurityLogger.info(`Bug reported by ${currentUser?.username}: ${bugReport}`);
+    setBugSubmitted(true);
+    setTimeout(() => {
+      setBugSubmitted(false);
+      setBugReport("");
+      setBugModalOpen(false);
+    }, 1500);
   };
 
   return (
     <div className="nec-settings-page">
       <div className="nec-page-header">
         <h2 className="nec-page-title">Settings</h2>
-        <p className="nec-page-desc">
-          Manage your account, appearance, language preferences, and system data.
-        </p>
+        <p className="nec-page-desc">Account configurations, security controls, preferences, and system resources.</p>
       </div>
 
-      <div className="nec-settings-grid">
-
-        {/* ── Account Info ── */}
-        <Card title="Account" icon={<User size={16} />}>
-          <div className="nec-settings-account">
-            <div className="nec-settings-avatar">
-              {(currentUser?.name || "G").charAt(0).toUpperCase()}
-            </div>
-            <div className="nec-settings-account-info">
-              <div className="nec-settings-name">{currentUser?.name || "Guest Visitor"}</div>
-              <div className="nec-settings-id">{currentUser?.id ? `ID: ${currentUser.id}` : "Not logged in"}</div>
-              <div style={{ marginTop: "6px" }}>
-                <Badge status={ROLE_BADGE[currentUser?.role] || "neutral"}>
-                  {currentUser?.role?.split(" ")[0] || "Public"}
-                </Badge>
-                {currentUser?.dept && currentUser.dept !== "All" && (
-                  <span style={{ marginLeft: "6px", fontSize: "0.8rem", color: "var(--nec-text-muted)" }}>
-                    · {currentUser.dept}
-                  </span>
-                )}
+      <div className="nec-settings-sections">
+        {/* ── 1. Account Section ── */}
+        <section>
+          <div className="nec-settings-section-header">
+            <User size={18} style={{ color: "var(--nec-navy)" }} />
+            <h3 className="nec-settings-section-title">Account</h3>
+          </div>
+          <Card>
+            <div className="nec-settings-account">
+              <div className="nec-settings-avatar">
+                {(currentUser?.name || currentUser?.username || "G").charAt(0).toUpperCase()}
+              </div>
+              <div className="nec-settings-account-info">
+                <div className="nec-settings-name">{currentUser?.name || currentUser?.username || "Guest Visitor"}</div>
+                <div className="nec-settings-id">{currentUser?.email || (currentUser?.id ? `User ID: ${currentUser.id}` : "Guest Access")}</div>
+                <div style={{ marginTop: "6px", display: "flex", gap: "8px", alignItems: "center" }}>
+                  <Badge status={ROLE_BADGE[currentUser?.role] || "neutral"}>
+                    {currentUser?.role || "Public Visitor"}
+                  </Badge>
+                  {currentUser?.dept && currentUser.dept !== "All" && (
+                    <span style={{ fontSize: "0.82rem", color: "var(--nec-text-muted)", fontWeight: 600 }}>
+                      Dept: {currentUser.dept}
+                    </span>
+                  )}
+                  {currentUser?.sport_name && (
+                    <span style={{ fontSize: "0.82rem", color: "var(--nec-text-muted)" }}>
+                      &middot; {currentUser.sport_name}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
+
+            <div style={{ marginTop: "16px", paddingTop: "14px", borderTop: "1px solid var(--nec-border-light)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ fontSize: "0.82rem", color: "var(--nec-text-muted)" }}>
+                Role: <strong>{currentUser?.role || "Guest"}</strong> &middot; Department: <strong>{currentUser?.dept || "All Departments"}</strong>
+              </div>
+              {isLoggedIn && (
+                <Button variant="danger" size="sm" icon={LogOut} onClick={handleSignOut}>
+                  Sign Out
+                </Button>
+              )}
+            </div>
+          </Card>
+        </section>
+
+        {/* ── 2. Security Section ── */}
+        <section>
+          <div className="nec-settings-section-header">
+            <Lock size={18} style={{ color: "var(--nec-navy)" }} />
+            <h3 className="nec-settings-section-title">Security</h3>
           </div>
-          {isLoggedIn && (
-            <div style={{ marginTop: "16px", paddingTop: "16px", borderTop: "1px solid var(--nec-border-light)" }}>
-              <Button variant="danger" size="sm" icon={LogOut} onClick={logout}>
-                Sign Out
-              </Button>
-            </div>
-          )}
-        </Card>
+          <div className="nec-settings-grid" style={{ marginTop: 0 }}>
+            {/* Change Password Card */}
+            {isLoggedIn && <ChangePasswordCard currentUser={currentUser} />}
 
-        {/* ── Security / Change Password ── */}
-        {isLoggedIn && <ChangePasswordCard />}
+            {/* Session Info */}
+            <Card title="Session Information" icon={<ShieldCheck size={16} />}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                <div className="nec-settings-info-row">
+                  <span className="nec-settings-info-label">Authentication Status</span>
+                  <Badge status={isLoggedIn ? "success" : "neutral"}>{isLoggedIn ? "Active Session" : "Guest Mode"}</Badge>
+                </div>
+                {tokenExpiry && (
+                  <div className="nec-settings-info-row">
+                    <span className="nec-settings-info-label">Session Expires</span>
+                    <span style={{ fontSize: "0.85rem", color: "var(--nec-text-main)", display: "flex", alignItems: "center", gap: "4px" }}>
+                      <Clock size={13} />
+                      {tokenExpiry.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })} &middot; {tokenExpiry.toLocaleDateString("en-IN")}
+                    </span>
+                  </div>
+                )}
+                <div className="nec-settings-info-row">
+                  <span className="nec-settings-info-label">Security Audit Events</span>
+                  <span style={{ fontSize: "0.85rem", fontWeight: 600 }}>{SecurityLogger.getLog().length} logged in session</span>
+                </div>
+                <div className="nec-settings-info-row">
+                  <span className="nec-settings-info-label">CSRF Protection</span>
+                  <Badge status="success">Double-Submit Enforced</Badge>
+                </div>
+              </div>
+            </Card>
 
-        {/* ── Admin Reset (Admin / President / Coordinator) ── */}
-        {canAdminReset && <AdminResetCard currentUser={currentUser} />}
+            {/* Admin/Coordinator Reset Tools */}
+            {canAdminReset && <AdminResetCard currentUser={currentUser} />}
+          </div>
+        </section>
 
-        {/* ── Session ── */}
-        <Card title="Session Info" icon={<ShieldCheck size={16} />}>
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-            <div className="nec-settings-info-row">
-              <span className="nec-settings-info-label">Status</span>
-              <Badge status={isLoggedIn ? "success" : "neutral"}>{isLoggedIn ? "Authenticated" : "Guest"}</Badge>
-            </div>
-            {tokenExpiry && (
-              <div className="nec-settings-info-row">
-                <span className="nec-settings-info-label">Session Expires</span>
-                <span style={{ fontSize: "0.85rem", color: "var(--nec-text-main)", display: "flex", alignItems: "center", gap: "4px" }}>
-                  <Clock size={13} />
-                  {tokenExpiry.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
-                  &nbsp;·&nbsp;
-                  {tokenExpiry.toLocaleDateString("en-IN")}
+        {/* ── 3. Preferences Section ── */}
+        <section>
+          <div className="nec-settings-section-header">
+            <Palette size={18} style={{ color: "var(--nec-navy)" }} />
+            <h3 className="nec-settings-section-title">Preferences</h3>
+          </div>
+          <div className="nec-settings-grid" style={{ marginTop: 0 }}>
+            {/* Theme Card */}
+            <Card title="Display Theme" icon={<Sun size={16} />}>
+              <div className="nec-settings-theme-toggle">
+                <button
+                  type="button"
+                  className={`nec-settings-theme-btn ${theme === "light" ? "active" : ""}`}
+                  onClick={() => theme !== "light" && toggleTheme()}
+                >
+                  <Sun size={16} /> Light Theme
+                </button>
+                <button
+                  type="button"
+                  className={`nec-settings-theme-btn ${theme === "dark" ? "active" : ""}`}
+                  onClick={() => theme !== "dark" && toggleTheme()}
+                >
+                  <Moon size={16} /> Dark Theme
+                </button>
+              </div>
+              <div className="nec-settings-theme-preview" data-theme-preview={theme}>
+                <div className="nec-settings-theme-preview-bar" />
+              </div>
+            </Card>
+
+            {/* Language & Notifications */}
+            <Card title="Language & Notification Preferences" icon={<Globe size={16} />}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                <div>
+                  <label style={{ fontSize: "0.82rem", fontWeight: 600, color: "var(--nec-text-muted)", display: "block", marginBottom: "8px" }}>
+                    Interface Language
+                  </label>
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    {LANGUAGES.map(l => (
+                      <button
+                        key={l.code}
+                        type="button"
+                        className={`nec-role-menu-item ${language === l.code ? "active" : ""}`}
+                        style={{ flex: 1, padding: "8px", textAlign: "center", borderRadius: "8px", border: language === l.code ? "2px solid var(--nec-navy)" : "1px solid var(--nec-border)" }}
+                        onClick={() => setLanguage(l.code)}
+                      >
+                        {l.flag} {l.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ borderTop: "1px solid var(--nec-border-light)", paddingTop: "14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div>
+                    <div style={{ fontSize: "0.88rem", fontWeight: 600 }}>In-App Notifications</div>
+                  </div>
+                  <Button variant={notifEnabled ? "primary" : "outline"} size="sm" onClick={handleToggleNotif}>
+                    {notifEnabled ? "Enabled" : "Disabled"}
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </section>
+
+        {/* ── 4. System Section ── */}
+        <section>
+          <div className="nec-settings-section-header">
+            <Info size={18} style={{ color: "var(--nec-navy)" }} />
+            <h3 className="nec-settings-section-title">System</h3>
+          </div>
+          <Card>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px" }}>
+              <div className="nec-settings-info-row" style={{ flexDirection: "column", alignItems: "flex-start" }}>
+                <span className="nec-settings-info-label">System Platform</span>
+                <span style={{ fontSize: "0.9rem", fontWeight: 700, color: "var(--nec-text-main)", marginTop: "4px" }}>
+                  NEC Sports Management System
                 </span>
+                <span style={{ fontSize: "0.78rem", color: "var(--nec-text-muted)" }}>Version 2.6.0</span>
+              </div>
+
+              <div className="nec-settings-info-row" style={{ flexDirection: "column", alignItems: "flex-start" }}>
+                <span className="nec-settings-info-label">Institution</span>
+                <span style={{ fontSize: "0.9rem", fontWeight: 700, color: "var(--nec-text-main)", marginTop: "4px" }}>
+                  National Engineering College
+                </span>
+                <span style={{ fontSize: "0.78rem", color: "var(--nec-text-muted)" }}>Kovilpatti, Tamil Nadu &middot; 628 503</span>
+              </div>
+
+              <div className="nec-settings-info-row" style={{ flexDirection: "column", alignItems: "flex-start" }}>
+                <span className="nec-settings-info-label">Directorate</span>
+                <span style={{ fontSize: "0.9rem", fontWeight: 700, color: "var(--nec-text-main)", marginTop: "4px" }}>
+                  Directorate of Physical Education
+                </span>
+                <span style={{ fontSize: "0.78rem", color: "var(--nec-text-muted)" }}>support.sports@nec.edu.in</span>
+              </div>
+            </div>
+          </Card>
+        </section>
+
+        {/* ── 5. Quick Actions Section ── */}
+        <section>
+          <div className="nec-settings-section-header">
+            <Zap size={18} style={{ color: "var(--nec-navy)" }} />
+            <h3 className="nec-settings-section-title">Quick Actions</h3>
+          </div>
+          <div className="nec-quick-actions-grid">
+            <Card style={{ padding: "16px", cursor: "pointer" }} onClick={() => setContactModalOpen(true)}>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <div style={{ padding: "10px", borderRadius: "8px", background: "rgba(30, 62, 98, 0.1)", color: "var(--nec-navy)" }}>
+                  <Mail size={20} />
+                </div>
+                <div>
+                  <h4 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 700 }}>Contact Admin</h4>
+                </div>
+              </div>
+            </Card>
+
+            <Card style={{ padding: "16px", cursor: "pointer" }} onClick={() => setBugModalOpen(true)}>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <div style={{ padding: "10px", borderRadius: "8px", background: "rgba(239, 68, 68, 0.1)", color: "#ef4444" }}>
+                  <Bug size={20} />
+                </div>
+                <div>
+                  <h4 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 700 }}>Report Bug</h4>
+                </div>
+              </div>
+            </Card>
+
+            <Card style={{ padding: "16px", cursor: "pointer" }} onClick={() => setHelpModalOpen(true)}>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <div style={{ padding: "10px", borderRadius: "8px", background: "rgba(234, 179, 8, 0.1)", color: "#ca8a04" }}>
+                  <HelpCircle size={20} />
+                </div>
+                <div>
+                  <h4 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 700 }}>Help & Guide</h4>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </section>
+      </div>
+
+      {/* ── Modals for Quick Actions ── */}
+      {contactModalOpen && (
+        <Modal title="Contact Sports Administration" isOpen={contactModalOpen} onClose={() => setContactModalOpen(false)}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "14px", padding: "8px 0" }}>
+            <div style={{ padding: "12px", background: "var(--nec-surface-raised)", borderRadius: "8px", fontSize: "0.85rem" }}>
+              <div><strong>Office:</strong> Physical Education Directorate, Sports Arena</div>
+              <div style={{ marginTop: "4px" }}><strong>Email:</strong> sports@nec.edu.in</div>
+              <div style={{ marginTop: "4px" }}><strong>Telephone:</strong> 04632-222502 &middot; Ext: 2404</div>
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              <Button variant="primary" size="sm" onClick={() => setContactModalOpen(false)}>Close</Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {bugModalOpen && (
+        <Modal title="Report Bug / System Feedback" isOpen={bugModalOpen} onClose={() => setBugModalOpen(false)}>
+          <form onSubmit={handleBugSubmit} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            <label style={{ fontSize: "0.85rem", fontWeight: 600 }}>Describe the issue encountered:</label>
+            <textarea
+              className="nec-table-search-input"
+              rows={4}
+              style={{ width: "100%", resize: "vertical" }}
+              placeholder="Provide a brief description of the issue..."
+              value={bugReport}
+              onChange={(e) => setBugReport(e.target.value)}
+              required
+            />
+            {bugSubmitted ? (
+              <div style={{ color: "#16a34a", fontSize: "0.85rem", fontWeight: 600 }}>
+                Feedback submitted to system administrator. Thank you!
+              </div>
+            ) : (
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
+                <Button variant="outline" size="sm" type="button" onClick={() => setBugModalOpen(false)}>Cancel</Button>
+                <Button variant="primary" size="sm" type="submit">Submit Report</Button>
               </div>
             )}
-            <div className="nec-settings-info-row">
-              <span className="nec-settings-info-label">Role</span>
-              <span style={{ fontSize: "0.85rem" }}>{currentUser?.role || "—"}</span>
-            </div>
-            <div className="nec-settings-info-row">
-              <span className="nec-settings-info-label">Department</span>
-              <span style={{ fontSize: "0.85rem" }}>{currentUser?.dept || "—"}</span>
-            </div>
-            <div className="nec-settings-info-row">
-              <span className="nec-settings-info-label">Security Events</span>
-              <span style={{ fontSize: "0.85rem" }}>{SecurityLogger.getLog().length} logged</span>
-            </div>
-          </div>
-        </Card>
+          </form>
+        </Modal>
+      )}
 
-        {/* ── About ── */}
-        <Card title="About" icon={<Info size={16} />}>
-          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-            {[
-              { label: "System", value: "NEC Sports Management System" },
-              { label: "Academy", value: "NEC Sports Academy" },
-              { label: "College", value: "National Engineering College, Kovilpatti" },
-            ].map(({ label, value }) => (
-              <div key={label} className="nec-settings-info-row">
-                <span className="nec-settings-info-label">{label}</span>
-                <span style={{ fontSize: "0.85rem", color: "var(--nec-text-main)" }}>{value}</span>
-              </div>
-            ))}
+      {helpModalOpen && (
+        <Modal title="Help & System Guide" isOpen={helpModalOpen} onClose={() => setHelpModalOpen(false)}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px", padding: "8px 0", fontSize: "0.85rem" }}>
+            <div>
+              <strong>On Duty (OD) Letters:</strong>
+              <p style={{ margin: "2px 0 0", color: "var(--nec-text-muted)" }}>
+                OD requests are generated when match fixtures are scheduled. Once approved by the department coordinator or physical director, you can view and download your letter.
+              </p>
+            </div>
+            <div>
+              <strong>Matchday Attendance:</strong>
+              <p style={{ margin: "2px 0 0", color: "var(--nec-text-muted)" }}>
+                Coordinators mark squad attendance before match commencement. Attendance counts towards athletic eligibility and academic condonation.
+              </p>
+            </div>
+            <div>
+              <strong>Security & Session:</strong>
+              <p style={{ margin: "2px 0 0", color: "var(--nec-text-muted)" }}>
+                Sessions automatically expire after 30 minutes of inactivity. For password resets, contact your department coordinator or sports director.
+              </p>
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "8px" }}>
+              <Button variant="primary" size="sm" onClick={() => setHelpModalOpen(false)}>Close</Button>
+            </div>
           </div>
-        </Card>
-      </div>
+        </Modal>
+      )}
     </div>
   );
 }

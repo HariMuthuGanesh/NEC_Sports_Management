@@ -21,6 +21,7 @@ import PublicFixtures from "./pages/public/PublicFixtures";
 import PublicLeaderboard from "./pages/public/PublicLeaderboard";
 import PublicGallery from "./pages/public/PublicGallery";
 import PublicAnnouncements from "./pages/public/PublicAnnouncements";
+import PublicOdList from "./pages/public/PublicOdList";
 
 // Admin / Sports Administrator Pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -49,6 +50,7 @@ import ODRequestPanel from "./pages/coordinator/ODRequestPanel";
 import PlayerDashboard from "./pages/player/PlayerDashboard";
 import PlayerTeam from "./pages/player/PlayerTeam";
 import PlayerMatches from "./pages/player/PlayerMatches";
+import PlayerPerformanceReport from "./pages/player/PlayerPerformanceReport";
 import PlayerNotifications from "./pages/player/PlayerNotifications";
 
 // Captain & Shared Pages
@@ -101,9 +103,20 @@ function MainApp() {
   };
 
   useEffect(() => {
-    const role = currentUser?.role;
-    // Don't redirect away from shared routes accessible to all roles
+    const role = currentUser?.role || ROLES.PUBLIC;
+
+    // Public guests must never stay on protected routes (settings, notifications, admin/coord/player dashboards)
+    if (role === ROLES.PUBLIC) {
+      const isPublicRoute = activeNav.startsWith("public_") || activeNav.startsWith("team_") || activeNav === "login" || activeNav === "signup" || activeNav === "oauth_callback";
+      if (!isPublicRoute) {
+        setActiveNav("public_home");
+      }
+      return;
+    }
+
+    // Authenticated users can view shared routes
     if (activeNav === "settings" || activeNav === "login" || activeNav === "signup" || activeNav === "oauth_callback" || activeNav === "notifications" || activeNav === "player_notifs" || activeNav.startsWith("team_profile_")) return;
+
     if (role === ROLES.ADMIN && !activeNav.startsWith("admin_") && !activeNav.startsWith("public_") && !activeNav.startsWith("team_")) {
       setActiveNav("admin_dash");
     } else if (role === ROLES.PRESIDENT && !activeNav.startsWith("president_") && activeNav !== "college_teams" && activeNav !== "admin_tournaments" && !activeNav.startsWith("public_") && !activeNav.startsWith("team_")) {
@@ -116,8 +129,6 @@ function MainApp() {
       setActiveNav("coord_score_entry");
     } else if (role === ROLES.PLAYER && !activeNav.startsWith("player_") && !activeNav.startsWith("public_") && !activeNav.startsWith("team_")) {
       setActiveNav("player_dash");
-    } else if (role === ROLES.PUBLIC && !activeNav.startsWith("public_") && !activeNav.startsWith("team_")) {
-      setActiveNav("public_home");
     }
   }, [currentUser?.role, activeNav]);
 
@@ -179,6 +190,8 @@ function MainApp() {
         return <PublicGallery onNavigate={(nav) => setActiveNav(nav)} />;
       case "public_announcements":
         return <PublicAnnouncements onNavigate={(nav) => setActiveNav(nav)} />;
+      case "public_od_list":
+        return <PublicOdList onNavigate={(nav) => setActiveNav(nav)} />;
 
       // Protected Admin / Director of Physical Education Routes
       case "admin_college_teams":
@@ -317,7 +330,7 @@ function MainApp() {
 
       case "coord_score_entry":
         return (
-          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.COORDINATOR, ROLES.SCORE_UPDATER]} onRedirectPublic={redirectNav}>
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.SCORE_UPDATER]} onRedirectPublic={redirectNav}>
             <ScoreEntry />
           </ProtectedRoute>
         );
@@ -372,6 +385,12 @@ function MainApp() {
         return (
           <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.COORDINATOR, ROLES.CAPTAIN, ROLES.PLAYER]} onRedirectPublic={redirectNav}>
             <PlayerMatches />
+          </ProtectedRoute>
+        );
+      case "player_performance":
+        return (
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.COORDINATOR, ROLES.CAPTAIN, ROLES.PLAYER]} onRedirectPublic={redirectNav}>
+            <PlayerPerformanceReport />
           </ProtectedRoute>
         );
       case "notifications":

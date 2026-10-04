@@ -7,7 +7,9 @@ import {
     approveOdRequest,
     rejectOdRequest,
     bulkApproveOdForMatch,
-    getOdRequestById
+    getOdRequestById,
+    getPublicApprovedOdList,
+    getPublicApprovedOdSports
 } from '../models/sql/odSqlModel.js';
 import { 
     notifyLeadership, 
@@ -215,3 +217,35 @@ export const getOdRequestController = async (req, res, next) => {
         next(err);
     }
 };
+
+/**
+ * Public Guest Portal endpoint: returns approved OD records only.
+ * Completely unauthenticated and strictly read-only.
+ */
+export const getPublicApprovedOdController = async (req, res, next) => {
+    try {
+        const { sport, department, q, sort } = req.query;
+        const data = await getPublicApprovedOdList({
+            sport: sport || null,
+            department: department || null,
+            query: q || '',
+            sort: sort || 'ASC'
+        });
+        return res.json({ success: true, data });
+    } catch (err) {
+        next(err);
+    }
+};
+
+/**
+ * Public Guest Portal endpoint: returns sports summary with approved OD student counts.
+ */
+export const getPublicApprovedOdSportsController = async (req, res, next) => {
+    try {
+        const data = await getPublicApprovedOdSports();
+        return res.json({ success: true, data });
+    } catch (err) {
+        next(err);
+    }
+};
+

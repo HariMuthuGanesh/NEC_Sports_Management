@@ -583,3 +583,33 @@
   color: var(--nec-text-main);
 }
 
+/* 5-Section Layout Utilities */
+.nec-settings-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  margin-top: 20px;
+}
+
+.nec-settings-section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.nec-settings-section-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--nec-navy, #1e3e62);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.nec-quick-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+

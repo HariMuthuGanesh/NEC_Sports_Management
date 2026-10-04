@@ -41,14 +41,13 @@ export default function PublicAnnouncements() {
     <div className="nec-portal-page">
       <div className="nec-page-header">
         <h2 className="nec-page-title">Sports Announcements</h2>
-        <p className="nec-page-desc">Official notices, tournament rules, registration deadlines, and campus sports updates.</p>
       </div>
 
       {(error || (!loading && list.length === 0)) ? (
         <PublicInfoCard
           icon={Megaphone}
           title="No Announcements"
-          message="There are no new sports announcements at this time. Visit again for updates on registrations and tournaments."
+          message="No announcements at this time."
         />
       ) : loading ? (
         <SkeletonLoader rows={3} />
@@ -62,7 +61,7 @@ export default function PublicAnnouncements() {
               <Card key={ann.id || ann.announcement_id || idx} className="nec-ann-card">
                 <div className="nec-ann-top">
                   <Badge status={isImp ? "danger" : "info"}>
-                    {isImp ? "IMPORTANT" : "NOTICE"}
+                    {isImp ? "Important" : "Notice"}
                   </Badge>
                   <span className="nec-ann-date">
                     <Calendar size={14} /> {dateStr}

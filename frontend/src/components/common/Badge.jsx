@@ -7,22 +7,12 @@ export default function Badge({
   iconSymbol,
   className = ""
 }) {
-  // Accessible icon fallback per version1.md requirement #33
-  const getSymbol = () => {
-    if (iconSymbol) return iconSymbol;
-    switch (status) {
-      case "success": return "✓";
-      case "warning": return "●";
-      case "danger": return "×";
-      case "live": return "🔴";
-      case "info": return "ℹ";
-      default: return "";
-    }
-  };
+  // Only render a symbol if explicitly provided or for live indicators
+  const symbol = iconSymbol || (status === "live" ? "🔴" : null);
 
   return (
     <span className={`nec-badge nec-badge-${status} ${className}`}>
-      <span className="nec-badge-symbol" aria-hidden="true">{getSymbol()}</span>
+      {symbol && <span className="nec-badge-symbol" aria-hidden="true">{symbol}</span>}
       <span className="nec-badge-text">{children}</span>
     </span>
   );

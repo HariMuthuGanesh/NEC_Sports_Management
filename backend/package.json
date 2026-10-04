@@ -12,6 +12,7 @@
     "migrate": "node src/scripts/runMigrations.js",
     "seed": "node src/data/seedData.js",
     "seed:dummy": "node src/data/seedDummyData.js",
+    "seed:comprehensive": "node src/data/seedComprehensiveData.js",
     "provision:demo-accounts": "node src/data/provisionDemoAccounts.js",
     "seed:v2": "node src/data/seedRoleHierarchyV2.js",
     "create:account": "node src/scripts/createAccounts.js --interactive",

@@ -71,8 +71,12 @@ export function AuthProvider({ children }) {
       })
       .then(result => {
         if (result?.success && result.data) {
-          setCurrentUser(result.data);
-          localStorage.setItem("nec_sports_auth_user", JSON.stringify(result.data));
+          const normalized = {
+            ...result.data,
+            name: result.data.name || result.data.playerName || result.data.student_name || result.data.username || "Athlete"
+          };
+          setCurrentUser(normalized);
+          localStorage.setItem("nec_sports_auth_user", JSON.stringify(normalized));
           if (token) {
             setSessionExpiresAt(getTokenExpiry(token));
           }
@@ -249,10 +253,14 @@ export function AuthProvider({ children }) {
       setTokenState(null);
       setSessionExpiresAt(null);
     }
-    setCurrentUser(userData);
-    localStorage.setItem("nec_sports_auth_user", JSON.stringify(userData));
-    SecurityLogger.logLogin(userData);
-    resetIdleTimer(userData);
+    const normalizedUser = {
+      ...userData,
+      name: userData?.name || userData?.playerName || userData?.student_name || userData?.username || "Athlete"
+    };
+    setCurrentUser(normalizedUser);
+    localStorage.setItem("nec_sports_auth_user", JSON.stringify(normalizedUser));
+    SecurityLogger.logLogin(normalizedUser);
+    resetIdleTimer(normalizedUser);
   };
 
   const logout = async () => {

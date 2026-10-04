@@ -1,0 +1,539 @@
+/* Public OD List & Verification Portal Styles */
+
+.nec-od-portal {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Header section */
+.nec-od-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nec-od-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.nec-od-header-title {
+  margin: 0;
+  font-size: 1.65rem;
+  font-weight: 700;
+  color: var(--nec-text-primary, #0f172a);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nec-od-header-desc {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--nec-text-secondary, #64748b);
+  max-width: 720px;
+}
+
+/* Verification Notice Banner */
+.nec-od-notice-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: var(--nec-radius-md, 8px);
+  color: var(--nec-text-primary, #0f172a);
+  font-size: 0.88rem;
+}
+
+.nec-od-notice-icon {
+  color: #059669;
+  flex-shrink: 0;
+}
+
+/* Search bar on sports list */
+.nec-od-search-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--nec-card-bg, #ffffff);
+  border: 1px solid var(--nec-border, #e2e8f0);
+  border-radius: var(--nec-radius-lg, 12px);
+  padding: 12px 18px;
+  box-shadow: var(--nec-shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.05));
+}
+
+.nec-od-search-input-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.nec-od-search-input {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 0.95rem;
+  color: var(--nec-text-primary, #0f172a);
+}
+
+.nec-od-search-input::placeholder {
+  color: var(--nec-text-muted, #94a3b8);
+}
+
+.nec-od-clear-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--nec-text-muted, #94a3b8);
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+}
+
+.nec-od-clear-btn:hover {
+  color: var(--nec-text-primary, #0f172a);
+}
+
+/* Sports Cards Grid */
+.nec-od-sports-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 18px;
+}
+
+.nec-od-sport-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: var(--nec-card-bg, #ffffff);
+  border: 1px solid var(--nec-border, #e2e8f0);
+  border-radius: var(--nec-radius-lg, 12px);
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.nec-od-sport-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--nec-primary, #1e40af);
+  box-shadow: var(--nec-shadow-md, 0 8px 20px rgba(0, 0, 0, 0.08));
+}
+
+.nec-od-sport-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.nec-od-sport-icon-box {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--nec-radius-md, 8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  background: rgba(30, 64, 175, 0.08);
+  color: var(--nec-primary, #1e40af);
+}
+
+.nec-od-sport-card-name {
+  margin: 0 0 4px;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--nec-text-primary, #0f172a);
+}
+
+.nec-od-sport-card-cat {
+  font-size: 0.8rem;
+  color: var(--nec-text-muted, #94a3b8);
+  font-weight: 500;
+}
+
+.nec-od-sport-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 14px;
+  border-top: 1px solid var(--nec-border-light, #f1f5f9);
+  margin-top: 12px;
+}
+
+.nec-od-count-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.nec-od-count-badge.has-records {
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+}
+
+.nec-od-count-badge.empty-records {
+  background: rgba(148, 163, 184, 0.14);
+  color: #64748b;
+}
+
+.nec-od-view-action {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--nec-primary, #1e40af);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Dedicated Sport OD View */
+.nec-od-sport-view-header {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.nec-od-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: var(--nec-card-bg, #ffffff);
+  border: 1px solid var(--nec-border, #e2e8f0);
+  border-radius: var(--nec-radius-md, 8px);
+  color: var(--nec-text-primary, #0f172a);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  width: fit-content;
+  transition: background 0.15s ease;
+}
+
+.nec-od-back-btn:hover {
+  background: var(--nec-bg-hover, #f8fafc);
+}
+
+.nec-od-sport-title-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.nec-od-sport-title-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.nec-od-sport-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--nec-radius-lg, 12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  background: rgba(30, 64, 175, 0.1);
+  color: var(--nec-primary, #1e40af);
+}
+
+.nec-od-sport-heading {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--nec-text-primary, #0f172a);
+}
+
+.nec-od-sport-subheading {
+  margin: 2px 0 0;
+  font-size: 0.88rem;
+  color: var(--nec-text-secondary, #64748b);
+}
+
+/* Toolbar for Department, Name Search, and Sorting */
+.nec-od-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 14px 18px;
+  background: var(--nec-card-bg, #ffffff);
+  border: 1px solid var(--nec-border, #e2e8f0);
+  border-radius: var(--nec-radius-lg, 12px);
+}
+
+.nec-od-toolbar-left {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  flex: 1;
+}
+
+.nec-od-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nec-od-filter-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--nec-text-secondary, #64748b);
+  white-space: nowrap;
+}
+
+.nec-od-select {
+  padding: 8px 12px;
+  border-radius: var(--nec-radius-md, 8px);
+  border: 1px solid var(--nec-border, #e2e8f0);
+  background: var(--nec-card-bg, #ffffff);
+  color: var(--nec-text-primary, #0f172a);
+  font-size: 0.88rem;
+  font-weight: 500;
+  outline: none;
+  cursor: pointer;
+  min-width: 180px;
+}
+
+.nec-od-name-search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: var(--nec-radius-md, 8px);
+  border: 1px solid var(--nec-border, #e2e8f0);
+  background: var(--nec-card-bg, #ffffff);
+  min-width: 220px;
+  flex: 1;
+  max-width: 380px;
+}
+
+.nec-od-name-search-box input {
+  border: none;
+  outline: none;
+  background: transparent;
+  width: 100%;
+  font-size: 0.88rem;
+  color: var(--nec-text-primary, #0f172a);
+}
+
+.nec-od-name-search-box input::placeholder {
+  color: var(--nec-text-muted, #94a3b8);
+}
+
+.nec-od-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nec-od-sort-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: var(--nec-radius-md, 8px);
+  border: 1px solid var(--nec-border, #e2e8f0);
+  background: var(--nec-card-bg, #ffffff);
+  color: var(--nec-text-primary, #0f172a);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.nec-od-sort-btn:hover {
+  background: var(--nec-bg-hover, #f8fafc);
+  border-color: var(--nec-primary, #1e40af);
+}
+
+/* Verification Table */
+.nec-od-table-wrapper {
+  background: var(--nec-card-bg, #ffffff);
+  border: 1px solid var(--nec-border, #e2e8f0);
+  border-radius: var(--nec-radius-lg, 12px);
+  overflow: hidden;
+  box-shadow: var(--nec-shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.05));
+}
+
+.nec-od-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.nec-od-table th {
+  padding: 12px 18px;
+  background: var(--nec-bg-surface, #f8fafc);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--nec-text-secondary, #64748b);
+  border-bottom: 1px solid var(--nec-border, #e2e8f0);
+}
+
+.nec-od-table td {
+  padding: 14px 18px;
+  font-size: 0.9rem;
+  color: var(--nec-text-primary, #0f172a);
+  border-bottom: 1px solid var(--nec-border-light, #f1f5f9);
+}
+
+.nec-od-table tbody tr:hover {
+  background: var(--nec-bg-hover, #f8fafc);
+}
+
+.nec-od-student-cell {
+  font-weight: 600;
+  color: var(--nec-text-primary, #0f172a);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nec-od-student-avatar-pill {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(30, 64, 175, 0.08);
+  color: var(--nec-primary, #1e40af);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.nec-od-dept-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nec-od-dept-code {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  background: rgba(14, 165, 233, 0.12);
+  color: #0284c7;
+  border-radius: 4px;
+}
+
+.nec-od-date-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nec-od-date-text {
+  font-weight: 600;
+  color: var(--nec-text-primary, #0f172a);
+}
+
+.nec-od-days-subtext {
+  font-size: 0.78rem;
+  color: var(--nec-text-muted, #94a3b8);
+}
+
+.nec-od-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+/* Empty State Card */
+.nec-od-empty-card {
+  padding: 48px 24px;
+  text-align: center;
+  background: var(--nec-card-bg, #ffffff);
+  border: 1px dashed var(--nec-border, #cbd5e1);
+  border-radius: var(--nec-radius-lg, 12px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.nec-od-empty-icon-wrap {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(148, 163, 184, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--nec-text-muted, #94a3b8);
+}
+
+.nec-od-empty-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--nec-text-primary, #0f172a);
+}
+
+.nec-od-empty-desc {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--nec-text-secondary, #64748b);
+  max-width: 440px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .nec-od-sports-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .nec-od-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .nec-od-toolbar-left {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .nec-od-select,
+  .nec-od-name-search-box {
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .nec-od-toolbar-right {
+    justify-content: flex-end;
+  }
+
+  .nec-od-table th:nth-child(4),
+  .nec-od-table td:nth-child(4) {
+    display: none;
+  }
+}

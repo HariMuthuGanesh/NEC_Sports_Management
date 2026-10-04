@@ -72,6 +72,52 @@ export const protect = async (req, res, next) => {
     }
 };
 
+export const optionalProtect = async (req, res, next) => {
+    let token = null;
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+        token = req.headers.authorization.split(' ')[1];
+    } else if (req.cookies?.token) {
+        token = req.cookies.token;
+    }
+
+    if (!token) {
+        return next();
+    }
+
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] });
+        const [rows] = await pool.execute(
+            'SELECT token_version, is_active, admin_scope FROM users WHERE id = ? LIMIT 1',
+            [decoded.id]
+        );
+        const user = rows[0];
+
+        if (user && user.is_active && (decoded.token_version === undefined || decoded.token_version === user.token_version)) {
+            req.user = {
+                ...decoded,
+                admin_scope: user.admin_scope || decoded.admin_scope || 'Full'
+            };
+            req.token = token;
+
+            if (req.user.role === 'Coordinator' && !req.user.dept_id) {
+                const [deptRows] = await pool.execute(
+                    'SELECT id, code, name FROM departments WHERE coordinator_user_id = ? LIMIT 1',
+                    [req.user.id]
+                );
+                if (deptRows[0]) {
+                    req.user.dept_id = deptRows[0].id;
+                    req.user.deptCode = deptRows[0].code;
+                    req.user.dept = deptRows[0].code;
+                }
+            }
+        }
+    } catch {
+        // Optional auth: ignore token errors and continue as unauthenticated
+    }
+    return next();
+};
+
+
 export const authorize = (...roles) => {
     const roleAliases = {
         'Admin': ['Admin', 'Director of Physical Education', 'Sys-Admin', 'Sys Admin'],

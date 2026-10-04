@@ -92,6 +92,7 @@ export const loginUser = async (req, res, next) => {
                     token,
                     id: user.id,
                     username: user.username,
+                    name: student?.student_name || user.username,
                     email: user.email,
                     role: user.role,
                     dept: deptCode || 'Sports Office',
@@ -227,6 +228,7 @@ export const getCurrentUser = async (req, res, next) => {
             data: {
                 id: user.id,
                 username: user.username,
+                name: student?.student_name || user.username,
                 email: user.email,
                 role: user.role,
                 dept: deptCode || 'Sports Office',

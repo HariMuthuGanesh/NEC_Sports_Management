@@ -105,7 +105,7 @@ export const deleteMatch = async (req, res, next) => {
  * PUT /api/matches/:id/score
  * Accepts: { scoreA, scoreB, detailScore, isFinal }
  * Server determines winner from team_a_id / team_b_id stored in the match row.
- * Only Admin and Coordinator may call this (enforced in route middleware).
+ * Only Admin and Score Updater may call this (enforced in route middleware).
  */
 export const updateScore = async (req, res, next) => {
     try {

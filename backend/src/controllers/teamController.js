@@ -22,8 +22,16 @@ import { ensureStudentAndUserExists } from '../services/studentProvisionService.
 export const getTeams = async (req, res, next) => {
     try {
         let data = await getAllTeams();
-        if (req.user?.role === 'Coordinator' && req.user.dept_id) {
-            data = data.filter(t => Number(t.department_id || t.deptId || t.dept_id) === Number(req.user.dept_id));
+        if (req.user?.role === 'Coordinator') {
+            const userDeptId = Number(req.user.dept_id || req.user.deptId);
+            const userDeptCode = (req.user.deptCode || req.user.dept || '').toUpperCase();
+            data = data.filter(t => {
+                const teamDeptId = Number(t.department_id || t.deptId || t.dept_id);
+                const teamDeptCode = (t.deptCode || t.dept_code || '').toUpperCase();
+                if (userDeptId && teamDeptId === userDeptId) return true;
+                if (userDeptCode && teamDeptCode === userDeptCode) return true;
+                return false;
+            });
         } else if (req.query.deptId || req.query.dept_id) {
             const filterId = Number(req.query.deptId || req.query.dept_id);
             data = data.filter(t => Number(t.department_id || t.deptId || t.dept_id) === filterId);

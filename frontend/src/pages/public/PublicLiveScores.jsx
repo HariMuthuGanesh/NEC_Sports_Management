@@ -9,6 +9,37 @@ import PublicInfoCard from "../../components/common/PublicInfoCard";
 import { Trophy, Calendar } from "lucide-react";
 import "./PublicPortal.css";
 
+// Helper for formatting date strings cleanly
+function formatMatchDate(val) {
+  if (!val) return "Recent";
+  try {
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return String(val);
+    return d.toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric"
+    });
+  } catch {
+    return String(val);
+  }
+}
+
+// Sport icon helper
+function getSportIcon(sportName = "") {
+  const s = String(sportName).toLowerCase();
+  if (s.includes("cricket")) return "🏏";
+  if (s.includes("football") || s.includes("soccer")) return "⚽";
+  if (s.includes("badminton")) return "🏸";
+  if (s.includes("volleyball")) return "🏐";
+  if (s.includes("basketball")) return "🏀";
+  if (s.includes("kabaddi")) return "🤼";
+  if (s.includes("chess")) return "♟️";
+  if (s.includes("table tennis")) return "🏓";
+  if (s.includes("athletic") || s.includes("track")) return "🏃";
+  return "🏆";
+}
+
 export default function PublicLiveScores({ onNavigate }) {
   const { t } = useAuth();
   
@@ -27,7 +58,6 @@ export default function PublicLiveScores({ onNavigate }) {
     <div className="nec-portal-page">
       <div className="nec-page-header">
         <h2 className="nec-page-title">{t.liveScores || "Campus Live Scores & Results"}</h2>
-        <p className="nec-page-desc">Real-time match scores and completed game results across all NEC sports venues.</p>
       </div>
 
       <div className="nec-portal-section">
@@ -37,8 +67,8 @@ export default function PublicLiveScores({ onNavigate }) {
         ) : (error || liveList.length === 0) ? (
           <PublicInfoCard
             icon={Trophy}
-            title="No Live Matches Today"
-            message="There are currently no live matches being played on campus. Live scores will automatically appear here once a match begins."
+            title="No Live Matches"
+            message="No matches currently in progress."
             actionText="View Fixtures"
             onAction={() => onNavigate && onNavigate("public_fixtures")}
           />
@@ -47,7 +77,7 @@ export default function PublicLiveScores({ onNavigate }) {
             {liveList.map(m => (
               <Card key={m.id} className="nec-score-card live">
                 <div className="nec-score-head">
-                  <span>{m.sport} • {m.round}</span>
+                  <span>{getSportIcon(m.sport)} {m.sport} • {m.round}</span>
                   <Badge status="live">{t.live || "LIVE SCORE"}</Badge>
                 </div>
                 <div className="nec-score-main">
@@ -74,33 +104,35 @@ export default function PublicLiveScores({ onNavigate }) {
       <div className="nec-portal-section">
         <h3 className="nec-sub-title">🏆 Recent Completed Match Results</h3>
         {loading ? (
-          <SkeletonLoader rows={3} />
+          <SkeletonLoader rows={2} />
         ) : (error || recentList.length === 0) ? (
           <PublicInfoCard
             icon={Calendar}
-            title="No Completed Matches Yet"
-            message="Completed match results and final scores will appear here after tournaments conclude."
+            title="No Completed Matches"
+            message="No completed match records."
             variant="flat"
           />
         ) : (
-          <div className="nec-matches-grid">
+          <div className="nec-completed-grid">
             {recentList.map(m => (
-              <Card key={m.id} className="nec-score-card completed">
+              <Card key={m.id} className="nec-score-card completed medium-box">
                 <div className="nec-score-head">
-                  <span>{m.sport} • {m.date}</span>
-                  <Badge status="success">COMPLETED</Badge>
+                  <span>{getSportIcon(m.sport)} {m.sport} • {formatMatchDate(m.date)}</span>
+                  <Badge status="success">Completed</Badge>
                 </div>
                 <div className="nec-score-main">
                   <div className="nec-score-team">
-                    <span className="nec-st-name">{m.teamA} ({m.deptA})</span>
+                    <span className="nec-st-dept">{m.deptA || "TEAM"}</span>
+                    <span className="nec-st-name">{m.teamA}</span>
                   </div>
                   <div className="nec-score-badge dark">{m.scoreA} - {m.scoreB}</div>
                   <div className="nec-score-team text-right">
-                    <span className="nec-st-name">{m.teamB} ({m.deptB})</span>
+                    <span className="nec-st-dept">{m.deptB || "TEAM"}</span>
+                    <span className="nec-st-name">{m.teamB}</span>
                   </div>
                 </div>
                 <div className="nec-winner-banner">
-                  Winner: <strong>{m.winner}</strong> ({m.detailScore})
+                  Winner: <strong>{m.winner}</strong> {m.detailScore ? `(${m.detailScore})` : ""}
                 </div>
               </Card>
             ))}

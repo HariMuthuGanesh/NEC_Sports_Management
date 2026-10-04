@@ -522,21 +522,21 @@ export default function GalleryManager() {
               </div>
 
               <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-                <button
-                  type="button"
+                <Button
+                  variant="danger"
+                  size="sm"
+                  icon={Trash2}
                   onClick={() => handleDelete(activeLightboxItem.id, activeLightboxItem.title)}
-                  className="nec-btn nec-btn-secondary"
-                  style={{ color: "var(--nec-danger, #ef4444)", display: "flex", alignItems: "center", gap: "6px" }}
                 >
-                  <Trash2 size={15} /> Delete
-                </button>
-                <button
-                  type="button"
+                  Delete
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
                   onClick={() => setActiveLightboxItem(null)}
-                  className="nec-btn nec-btn-primary"
                 >
                   Close
-                </button>
+                </Button>
               </div>
             </div>
           </div>

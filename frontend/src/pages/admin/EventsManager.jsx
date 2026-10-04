@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { eventsApi } from "../../services/api/apiServices";
 import { useToast } from "../../context/ToastContext";
 import Table from "../../components/common/Table";
@@ -9,6 +9,17 @@ import ErrorState from "../../components/common/ErrorState";
 import { Plus, ToggleLeft, ToggleRight, Trash2 } from "lucide-react";
 import { useAutoRefresh } from "../../hooks/useAutoRefresh";
 import "./AdminPortal.css";
+
+const formatDeadline = (val) => {
+  if (!val) return "TBD";
+  try {
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return String(val);
+    return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+  } catch {
+    return String(val);
+  }
+};
 
 export default function EventsManager() {
   const toast = useToast();
@@ -28,14 +39,35 @@ export default function EventsManager() {
     { interval: 15000 }
   );
 
-  const events = Array.isArray(rawEvents) ? rawEvents : [];
+  const [localEvents, setLocalEvents] = useState([]);
+
+  useEffect(() => {
+    if (Array.isArray(rawEvents)) {
+      setLocalEvents(rawEvents);
+    }
+  }, [rawEvents]);
 
   const handleToggleRegistration = async (eventId) => {
+    const prevEvents = [...localEvents];
+    let nextStatus = "Open";
+
+    // Instant optimistic update in local state
+    setLocalEvents(prev => prev.map(ev => {
+      const id = ev.id || ev.event_id;
+      if (id === eventId) {
+        const cur = ev.status || ev.registration_status || "Open";
+        const isOpen = cur === "Open" || cur === "Registration Open";
+        nextStatus = isOpen ? "Closed" : "Open";
+        return { ...ev, status: nextStatus, registration_status: nextStatus };
+      }
+      return ev;
+    }));
+
     try {
-      await eventsApi.toggleEventStatus(eventId);
-      toast.success("Event registration status updated!");
-      refetch();
+      await eventsApi.toggleEventStatus(eventId, { status: nextStatus });
+      toast.success(`Event registration ${nextStatus.toLowerCase()}!`);
     } catch (err) {
+      setLocalEvents(prevEvents);
       toast.error("Failed to toggle registration status: " + err.message);
     }
   };
@@ -83,19 +115,39 @@ export default function EventsManager() {
       label: "Event Name",
       render: (val, row) => (
         <div>
-          <strong>{val || row.name || "Sports Event"}</strong>
-          <br />
-          <small style={{ color: 'var(--nec-text-muted)' }}>{row.category || "Open"} Category</small>
+          <strong style={{ fontSize: "0.95rem" }}>{val || row.name || "Sports Event"}</strong>
+          {row.tournament_name && (
+            <div style={{ fontSize: "0.78rem", color: "var(--nec-text-muted)", marginTop: "2px" }}>
+              🏆 {row.tournament_name}
+            </div>
+          )}
         </div>
       )
     },
     {
+      key: "category",
+      label: "Category",
+      width: "120px",
+      render: (val, row) => {
+        const cat = val || row.category || "Open";
+        return (
+          <Badge status={cat === "Men" ? "info" : cat === "Women" ? "warning" : "neutral"}>
+            {cat}
+          </Badge>
+        );
+      }
+    },
+    {
       key: "eventCategory",
-      label: "Event Category",
+      label: "Tournament Tier",
       width: "140px",
       render: (val, row) => {
-        const cat = val || row.event_category || row.tier || "Inter-Department";
-        return <Badge status={cat === "Inter-College" ? "danger" : "info"}>{cat}</Badge>;
+        const tier = val || row.event_category || row.tier || "Intramural";
+        return (
+          <span style={{ fontSize: "0.85rem", fontWeight: 600, color: "var(--nec-text-secondary)" }}>
+            {tier}
+          </span>
+        );
       }
     },
     {
@@ -116,8 +168,8 @@ export default function EventsManager() {
     {
       key: "regDeadline",
       label: "Entry Deadline",
-      width: "130px",
-      render: (val, row) => <span>📅 {val || row.reg_deadline || "TBD"}</span>
+      width: "140px",
+      render: (val, row) => <span>📅 {formatDeadline(val || row.reg_deadline)}</span>
     },
     {
       key: "status",
@@ -128,7 +180,7 @@ export default function EventsManager() {
         const isOpen = st === "Open" || st === "Registration Open";
         return (
           <Badge status={isOpen ? "success" : st === "Ongoing" ? "live" : "danger"}>
-            {isOpen ? "OPEN ✓" : st === "Closed" ? "CLOSED ×" : st}
+            {isOpen ? "Open" : st === "Closed" ? "Closed" : st}
           </Badge>
         );
       }
@@ -172,7 +224,6 @@ export default function EventsManager() {
       <div className="nec-page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
           <h2 className="nec-page-title">Tournament Events & Registration Controls</h2>
-          <p className="nec-page-desc">Open or close department registrations and set entry limits for sports events.</p>
         </div>
         <Button variant="primary" icon={Plus} onClick={() => setIsModalOpen(true)}>
           Create Event
@@ -181,13 +232,13 @@ export default function EventsManager() {
 
       {error ? (
         <div style={{ padding: "40px" }}>
-          <ErrorState onRetry={loadEvents} />
+          <ErrorState onRetry={refetch} />
         </div>
       ) : (
         <Table
           columns={columns}
-          data={events}
-          loading={loading}
+          data={localEvents}
+          loading={loading && localEvents.length === 0}
           searchPlaceholder="Search sports events..."
           emptyMessage="No events found."
         />

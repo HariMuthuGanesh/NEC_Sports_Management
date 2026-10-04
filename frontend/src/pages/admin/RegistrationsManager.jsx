@@ -56,15 +56,15 @@ export default function RegistrationsManager() {
     const { teamId, action } = confirmDialog;
     if (!teamId || !action) return;
 
-    // Bug fix: DB enum for rejection is "Disqualified", not "Rejected"
-    teamsApi.updateTeamStatus(teamId, action === "approve" ? "Approved" : "Disqualified").then(() => {
+    const targetStatus = action === "approve" ? "Approved" : "Disqualified";
+    teamsApi.updateTeamStatus(teamId, targetStatus).then(() => {
       setConfirmDialog({ open: false, teamId: null, action: null });
       loadTeams();
     });
   };
 
   const columns = [
-    { key: "deptCode", label: "Dept", width: "90px", render: (val) => <strong>{val || "—"}</strong> },
+    { key: "deptCode", label: "Dept", width: "90px", render: (val) => <strong>{val || "-"}</strong> },
     { key: "name", label: "Team Name", render: (val) => <strong>{val || "Unnamed Team"}</strong> },
     { key: "sportId", label: "Sport", width: "130px", render: (val, row) => String(row.sportName || val || "Sport").replace("sp_", "").toUpperCase() },
     { key: "captainName", label: "Captain", render: (val, row) => <span>{val || "Not Assigned"} {row.captainRoll ? `(${row.captainRoll})` : ""}</span> },
@@ -82,44 +82,69 @@ export default function RegistrationsManager() {
     {
       key: "actions",
       label: "Actions",
-      width: "230px",
+      width: "280px",
       sortable: false,
-      render: (_, row) => (
-        <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
-          <Button variant="ghost" size="sm" icon={Eye} onClick={() => handleViewRoster(row)}>
-            Roster
-          </Button>
-          {row.status === "Pending" && (
-            <>
+      render: (_, row) => {
+        const teamId = row.id || row.team_id;
+        const status = row.status || "Pending";
+        return (
+          <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+            <Button variant="ghost" size="sm" icon={Eye} onClick={() => handleViewRoster(row)}>
+              Roster
+            </Button>
+            {status === "Pending" && (
+              <>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  icon={Check}
+                  onClick={() => setConfirmDialog({ open: true, teamId, action: "approve" })}
+                >
+                  Approve
+                </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  icon={X}
+                  onClick={() => setConfirmDialog({ open: true, teamId, action: "disqualify" })}
+                >
+                  Disqualify
+                </Button>
+              </>
+            )}
+            {status === "Approved" && (
+              <Button
+                variant="outline"
+                size="sm"
+                icon={X}
+                style={{ borderColor: "var(--nec-danger)", color: "var(--nec-danger)" }}
+                onClick={() => setConfirmDialog({ open: true, teamId, action: "disqualify" })}
+              >
+                Disqualify
+              </Button>
+            )}
+            {status === "Disqualified" && (
               <Button
                 variant="primary"
                 size="sm"
                 icon={Check}
-                onClick={() => setConfirmDialog({ open: true, teamId: row.id || row.team_id, action: "approve" })}
+                onClick={() => setConfirmDialog({ open: true, teamId, action: "approve" })}
               >
                 Approve
               </Button>
-              <Button
-                variant="danger"
-                size="sm"
-                icon={X}
-                onClick={() => setConfirmDialog({ open: true, teamId: row.id || row.team_id, action: "reject" })}
-              >
-                Reject
-              </Button>
-            </>
-          )}
-          <Button
-            variant="danger"
-            size="sm"
-            icon={Trash2}
-            onClick={() => handleDeleteTeam(row.id || row.team_id)}
-            title="Delete Team"
-          >
-            Delete
-          </Button>
-        </div>
-      )
+            )}
+            <Button
+              variant="danger"
+              size="sm"
+              icon={Trash2}
+              onClick={() => handleDeleteTeam(teamId)}
+              title="Delete Team"
+            >
+              Delete
+            </Button>
+          </div>
+        );
+      }
     }
   ];
 
@@ -127,7 +152,6 @@ export default function RegistrationsManager() {
     <div className="nec-portal-page">
       <div className="nec-page-header">
         <h2 className="nec-page-title">Department Team Approvals & Registrations</h2>
-        <p className="nec-page-desc">Review submitted department team rosters, verify player details, and approve tournament entries.</p>
       </div>
 
       {error ? (
@@ -181,15 +205,15 @@ export default function RegistrationsManager() {
         </div>
       </Modal>
 
-      {/* Approval / Rejection Confirmation */}
+      {/* Approval / Disqualification Confirmation */}
       <ConfirmDialog
         isOpen={confirmDialog.open}
         onClose={() => setConfirmDialog({ open: false, teamId: null, action: null })}
         onConfirm={handleAction}
-        title={confirmDialog.action === "approve" ? "Approve Team Registration?" : "Reject Team Registration?"}
-        message={`Are you sure you want to ${confirmDialog.action} this department team entry for NEC Sports Tournament?`}
+        title={confirmDialog.action === "approve" ? "Approve Team?" : "Disqualify Team?"}
+        message={`Are you sure you want to ${confirmDialog.action === "approve" ? "approve" : "disqualify"} this team?`}
         confirmVariant={confirmDialog.action === "approve" ? "primary" : "danger"}
-        confirmLabel={confirmDialog.action === "approve" ? "Approve Entry" : "Reject Entry"}
+        confirmLabel={confirmDialog.action === "approve" ? "Approve" : "Disqualify"}
       />
     </div>
   );

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { playersApi, teamsApi } from "../../services/api/apiServices";
+import { useAuth } from "../../context/AuthContext";
 import { Card } from "../../components/common/Card";
 import Button from "../../components/common/Button";
 import ErrorState from "../../components/common/ErrorState";
@@ -7,6 +8,7 @@ import { UserCheck, CheckSquare, Square, Save } from "lucide-react";
 import "./CoordinatorPortal.css";
 
 export default function AttendanceMarker() {
+  const { currentUser } = useAuth();
   const [teams, setTeams] = useState([]);
   const [selectedTeamId, setSelectedTeamId] = useState("");
   const [players, setPlayers] = useState([]);
@@ -14,12 +16,23 @@ export default function AttendanceMarker() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const deptScope = currentUser?.deptId || currentUser?.dept;
+
   useEffect(() => {
-    teamsApi.getTeams().then(tList => {
-      setTeams(tList);
-      if (tList.length > 0) setSelectedTeamId(tList[0].id);
+    teamsApi.getTeams(deptScope).then(tList => {
+      const myDept = (currentUser?.dept || currentUser?.deptCode || "").toUpperCase();
+      const list = Array.isArray(tList) ? tList : [];
+      const filtered = (myDept && myDept !== "ALL" && myDept !== "SPORTS OFFICE")
+        ? list.filter(t => (t.deptCode || t.dept_code || t.dept || "").toUpperCase() === myDept || Number(t.deptId || t.department_id) === Number(currentUser?.deptId))
+        : list;
+      setTeams(filtered);
+      if (filtered.length > 0) setSelectedTeamId(filtered[0].id || filtered[0].team_id);
+      else setSelectedTeamId("");
+    }).catch(err => {
+      console.error(err);
+      setTeams([]);
     });
-  }, []);
+  }, [currentUser, deptScope]);
 
   const loadPlayers = (teamId) => {
     setLoading(true);

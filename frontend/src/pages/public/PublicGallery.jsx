@@ -77,7 +77,6 @@ export default function PublicGallery({ onNavigate }) {
       <div className="nec-page-header">
         <div>
           <h2 className="nec-page-title">Sports Gallery</h2>
-          <p className="nec-page-desc">Photos and moments from campus sports events, tournaments, and practice sessions.</p>
         </div>
         <div style={{ display: "flex", gap: "8px" }}>
           <button
@@ -121,7 +120,7 @@ export default function PublicGallery({ onNavigate }) {
         <PublicInfoCard
           icon={ImageIcon}
           title="Sports Gallery"
-          message="Photos from campus tournaments and sporting events will appear here after they are published."
+          message="No gallery media published."
           actionText="View Fixtures"
           onAction={() => onNavigate && onNavigate("public_fixtures")}
         />

@@ -18,7 +18,8 @@ import {
   Home,
   Shield,
   Settings,
-  LogIn
+  LogIn,
+  FileCheck
 } from "lucide-react";
 import { useAuth, ROLES } from "../../context/AuthContext";
 import "./Sidebar.css";
@@ -78,7 +79,6 @@ export default function Sidebar({ activeNav, onSelectNav, isOpen, onCloseMobile 
           {
             category: t.navMatchDayActions,
             items: [
-              { id: "coord_score_entry", label: t.scoreEntry, icon: Edit3 },
               { id: "coord_attendance", label: t.squadAttendance, icon: UserCheck },
               { id: "coord_media", label: t.mediaUpload, icon: Image },
               { id: "coord_od", label: "On Duty Requests", icon: FileText }
@@ -133,6 +133,7 @@ export default function Sidebar({ activeNav, onSelectNav, isOpen, onCloseMobile 
             items: [
               { id: "player_team", label: t.myTeam, icon: Users },
               { id: "player_matches", label: t.myFixtures, icon: Calendar },
+              { id: "player_performance", label: "Performance Report", icon: Award },
               { id: "notifications", label: t.notifications, icon: Bell }
             ]
           }
@@ -148,6 +149,7 @@ export default function Sidebar({ activeNav, onSelectNav, isOpen, onCloseMobile 
               { id: "public_live", label: t.liveScores, icon: Radio },
               { id: "public_fixtures", label: t.fixtures, icon: Calendar },
               { id: "public_leaderboard", label: t.leaderboard, icon: Trophy },
+              { id: "public_od_list", label: "OD List", icon: FileCheck },
               { id: "public_gallery", label: t.gallery, icon: Image },
               { id: "public_announcements", label: t.announcements, icon: Megaphone },
               { id: "login", label: t.login || "Portal Sign In", icon: LogIn }
@@ -164,10 +166,6 @@ export default function Sidebar({ activeNav, onSelectNav, isOpen, onCloseMobile 
       {isOpen && <div className="nec-sidebar-overlay" onClick={onCloseMobile} />}
       <aside className={`nec-sidebar ${isOpen ? "open" : ""}`}>
         <div className="nec-sidebar-inner">
-          <div className="nec-sidebar-header-badge">
-            <span>{t.mode}: {currentUser.role}</span>
-          </div>
-
           <nav className="nec-sidebar-nav">
             {navGroups.map((group, idx) => (
               <div key={idx} className="nec-nav-group">

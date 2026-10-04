@@ -1,5 +1,5 @@
 import express from 'express';
-import { protect, authorize, requireAdminScope } from '../middleware/authMiddleware.js';
+import { protect, optionalProtect, authorize, requireAdminScope } from '../middleware/authMiddleware.js';
 import { syncScheduledStatuses } from '../services/scheduledStatusService.js';
 import {
     getSports,
@@ -59,7 +59,7 @@ import {
     getDepartmentAttendanceController,
     getMatchAttendanceController
 } from '../controllers/attendanceController.js';
-import { getPerformanceReportController } from '../controllers/reportsController.js';
+import { getPerformanceReportController, getPlayerPerformanceReportController } from '../controllers/reportsController.js';
 import { validateScoreInput, validateTeamRegistration } from '../middleware/validatorMiddleware.js';
 import { getAuditEntries, addAuditEntry } from '../services/auditStore.js';
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from '../controllers/notificationController.js';
@@ -71,7 +71,9 @@ import {
     approveOdController,
     rejectOdController,
     bulkApproveMatchOdController,
-    getOdRequestController
+    getOdRequestController,
+    getPublicApprovedOdController,
+    getPublicApprovedOdSportsController
 } from '../controllers/odController.js';
 // NOTE: departmentTeamController.js (department_teams / department_team_members
 // V1 endpoints) is intentionally NOT imported here. Those tables are marked
@@ -144,6 +146,8 @@ router.get('/matches', getMatches);
 router.get('/leaderboard', getLeaderboard);
 router.get('/events', getEvents);
 router.get('/stats/overview', getOverviewStats);
+router.get('/od/public', getPublicApprovedOdController);
+router.get('/od/public/sports', getPublicApprovedOdSportsController);
 router.get('/students', protect, searchStudentsController);
 router.get('/students/search', protect, searchStudentsController);
 // Must be before any /students/:param routes that could clash
@@ -155,16 +159,16 @@ router.post('/venues', protect, authorize('Admin'), createVenueController);
 router.put('/venues/:id', protect, authorize('Admin'), updateVenueController);
 router.delete('/venues/:id', protect, authorize('Admin'), deleteVenueController);
 
-// Match score update — Admin and Coordinator only, winner resolved server-side
+// Match score update: Admin and Score Updater only, winner resolved server-side
 // Accept both PUT (legacy) and PATCH (frontend uses PATCH)
-router.put('/matches/:id/score', protect, authorize('Admin', 'Coordinator', 'Score Updater'), validateScoreInput, updateScore);
-router.patch('/matches/:id/score', protect, authorize('Admin', 'Coordinator', 'Score Updater'), validateScoreInput, updateScore);
+router.put('/matches/:id/score', protect, authorize('Admin', 'Score Updater'), validateScoreInput, updateScore);
+router.patch('/matches/:id/score', protect, authorize('Admin', 'Score Updater'), validateScoreInput, updateScore);
 
-// Match CRUD — schedule, cancel, update status
+// Match CRUD - schedule, cancel, update status
 router.post('/matches', protect, authorize('Admin', 'Coordinator'), createMatch);
 router.delete('/matches/:id', protect, authorize('Admin'), deleteMatch);
 router.patch('/matches/:id/status', protect, authorize('Admin', 'Coordinator'), async (req, res, next) => {
-    // Inline simple status patch — just update the status column
+    // Inline simple status patch - just update the status column
     try {
         const { status } = req.body;
         const validStatuses = ['Scheduled', 'Ongoing', 'Completed', 'Postponed'];
@@ -180,8 +184,8 @@ router.patch('/matches/:id/status', protect, authorize('Admin', 'Coordinator'), 
     } catch (err) { next(err); }
 });
 
-// Teams listing (accessible to all, modifications protected)
-router.get('/teams', getTeams);
+// Teams listing (scoped for Coordinator when authenticated, accessible to all)
+router.get('/teams', optionalProtect, getTeams);
 router.get('/teams/:id', getTeamDetailsController);
 router.get('/teams/:id/players', protect, getTeamPlayers);
 router.post('/teams/:id/players', protect, authorize('Admin', 'Coordinator', 'Captain'), addPlayerToTeam);
@@ -235,6 +239,9 @@ router.get('/attendance/match/:matchId', protect, authorize('Admin', 'Coordinato
 
 // Dynamic Institutional Performance Reports (Admin & Coordinator)
 router.get('/reports/performance', protect, authorize('Admin', 'Coordinator'), getPerformanceReportController);
+
+// Student Athlete Performance Report (Digital Sports Portfolio)
+router.get('/players/me/performance-report', protect, authorize('Player', 'Student', 'Student Athlete', 'Admin'), getPlayerPerformanceReportController);
 
 // Audit Logs (Admin & Client Ingestion)
 router.get('/audit-logs', protect, authorize('Admin'), async (req, res, next) => {

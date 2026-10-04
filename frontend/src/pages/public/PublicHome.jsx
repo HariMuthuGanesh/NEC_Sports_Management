@@ -5,7 +5,7 @@ import { Card, StatCard } from "../../components/common/Card";
 import Badge from "../../components/common/Badge";
 import Button from "../../components/common/Button";
 import PublicInfoCard from "../../components/common/PublicInfoCard";
-import { Trophy, Users, Radio, Calendar, Megaphone, ArrowRight, LogIn } from "lucide-react";
+import { Trophy, Users, Radio, Calendar, Megaphone, ArrowRight, LogIn, FileCheck } from "lucide-react";
 import { useAutoRefresh } from "../../hooks/useAutoRefresh";
 import "./PublicPortal.css";
 
@@ -87,6 +87,7 @@ export default function PublicHome({ onNavigate }) {
         <button type="button" onClick={() => onNavigate("public_live")}><Radio size={16} /> Live scores <span>{liveMatches.length}</span></button>
         <button type="button" onClick={() => onNavigate("public_fixtures")}><Calendar size={16} /> Fixtures <ArrowRight size={14} /></button>
         <button type="button" onClick={() => onNavigate("public_leaderboard")}><Trophy size={16} /> Rankings <ArrowRight size={14} /></button>
+        <button type="button" onClick={() => onNavigate("public_od_list")}><FileCheck size={16} /> OD List <ArrowRight size={14} /></button>
         <button type="button" onClick={() => onNavigate("public_gallery")}><Users size={16} /> Campus gallery <ArrowRight size={14} /></button>
       </nav>
 
@@ -96,7 +97,7 @@ export default function PublicHome({ onNavigate }) {
           <PublicInfoCard
             icon={Trophy}
             title="Campus Sports Activities"
-            message="There are currently no ongoing sports activities. Upcoming tournaments, match schedules, announcements, and results will appear here as they become available."
+            message="No active sports records currently."
             actionText="View Sports Gallery"
             onAction={() => onNavigate("public_gallery")}
           />
@@ -235,7 +236,7 @@ export default function PublicHome({ onNavigate }) {
                     return (
                       <div key={ann.id || ann.announcement_id || idx} className="nec-ann-mini-item">
                         <Badge status={isImp ? "danger" : "info"}>
-                          {isImp ? "IMPORTANT" : "NOTICE"}
+                          {isImp ? "Important" : "Notice"}
                         </Badge>
                         <h4 className="nec-ann-mini-title">{ann.title}</h4>
                         <span className="nec-ann-mini-date">{dateStr}</span>

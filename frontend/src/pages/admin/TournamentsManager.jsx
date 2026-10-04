@@ -45,7 +45,7 @@ export default function TournamentsManager() {
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [tierFilter, setTierFilter] = useState("ALL");
   const [yearFilter, setYearFilter] = useState("ALL");
-  const [sortBy, setSortBy] = useState("created_desc"); // 'created_desc' | 'created_asc' | 'az' | 'za' | 'date_asc' | 'date_desc'
+  const [sortBy, setSortBy] = useState("date_desc"); // 'date_desc' | 'date_asc' | 'created_desc' | 'created_asc' | 'az' | 'za'
 
   // Data for selected tournament
   const [registeredTeams, setRegisteredTeams] = useState([]);
@@ -268,14 +268,14 @@ export default function TournamentsManager() {
     return Array.from(tiers).sort();
   }, [tournaments]);
 
-  const hasActiveFilters = searchQuery.trim() !== "" || statusFilter !== "ALL" || tierFilter !== "ALL" || yearFilter !== "ALL" || sortBy !== "created_desc";
+  const hasActiveFilters = searchQuery.trim() !== "" || statusFilter !== "ALL" || tierFilter !== "ALL" || yearFilter !== "ALL" || sortBy !== "date_desc";
 
   const resetFilters = () => {
     setSearchQuery("");
     setStatusFilter("ALL");
     setTierFilter("ALL");
     setYearFilter("ALL");
-    setSortBy("created_desc");
+    setSortBy("date_desc");
   };
 
   const filteredTournaments = useMemo(() => {
@@ -318,6 +318,10 @@ export default function TournamentsManager() {
       const dateB = new Date(b.startDate || b.start_date || 0).getTime();
 
       switch (sortBy) {
+        case "date_asc":
+          return dateA - dateB;
+        case "date_desc":
+          return dateB - dateA;
         case "az":
           return nameA.localeCompare(nameB);
         case "za":
@@ -326,12 +330,8 @@ export default function TournamentsManager() {
           return timeA - timeB;
         case "created_desc":
           return timeB - timeA;
-        case "date_asc":
-          return dateA - dateB;
-        case "date_desc":
-          return dateB - dateA;
         default:
-          return timeB - timeA;
+          return dateB - dateA;
       }
     });
 
@@ -716,9 +716,6 @@ export default function TournamentsManager() {
       <div className="nec-page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
           <h2 className="nec-page-title">{t.tournamentsManagement || "Tournaments Management"}</h2>
-          <p className="nec-page-desc">
-            Manage tournament series, configure collegiate pool fixtures across grounds, and approve squad clearances.
-          </p>
         </div>
         <Button variant="primary" icon={Plus} onClick={() => setIsCreateModalOpen(true)}>
           {t.createTournament || "Create Tournament"}
@@ -815,12 +812,12 @@ export default function TournamentsManager() {
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
               >
+                <option value="date_desc">Event Time: Newest First</option>
+                <option value="date_asc">Event Time: Oldest First</option>
                 <option value="created_desc">Time Added: Newest First</option>
                 <option value="created_asc">Time Added: Oldest First</option>
-                <option value="az">Tournament Name: A → Z</option>
-                <option value="za">Tournament Name: Z → A</option>
-                <option value="date_asc">Start Date: Earliest / Upcoming</option>
-                <option value="date_desc">Start Date: Latest</option>
+                <option value="az">Tournament Name: A to Z</option>
+                <option value="za">Tournament Name: Z to A</option>
               </select>
             </div>
           </div>

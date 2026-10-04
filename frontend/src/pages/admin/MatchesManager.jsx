@@ -7,7 +7,8 @@ import { Modal } from "../../components/common/Modal";
 import SearchableSelect from "../../components/common/SearchableSelect";
 import ErrorState from "../../components/common/ErrorState";
 import EmptyState from "../../components/common/EmptyState";
-import { Calendar, Plus, Trash2, AlertTriangle } from "lucide-react";
+import { Calendar, Plus, Trash2, AlertTriangle, Clock } from "lucide-react";
+import { useToast } from "../../context/ToastContext";
 import "./AdminPortal.css";
 
 export default function MatchesManager() {
@@ -124,38 +125,125 @@ export default function MatchesManager() {
     });
   };
 
+  const toastContext = useToast();
+  const toast = toastContext?.toast || toastContext;
+
   const handleDeleteMatch = (matchId) => {
     matchesApi.deleteMatch(matchId).then(() => {
       loadData();
     });
   };
 
+  const handleUpdateStatus = async (matchId, newStatus) => {
+    const prevMatches = [...matches];
+    setMatches(prev => prev.map(m => (m.id === matchId || m.match_id === matchId ? { ...m, status: newStatus } : m)));
+    try {
+      await matchesApi.updateMatchStatus(matchId, newStatus);
+      if (toast?.success) {
+        toast.success(`Match marked as ${newStatus}`);
+      } else if (typeof toast === "function") {
+        toast({ type: "success", message: `Match marked as ${newStatus}` });
+      }
+    } catch (err) {
+      setMatches(prevMatches);
+      if (toast?.error) {
+        toast.error(err.message || "Failed to update match status");
+      } else if (typeof toast === "function") {
+        toast({ type: "error", message: err.message || "Failed to update match status" });
+      }
+    }
+  };
+
+  const formatDateTime = (dateVal, timeVal) => {
+    if (!dateVal) return "TBD";
+    try {
+      const d = new Date(dateVal);
+      if (isNaN(d.getTime())) {
+        return timeVal && timeVal !== "--:--" ? `${dateVal} • ${timeVal}` : String(dateVal);
+      }
+      const formattedDate = d.toLocaleDateString("en-US", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric"
+      });
+      const hasSpecificTime = timeVal && timeVal !== "--:--";
+      if (hasSpecificTime) {
+        return `${formattedDate} • ${timeVal}`;
+      }
+      if (d.getUTCHours() !== 0 || d.getUTCMinutes() !== 0) {
+        const formattedTime = d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+        return `${formattedDate} • ${formattedTime}`;
+      }
+      return formattedDate;
+    } catch {
+      return String(dateVal);
+    }
+  };
+
   const columns = [
-    { key: "sport", label: "Sport", width: "120px", render: (val) => <strong>{val || "—"}</strong> },
+    { key: "sport", label: "Sport", width: "120px", render: (val) => <strong>{val || "-"}</strong> },
     { key: "eventCategory", label: "Category", width: "120px", render: (val) => <Badge status={val === "Inter-College" ? "danger" : "info"}>{val || "Intramural"}</Badge> },
-    { key: "matchup", label: "Match Teams", render: (_, row) => <span>{row.teamA || "Team A"} ({row.deptA || "—"}) vs {row.teamB || "Team B"} ({row.deptB || "—"})</span> },
-    { key: "schedule", label: "Date & Time", width: "180px", render: (_, row) => <span>📅 {row.date || "TBD"} • {row.time || "--:--"}</span> },
-    { key: "venue", label: "Venue", width: "200px", render: (val) => <span>📍 {val || "TBD"}</span> },
-    { key: "round", label: "Round", width: "130px" },
+    { key: "matchup", label: "Match Teams", render: (_, row) => <span>{row.teamA || "Team A"} ({row.deptA || "-"}) vs {row.teamB || "Team B"} ({row.deptB || "-"})</span> },
+    { key: "schedule", label: "Date & Time", width: "190px", render: (_, row) => <span>📅 {formatDateTime(row.date, row.time)}</span> },
+    { key: "venue", label: "Venue", width: "190px", render: (val) => <span>📍 {val || "TBD"}</span> },
+    { key: "round", label: "Round", width: "120px" },
     {
       key: "status",
       label: "Status",
-      width: "120px",
-      render: (val) => (
-        <Badge status={val === "Live" ? "live" : val === "Completed" ? "success" : "warning"}>
-          {val || "Scheduled"}
-        </Badge>
+      width: "150px",
+      render: (val, row) => (
+        <select
+          value={val || "Scheduled"}
+          onChange={(e) => handleUpdateStatus(row.id || row.match_id, e.target.value)}
+          aria-label="Change Match Status"
+          style={{
+            padding: "4px 8px",
+            borderRadius: "6px",
+            border: "1px solid var(--nec-border)",
+            fontSize: "0.8rem",
+            fontWeight: 600,
+            background: val === "Live" || val === "Ongoing" ? "#dcfce7" : val === "Completed" ? "#ecfdf5" : val === "Postponed" ? "#fffbeb" : "#f1f5f9",
+            color: val === "Live" || val === "Ongoing" ? "#15803d" : val === "Completed" ? "#047857" : val === "Postponed" ? "#b45309" : "#475569",
+            cursor: "pointer"
+          }}
+        >
+          <option value="Scheduled">Scheduled</option>
+          <option value="Ongoing">Live / Ongoing</option>
+          <option value="Completed">Completed</option>
+          <option value="Postponed">Postponed</option>
+        </select>
       )
     },
     {
       key: "actions",
       label: "Actions",
-      width: "100px",
+      width: "180px",
       sortable: false,
       render: (_, row) => (
-        <Button variant="danger" size="sm" icon={Trash2} onClick={() => handleDeleteMatch(row.id || row.match_id)}>
-          Cancel
-        </Button>
+        <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+          {row.status !== "Postponed" ? (
+            <Button
+              variant="outline"
+              size="sm"
+              icon={Clock}
+              onClick={() => handleUpdateStatus(row.id || row.match_id, "Postponed")}
+            >
+              Postpone
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              icon={Calendar}
+              onClick={() => handleUpdateStatus(row.id || row.match_id, "Scheduled")}
+            >
+              Resume
+            </Button>
+          )}
+          <Button variant="danger" size="sm" icon={Trash2} onClick={() => handleDeleteMatch(row.id || row.match_id)}>
+            Cancel
+          </Button>
+        </div>
       )
     }
   ];
@@ -165,7 +253,6 @@ export default function MatchesManager() {
       <div className="nec-page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
           <h2 className="nec-page-title">Match Scheduler & Venue Management</h2>
-          <p className="nec-page-desc">Schedule matches, assign official campus venues, and prevent scheduling conflicts.</p>
         </div>
         <Button variant="primary" icon={Plus} onClick={() => setIsModalOpen(true)}>
           Schedule New Match

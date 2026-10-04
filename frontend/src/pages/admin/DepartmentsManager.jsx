@@ -12,6 +12,16 @@ import "../admin/AdminPortal.css";
 
 const DEPT_COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4", "#ec4899", "#64748b", "#f97316", "#14b8a6"];
 
+const unescapeEntity = (str) => {
+  if (!str) return "";
+  return String(str)
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#x27;/gi, "'");
+};
+
 export default function DepartmentsManager() {
   const { t } = useAuth();
   const [depts, setDepts] = useState([]);
@@ -63,8 +73,8 @@ export default function DepartmentsManager() {
   const openEdit = (d) => { 
     setEditDept(d); 
     setForm({ 
-      name: d.name, 
-      code: d.code, 
+      name: unescapeEntity(d.name), 
+      code: unescapeEntity(d.code), 
       color: d.color_code || d.color || "#3b82f6", 
       hod: d.hod_name || d.hod || "", 
       hodEmail: d.hod_email || "",
@@ -76,10 +86,10 @@ export default function DepartmentsManager() {
   const handleSave = async () => {
     if (!form.name.trim() || !form.code.trim()) return;
     const entry = { 
-      name: sanitizeInput(form.name), 
-      code: sanitizeInput(form.code).toUpperCase(), 
-      hodName: sanitizeInput(form.hod), 
-      hodEmail: sanitizeInput(form.hodEmail),
+      name: form.name.trim(), 
+      code: form.code.trim().toUpperCase(), 
+      hodName: form.hod.trim(), 
+      hodEmail: form.hodEmail.trim(),
       coordinatorUserId: form.coordinatorUserId ? Number(form.coordinatorUserId) : null,
       colorCode: form.color 
     };
@@ -112,11 +122,11 @@ export default function DepartmentsManager() {
       key: "code", label: "Code", width: "90px",
       render: (val, row) => (
         <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: "20px", background: (row.color_code || row.color || "#3b82f6") + "22", color: row.color_code || row.color || "#3b82f6", fontWeight: 800, fontSize: "0.82rem" }}>
-          {val || "—"}
+          {unescapeEntity(val) || "-"}
         </span>
       )
     },
-    { key: "name", label: "Department Name", render: (val) => <strong>{val || "—"}</strong> },
+    { key: "name", label: "Department Name", render: (val) => <strong>{unescapeEntity(val) || "-"}</strong> },
     { 
       key: "coordinator_name", 
       label: "Staff Coordinator", 
@@ -134,7 +144,7 @@ export default function DepartmentsManager() {
       label: "Head of Department", 
       render: (val, row) => (
         <div>
-          <div>{val || row.hod || "—"}</div>
+          <div>{unescapeEntity(val) || unescapeEntity(row.hod) || "-"}</div>
           {row.hod_email && <div style={{ fontSize: "0.75rem", color: "var(--nec-text-muted)" }}>{row.hod_email}</div>}
         </div>
       ) 
@@ -162,7 +172,6 @@ export default function DepartmentsManager() {
             </span>
           </div>
           <h2 className="nec-page-title">{t.departments || "Departments & Coordinators"}</h2>
-          <p className="nec-page-desc">Manage NEC academic departments, designate Staff Coordinators, and configure HOD contacts.</p>
         </div>
         <Button variant="primary" icon={Plus} onClick={openAdd}>Add Department</Button>
       </div>
@@ -191,7 +200,7 @@ export default function DepartmentsManager() {
               <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
                 {depts.map(d => (
                   <span key={d.id} style={{ padding: "4px 12px", borderRadius: "20px", background: (d.color_code || d.color || "#3b82f6") + "18", color: d.color_code || d.color || "#3b82f6", fontWeight: 700, fontSize: "0.8rem", border: `1.5px solid ${d.color_code || d.color || "#3b82f6"}44` }}>
-                    {d.code} • {d.coordinator_name || "Unassigned"}
+                    {unescapeEntity(d.code)} • {d.coordinator_name || "Unassigned"}
                   </span>
                 ))}
               </div>

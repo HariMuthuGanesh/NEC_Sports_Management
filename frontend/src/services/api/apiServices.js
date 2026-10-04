@@ -245,9 +245,14 @@ export const eventsApi = {
 /* --- Teams & Roster API --- */
 export const teamsApi = {
   getTeams: (deptId = null) => {
-    return apiFetch("/teams").then(teams => {
+    const url = deptId ? `/teams?deptId=${encodeURIComponent(deptId)}` : "/teams";
+    return apiFetch(url).then(teams => {
       const tList = Array.isArray(teams) ? teams : [];
-      return deptId ? tList.filter(t => t.department_id === deptId || t.dept_id === deptId || t.deptId === deptId) : tList;
+      if (!deptId) return tList;
+      return tList.filter(t => 
+        Number(t.department_id || t.dept_id || t.deptId) === Number(deptId) ||
+        (t.deptCode && String(t.deptCode).toUpperCase() === String(deptId).toUpperCase())
+      );
     });
   },
   getTeamDetails: (teamId) => apiFetch(`/teams/${teamId}`),
@@ -307,7 +312,8 @@ export const matchesApi = {
 
 /* --- Reports API --- */
 export const reportsApi = {
-  getPerformanceReport: (timeframe = '1month') => apiFetch(`/reports/performance?timeframe=${timeframe}`)
+  getPerformanceReport: (timeframe = '1month') => apiFetch(`/reports/performance?timeframe=${timeframe}`),
+  getPlayerPerformanceReport: () => apiFetch('/players/me/performance-report')
 };
 
 /* --- Leaderboard API --- */
@@ -374,7 +380,14 @@ export const odApi = {
   },
   getById: (requestId) => apiFetch(`/od/${requestId}`),
   approve: (requestId) => apiFetch(`/od/${requestId}/approve`, 'PATCH'),
-  reject: (requestId, reason) => apiFetch(`/od/${requestId}/reject`, 'PATCH', { reason })
+  reject: (requestId, reason) => apiFetch(`/od/${requestId}/reject`, 'PATCH', { reason }),
+  getPublicOdList: (params = {}) => {
+    const qs = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '')
+    ).toString();
+    return apiFetch(`/od/public${qs ? '?' + qs : ''}`);
+  },
+  getPublicOdSports: () => apiFetch('/od/public/sports')
 };
 
 /* --- Department Sport Captains & Squad API ---

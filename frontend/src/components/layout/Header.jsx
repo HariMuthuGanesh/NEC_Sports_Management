@@ -1,18 +1,25 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Sun, Moon, Bell, Menu, X, User, Globe, Settings, LogIn, LogOut } from "lucide-react";
 import { useAuth, ROLES } from "../../context/AuthContext";
+import { useToast } from "../../context/ToastContext";
 import { notificationsApi } from "../../services/api/apiServices";
 import NotificationDrawer from "../notifications/NotificationDrawer";
 import "./Header.css";
 
 export default function Header({ onToggleSidebar, isSidebarOpen, onSelectNav, activeNav }) {
   const { currentUser, logout, theme, toggleTheme, language, setLanguage, t } = useAuth();
+  const toastContext = useToast();
+  const toast = toastContext?.toast || toastContext;
   const [unreadCount, setUnreadCount] = useState(0);
   const [showLangMenu, setShowLangMenu] = useState(false);
   const [showNotifDrawer, setShowNotifDrawer] = useState(false);
   const notifRef = useRef(null);
 
   const fetchUnreadCount = useCallback(() => {
+    if (localStorage.getItem("nec_notif_pref") === "disabled") {
+      setUnreadCount(0);
+      return;
+    }
     if (currentUser?.role && currentUser.role !== ROLES.PUBLIC) {
       notificationsApi.getNotifications()
         .then(data => {
@@ -32,6 +39,10 @@ export default function Header({ onToggleSidebar, isSidebarOpen, onSelectNav, ac
     fetchUnreadCount();
 
     const handleNotificationsUpdated = (e) => {
+      if (localStorage.getItem("nec_notif_pref") === "disabled") {
+        setUnreadCount(0);
+        return;
+      }
       if (e?.detail?.unreadCount !== undefined) {
         setUnreadCount(e.detail.unreadCount);
       } else {
@@ -203,8 +214,13 @@ export default function Header({ onToggleSidebar, isSidebarOpen, onSelectNav, ac
             </div>
             <button
               className="nec-icon-btn nec-logout-btn"
-              onClick={() => {
-                logout();
+              onClick={async () => {
+                await logout();
+                if (toast?.success) {
+                  toast.success("Signed out successfully.");
+                } else if (typeof toast === "function") {
+                  toast({ type: "success", message: "Signed out successfully." });
+                }
                 onSelectNav?.("public_home");
               }}
               title="Log Out / Return to Guest"
