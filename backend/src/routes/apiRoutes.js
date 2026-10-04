@@ -75,6 +75,15 @@ import {
     getPublicApprovedOdController,
     getPublicApprovedOdSportsController
 } from '../controllers/odController.js';
+import {
+    uploadOdDocMiddleware,
+    uploadOfficialOdDocController,
+    listOfficialOdDocsController,
+    deleteOfficialOdDocController,
+    getPublicOfficialOdDocsController,
+    getPublicOfficialOdFilterOptionsController,
+    viewOfficialOdPdfController
+} from '../controllers/officialOdDocController.js';
 // NOTE: departmentTeamController.js (department_teams / department_team_members
 // V1 endpoints) is intentionally NOT imported here. Those tables are marked
 // deprecated in schema.sql; the live implementation is the V2
@@ -148,6 +157,9 @@ router.get('/events', getEvents);
 router.get('/stats/overview', getOverviewStats);
 router.get('/od/public', getPublicApprovedOdController);
 router.get('/od/public/sports', getPublicApprovedOdSportsController);
+router.get('/od/public/official-documents', getPublicOfficialOdDocsController);
+router.get('/od/public/official-documents/options', getPublicOfficialOdFilterOptionsController);
+router.get('/od/public/official-documents/:id/view', viewOfficialOdPdfController);
 router.get('/students', protect, searchStudentsController);
 router.get('/students/search', protect, searchStudentsController);
 // Must be before any /students/:param routes that could clash
@@ -279,6 +291,11 @@ router.get('/od/:requestId', protect, authorize('Admin', 'Coordinator'), getOdRe
 // Admin: approve / reject
 router.patch('/od/:requestId/approve', protect, authorize('Admin'), approveOdController);
 router.patch('/od/:requestId/reject', protect, authorize('Admin'), rejectOdController);
+
+// ── Official Signed OD Documents (Sport-wise & Dept-wise Principal Approved PDF Upload) ──
+router.post('/od/official-documents/upload', protect, authorize('Admin', 'President', 'Sports President'), uploadOdDocMiddleware, uploadOfficialOdDocController);
+router.get('/od/official-documents', protect, authorize('Admin', 'President', 'Sports President', 'Coordinator'), listOfficialOdDocsController);
+router.delete('/od/official-documents/:id', protect, authorize('Admin', 'President', 'Sports President'), deleteOfficialOdDocController);
 
 // ── Department Sport Captains & Squad Routes ─────────────────────────────
 router.get('/department-sport-captains', protect, authorize('Coordinator'), listDepartmentSportCaptains);

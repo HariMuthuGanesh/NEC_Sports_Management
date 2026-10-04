@@ -204,8 +204,9 @@ export const getMatchesByTournament = async (tournamentId) => {
     return rows;
 };
 
-export const updateMatchScore = async ({ matchId, scoreA, scoreB, detailScore, status, winnerTeamId, updatedBy }) => {
+export const updateMatchScore = async ({ matchId, scoreA, scoreB, detailScore, status, winnerTeamId, updatedBy, recordedBy }) => {
     const isManualStatus = status === 'Completed' || status === 'Ongoing' || status === 'Postponed';
+    const finalUpdatedBy = updatedBy || recordedBy || null;
     const sql = `
         UPDATE matches
         SET score_a = ?, score_b = ?, detail_score = ?, status = ?, winner_team_id = ?, updated_by = ?, 
@@ -213,7 +214,7 @@ export const updateMatchScore = async ({ matchId, scoreA, scoreB, detailScore, s
         WHERE match_id = ?
     `;
     const [result] = await pool.execute(sql, [
-        scoreA, scoreB, detailScore, status, winnerTeamId, updatedBy, 
+        scoreA, scoreB, detailScore, status, winnerTeamId, finalUpdatedBy, 
         isManualStatus ? 1 : 0, matchId
     ]);
     return result.affectedRows > 0;

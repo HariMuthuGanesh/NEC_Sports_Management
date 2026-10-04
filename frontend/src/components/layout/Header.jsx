@@ -98,9 +98,9 @@ export default function Header({ onToggleSidebar, isSidebarOpen, onSelectNav, ac
           {isSidebarOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
 
-        <div className="nec-brand">
-          <div className="nec-logo-emblem" style={{ background: '#fff', padding: '2px' }}>
-            <img src="/assets/logo.jpg" alt="NEC Logo" style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '6px' }} />
+        <div className="nec-brand" onClick={() => onSelectNav?.(currentUser?.role === ROLES.PUBLIC ? "public_home" : "public_home")}>
+          <div className="nec-logo-emblem" style={{ background: '#ffffff', padding: '2px', border: '1.5px solid rgba(255,255,255,0.4)', width: '42px', height: '42px', overflow: 'hidden' }}>
+            <img src="/assets/logo.jpg" alt="National Engineering College Logo" style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '6px' }} />
           </div>
           <div className="nec-brand-text">
             <h1 className="nec-college-name">{t.collegeName}</h1>

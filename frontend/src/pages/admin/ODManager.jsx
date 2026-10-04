@@ -4,9 +4,10 @@ import Badge from "../../components/common/Badge";
 import Button from "../../components/common/Button";
 import Table from "../../components/common/Table";
 import ErrorState from "../../components/common/ErrorState";
+import OfficialOdManager from "../../components/od/OfficialOdManager";
 import {
   FileText, CheckCircle2, XCircle, Clock, Filter,
-  Download, AlertCircle, CheckSquare, ChevronDown
+  Download, AlertCircle, CheckSquare, ChevronDown, FileCheck, Layers
 } from "lucide-react";
 import "./AdminPortal.css";
 
@@ -169,6 +170,7 @@ function RejectModal({ od, onConfirm, onClose }) {
 
 // ── Main Component ────────────────────────────────────────────────────────────
 export default function ODManager() {
+  const [activeMainTab, setActiveMainTab] = useState("requests"); // "requests" | "signed_letters"
   const [odList, setOdList]         = useState([]);
   const [loading, setLoading]       = useState(true);
   const [error, setError]           = useState(null);
@@ -381,7 +383,29 @@ export default function ODManager() {
         </div>
       </div>
 
-      {/* Summary Stat Cards */}
+      {/* Primary Tab Switcher */}
+      <div style={{ display: "flex", gap: "10px", marginBottom: "20px", flexWrap: "wrap" }}>
+        <Button
+          variant={activeMainTab === "requests" ? "primary" : "ghost"}
+          icon={Layers}
+          onClick={() => setActiveMainTab("requests")}
+        >
+          Individual Student OD Approvals ({odList.length})
+        </Button>
+        <Button
+          variant={activeMainTab === "signed_letters" ? "primary" : "ghost"}
+          icon={FileCheck}
+          onClick={() => setActiveMainTab("signed_letters")}
+        >
+          Official Principal-Signed OD Letters
+        </Button>
+      </div>
+
+      {activeMainTab === "signed_letters" ? (
+        <OfficialOdManager />
+      ) : (
+        <>
+          {/* Summary Stat Cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "12px", marginBottom: "20px" }}>
         {[
           { label: "Pending",  count: pendingCount,  color: "#f59e0b", bg: "#fffbeb", border: "#fde68a" },
@@ -442,6 +466,8 @@ export default function ODManager() {
           onConfirm={handleRejectConfirm}
           onClose={() => setRejectTarget(null)}
         />
+      )}
+        </>
       )}
     </div>
   );

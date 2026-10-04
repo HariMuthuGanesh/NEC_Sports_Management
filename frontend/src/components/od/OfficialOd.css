@@ -1,0 +1,445 @@
+/* ==========================================================================
+   OfficialOd.css
+   Styles for Official Signed OD Document Management and Public Verification
+   ========================================================================== */
+
+.nec-official-od-manager {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ── Form & Upload Card ─────────────────────────────────────────────────── */
+.nec-official-od-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.nec-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nec-form-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--nec-text-muted);
+}
+
+.nec-select-field,
+.nec-input-field {
+  width: 100%;
+  padding: 9px 12px;
+  font-size: 0.875rem;
+  font-family: var(--nec-font-body);
+  background: var(--nec-surface);
+  border: 1.5px solid var(--nec-border);
+  border-radius: var(--nec-radius-md);
+  color: var(--nec-text-main);
+  transition: border-color 0.15s ease;
+}
+
+.nec-select-field:focus,
+.nec-input-field:focus {
+  outline: none;
+  border-color: var(--nec-navy);
+}
+
+[data-theme="dark"] .nec-select-field,
+[data-theme="dark"] .nec-input-field {
+  background: var(--nec-surface-raised);
+  border-color: var(--nec-border-dark);
+}
+
+[data-theme="dark"] .nec-select-field:focus,
+[data-theme="dark"] .nec-input-field:focus {
+  border-color: var(--nec-accent-light);
+}
+
+/* ── Dropzone ───────────────────────────────────────────────────────────── */
+.nec-official-od-dropzone {
+  margin-top: 16px;
+}
+
+.nec-dropzone-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px 20px;
+  border: 2px dashed var(--nec-border);
+  border-radius: var(--nec-radius-lg);
+  background: var(--nec-surface-raised);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.nec-dropzone-box:hover {
+  border-color: var(--nec-blue-accent, #1d4ed8);
+  background: var(--nec-info-bg, #eff6ff);
+}
+
+[data-theme="dark"] .nec-dropzone-box:hover {
+  background: rgba(59, 130, 246, 0.08);
+  border-color: var(--nec-accent-light);
+}
+
+.nec-dropzone-icon {
+  color: var(--nec-blue-accent, #1d4ed8);
+}
+
+.nec-dropzone-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.nec-dropzone-text strong {
+  font-size: 0.95rem;
+  color: var(--nec-text-main);
+}
+
+.nec-dropzone-text span {
+  font-size: 0.8rem;
+  color: var(--nec-text-muted);
+}
+
+/* ── Duplicate warning box ──────────────────────────────────────────────── */
+.nec-duplicate-warning-box {
+  margin-top: 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 18px;
+  background: var(--nec-warning-bg, #fffbeb);
+  border: 1.5px solid var(--nec-warning-border, #fde68a);
+  border-radius: var(--nec-radius-md);
+}
+
+.nec-warning-icon {
+  color: #d97706;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.nec-warning-content strong {
+  color: #92400e;
+  font-size: 0.9rem;
+}
+
+.nec-warning-content p {
+  margin: 4px 0 0 0;
+  font-size: 0.84rem;
+  color: var(--nec-text-main);
+}
+
+[data-theme="dark"] .nec-duplicate-warning-box {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+[data-theme="dark"] .nec-warning-content strong {
+  color: #fbbf24;
+}
+
+/* ── Filter Bar ─────────────────────────────────────────────────────────── */
+.nec-official-od-filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.nec-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.nec-filter-select {
+  padding: 7px 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: var(--nec-surface);
+  border: 1px solid var(--nec-border);
+  border-radius: var(--nec-radius-md);
+  color: var(--nec-text-main);
+  cursor: pointer;
+}
+
+[data-theme="dark"] .nec-filter-select {
+  background: var(--nec-surface-raised);
+  border-color: var(--nec-border-dark);
+}
+
+.nec-search-input-wrapper {
+  position: relative;
+  flex: 1;
+  max-width: 380px;
+}
+
+.nec-search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--nec-text-muted);
+  pointer-events: none;
+}
+
+.nec-search-input {
+  width: 100%;
+  padding: 7px 12px 7px 32px;
+  font-size: 0.85rem;
+  background: var(--nec-surface);
+  border: 1px solid var(--nec-border);
+  border-radius: var(--nec-radius-md);
+  color: var(--nec-text-main);
+}
+
+[data-theme="dark"] .nec-search-input {
+  background: var(--nec-surface-raised);
+  border-color: var(--nec-border-dark);
+}
+
+/* ── Official Document Cards Grid ───────────────────────────────────────── */
+.nec-official-docs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.nec-official-doc-item {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: var(--nec-surface);
+  border: 1.5px solid var(--nec-border);
+  border-radius: var(--nec-radius-lg);
+  padding: 18px;
+  box-shadow: var(--nec-shadow-sm);
+  transition: all 0.2s ease;
+}
+
+.nec-official-doc-item:hover {
+  border-color: var(--nec-navy);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(8, 25, 52, 0.08);
+}
+
+[data-theme="dark"] .nec-official-doc-item {
+  background: var(--nec-solid-card);
+  border-color: var(--nec-border-dark);
+}
+
+[data-theme="dark"] .nec-official-doc-item:hover {
+  border-color: var(--nec-accent-light);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.nec-doc-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.nec-doc-badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nec-doc-sport-badge {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--nec-info-bg, #eff6ff);
+  color: var(--nec-blue-accent, #1d4ed8);
+}
+
+[data-theme="dark"] .nec-doc-sport-badge {
+  background: rgba(59, 130, 246, 0.15);
+  color: #93c5fd;
+}
+
+.nec-doc-dept-badge {
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--nec-surface-raised);
+  border: 1px solid var(--nec-border);
+  color: var(--nec-text-main);
+}
+
+.nec-doc-version-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+}
+
+.nec-doc-item-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.nec-doc-title {
+  margin: 0;
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: var(--nec-text-main);
+  line-height: 1.35;
+}
+
+.nec-doc-meta-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--nec-text-muted);
+}
+
+.nec-doc-meta-sub {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: var(--nec-text-muted);
+  margin-top: 4px;
+}
+
+.nec-doc-item-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--nec-border);
+}
+
+[data-theme="dark"] .nec-doc-item-footer {
+  border-top-color: var(--nec-border-dark);
+}
+
+/* ── PDF Viewer Modal ───────────────────────────────────────────────────── */
+.nec-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.nec-pdf-modal-container {
+  width: 100%;
+  max-width: 900px;
+  height: 85vh;
+  background: var(--nec-surface);
+  border-radius: var(--nec-radius-lg);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--nec-border);
+}
+
+[data-theme="dark"] .nec-pdf-modal-container {
+  background: var(--nec-solid-card);
+  border-color: var(--nec-border-dark);
+}
+
+.nec-pdf-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--nec-border);
+  background: var(--nec-surface-raised);
+}
+
+[data-theme="dark"] .nec-pdf-modal-header {
+  border-bottom-color: var(--nec-border-dark);
+}
+
+.nec-pdf-modal-title {
+  margin: 0 0 4px 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--nec-text-main);
+}
+
+.nec-pdf-modal-subtitle {
+  font-size: 0.8rem;
+  color: var(--nec-text-muted);
+}
+
+.nec-modal-close-btn {
+  background: none;
+  border: none;
+  color: var(--nec-text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.nec-modal-close-btn:hover {
+  background: var(--nec-border);
+  color: var(--nec-text-main);
+}
+
+.nec-pdf-modal-body {
+  flex: 1;
+  background: #525659;
+  position: relative;
+}
+
+.nec-pdf-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+.nec-pdf-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 22px;
+  border-top: 1px solid var(--nec-border);
+  background: var(--nec-surface-raised);
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+[data-theme="dark"] .nec-pdf-modal-footer {
+  border-top-color: var(--nec-border-dark);
+}
+
+.nec-pdf-verification-notice {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--nec-text-main);
+}

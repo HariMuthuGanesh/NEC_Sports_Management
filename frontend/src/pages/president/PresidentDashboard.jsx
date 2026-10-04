@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { Trophy, Users, Award, FileText, CheckCircle, Clock, Search } from "lucide-react";
+import { Trophy, Users, Award, FileText, CheckCircle, Clock, Search, FileCheck, Layers } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import OfficialOdManager from "../../components/od/OfficialOdManager";
+import Button from "../../components/common/Button";
 import "./PresidentDashboard.css";
 
 export default function PresidentDashboard({ onSelectNav }) {
   const { currentUser, authToken } = useAuth();
+  const [activeTab, setActiveTab] = useState("signed_docs"); // "signed_docs" | "od_matrix"
   const [stats, setStats] = useState({
     outerCollegeTeams: 0,
     totalAthletes: 0,
@@ -76,7 +79,7 @@ export default function PresidentDashboard({ onSelectNav }) {
       <div className="nec-president-header">
         <div>
           <h2>Sports President Executive Portal</h2>
-          <p className="nec-subtext">Overall college sports leadership, outer-college competition teams, and OD overview.</p>
+          <p className="nec-subtext">Overall college sports leadership, outer-college competition teams, and official signed OD workflow.</p>
         </div>
         <button className="nec-btn-primary" onClick={() => onSelectNav && onSelectNav("college_teams")}>
           <Users size={16} /> Manage Outer-College Teams
@@ -118,60 +121,85 @@ export default function PresidentDashboard({ onSelectNav }) {
         </div>
       </div>
 
-      {/* OD Information Matrix */}
-      <div className="nec-card">
-        <div className="nec-card-header">
-          <h3><FileText size={18} /> Department OD Notification Matrix</h3>
-          <div className="nec-search-box">
-            <Search size={16} />
-            <input
-              type="text"
-              placeholder="Search student, register number, department..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-        </div>
-
-        {loading ? (
-          <div className="nec-loading">Loading OD records...</div>
-        ) : filteredODs.length === 0 ? (
-          <div className="nec-empty">No OD notifications found.</div>
-        ) : (
-          <div className="nec-table-responsive">
-            <table className="nec-table">
-              <thead>
-                <tr>
-                  <th>Student Name</th>
-                  <th>Reg No</th>
-                  <th>Dept</th>
-                  <th>Tournament / Match</th>
-                  <th>Dates</th>
-                  <th>Days</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredODs.slice(0, 10).map((od) => (
-                  <tr key={od.id || od.od_id}>
-                    <td><strong>{od.student_name || od.name || 'Student Athlete'}</strong></td>
-                    <td>{od.register_number || od.reg_no || 'N/A'}</td>
-                    <td><span className="nec-badge dept">{od.department_code || od.dept || 'NEC'}</span></td>
-                    <td>{od.tournament_name || od.match_title || 'Inter-College Match'}</td>
-                    <td>{od.from_date ? new Date(od.from_date).toLocaleDateString() : 'TBD'} - {od.to_date ? new Date(od.to_date).toLocaleDateString() : 'TBD'}</td>
-                    <td>{od.total_days || 1} day(s)</td>
-                    <td>
-                      <span className={`nec-badge status-${(od.status || od.approval_status || 'Pending').toLowerCase()}`}>
-                        {od.status || od.approval_status || 'Pending'}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+      {/* Executive Portal Navigation Tabs */}
+      <div style={{ display: "flex", gap: "10px", margin: "8px 0 20px 0" }}>
+        <Button
+          variant={activeTab === "signed_docs" ? "primary" : "ghost"}
+          icon={FileCheck}
+          onClick={() => setActiveTab("signed_docs")}
+        >
+          Official Signed OD Letters
+        </Button>
+        <Button
+          variant={activeTab === "od_matrix" ? "primary" : "ghost"}
+          icon={Layers}
+          onClick={() => setActiveTab("od_matrix")}
+        >
+          Department OD Notification Matrix ({odList.length})
+        </Button>
       </div>
+
+      {/* Tab 1: Official Signed OD Letters Manager */}
+      {activeTab === "signed_docs" && (
+        <OfficialOdManager />
+      )}
+
+      {/* Tab 2: OD Information Matrix */}
+      {activeTab === "od_matrix" && (
+        <div className="nec-card">
+          <div className="nec-card-header">
+            <h3><FileText size={18} /> Department OD Notification Matrix</h3>
+            <div className="nec-search-box">
+              <Search size={16} />
+              <input
+                type="text"
+                placeholder="Search student, register number, department..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="nec-loading">Loading OD records...</div>
+          ) : filteredODs.length === 0 ? (
+            <div className="nec-empty">No OD notifications found.</div>
+          ) : (
+            <div className="nec-table-responsive">
+              <table className="nec-table">
+                <thead>
+                  <tr>
+                    <th>Student Name</th>
+                    <th>Reg No</th>
+                    <th>Dept</th>
+                    <th>Tournament / Match</th>
+                    <th>Dates</th>
+                    <th>Days</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredODs.slice(0, 15).map((od) => (
+                    <tr key={od.id || od.od_id || od.request_id}>
+                      <td><strong>{od.student_name || od.name || 'Student Athlete'}</strong></td>
+                      <td>{od.register_number || od.reg_no || 'N/A'}</td>
+                      <td><span className="nec-badge dept">{od.department_code || od.dept || 'NEC'}</span></td>
+                      <td>{od.tournament_name || od.match_title || 'Inter-College Match'}</td>
+                      <td>{od.from_date ? new Date(od.from_date).toLocaleDateString() : 'TBD'} - {od.to_date ? new Date(od.to_date).toLocaleDateString() : 'TBD'}</td>
+                      <td>{od.total_days || 1} day(s)</td>
+                      <td>
+                        <span className={`nec-badge status-${(od.status || od.approval_status || 'Pending').toLowerCase()}`}>
+                          {od.status || od.approval_status || 'Pending'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

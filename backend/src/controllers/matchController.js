@@ -169,7 +169,7 @@ export const updateScore = async (req, res, next) => {
             status,
             winnerTeamId,
             winnerLabel,
-            recordedBy: req.user.id
+            updatedBy: req.user.id
         });
 
         if (!updated) {

@@ -387,7 +387,24 @@ export const odApi = {
     ).toString();
     return apiFetch(`/od/public${qs ? '?' + qs : ''}`);
   },
-  getPublicOdSports: () => apiFetch('/od/public/sports')
+  getPublicOdSports: () => apiFetch('/od/public/sports'),
+  
+  // Official Signed OD Documents (Sport-wise & Dept-wise Principal approved PDF)
+  uploadOfficialDoc: (formData) => apiFetchFull('/od/official-documents/upload', 'POST', formData),
+  getOfficialDocs: (params = {}) => {
+    const qs = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '')
+    ).toString();
+    return apiFetch(`/od/official-documents${qs ? '?' + qs : ''}`);
+  },
+  deleteOfficialDoc: (id) => apiFetch(`/od/official-documents/${id}`, 'DELETE'),
+  getPublicOfficialDocs: (params = {}) => {
+    const qs = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '')
+    ).toString();
+    return apiFetch(`/od/public/official-documents${qs ? '?' + qs : ''}`);
+  },
+  getPublicOfficialDocOptions: () => apiFetch('/od/public/official-documents/options')
 };
 
 /* --- Department Sport Captains & Squad API ---
