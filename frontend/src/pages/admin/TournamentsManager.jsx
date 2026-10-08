@@ -3,7 +3,8 @@ import {
   tournamentsApi, 
   teamsApi, 
   sportsApi, 
-  matchesApi 
+  matchesApi,
+  competitionLevelsApi
 } from "../../services/api/apiServices";
 import { useAuth } from "../../context/AuthContext";
 import Badge from "../../components/common/Badge";
@@ -89,11 +90,15 @@ export default function TournamentsManager() {
     }
   };
 
+  // Competition Levels State
+  const [competitionLevels, setCompetitionLevels] = useState([]);
+
   // New Tournament Form
   const [newTournament, setNewTournament] = useState({
     title: "",
     academicYear: "2025-2026",
     tier: "Intramural",
+    competitionLevelId: null,
     description: "",
     startDate: new Date().toISOString().split("T")[0],
     endDate: "2026-09-30"
@@ -139,12 +144,22 @@ export default function TournamentsManager() {
 
   const loadVenuesAndSports = async () => {
     try {
-      const [vData, sData] = await Promise.all([
+      const [vData, sData, clData] = await Promise.all([
         sportsApi.getVenues().catch(() => []),
-        sportsApi.getSports().catch(() => [])
+        sportsApi.getSports().catch(() => []),
+        competitionLevelsApi.getLevels({ includeInactive: "false" }).catch(() => [])
       ]);
       setVenues(vData || []);
       setSports(sData || []);
+      const loadedLevels = Array.isArray(clData) ? clData : (clData?.data || []);
+      setCompetitionLevels(loadedLevels);
+      if (loadedLevels.length > 0) {
+        setNewTournament(prev => ({
+          ...prev,
+          tier: loadedLevels[0].name,
+          competitionLevelId: loadedLevels[0].id || loadedLevels[0].level_id
+        }));
+      }
       if (sData[0]) setNewMatch(prev => ({ ...prev, sportId: sData[0].sport_id || sData[0].id }));
       if (vData[0]) setNewMatch(prev => ({ ...prev, venueId: vData[0].venue_id || vData[0].id }));
     } catch (err) {
@@ -186,6 +201,8 @@ export default function TournamentsManager() {
         title: newTournament.title,
         academicYear: newTournament.academicYear,
         tier: newTournament.tier,
+        competition_level_id: newTournament.competitionLevelId,
+        competitionLevelId: newTournament.competitionLevelId,
         description: newTournament.description,
         startDate: newTournament.startDate,
         endDate: newTournament.endDate,
@@ -196,7 +213,8 @@ export default function TournamentsManager() {
       setNewTournament({
         title: "",
         academicYear: "2025-2026",
-        tier: "Intramural",
+        tier: competitionLevels[0]?.name || "Intramural",
+        competitionLevelId: competitionLevels[0]?.id || null,
         description: "",
         startDate: new Date().toISOString().split("T")[0],
         endDate: "2026-09-30"
@@ -937,17 +955,29 @@ export default function TournamentsManager() {
             </div>
 
             <div className="nec-form-group">
-              <label className="nec-form-label">Tier / Category</label>
+              <label className="nec-form-label">Competition Level *</label>
               <select
                 className="nec-form-select"
                 value={newTournament.tier}
-                onChange={(e) => setNewTournament({ ...newTournament, tier: e.target.value })}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  const found = competitionLevels.find(l => l.name === val || String(l.id) === val);
+                  setNewTournament({
+                    ...newTournament,
+                    tier: found ? found.name : val,
+                    competitionLevelId: found ? found.id : null
+                  });
+                }}
               >
-                <option value="Intramural">Intramural</option>
-                <option value="District">District</option>
-                <option value="Zonal">Zonal</option>
-                <option value="Inter-Collegiate">Inter-Collegiate</option>
-                <option value="State / National">State / National</option>
+                {competitionLevels.length > 0 ? (
+                  competitionLevels.map((lvl) => (
+                    <option key={lvl.id || lvl.level_id} value={lvl.name}>
+                      {lvl.name} {lvl.code ? `(${lvl.code})` : ""}
+                    </option>
+                  ))
+                ) : (
+                  <option value="Intramural">Intramural</option>
+                )}
               </select>
             </div>
           </div>

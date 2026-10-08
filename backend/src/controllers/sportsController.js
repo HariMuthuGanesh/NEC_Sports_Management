@@ -517,6 +517,100 @@ export const getLeaderboard = async (req, res, next) => {
     }
 };
 
+export const getDepartmentLeaderboardMatches = async (req, res, next) => {
+    try {
+        const deptId = Number(req.params.id);
+        if (!deptId) {
+            return res.status(400).json({ success: false, error: { message: "Valid department ID is required" } });
+        }
+
+        const [deptRows] = await pool.execute('SELECT id, name, code FROM departments WHERE id = ? LIMIT 1', [deptId]);
+        const deptInfo = deptRows[0] || null;
+
+        const sql = `
+            SELECT 
+                m.match_id,
+                m.match_id AS id,
+                m.tournament_id,
+                t.name AS tournament_name,
+                s.name AS sport_name,
+                m.round,
+                m.scheduled_time AS date,
+                m.status,
+                m.score_a,
+                m.score_b,
+                m.detail_score,
+                m.scorers,
+                m.winner_team_id,
+                t1.team_id AS team_a_id,
+                t1.name AS team_a_name,
+                d1.id AS dept_a_id,
+                d1.code AS dept_a_code,
+                d1.name AS dept_a_name,
+                t2.team_id AS team_b_id,
+                t2.name AS team_b_name,
+                d2.id AS dept_b_id,
+                d2.code AS dept_b_code,
+                d2.name AS dept_b_name,
+                CASE 
+                    WHEN d1.id = ? THEN 'A'
+                    WHEN d2.id = ? THEN 'B'
+                    ELSE 'NONE'
+                END AS dept_side,
+                CASE 
+                    WHEN d1.id = ? THEN t2.name
+                    ELSE t1.name
+                END AS opponent_team,
+                CASE 
+                    WHEN d1.id = ? THEN d2.name
+                    ELSE d1.name
+                END AS opponent_dept_name,
+                CASE 
+                    WHEN d1.id = ? THEN d2.code
+                    ELSE d1.code
+                END AS opponent_dept_code,
+                CASE 
+                    WHEN d1.id = ? THEN m.score_a
+                    ELSE m.score_b
+                END AS dept_score,
+                CASE 
+                    WHEN d1.id = ? THEN m.score_b
+                    ELSE m.score_a
+                END AS opponent_score,
+                CASE
+                    WHEN m.status != 'Completed' THEN 'Scheduled'
+                    WHEN m.winner_team_id = t1.team_id AND d1.id = ? THEN 'Won'
+                    WHEN m.winner_team_id = t2.team_id AND d2.id = ? THEN 'Won'
+                    WHEN m.winner_team_id IS NOT NULL THEN 'Lost'
+                    WHEN m.score_a = m.score_b THEN 'Draw'
+                    ELSE 'Completed'
+                END AS outcome
+            FROM matches m
+            JOIN sports s ON m.sport_id = s.sport_id
+            LEFT JOIN tournaments t ON m.tournament_id = t.tournament_id
+            JOIN teams t1 ON m.team_a_id = t1.team_id
+            JOIN departments d1 ON t1.department_id = d1.id
+            JOIN teams t2 ON m.team_b_id = t2.team_id
+            JOIN departments d2 ON t2.department_id = d2.id
+            WHERE (d1.id = ? OR d2.id = ?)
+            ORDER BY m.scheduled_time DESC
+        `;
+        const [rows] = await pool.execute(sql, [
+            deptId, deptId, deptId, deptId, deptId, deptId, deptId, deptId, deptId, deptId, deptId
+        ]);
+
+        return res.json({
+            success: true,
+            data: {
+                department: deptInfo,
+                matches: rows
+            }
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
 export const getOverviewStats = async (req, res, next) => {
     try {
         const [sportsRes] = await pool.execute('SELECT COUNT(*) as count FROM sports');

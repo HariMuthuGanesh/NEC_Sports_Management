@@ -5,7 +5,7 @@ import Badge from "../../components/common/Badge";
 import Button from "../../components/common/Button";
 import { Modal } from "../../components/common/Modal";
 import ErrorState from "../../components/common/ErrorState";
-import { Users, Filter, Plus, Trophy, Calendar, Eye, Activity, CheckCircle2, AlertCircle, X, Trash2 } from "lucide-react";
+import { Users, Filter, Plus, Trophy, Calendar, Eye, Activity, CheckCircle2, AlertCircle, X, Trash2, Check } from "lucide-react";
 import "./AdminPortal.css";
 
 export default function TeamsManager() {
@@ -212,12 +212,12 @@ export default function TeamsManager() {
     {
       key: "actions",
       label: "Actions",
-      width: "210px",
+      width: "220px",
       sortable: false,
       render: (_, row) => (
         <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
           {row.status === "Pending" && (
-            <Button variant="outline" size="sm" onClick={() => handleUpdateStatus(row.team_id || row.id, "Approved")}>
+            <Button variant="primary" size="sm" icon={Check} onClick={() => handleUpdateStatus(row.team_id || row.id, "Approved")}>
               Approve
             </Button>
           )}
@@ -230,9 +230,8 @@ export default function TeamsManager() {
             icon={Trash2}
             onClick={() => handleDeleteTeam(row.team_id || row.id)}
             title="Delete Team"
-          >
-            Delete
-          </Button>
+            ariaLabel="Delete Team"
+          />
         </div>
       )
     }

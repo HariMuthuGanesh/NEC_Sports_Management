@@ -182,7 +182,7 @@ export default function ODManager() {
   const loadOd = useCallback(() => {
     setLoading(true);
     setError(null);
-    odApi.getAll({ status: statusFilter })
+    odApi.getAll()
       .then(data => {
         setOdList(Array.isArray(data) ? data : []);
         setLoading(false);
@@ -191,7 +191,7 @@ export default function ODManager() {
         setError(err.message || "Failed to load OD requests.");
         setLoading(false);
       });
-  }, [statusFilter]);
+  }, []);
 
   useEffect(() => { loadOd(); }, [loadOd]);
 
@@ -221,10 +221,16 @@ export default function ODManager() {
     }
   };
 
-  // Summary counts (from current filtered list + total-all context)
-  const pendingCount  = odList.filter(o => o.approval_status === "Pending").length;
-  const approvedCount = odList.filter(o => o.approval_status === "Approved").length;
-  const rejectedCount = odList.filter(o => o.approval_status === "Rejected").length;
+  // Live summary counts from all database records
+  const pendingCount  = useMemo(() => odList.filter(o => o.approval_status === "Pending").length, [odList]);
+  const approvedCount = useMemo(() => odList.filter(o => o.approval_status === "Approved").length, [odList]);
+  const rejectedCount = useMemo(() => odList.filter(o => o.approval_status === "Rejected").length, [odList]);
+
+  // Filtered rows for current view
+  const displayedOdList = useMemo(() => {
+    if (statusFilter === "ALL") return odList;
+    return odList.filter(o => o.approval_status === statusFilter);
+  }, [odList, statusFilter]);
 
   const columns = [
     {
@@ -235,7 +241,7 @@ export default function ODManager() {
           <strong style={{ fontSize: "0.9rem" }}>{row.student_name}</strong>
           <div style={{ fontSize: "0.77rem", color: "var(--nec-text-muted)", fontFamily: "monospace" }}>{val}</div>
           <div style={{ fontSize: "0.77rem", color: "var(--nec-text-muted)" }}>
-            {row.department_code} {row.department_name ? `— ${row.department_name}` : ""}
+            {row.department_code} {row.department_name ? `- ${row.department_name}` : ""}
           </div>
         </div>
       )
@@ -283,48 +289,39 @@ export default function ODManager() {
       label: "Actions",
       width: "200px",
       render: (_, row) => (
-        <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: "6px", alignItems: "center", flexWrap: "wrap" }}>
           {row.approval_status === "Pending" && (
             <>
-              <button
+              <Button
+                variant="primary"
+                size="xs"
+                icon={CheckCircle2}
                 onClick={() => handleApprove(row.request_id)}
                 title="Approve OD"
-                style={{
-                  display: "inline-flex", alignItems: "center", gap: "4px",
-                  background: "#ecfdf5", color: "#059669", border: "1px solid #a7f3d0",
-                  borderRadius: "6px", padding: "4px 10px", fontSize: "0.78rem",
-                  fontWeight: 600, cursor: "pointer"
-                }}
               >
-                <CheckCircle2 size={13} /> Approve
-              </button>
-              <button
+                Approve
+              </Button>
+              <Button
+                variant="danger"
+                size="xs"
+                icon={XCircle}
                 onClick={() => setRejectTarget(row)}
                 title="Reject OD"
-                style={{
-                  display: "inline-flex", alignItems: "center", gap: "4px",
-                  background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca",
-                  borderRadius: "6px", padding: "4px 10px", fontSize: "0.78rem",
-                  fontWeight: 600, cursor: "pointer"
-                }}
               >
-                <XCircle size={13} /> Reject
-              </button>
+                Reject
+              </Button>
             </>
           )}
           {row.approval_status === "Approved" && (
-            <button
+            <Button
+              variant="link"
+              size="xs"
+              icon={Download}
               onClick={() => downloadOdLetter(row)}
               title="Download OD Letter"
-              style={{
-                display: "inline-flex", alignItems: "center", gap: "4px",
-                background: "#eff6ff", color: "#2563eb", border: "1px solid #bfdbfe",
-                borderRadius: "6px", padding: "4px 10px", fontSize: "0.78rem",
-                fontWeight: 600, cursor: "pointer"
-              }}
             >
-              <Download size={13} /> OD Letter
-            </button>
+              View Letter
+            </Button>
           )}
           {row.approval_status === "Rejected" && row.rejection_reason && (
             <span
@@ -346,12 +343,9 @@ export default function ODManager() {
   return (
     <div className="nec-portal-page">
       {/* Header */}
-      <div className="nec-page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "12px" }}>
+      <div className="nec-page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px", marginBottom: "20px" }}>
         <div>
-          <h1 className="nec-page-title" style={{ fontSize: "1.75rem" }}>OD Management</h1>
-          <p className="nec-page-desc">
-            Review, approve, and issue On Duty letters for student athletes participating in tournaments.
-          </p>
+          <h1 className="nec-page-title" style={{ fontSize: "1.75rem", margin: 0 }}>OD Management</h1>
         </div>
         {/* Status Filter */}
         <div style={{ position: "relative" }}>
@@ -390,7 +384,7 @@ export default function ODManager() {
           icon={Layers}
           onClick={() => setActiveMainTab("requests")}
         >
-          Individual Student OD Approvals ({odList.length})
+          Individual Student OD Approvals ({statusFilter === "ALL" ? odList.length : `${displayedOdList.length}/${odList.length}`})
         </Button>
         <Button
           variant={activeMainTab === "signed_letters" ? "primary" : "ghost"}
@@ -411,19 +405,34 @@ export default function ODManager() {
           { label: "Pending",  count: pendingCount,  color: "#f59e0b", bg: "#fffbeb", border: "#fde68a" },
           { label: "Approved", count: approvedCount, color: "#10b981", bg: "#ecfdf5", border: "#a7f3d0" },
           { label: "Rejected", count: rejectedCount, color: "#ef4444", bg: "#fef2f2", border: "#fecaca" }
-        ].map(card => (
-          <div key={card.label} style={{
-            background: card.bg, border: `1px solid ${card.border}`,
-            borderRadius: "10px", padding: "16px 20px",
-            display: "flex", alignItems: "center", justifyContent: "space-between"
-          }}>
-            <div>
-              <div style={{ fontSize: "0.78rem", fontWeight: 600, color: card.color, textTransform: "uppercase", letterSpacing: "0.05em" }}>{card.label}</div>
-              <div style={{ fontSize: "2rem", fontWeight: 800, color: card.color, lineHeight: 1.1 }}>{card.count}</div>
+        ].map(card => {
+          const isSelected = statusFilter === card.label;
+          return (
+            <div
+              key={card.label}
+              onClick={() => setStatusFilter(isSelected ? "ALL" : card.label)}
+              title={`Click to filter by ${card.label}`}
+              style={{
+                background: card.bg,
+                border: isSelected ? `2px solid ${card.color}` : `1px solid ${card.border}`,
+                borderRadius: "10px",
+                padding: "16px 20px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                cursor: "pointer",
+                boxShadow: isSelected ? "0 4px 12px rgba(0,0,0,0.08)" : "none",
+                transition: "all 0.15s ease"
+              }}
+            >
+              <div>
+                <div style={{ fontSize: "0.78rem", fontWeight: 600, color: card.color, textTransform: "uppercase", letterSpacing: "0.05em" }}>{card.label}</div>
+                <div style={{ fontSize: "2rem", fontWeight: 800, color: card.color, lineHeight: 1.1 }}>{card.count}</div>
+              </div>
+              <FileText size={28} color={card.color} opacity={isSelected ? 0.7 : 0.35} />
             </div>
-            <FileText size={28} color={card.color} opacity={0.35} />
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Action feedback */}
@@ -448,12 +457,12 @@ export default function ODManager() {
       ) : (
         <Table
           columns={columns}
-          data={odList}
+          data={displayedOdList}
           loading={loading}
-          searchPlaceholder="Search by student name, register number…"
+          searchPlaceholder="Search by student name, register number..."
           emptyMessage={
-            statusFilter === "Pending"
-              ? "No pending OD requests. Coordinators can generate OD from the Matches panel."
+            statusFilter === "ALL"
+              ? "No OD requests found."
               : `No ${statusFilter.toLowerCase()} OD requests found.`
           }
         />

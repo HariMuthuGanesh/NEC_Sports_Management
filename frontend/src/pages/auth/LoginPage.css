@@ -183,27 +183,40 @@
 }
 
 .nec-showcase-branding {
+  display: flex;
+  align-items: center;
+  gap: 16px;
   margin-bottom: 28px;
 }
 
 .nec-showcase-logo {
   width: 64px;
   height: 64px;
-  background-color: var(--nec-blue);
-  border-radius: 12px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ffffff;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  margin-bottom: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  background: transparent;
+  flex-shrink: 0;
+  margin-bottom: 0;
+}
+
+.nec-showcase-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
 }
 
 .nec-showcase-title {
-  font-size: 2rem;
+  font-size: 1.85rem;
   font-weight: 800;
   line-height: 1.2;
-  margin: 0 0 6px;
+  margin: 0 0 4px;
   color: #ffffff;
 }
 

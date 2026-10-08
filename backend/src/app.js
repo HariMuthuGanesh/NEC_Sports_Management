@@ -72,7 +72,8 @@ app.use('/api/', apiLimiter);
 
 // 5. Security & Auth API Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/gallery', galleryRoutes);
+app.use('/api/event-photos', galleryRoutes);
+app.use('/api/gallery', galleryRoutes); // Alias for backwards compatibility
 app.use('/api', apiRoutes);
 
 // 5.5 Serve static uploads with CORS, cross-origin CORP headers, and Accept-Ranges for video streaming

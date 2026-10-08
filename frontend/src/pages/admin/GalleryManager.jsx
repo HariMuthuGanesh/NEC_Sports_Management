@@ -170,8 +170,8 @@ export default function GalleryManager() {
       {/* Header */}
       <div className="nec-page-header">
         <div>
-          <h2 className="nec-page-title">Gallery Manager</h2>
-          <p className="nec-page-desc">Upload, organize, and publish campus sports photos and video moments.</p>
+          <h2 className="nec-page-title">Event Photos Manager</h2>
+          <p className="nec-page-desc">Upload, organize, and publish campus sports event photos and video moments.</p>
         </div>
         <div style={{ display: "flex", gap: "8px" }}>
           <button
@@ -206,7 +206,7 @@ export default function GalleryManager() {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <Sparkles size={18} style={{ color: "var(--nec-primary, #0284c7)" }} />
-            <h3 style={{ margin: 0, fontSize: "1.05rem", fontWeight: 700 }}>Upload New Campus Media</h3>
+            <h3 style={{ margin: 0, fontSize: "1.05rem", fontWeight: 700 }}>Upload New Event Photos</h3>
           </div>
           {selectedFile && (
             <button
@@ -440,20 +440,13 @@ export default function GalleryManager() {
                       {item.uploadedBy && <span> • {item.uploadedBy}</span>}
                     </div>
 
-                    <button
-                      type="button"
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      icon={Trash2}
                       onClick={() => handleDelete(item.id, item.title)}
-                      className="nec-icon-btn"
-                      style={{
-                        padding: "4px 8px",
-                        color: "var(--nec-danger, #ef4444)",
-                        background: "rgba(239, 68, 68, 0.08)",
-                        borderRadius: "6px"
-                      }}
                       title="Delete media item"
-                    >
-                      <Trash2 size={15} />
-                    </button>
+                    />
                   </div>
                 </div>
               </div>

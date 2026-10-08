@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { squadApi, studentLookupApi } from "../../services/api/apiServices";
 import Table from "../../components/common/Table";
 import Button from "../../components/common/Button";
+import { Trash2 } from "lucide-react";
 import "../coordinator/CoordinatorPortal.css";
 
 export default function MyRoster() {
@@ -95,16 +96,17 @@ export default function MyRoster() {
     {
       key: "actions",
       label: "Actions",
-      width: "120px",
+      width: "90px",
       sortable: false,
       render: (_, row) => (
         <Button
           variant="danger"
           size="sm"
+          icon={Trash2}
           onClick={() => handleRemovePlayer(row.student_id)}
-        >
-          Remove
-        </Button>
+          title="Remove Player"
+          ariaLabel="Remove Player"
+        />
       )
     }
   ];

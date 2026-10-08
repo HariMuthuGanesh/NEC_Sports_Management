@@ -96,9 +96,14 @@ export default function AnnouncementsManager() {
                   <span className="nec-ann-date"><Calendar size={14} /> {ann.date}</span>
                   <span className="nec-ann-by">By {ann.author}</span>
                 </div>
-                <Button variant="danger" size="sm" icon={Trash2} onClick={() => handleDelete(ann.id)}>
-                  Delete
-                </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  icon={Trash2}
+                  onClick={() => handleDelete(ann.id)}
+                  title="Delete Announcement"
+                  ariaLabel="Delete Announcement"
+                />
               </div>
               <h3 className="nec-ann-title" style={{ marginTop: "10px" }}>{ann.title}</h3>
               <p className="nec-ann-body">{ann.content}</p>

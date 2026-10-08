@@ -235,21 +235,33 @@
   align-items: center;
   gap: 8px;
   padding: 8px 14px;
-  background: var(--nec-surface);
-  border: 1px solid var(--nec-border);
-  border-radius: var(--nec-radius-md, 8px);
-  color: var(--nec-text-muted);
+  background: var(--nec-surface, #ffffff);
+  border: 1.5px solid #c7d2fe;
+  border-radius: 8px;
+  color: #4f46e5;
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.18s ease;
   margin-bottom: 16px;
 }
 
 .nec-back-btn:hover {
-  background: var(--nec-surface-hover, #f3f4f6);
-  color: var(--nec-text-main);
-  border-color: var(--nec-border-dark, #d1d5db);
+  background: #eef2ff;
+  color: #4338ca;
+  border-color: #818cf8;
+}
+
+[data-theme="dark"] .nec-back-btn {
+  background: rgba(30, 27, 75, 0.35);
+  border-color: rgba(165, 180, 252, 0.3);
+  color: #a5b4fc;
+}
+
+[data-theme="dark"] .nec-back-btn:hover {
+  background: rgba(99, 102, 241, 0.18);
+  border-color: #818cf8;
+  color: #c7d2fe;
 }
 
 /* Modal Form Styles */

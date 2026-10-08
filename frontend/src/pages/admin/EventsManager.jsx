@@ -188,7 +188,7 @@ export default function EventsManager() {
     {
       key: "actions",
       label: "Registration Control",
-      width: "210px",
+      width: "170px",
       sortable: false,
       render: (_, row) => {
         const eventId = row.id || row.event_id;
@@ -210,9 +210,8 @@ export default function EventsManager() {
               icon={Trash2}
               onClick={() => handleDeleteEvent(eventId)}
               title="Delete Event"
-            >
-              Delete
-            </Button>
+              ariaLabel="Delete Event"
+            />
           </div>
         );
       }

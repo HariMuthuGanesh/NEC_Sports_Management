@@ -61,6 +61,10 @@ export default function Table({
     return sortedData.slice(start, start + pageSize);
   }, [sortedData, currentPage, pageSize]);
 
+  const totalEntries = sortedData.length;
+  const startEntry = totalEntries === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const endEntry = Math.min(currentPage * pageSize, totalEntries);
+
   return (
     <div className={`nec-table-container ${className}`}>
       {searchable && (
@@ -77,9 +81,6 @@ export default function Table({
                 setCurrentPage(1);
               }}
             />
-          </div>
-          <div className="nec-table-count">
-            Showing {sortedData.length} records
           </div>
         </div>
       )}
@@ -103,8 +104,14 @@ export default function Table({
                     >
                       <div className="nec-th-content">
                         <span>{col.label}</span>
-                        {col.sortable !== false && sortCol === col.key && (
-                          sortDir === "asc" ? <ChevronUp size={14} /> : <ChevronDown size={14} />
+                        {col.sortable !== false && (
+                          <span className="nec-th-sort-icon">
+                            {sortCol === col.key ? (
+                              sortDir === "asc" ? <ChevronUp size={14} /> : <ChevronDown size={14} />
+                            ) : (
+                              <ChevronUp size={12} style={{ opacity: 0.5 }} />
+                            )}
+                          </span>
                         )}
                       </div>
                     </th>
@@ -113,10 +120,10 @@ export default function Table({
               </thead>
               <tbody>
                 {paginatedData.map((row, idx) => (
-                  <tr key={row.id || idx}>
+                  <tr key={row.id || row._id || idx}>
                     {columns.map((col) => (
                       <td key={col.key}>
-                        {col.render ? col.render(row[col.key], row) : row[col.key]}
+                        {col.render ? col.render(row[col.key], row, idx) : row[col.key]}
                       </td>
                     ))}
                   </tr>
@@ -125,13 +132,16 @@ export default function Table({
             </table>
           </div>
 
-          {totalPages > 1 && (
+          <div className="nec-table-footer">
+            <div className="nec-table-entries-info">
+              Showing <strong>{startEntry}</strong> to <strong>{endEntry}</strong> of <strong>{totalEntries}</strong> entries
+            </div>
             <Pagination
               currentPage={currentPage}
               totalPages={totalPages}
               onPageChange={setCurrentPage}
             />
-          )}
+          </div>
         </>
       )}
     </div>

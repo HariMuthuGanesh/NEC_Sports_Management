@@ -31,7 +31,9 @@
 }
 
 .nec-menu-toggle-btn {
-  display: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.15);
   color: #fff;
@@ -51,12 +53,6 @@
 .nec-role-badge-btn:focus-visible {
   outline: 2px solid var(--nec-blue-accent);
   outline-offset: 2px;
-}
-
-@media (max-width: 900px) {
-  .nec-menu-toggle-btn {
-    display: flex;
-  }
 }
 
 .nec-brand {

@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React from "react";
 import { matchesApi, leaderboardApi, announcementsApi, statsApi } from "../../services/api/apiServices";
 import { useAuth, ROLES } from "../../context/AuthContext";
 import { Card, StatCard } from "../../components/common/Card";
@@ -88,7 +88,7 @@ export default function PublicHome({ onNavigate }) {
         <button type="button" onClick={() => onNavigate("public_fixtures")}><Calendar size={16} /> Fixtures <ArrowRight size={14} /></button>
         <button type="button" onClick={() => onNavigate("public_leaderboard")}><Trophy size={16} /> Rankings <ArrowRight size={14} /></button>
         <button type="button" onClick={() => onNavigate("public_od_list")}><FileCheck size={16} /> OD List <ArrowRight size={14} /></button>
-        <button type="button" onClick={() => onNavigate("public_gallery")}><Users size={16} /> Campus gallery <ArrowRight size={14} /></button>
+        <button type="button" onClick={() => onNavigate("public_gallery")}><Users size={16} /> Event Photos <ArrowRight size={14} /></button>
       </nav>
 
       {/* Main Content Area */}
@@ -98,7 +98,7 @@ export default function PublicHome({ onNavigate }) {
             icon={Trophy}
             title="Campus Sports Activities"
             message="No active sports records currently."
-            actionText="View Sports Gallery"
+            actionText="View Event Photos"
             onAction={() => onNavigate("public_gallery")}
           />
         </div>
@@ -121,7 +121,7 @@ export default function PublicHome({ onNavigate }) {
                 <Radio size={20} className="nec-icon-live-spin" />
                 <h3>{t.liveActionCampus}</h3>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => onNavigate("public_live")}>
+              <Button variant="outline" size="sm" onClick={() => onNavigate("public_live")}>
                 {t.viewAllLiveMatches} <ArrowRight size={14} />
               </Button>
             </div>
@@ -183,7 +183,7 @@ export default function PublicHome({ onNavigate }) {
                   <Trophy size={20} className="nec-gold-icon" />
                   <h3>{t.topDepartments}</h3>
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => onNavigate("public_leaderboard")}>
+                <Button variant="outline" size="sm" onClick={() => onNavigate("public_leaderboard")}>
                   Full Leaderboard <ArrowRight size={14} />
                 </Button>
               </div>
@@ -215,7 +215,7 @@ export default function PublicHome({ onNavigate }) {
                   <Megaphone size={20} className="nec-navy-icon" />
                   <h3>{t.latestAnnouncements}</h3>
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => onNavigate("public_announcements")}>
+                <Button variant="outline" size="sm" onClick={() => onNavigate("public_announcements")}>
                   All News <ArrowRight size={14} />
                 </Button>
               </div>

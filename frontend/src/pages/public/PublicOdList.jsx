@@ -20,6 +20,7 @@ import {
   Trophy,
   Filter,
   CheckCircle,
+  AlertCircle,
   Eye,
   Download,
   Layers,
@@ -530,7 +531,7 @@ export default function PublicOdList({ onNavigate, initialSport = null }) {
               {/* Sport-Specific Student List */}
               <div className="nec-od-detail-header">
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
                   icon={ArrowLeft}
                   onClick={() => setSelectedSport(null)}
@@ -576,7 +577,7 @@ export default function PublicOdList({ onNavigate, initialSport = null }) {
                   />
                 </div>
 
-                <Button variant="ghost" size="sm" icon={ArrowUpDown} onClick={() => setSortDirection(p => p === "ASC" ? "DESC" : "ASC")}>
+                <Button variant="outline" size="sm" icon={ArrowUpDown} onClick={() => setSortDirection(p => p === "ASC" ? "DESC" : "ASC")}>
                   {sortDirection === "ASC" ? "A to Z" : "Z to A"}
                 </Button>
               </div>

@@ -1,10 +1,9 @@
 import React, { useEffect, useState, useRef } from "react";
 import { galleryApi } from "../../services/api/apiServices";
-import { Card } from "../../components/common/Card";
 import SkeletonLoader from "../../components/common/SkeletonLoader";
 import PublicInfoCard from "../../components/common/PublicInfoCard";
 import Button from "../../components/common/Button";
-import { Image as ImageIcon, Video as VideoIcon, PlayCircle, Maximize2, X, Film, Volume2 } from "lucide-react";
+import { Image as ImageIcon, Video as VideoIcon, PlayCircle, Maximize2, X } from "lucide-react";
 import "./PublicPortal.css";
 
 const getMediaUrl = (url) => {
@@ -76,7 +75,7 @@ export default function PublicGallery({ onNavigate }) {
     <div className="nec-portal-page">
       <div className="nec-page-header">
         <div>
-          <h2 className="nec-page-title">Sports Gallery</h2>
+          <h2 className="nec-page-title">Event Photos</h2>
         </div>
         <div style={{ display: "flex", gap: "8px" }}>
           <button

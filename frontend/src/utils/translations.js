@@ -55,7 +55,7 @@ export const TRANSLATIONS = {
     liveScores: "Live Scores",
     fixtures: "Fixtures",
     leaderboard: "Leaderboard",
-    gallery: "Gallery",
+    gallery: "Event Photos",
 
     // Public Home
     officialPortal: "Official NEC Campus Sports Portal",
@@ -209,7 +209,7 @@ export const TRANSLATIONS = {
     liveScores: "நேரலை மதிப்பெண்கள்",
     fixtures: "போட்டி அட்டவணை",
     leaderboard: "தரவரிசை",
-    gallery: "கேலரி",
+    gallery: "நிகழ்வு புகைப்படங்கள்",
 
     // Public Home
     officialPortal: "அதிகாரப்பூர்வ என்.இ.சி வளாக விளையாட்டு தளம்",
@@ -363,7 +363,7 @@ export const TRANSLATIONS = {
     liveScores: "लाइव स्कोर",
     fixtures: "फिक्स्चर",
     leaderboard: "लीडरबोर्ड",
-    gallery: "गैलरी",
+    gallery: "इवेंट तस्वीरें",
 
     // Public Home
     officialPortal: "आधिकारिक एनईसी परिसर खेल पोर्टल",

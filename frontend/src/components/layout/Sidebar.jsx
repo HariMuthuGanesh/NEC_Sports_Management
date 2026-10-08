@@ -19,13 +19,22 @@ import {
   Shield,
   Settings,
   LogIn,
-  FileCheck
+  FileCheck,
+  Layers
 } from "lucide-react";
 import { useAuth, ROLES } from "../../context/AuthContext";
 import "./Sidebar.css";
 
-export default function Sidebar({ activeNav, onSelectNav, isOpen, onCloseMobile }) {
+export default function Sidebar({ activeNav, onSelectNav, isOpen, onClose, onCloseMobile }) {
   const { currentUser, t } = useAuth();
+  const handleClose = onClose || onCloseMobile;
+
+  const handleNavClick = (navId) => {
+    onSelectNav(navId);
+    if (typeof window !== "undefined" && window.innerWidth < 1024) {
+      handleClose?.();
+    }
+  };
 
   const getNavItems = () => {
     switch (currentUser.role) {
@@ -37,6 +46,7 @@ export default function Sidebar({ activeNav, onSelectNav, isOpen, onCloseMobile 
             items: [
               { id: "admin_sports", label: t.sportsCatalog, icon: Trophy },
               { id: "admin_tournaments", label: t.tournaments, icon: Calendar },
+              { id: "admin_competition_levels", label: "Competition Levels", icon: Layers },
               { id: "admin_events", label: t.events, icon: Award }
             ]
           },
@@ -55,7 +65,7 @@ export default function Sidebar({ activeNav, onSelectNav, isOpen, onCloseMobile 
           {
             category: t.navCommReports,
             items: [
-              { id: "admin_gallery", label: "Gallery Manager", icon: Image },
+              { id: "admin_gallery", label: "Event Photos", icon: Image },
               { id: "admin_announcements", label: t.announcements, icon: Megaphone },
               { id: "admin_reports", label: t.institutionalReports, icon: FileText },
               { id: "admin_audit", label: "Security Audit Log", icon: Shield }
@@ -163,8 +173,17 @@ export default function Sidebar({ activeNav, onSelectNav, isOpen, onCloseMobile 
 
   return (
     <>
-      {isOpen && <div className="nec-sidebar-overlay" onClick={onCloseMobile} />}
-      <aside className={`nec-sidebar ${isOpen ? "open" : ""}`}>
+      <div
+        className={`nec-sidebar-overlay ${isOpen ? "active" : ""}`}
+        onClick={handleClose}
+        aria-hidden="true"
+      />
+      <aside
+        id="nec-app-sidebar"
+        className={`nec-sidebar ${isOpen ? "open" : ""}`}
+        aria-label="Application Navigation"
+        aria-hidden={!isOpen}
+      >
         <div className="nec-sidebar-inner">
           <nav className="nec-sidebar-nav">
             {navGroups.map((group, idx) => (
@@ -177,10 +196,7 @@ export default function Sidebar({ activeNav, onSelectNav, isOpen, onCloseMobile 
                     <button
                       key={item.id}
                       className={`nec-nav-item ${isActive ? "active" : ""}`}
-                      onClick={() => {
-                        onSelectNav(item.id);
-                        onCloseMobile();
-                      }}
+                      onClick={() => handleNavClick(item.id)}
                     >
                       <Icon className="nec-nav-icon" size={18} />
                       <span className="nec-nav-label">{item.label}</span>
@@ -196,7 +212,7 @@ export default function Sidebar({ activeNav, onSelectNav, isOpen, onCloseMobile 
             {currentUser.role !== ROLES.PUBLIC && (
               <button
                 className={`nec-nav-item ${activeNav === "settings" ? "active" : ""}`}
-                onClick={() => { onSelectNav("settings"); onCloseMobile(); }}
+                onClick={() => handleNavClick("settings")}
                 style={{ width: "100%", marginBottom: "10px" }}
               >
                 <Settings className="nec-nav-icon" size={18} />

@@ -83,11 +83,20 @@ export default function VenuesManager() {
     { key: "location", label: "Location / Block", render: (val) => <span style={{ color: "var(--nec-text-muted)" }}>{val || "—"}</span> },
     { key: "status", label: "Status", width: "160px", render: (val) => <Badge status={statusMap[val] || "neutral"}>{val || "Available"}</Badge> },
     {
-      key: "actions", label: "", width: "100px",
+      key: "actions", label: "Actions", width: "140px",
       render: (_, row) => (
         <div style={{ display: "flex", gap: "6px" }}>
-          <Button variant="ghost" size="sm" icon={Edit2} onClick={() => openEdit(row)} />
-          <Button variant="danger" size="sm" icon={Trash2} onClick={() => handleDelete(row.venue_id || row.id)} />
+          <Button variant="outline" size="sm" icon={Edit2} onClick={() => openEdit(row)}>
+            Edit
+          </Button>
+          <Button
+            variant="danger"
+            size="sm"
+            icon={Trash2}
+            title="Delete Venue"
+            ariaLabel="Delete Venue"
+            onClick={() => handleDelete(row.venue_id || row.id)}
+          />
         </div>
       )
     },

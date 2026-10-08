@@ -427,7 +427,7 @@ export default function PlayerPerformanceReport() {
             </div>
 
             {(selectedSport !== "all" || selectedYear !== "all" || selectedLevel !== "all" || selectedResult !== "all") && (
-              <Button variant="ghost" size="sm" onClick={() => { setSelectedSport("all"); setSelectedYear("all"); setSelectedLevel("all"); setSelectedResult("all"); }}>
+              <Button variant="outline" size="sm" onClick={() => { setSelectedSport("all"); setSelectedYear("all"); setSelectedLevel("all"); setSelectedResult("all"); }}>
                 Reset Filters
               </Button>
             )}

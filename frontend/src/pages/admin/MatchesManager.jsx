@@ -217,7 +217,7 @@ export default function MatchesManager() {
     {
       key: "actions",
       label: "Actions",
-      width: "180px",
+      width: "150px",
       sortable: false,
       render: (_, row) => (
         <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
@@ -240,9 +240,14 @@ export default function MatchesManager() {
               Resume
             </Button>
           )}
-          <Button variant="danger" size="sm" icon={Trash2} onClick={() => handleDeleteMatch(row.id || row.match_id)}>
-            Cancel
-          </Button>
+          <Button
+            variant="danger"
+            size="sm"
+            icon={Trash2}
+            onClick={() => handleDeleteMatch(row.id || row.match_id)}
+            title="Cancel Match Fixture"
+            ariaLabel="Cancel Match Fixture"
+          />
         </div>
       )
     }

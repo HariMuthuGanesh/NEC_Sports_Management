@@ -118,7 +118,7 @@ export default function AttendanceMarker() {
           headerAction={
             <div style={{ display: "flex", gap: "8px" }}>
               <Button variant="outline" size="sm" onClick={() => handleSelectAll(true)}>Select All</Button>
-              <Button variant="ghost" size="sm" onClick={() => handleSelectAll(false)}>Clear</Button>
+              <Button variant="outline" size="sm" onClick={() => handleSelectAll(false)}>Clear</Button>
             </div>
           }
           footer={

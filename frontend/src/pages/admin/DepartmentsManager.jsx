@@ -151,11 +151,13 @@ export default function DepartmentsManager() {
     },
     { key: "students", label: "Athletes", width: "90px", render: (val) => <span>{val || 0} enrolled</span> },
     {
-      key: "actions", label: "Actions", width: "100px",
+      key: "actions", label: "Actions", width: "140px",
       render: (_, row) => (
         <div style={{ display: "flex", gap: "6px" }}>
-          <Button variant="ghost" size="sm" icon={Edit2} onClick={() => openEdit(row)} />
-          <Button variant="danger" size="sm" icon={Trash2} onClick={() => handleDelete(row.id)} />
+          <Button variant="outline" size="sm" icon={Edit2} onClick={() => openEdit(row)}>
+            Edit
+          </Button>
+          <Button variant="danger" size="sm" icon={Trash2} onClick={() => handleDelete(row.id)} title="Delete Department" ariaLabel="Delete Department" />
         </div>
       )
     },

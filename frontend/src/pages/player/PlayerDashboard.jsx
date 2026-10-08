@@ -171,7 +171,7 @@ export default function PlayerDashboard({ onNavigate }) {
             <Card
               title="Recent Match History"
               headerAction={
-                <Button variant="ghost" size="sm" onClick={() => onNavigate && onNavigate("player_matches")}>
+                <Button variant="outline" size="sm" onClick={() => onNavigate && onNavigate("player_matches")}>
                   Full Schedule & Results <ArrowRight size={14} style={{ marginLeft: 4 }} />
                 </Button>
               }

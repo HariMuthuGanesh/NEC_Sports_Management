@@ -488,7 +488,7 @@ export default function OfficialOdManager() {
 
                 <div className="nec-doc-item-footer">
                   <Button
-                    variant="outline"
+                    variant="link"
                     size="sm"
                     icon={Eye}
                     onClick={() => setPreviewDoc(doc)}
@@ -496,14 +496,12 @@ export default function OfficialOdManager() {
                     View PDF
                   </Button>
                   <Button
-                    variant="ghost"
+                    variant="danger"
                     size="sm"
                     icon={Trash2}
-                    style={{ color: "#ef4444" }}
                     onClick={() => handleDelete(doc.document_id)}
-                  >
-                    Archive
-                  </Button>
+                    title="Archive Document"
+                  />
                 </div>
               </div>
             ))}

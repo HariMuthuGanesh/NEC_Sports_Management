@@ -119,6 +119,7 @@ export const getAllMatches = async () => {
             m.manual_status_override AS manualStatusOverride,
             m.detail_score,
             m.detail_score AS detailScore,
+            m.scorers,
             m.winner_team_id,
             t1.name AS team_a_name,
             t1.name AS teamA,
@@ -174,6 +175,7 @@ export const getMatchesByTournament = async (tournamentId) => {
             m.manual_status_override AS manualStatusOverride,
             m.detail_score,
             m.detail_score AS detailScore,
+            m.scorers,
             m.winner_team_id,
             t1.name AS team_a_name,
             t1.name AS teamA,
@@ -204,17 +206,17 @@ export const getMatchesByTournament = async (tournamentId) => {
     return rows;
 };
 
-export const updateMatchScore = async ({ matchId, scoreA, scoreB, detailScore, status, winnerTeamId, updatedBy, recordedBy }) => {
+export const updateMatchScore = async ({ matchId, scoreA, scoreB, detailScore, scorers, status, winnerTeamId, updatedBy, recordedBy }) => {
     const isManualStatus = status === 'Completed' || status === 'Ongoing' || status === 'Postponed';
     const finalUpdatedBy = updatedBy || recordedBy || null;
     const sql = `
         UPDATE matches
-        SET score_a = ?, score_b = ?, detail_score = ?, status = ?, winner_team_id = ?, updated_by = ?, 
+        SET score_a = ?, score_b = ?, detail_score = ?, scorers = COALESCE(?, scorers), status = ?, winner_team_id = ?, updated_by = ?, 
             status_updated_at = NOW(), manual_status_override = ?
         WHERE match_id = ?
     `;
     const [result] = await pool.execute(sql, [
-        scoreA, scoreB, detailScore, status, winnerTeamId, finalUpdatedBy, 
+        scoreA, scoreB, detailScore, scorers || null, status, winnerTeamId, finalUpdatedBy, 
         isManualStatus ? 1 : 0, matchId
     ]);
     return result.affectedRows > 0;

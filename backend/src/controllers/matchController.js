@@ -118,6 +118,7 @@ export const updateScore = async (req, res, next) => {
         const rawB = req.body.scoreB !== undefined ? req.body.scoreB : req.body.score_b;
         const rawDetail = req.body.detailScore !== undefined ? req.body.detailScore : req.body.detail_score;
         const rawFinal = req.body.isFinal !== undefined ? req.body.isFinal : (req.body.is_final || false);
+        const rawScorers = req.body.scorers;
 
         if (rawA === undefined || rawB === undefined) {
             return res.status(400).json({ success: false, error: { code: 'MISSING_SCORES', message: 'scoreA and scoreB are required.' } });
@@ -126,6 +127,7 @@ export const updateScore = async (req, res, next) => {
         const a = Number(rawA);
         const b = Number(rawB);
         const detailScore = rawDetail !== undefined && rawDetail !== null ? String(rawDetail) : '';
+        const scorers = rawScorers ? (typeof rawScorers === 'object' ? JSON.stringify(rawScorers) : String(rawScorers)) : null;
         const isFinal = Boolean(rawFinal);
 
         if (isNaN(a) || isNaN(b) || a < 0 || b < 0) {
@@ -166,6 +168,7 @@ export const updateScore = async (req, res, next) => {
             scoreA: a,
             scoreB: b,
             detailScore,
+            scorers,
             status,
             winnerTeamId,
             winnerLabel,

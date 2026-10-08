@@ -94,6 +94,8 @@ export default function Header({ onToggleSidebar, isSidebarOpen, onSelectNav, ac
           className="nec-menu-toggle-btn"
           onClick={onToggleSidebar}
           aria-label="Toggle navigation drawer"
+          aria-expanded={Boolean(isSidebarOpen)}
+          aria-controls="nec-app-sidebar"
         >
           {isSidebarOpen ? <X size={20} /> : <Menu size={20} />}
         </button>

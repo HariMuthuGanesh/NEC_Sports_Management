@@ -78,7 +78,7 @@ export default function CoordinatorDashboard({ onNavigate }) {
             <Card
               title="Department Sports Squads"
               headerAction={
-                <Button variant="ghost" size="sm" onClick={() => onNavigate("coord_players")}>
+                <Button variant="outline" size="sm" onClick={() => onNavigate("coord_players")}>
                   Manage Roster <ArrowRight size={14} />
                 </Button>
               }
@@ -100,7 +100,7 @@ export default function CoordinatorDashboard({ onNavigate }) {
                 <Button variant="outline" icon={UserCheck} onClick={() => onNavigate("coord_attendance")}>
                   Mark Squad Match Attendance
                 </Button>
-                <Button variant="ghost" icon={CheckSquare} onClick={() => onNavigate("coord_event_reg")}>
+                <Button variant="outline" icon={CheckSquare} onClick={() => onNavigate("coord_event_reg")}>
                   Register Team for Tournament
                 </Button>
               </div>

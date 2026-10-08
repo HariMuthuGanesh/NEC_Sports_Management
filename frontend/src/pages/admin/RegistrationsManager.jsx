@@ -82,7 +82,7 @@ export default function RegistrationsManager() {
     {
       key: "actions",
       label: "Actions",
-      width: "280px",
+      width: "250px",
       sortable: false,
       render: (_, row) => {
         const teamId = row.id || row.team_id;
@@ -114,10 +114,9 @@ export default function RegistrationsManager() {
             )}
             {status === "Approved" && (
               <Button
-                variant="outline"
+                variant="outline-danger"
                 size="sm"
                 icon={X}
-                style={{ borderColor: "var(--nec-danger)", color: "var(--nec-danger)" }}
                 onClick={() => setConfirmDialog({ open: true, teamId, action: "disqualify" })}
               >
                 Disqualify
@@ -139,9 +138,8 @@ export default function RegistrationsManager() {
               icon={Trash2}
               onClick={() => handleDeleteTeam(teamId)}
               title="Delete Team"
-            >
-              Delete
-            </Button>
+              ariaLabel="Delete Team"
+            />
           </div>
         );
       }

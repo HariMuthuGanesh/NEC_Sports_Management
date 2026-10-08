@@ -162,7 +162,7 @@ export default function ScoreEntry({ onNavigate }) {
           )}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <Button variant="ghost" size="sm" icon={RefreshCw} onClick={refetch}>
+          <Button variant="outline" size="sm" icon={RefreshCw} onClick={refetch}>
             Refresh
           </Button>
         </div>

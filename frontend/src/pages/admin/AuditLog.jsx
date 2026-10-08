@@ -166,7 +166,7 @@ export default function AuditLog() {
           </p>
         </div>
         <div style={{ display: "flex", gap: "8px" }}>
-          <Button variant="ghost" size="sm" icon={RefreshCw} onClick={load}>Refresh</Button>
+          <Button variant="outline" size="sm" icon={RefreshCw} onClick={load}>Refresh</Button>
           <Button variant="primary" size="sm" icon={Download} onClick={handleExport}>Export Excel</Button>
         </div>
       </div>

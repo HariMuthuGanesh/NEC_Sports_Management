@@ -124,14 +124,14 @@ export default function PresidentDashboard({ onSelectNav }) {
       {/* Executive Portal Navigation Tabs */}
       <div style={{ display: "flex", gap: "10px", margin: "8px 0 20px 0" }}>
         <Button
-          variant={activeTab === "signed_docs" ? "primary" : "ghost"}
+          variant={activeTab === "signed_docs" ? "primary" : "outline"}
           icon={FileCheck}
           onClick={() => setActiveTab("signed_docs")}
         >
           Official Signed OD Letters
         </Button>
         <Button
-          variant={activeTab === "od_matrix" ? "primary" : "ghost"}
+          variant={activeTab === "od_matrix" ? "primary" : "outline"}
           icon={Layers}
           onClick={() => setActiveTab("od_matrix")}
         >

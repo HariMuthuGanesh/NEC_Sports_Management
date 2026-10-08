@@ -279,33 +279,15 @@ export default function LoginPage({ onLoginSuccess, onNavigate }) {
               {/* Title & Institutional Identity */}
               <div className="nec-showcase-branding">
                 <div className="nec-showcase-logo">
-                  <img src="/assets/logo.jpg" alt="NEC Logo" style={{ width: "64px", height: "64px", borderRadius: "50%", objectFit: "cover" }} />
+                  <img src="/assets/logo.jpg" alt="NEC Logo" />
                 </div>
-                <h1 className="nec-showcase-title">
-                  National Engineering College
-                </h1>
-              </div>
-
-              {/* Campus Sports Stats Showcase */}
-              <div className="nec-showcase-stats">
-                <div className="nec-stat-box">
-                  <span className="nec-stat-num">8+</span>
-                  <span className="nec-stat-lbl">Sports Disciplines</span>
-                </div>
-                <div className="nec-stat-box">
-                  <span className="nec-stat-num">500+</span>
-                  <span className="nec-stat-lbl">Student Athletes</span>
-                </div>
-                <div className="nec-stat-box">
-                  <span className="nec-stat-num">15+</span>
-                  <span className="nec-stat-lbl">Annual Tournaments</span>
-                </div>
-                <div className="nec-stat-box">
-                  <span className="nec-stat-num">100%</span>
-                  <span className="nec-stat-lbl">Digital Scoring</span>
+                <div>
+                  <h1 className="nec-showcase-title">
+                    National Engineering College
+                  </h1>
+                  <p className="nec-showcase-academy">Department of Physical Education</p>
                 </div>
               </div>
-
             </div>
           </section>
 

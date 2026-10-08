@@ -26,4 +26,20 @@ CREATE TABLE IF NOT EXISTS official_od_documents (
   FOREIGN KEY (uploaded_by) REFERENCES users(id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_official_od_sport_dept ON official_od_documents (sport_name, department_code, status);
+SET @idx_exists = (
+    SELECT COUNT(*) 
+    FROM INFORMATION_SCHEMA.STATISTICS 
+    WHERE TABLE_SCHEMA = DATABASE() 
+      AND TABLE_NAME = 'official_od_documents' 
+      AND INDEX_NAME = 'idx_official_od_sport_dept'
+);
+
+SET @add_idx_sql = IF(
+    @idx_exists = 0,
+    'CREATE INDEX idx_official_od_sport_dept ON official_od_documents (sport_name, department_code, status)',
+    'SELECT 1'
+);
+
+PREPARE stmt_idx FROM @add_idx_sql;
+EXECUTE stmt_idx;
+DEALLOCATE PREPARE stmt_idx;

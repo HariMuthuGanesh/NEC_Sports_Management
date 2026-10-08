@@ -114,16 +114,21 @@ export default function SportsCatalog() {
     {
       key: "actions",
       label: t.actions || "Actions",
-      width: "180px",
+      width: "140px",
       sortable: false,
       render: (_, row) => (
         <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
           <Button variant="outline" size="sm" icon={Edit2} onClick={() => openEditModal(row)}>
             {t.edit || "Edit"}
           </Button>
-          <Button variant="danger" size="sm" icon={Trash2} onClick={() => handleRemoveSport(row.sport_id)}>
-            {t.delete || "Delete"}
-          </Button>
+          <Button
+            variant="danger"
+            size="sm"
+            icon={Trash2}
+            onClick={() => handleRemoveSport(row.sport_id)}
+            title={t.delete || "Delete"}
+            ariaLabel={t.delete || "Delete"}
+          />
         </div>
       )
     }

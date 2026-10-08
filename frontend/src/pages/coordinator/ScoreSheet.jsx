@@ -169,7 +169,7 @@ export default function ScoreSheet({ onNavigate }) {
     return (
       <div className="nec-portal-page nec-score-sheet-page">
         <div className="nec-score-sheet-top-nav">
-          <Button variant="ghost" size="sm" icon={ArrowLeft} onClick={handleBack}>
+          <Button variant="outline" size="sm" icon={ArrowLeft} onClick={handleBack}>
             Back to Score Board
           </Button>
         </div>
@@ -182,7 +182,7 @@ export default function ScoreSheet({ onNavigate }) {
     return (
       <div className="nec-portal-page nec-score-sheet-page">
         <div className="nec-score-sheet-top-nav">
-          <Button variant="ghost" size="sm" icon={ArrowLeft} onClick={handleBack}>
+          <Button variant="outline" size="sm" icon={ArrowLeft} onClick={handleBack}>
             Back to Score Board
           </Button>
         </div>
@@ -195,7 +195,7 @@ export default function ScoreSheet({ onNavigate }) {
     return (
       <div className="nec-portal-page nec-score-sheet-page">
         <div className="nec-score-sheet-top-nav">
-          <Button variant="ghost" size="sm" icon={ArrowLeft} onClick={handleBack}>
+          <Button variant="outline" size="sm" icon={ArrowLeft} onClick={handleBack}>
             Back to Score Board
           </Button>
         </div>
@@ -291,7 +291,7 @@ export default function ScoreSheet({ onNavigate }) {
           <Badge status={isOngoing ? "live" : "warning"}>
             {isOngoing ? "Live Match" : currentMatch.status}
           </Badge>
-          <Button variant="ghost" size="sm" icon={RefreshCw} onClick={refetch}>
+          <Button variant="outline" size="sm" icon={RefreshCw} onClick={refetch}>
             Refresh
           </Button>
         </div>

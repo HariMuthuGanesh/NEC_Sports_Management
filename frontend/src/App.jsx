@@ -27,6 +27,7 @@ import PublicOdList from "./pages/public/PublicOdList";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import SportsCatalog from "./pages/admin/SportsCatalog";
 import TournamentsManager from "./pages/admin/TournamentsManager";
+import CompetitionLevelsManager from "./pages/admin/CompetitionLevelsManager";
 import EventsManager from "./pages/admin/EventsManager";
 import RegistrationsManager from "./pages/admin/RegistrationsManager";
 import TeamsManager from "./pages/admin/TeamsManager";
@@ -218,6 +219,12 @@ function MainApp() {
         return (
           <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.PRESIDENT]} onRedirectPublic={redirectNav}>
             <TournamentsManager />
+          </ProtectedRoute>
+        );
+      case "admin_competition_levels":
+        return (
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={redirectNav}>
+            <CompetitionLevelsManager />
           </ProtectedRoute>
         );
       case "admin_events":

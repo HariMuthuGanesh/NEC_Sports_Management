@@ -318,7 +318,26 @@ export const reportsApi = {
 
 /* --- Leaderboard API --- */
 export const leaderboardApi = {
-  getLeaderboard: () => apiFetch("/leaderboard")
+  getLeaderboard: () => apiFetch("/leaderboard"),
+  getDepartmentMatches: (deptId) => apiFetch(`/leaderboard/${deptId}/matches`)
+};
+
+/* --- Competition Levels Master API --- */
+export const competitionLevelsApi = {
+  getLevels: (params = {}) => {
+    const query = new URLSearchParams();
+    if (params.includeInactive !== undefined) query.set('includeInactive', params.includeInactive);
+    if (params.all !== undefined) query.set('all', params.all);
+    if (params.search) query.set('search', params.search);
+    if (params.page) query.set('page', params.page);
+    if (params.limit) query.set('limit', params.limit);
+    const qs = query.toString();
+    return apiFetch(`/competition-levels${qs ? `?${qs}` : ''}`);
+  },
+  getLevelById: (id) => apiFetch(`/competition-levels/${id}`),
+  createLevel: (data) => apiFetch("/competition-levels", "POST", data),
+  updateLevel: (id, data) => apiFetch(`/competition-levels/${id}`, "PUT", data),
+  deleteLevel: (id) => apiFetch(`/competition-levels/${id}`, "DELETE")
 };
 
 /* --- Announcements API --- */
@@ -330,14 +349,20 @@ export const announcementsApi = {
   deleteAnnouncement: (id) => apiFetch(`/announcements/${id}`, "DELETE")
 };
 
-/* --- Media Gallery API --- */
-export const galleryApi = {
-  getGallery: () => apiFetch("/gallery"),
-  getAll: () => apiFetch("/gallery"),
-  uploadMedia: (formData) => apiFetch("/gallery/upload", "POST", formData),
-  updateMedia: (id, data) => apiFetch(`/gallery/${id}`, "PUT", data),
-  deleteMedia: (id) => apiFetch(`/gallery/${id}`, "DELETE")
+/* --- Event Photos (formerly Media Gallery) API --- */
+export const eventPhotosApi = {
+  getPhotos: () => apiFetch("/event-photos").catch(() => apiFetch("/gallery")),
+  getGallery: () => apiFetch("/event-photos").catch(() => apiFetch("/gallery")),
+  getAll: () => apiFetch("/event-photos").catch(() => apiFetch("/gallery")),
+  uploadPhoto: (formData) => apiFetch("/event-photos/upload", "POST", formData),
+  uploadMedia: (formData) => apiFetch("/event-photos/upload", "POST", formData),
+  updatePhoto: (id, data) => apiFetch(`/event-photos/${id}`, "PUT", data),
+  updateMedia: (id, data) => apiFetch(`/event-photos/${id}`, "PUT", data),
+  deletePhoto: (id) => apiFetch(`/event-photos/${id}`, "DELETE"),
+  deleteMedia: (id) => apiFetch(`/event-photos/${id}`, "DELETE")
 };
+
+export const galleryApi = eventPhotosApi;
 
 /* --- Notifications API --- */
 export const dispatchNotificationUpdate = (count) => {
