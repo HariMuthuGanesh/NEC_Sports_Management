@@ -3,40 +3,64 @@ import Header from "./Header";
 import Sidebar from "./Sidebar";
 import "./AppShell.css";
 
-const STORAGE_KEY = "nec-sidebar-open";
+const DESKTOP_QUERY = "(min-width: 901px)"; // must match the header toggle breakpoint (Header.css, max-width: 900px)
+const DRAWER_KEY = "nec-sidebar-open";
+const COLLAPSED_KEY = "nec-sidebar-collapsed";
 
-// The drawer starts collapsed. Its open/closed state is remembered for the browser session.
+const readFlag = (storage, key) => {
+  try {
+    return storage.getItem(key) === "1";
+  } catch {
+    return false;
+  }
+};
+
+const writeFlag = (storage, key, value) => {
+  try {
+    storage.setItem(key, value ? "1" : "0");
+  } catch {
+    /* storage unavailable: keep in-memory state only */
+  }
+};
+
+// Desktop: docked sidebar that expands or collapses to an icon rail (remembered per browser).
+// Small screens: overlay drawer opened from the header toggle (remembered per session).
 export default function AppShell({ activeNav, onSelectNav, onRoleChange, children }) {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
-    try {
-      return sessionStorage.getItem(STORAGE_KEY) === "1";
-    } catch {
-      return false;
-    }
-  });
+  const [isDesktop, setIsDesktop] = useState(() =>
+    typeof window !== "undefined" && window.matchMedia(DESKTOP_QUERY).matches
+  );
+  const [isCollapsed, setIsCollapsed] = useState(() => readFlag(localStorage, COLLAPSED_KEY));
+  const [isDrawerOpen, setIsDrawerOpen] = useState(() => readFlag(sessionStorage, DRAWER_KEY));
 
   useEffect(() => {
-    try {
-      sessionStorage.setItem(STORAGE_KEY, isSidebarOpen ? "1" : "0");
-    } catch {
-      /* storage unavailable: keep in-memory state only */
-    }
-  }, [isSidebarOpen]);
+    const mq = window.matchMedia(DESKTOP_QUERY);
+    const onChange = (e) => setIsDesktop(e.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
 
-  const toggleSidebar = useCallback(() => setIsSidebarOpen(prev => !prev), []);
+  useEffect(() => { writeFlag(localStorage, COLLAPSED_KEY, isCollapsed); }, [isCollapsed]);
+  useEffect(() => { writeFlag(sessionStorage, DRAWER_KEY, isDrawerOpen); }, [isDrawerOpen]);
 
-  const closeSidebar = useCallback(() => {
-    setIsSidebarOpen(false);
+  const toggleSidebar = useCallback(() => {
+    if (isDesktop) setIsCollapsed(prev => !prev);
+    else setIsDrawerOpen(prev => !prev);
+  }, [isDesktop]);
+
+  const closeDrawer = useCallback(() => {
+    setIsDrawerOpen(false);
     // Return focus to the trigger so keyboard users keep their place.
     requestAnimationFrame(() => document.getElementById("nec-menu-toggle")?.focus());
   }, []);
+
+  const sidebarExpanded = isDesktop ? !isCollapsed : isDrawerOpen;
 
   return (
     <div className="nec-app-shell">
       <Header
         activeNav={activeNav}
         onToggleSidebar={toggleSidebar}
-        isSidebarOpen={isSidebarOpen}
+        isSidebarOpen={sidebarExpanded}
         onRoleChange={onRoleChange}
         onSelectNav={onSelectNav}
       />
@@ -44,8 +68,11 @@ export default function AppShell({ activeNav, onSelectNav, onRoleChange, childre
         <Sidebar
           activeNav={activeNav}
           onSelectNav={onSelectNav}
-          isOpen={isSidebarOpen}
-          onCloseMobile={closeSidebar}
+          variant={isDesktop ? "docked" : "drawer"}
+          collapsed={isCollapsed}
+          onToggleCollapse={toggleSidebar}
+          drawerOpen={isDrawerOpen}
+          onCloseDrawer={closeDrawer}
         />
         <main className="nec-main-content">
           <div className="nec-content-wrapper">

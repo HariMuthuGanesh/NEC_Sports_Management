@@ -1,73 +1,75 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
-  LayoutDashboard,
-  Trophy,
-  Calendar,
-  Users,
-  CheckSquare,
-  MapPin,
-  Building2,
-  FileText,
-  Megaphone,
-  Radio,
-  Image,
-  Award,
-  UserCheck,
-  X,
-  Edit3,
-  Bell,
-  Home,
-  Shield,
-  Settings,
-  LogIn,
-  FileCheck
+  LayoutDashboard, Trophy, Calendar, Users, CheckSquare, MapPin, Building2, FileText,
+  Megaphone, Radio, Image, Award, UserCheck, X, Edit3, Bell, Home, Shield, Settings,
+  LogIn, FileCheck, ChevronDown, ChevronLeft, ChevronRight, Sun, Moon
 } from "lucide-react";
 import { useAuth, ROLES } from "../../context/AuthContext";
 import "./Sidebar.css";
 
-export default function Sidebar({ activeNav, onSelectNav, isOpen, onCloseMobile }) {
-  const asideRef = useRef(null);
-  // Keep the latest close handler in a ref so the effect below does not re-run (and re-focus) on every render.
-  const closeRef = useRef(onCloseMobile);
-  useEffect(() => {
-    closeRef.current = onCloseMobile;
-  });
+// Sidebar modes:
+//  - "docked": persistent column on desktop. Expanded, or collapsed to an icon rail with flyouts.
+//  - "drawer": full-height overlay on small screens, opened from the header toggle.
+// Multi-item categories become collapsible groups. In rail mode each group opens a flyout.
 
+function NavButton({ item, active, showLabel, onActivate }) {
+  const Icon = item.icon;
+  return (
+    <button
+      type="button"
+      className={`nec-nav-item ${active ? "active" : ""}`}
+      aria-current={active ? "page" : undefined}
+      aria-label={showLabel ? undefined : item.label}
+      onClick={() => onActivate(item.id)}
+    >
+      <Icon className="nec-nav-icon" size={18} aria-hidden="true" />
+      {showLabel && <span className="nec-nav-label">{item.label}</span>}
+      {!showLabel && <span className="nec-rail-tooltip" aria-hidden="true">{item.label}</span>}
+    </button>
+  );
+}
+
+export default function Sidebar({
+  activeNav,
+  onSelectNav,
+  variant = "docked",
+  collapsed = false,
+  onToggleCollapse,
+  drawerOpen = false,
+  onCloseDrawer,
+}) {
+  const asideRef = useRef(null);
+  const closeRef = useRef(onCloseDrawer);
+  useEffect(() => { closeRef.current = onCloseDrawer; });
+
+  const isDrawer = variant === "drawer";
+  const isRail = !isDrawer && collapsed;
+  const isHidden = isDrawer && !drawerOpen;
+
+  // Focus trap + Escape only while the mobile drawer is open.
   useEffect(() => {
-    if (!isOpen) return undefined;
+    if (!isDrawer || !drawerOpen) return undefined;
     const aside = asideRef.current;
     const getFocusable = () => (aside ? Array.from(aside.querySelectorAll(
       'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
     )) : []);
-
-    const first = getFocusable()[0];
-    if (first) first.focus();
-
+    getFocusable()[0]?.focus();
     const onKeyDown = (e) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        closeRef.current?.();
-        return;
-      }
+      if (e.key === "Escape") { e.preventDefault(); closeRef.current?.(); return; }
       if (e.key !== "Tab") return;
       const items = getFocusable();
       if (items.length === 0) return;
       const firstEl = items[0];
       const lastEl = items[items.length - 1];
       const inside = aside && aside.contains(document.activeElement);
-      if (e.shiftKey && (!inside || document.activeElement === firstEl)) {
-        e.preventDefault();
-        lastEl.focus();
-      } else if (!e.shiftKey && (!inside || document.activeElement === lastEl)) {
-        e.preventDefault();
-        firstEl.focus();
-      }
+      if (e.shiftKey && (!inside || document.activeElement === firstEl)) { e.preventDefault(); lastEl.focus(); }
+      else if (!e.shiftKey && (!inside || document.activeElement === lastEl)) { e.preventDefault(); firstEl.focus(); }
     };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [isOpen]);
+  }, [isDrawer, drawerOpen]);
 
-  const { currentUser, t } = useAuth();
+  const { currentUser, t, theme, toggleTheme } = useAuth();
 
   const getNavItems = () => {
     switch (currentUser.role) {
@@ -203,71 +205,190 @@ export default function Sidebar({ activeNav, onSelectNav, isOpen, onCloseMobile 
   };
 
   const navGroups = getNavItems();
+  const [openGroups, setOpenGroups] = useState({});
+  const [flyoutKey, setFlyoutKey] = useState(null);
+
+  // Group is open unless the user closed it. The group holding the active page always opens.
+  const isGroupOpen = (key) => openGroups[key] !== false;
+  const toggleGroup = (key) => setOpenGroups(prev => ({ ...prev, [key]: !isGroupOpen(key) }));
+
+  useEffect(() => {
+    const owner = navGroups.find(g => g.items.some(i => i.id === activeNav));
+    if (owner) setOpenGroups(prev => (prev[owner.category] === false ? { ...prev, [owner.category]: true } : prev));
+  }, [activeNav]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => { setFlyoutKey(null); }, [collapsed, variant]);
+
+  const activate = (id) => {
+    onSelectNav(id);
+    if (isDrawer) onCloseDrawer?.();
+    setFlyoutKey(null);
+  };
+
+  const showLabel = !isRail;
 
   return (
     <>
-      {isOpen && <div className="nec-sidebar-overlay" onClick={onCloseMobile} />}
+      {isDrawer && drawerOpen && <div className="nec-sidebar-overlay" onClick={onCloseDrawer} />}
       <aside
         ref={asideRef}
         id="nec-sidebar"
-        className={`nec-sidebar ${isOpen ? "open" : ""}`}
+        className={[
+          "nec-sidebar",
+          isDrawer ? "nec-sidebar--drawer" : "nec-sidebar--docked",
+          isRail ? "is-rail" : "",
+          isDrawer && drawerOpen ? "open" : "",
+        ].join(" ")}
         aria-label="Main navigation"
-        aria-hidden={!isOpen}
-        {...(!isOpen ? { inert: "" } : {})}
+        aria-hidden={isHidden ? "true" : undefined}
+        {...(isHidden ? { inert: "" } : {})}
       >
         <div className="nec-sidebar-inner">
-          {/* Close control sits at the top-right of the side panel (Task 6). */}
-          <div className="nec-sidebar-topbar">
-            <button
-              type="button"
-              className="nec-sidebar-close-btn"
-              onClick={onCloseMobile}
-              aria-label="Close navigation drawer"
-            >
-              <X size={18} />
-            </button>
+          <div className="nec-sidebar-head">
+            <div className="nec-sidebar-brand" title="NEC Sports">
+              <img src="/assets/logo.jpg" alt="" className="nec-sidebar-logo" />
+              {showLabel && <span className="nec-sidebar-brand-name">NEC Sports</span>}
+            </div>
+            {isDrawer && (
+              <button type="button" className="nec-sidebar-icon-btn" onClick={onCloseDrawer} aria-label="Close navigation drawer">
+                <X size={18} />
+              </button>
+            )}
+            {!isDrawer && (
+              <button
+                type="button"
+                className="nec-sidebar-icon-btn nec-sidebar-collapse-btn"
+                onClick={onToggleCollapse}
+                aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+                aria-expanded={!collapsed}
+                aria-controls="nec-sidebar-nav"
+              >
+                {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+              </button>
+            )}
           </div>
-          <nav className="nec-sidebar-nav">
-            {navGroups.map((group, idx) => (
-              <div key={idx} className="nec-nav-group">
-                <div className="nec-nav-category">{group.category}</div>
-                {group.items.map(item => {
-                  const Icon = item.icon;
-                  const isActive = activeNav === item.id;
-                  return (
-                    <button
-                      key={item.id}
-                      className={`nec-nav-item ${isActive ? "active" : ""}`}
-                      onClick={() => {
-                        onSelectNav(item.id);
-                        onCloseMobile();
-                      }}
-                    >
-                      <Icon className="nec-nav-icon" size={18} />
-                      <span className="nec-nav-label">{item.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            ))}
+
+          <nav id="nec-sidebar-nav" className="nec-sidebar-nav" aria-label="Sections">
+            {navGroups.map((group) => {
+              const single = group.items.length === 1;
+              if (single) {
+                const item = group.items[0];
+                return (
+                  <ul key={group.category} className="nec-nav-list">
+                    <li className="nec-nav-li">
+                      <NavButton item={item} active={activeNav === item.id} showLabel={showLabel} onActivate={activate} />
+                    </li>
+                  </ul>
+                );
+              }
+              const open = isGroupOpen(group.category);
+              const GroupIcon = group.items.find(i => i.id === activeNav)?.icon || group.items[0].icon;
+              const hasActive = group.items.some(i => i.id === activeNav);
+              const flyoutOpen = isRail && flyoutKey === group.category;
+              return (
+                <div
+                  key={group.category}
+                  className={`nec-nav-group ${hasActive ? "has-active" : ""}`}
+                  onMouseLeave={() => isRail && setFlyoutKey(k => (k === group.category ? null : k))}
+                  onKeyDown={(e) => { if (e.key === "Escape") setFlyoutKey(null); }}
+                  onBlur={(e) => {
+                    if (isRail && !e.currentTarget.contains(e.relatedTarget)) setFlyoutKey(k => (k === group.category ? null : k));
+                  }}
+                >
+                  {isRail ? (
+                    <>
+                      <button
+                        type="button"
+                        className={`nec-nav-item nec-nav-group-btn ${hasActive ? "active" : ""}`}
+                        aria-haspopup="menu"
+                        aria-expanded={flyoutOpen}
+                        aria-label={group.category}
+                        onMouseEnter={() => setFlyoutKey(group.category)}
+                        onClick={() => setFlyoutKey(k => (k === group.category ? null : group.category))}
+                      >
+                        <GroupIcon className="nec-nav-icon" size={18} aria-hidden="true" />
+                        <span className="nec-rail-tooltip" aria-hidden="true">{group.category}</span>
+                      </button>
+                      {flyoutOpen && (
+                        <div className="nec-flyout" role="menu" aria-label={group.category}>
+                          <div className="nec-flyout-title">{group.category}</div>
+                          {group.items.map(item => (
+                            <button
+                              key={item.id}
+                              type="button"
+                              role="menuitem"
+                              className={`nec-flyout-item ${activeNav === item.id ? "active" : ""}`}
+                              aria-current={activeNav === item.id ? "page" : undefined}
+                              onClick={() => activate(item.id)}
+                            >
+                              {item.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        className="nec-nav-group-btn nec-nav-category"
+                        aria-expanded={open}
+                        aria-controls={`nec-group-${group.category.replace(/\W+/g, "-")}`}
+                        onClick={() => toggleGroup(group.category)}
+                      >
+                        <span>{group.category}</span>
+                        <ChevronDown size={14} className={`nec-group-chevron ${open ? "open" : ""}`} aria-hidden="true" />
+                      </button>
+                      <ul
+                        id={`nec-group-${group.category.replace(/\W+/g, "-")}`}
+                        className={`nec-nav-list nec-nav-sub ${open ? "open" : ""}`}
+                        hidden={!open}
+                      >
+                        {group.items.map(item => (
+                          <li key={item.id} className="nec-nav-li">
+                            <NavButton item={item} active={activeNav === item.id} showLabel onActivate={activate} />
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  )}
+                </div>
+              );
+            })}
           </nav>
 
           <div className="nec-sidebar-footer">
-            {/* Settings link — hidden for public guests */}
+            <div className="nec-theme-switch" role="group" aria-label="Theme">
+              <button type="button" className={`nec-theme-option ${theme === "light" ? "active" : ""}`} aria-pressed={theme === "light"} onClick={() => theme !== "light" && toggleTheme()} title="Light theme">
+                <Sun size={16} aria-hidden="true" />
+                {showLabel && <span>Light</span>}
+              </button>
+              <button type="button" className={`nec-theme-option ${theme === "dark" ? "active" : ""}`} aria-pressed={theme === "dark"} onClick={() => theme !== "dark" && toggleTheme()} title="Dark theme">
+                <Moon size={16} aria-hidden="true" />
+                {showLabel && <span>Dark</span>}
+              </button>
+            </div>
+
             {currentUser.role !== ROLES.PUBLIC && (
               <button
-                className={`nec-nav-item ${activeNav === "settings" ? "active" : ""}`}
-                onClick={() => { onSelectNav("settings"); onCloseMobile(); }}
-                style={{ width: "100%", marginBottom: "10px" }}
+                type="button"
+                className={`nec-nav-item nec-settings-item ${activeNav === "settings" ? "active" : ""}`}
+                aria-current={activeNav === "settings" ? "page" : undefined}
+                aria-label={showLabel ? undefined : "Settings"}
+                onClick={() => activate("settings")}
               >
-                <Settings className="nec-nav-icon" size={18} />
-                <span className="nec-nav-label">Settings</span>
+                <Settings className="nec-nav-icon" size={18} aria-hidden="true" />
+                {showLabel && <span className="nec-nav-label">Settings</span>}
+                {!showLabel && <span className="nec-rail-tooltip" aria-hidden="true">Settings</span>}
               </button>
             )}
-            <div className="nec-lasa-tag">
-              <span>{t.lasaTag}</span>
-              <span className="nec-tag-sub">{t.lasaSub}</span>
-            </div>
+
+            {showLabel && (
+              <div className="nec-lasa-tag">
+                <span>{t.lasaTag}</span>
+                <span className="nec-tag-sub">{t.lasaSub}</span>
+              </div>
+            )}
           </div>
         </div>
       </aside>
