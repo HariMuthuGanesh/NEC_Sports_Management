@@ -41,6 +41,7 @@ export default function OAuthCallbackPage({ onLoginSuccess, onNavigate }) {
         const resData = await response.json();
         
         if (response.ok && resData.success) {
+          const userData = resData.data || resData.user || {};
           const sessionUser = {
             ...userData,
             role: userData.role,

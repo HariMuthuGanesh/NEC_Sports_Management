@@ -186,6 +186,12 @@ export const sportsApi = {
   updateDepartment: (deptId, deptData) => apiFetch(`/departments/${deptId}`, "PUT", deptData),
   deleteDepartment: (deptId) => apiFetch(`/departments/${deptId}`, "DELETE"),
   getCoordinators: () => apiFetch("/coordinators"),
+  createCoordinator: (body) => apiFetch("/coordinators", "POST", body),
+  updateCoordinator: (staffId, body) => apiFetch(`/coordinators/${staffId}`, "PUT", body),
+  setCoordinatorStatus: (staffId, isActive) => apiFetch(`/coordinators/${staffId}/status`, "PATCH", { isActive }),
+  getSportCategories: (sportId) => apiFetch(`/sports/${sportId}/categories`),
+  createSportCategory: (sportId, body) => apiFetch(`/sports/${sportId}/categories`, "POST", body),
+  deleteSportCategory: (categoryId) => apiFetch(`/sport-categories/${categoryId}`, "DELETE"),
   getSports: () => apiFetch("/sports"),
   addSport: (sportData) => apiFetch("/sports", "POST", sportData),
   updateSport: (sportId, sportData) => apiFetch(`/sports/${sportId}`, "PUT", sportData),
@@ -239,7 +245,11 @@ export const eventsApi = {
   }),
   updateEvent: (eventId, data) => apiFetch(`/events/${eventId}`, "PUT", data),
   deleteEvent: (eventId) => apiFetch(`/events/${eventId}`, "DELETE"),
-  toggleEventStatus: (eventId, status) => apiFetch(`/events/${eventId}/toggle`, "POST", { status })
+  toggleEventStatus: (eventId, status) => apiFetch(`/events/${eventId}/toggle`, "POST", { status }),
+  getEventTeams: (eventId) => apiFetch(`/events/${eventId}/teams`),
+  getEventEntries: (eventId) => apiFetch(`/events/${eventId}/entries`),
+  addEventEntry: (eventId, body) => apiFetch(`/events/${eventId}/entries`, "POST", body),
+  removeEventEntry: (entryId) => apiFetch(`/event-entries/${entryId}`, "DELETE")
 };
 
 /* --- Teams & Roster API --- */

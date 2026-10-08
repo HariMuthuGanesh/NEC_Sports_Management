@@ -21,7 +21,9 @@ export const getAllEvents = async () => {
                 e.max_players AS maxPlayers,
                 e.max_teams,
                 e.max_teams AS maxTeams,
-                (SELECT COUNT(*) FROM teams tm WHERE tm.sport_id = e.sport_id) AS registeredTeams,
+                (SELECT COUNT(*) FROM teams tm WHERE tm.event_id = e.event_id) AS registeredTeams,
+                (SELECT COUNT(*) FROM event_entries ee WHERE ee.event_id = e.event_id) AS registeredEntries,
+                s.sport_type AS sportType,
                 e.rules,
                 e.start_time,
                 e.start_time AS startTime,
@@ -118,7 +120,9 @@ export const getEventByIdSql = async (eventId) => {
             e.max_players AS maxPlayers,
             e.max_teams,
             e.max_teams AS maxTeams,
-            (SELECT COUNT(*) FROM teams tm WHERE tm.sport_id = e.sport_id) AS registeredTeams,
+            (SELECT COUNT(*) FROM teams tm WHERE tm.event_id = e.event_id) AS registeredTeams,
+                (SELECT COUNT(*) FROM event_entries ee WHERE ee.event_id = e.event_id) AS registeredEntries,
+                s.sport_type AS sportType,
             e.rules,
             e.start_time,
             e.start_time AS startTime,
@@ -203,5 +207,66 @@ export const updateEventStatusSql = async (eventId, status) => {
         WHERE event_id = ?
     `;
     const [result] = await pool.execute(sql, [status, eventId]);
+    return result.affectedRows > 0;
+};
+
+// Teams registered to one event (teams.event_id), with roster size.
+export const getEventTeamsSql = async (eventId) => {
+    const sql = `
+        SELECT
+            tm.team_id,
+            tm.team_id AS id,
+            tm.name,
+            tm.status,
+            tm.coach_name,
+            tm.jersey_color,
+            tm.created_at,
+            d.id AS department_id,
+            d.name AS department_name,
+            d.code AS department_code,
+            (SELECT COUNT(*) FROM team_members m WHERE m.team_id = tm.team_id) AS playerCount,
+            (SELECT COUNT(*) FROM matches mt WHERE mt.team_a_id = tm.team_id OR mt.team_b_id = tm.team_id) AS fixtureCount
+        FROM teams tm
+        LEFT JOIN departments d ON d.id = tm.department_id
+        WHERE tm.event_id = ?
+        ORDER BY tm.status = 'Approved' DESC, tm.name ASC
+    `;
+    const [rows] = await pool.execute(sql, [eventId]);
+    return rows;
+};
+
+// Individual-sport entries (students) for one event.
+export const getEventEntriesSql = async (eventId) => {
+    const sql = `
+        SELECT
+            ee.entry_id,
+            ee.category_id,
+            sc.name AS category_name,
+            ee.student_id,
+            s.student_name,
+            s.register_number,
+            d.code AS department_code,
+            ee.created_at
+        FROM event_entries ee
+        JOIN students s ON s.student_id = ee.student_id
+        JOIN departments d ON d.id = s.department_id
+        LEFT JOIN sport_categories sc ON sc.category_id = ee.category_id
+        WHERE ee.event_id = ?
+        ORDER BY sc.name ASC, s.student_name ASC
+    `;
+    const [rows] = await pool.execute(sql, [eventId]);
+    return rows;
+};
+
+export const addEventEntrySql = async (eventId, studentId, categoryId) => {
+    const [result] = await pool.execute(
+        'INSERT IGNORE INTO event_entries (event_id, category_id, student_id) VALUES (?, ?, ?)',
+        [eventId, categoryId || null, studentId]
+    );
+    return result.affectedRows > 0;
+};
+
+export const removeEventEntrySql = async (entryId) => {
+    const [result] = await pool.execute('DELETE FROM event_entries WHERE entry_id = ?', [entryId]);
     return result.affectedRows > 0;
 };

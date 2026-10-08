@@ -6,9 +6,6 @@ export const getAllDepartments = async () => {
             d.id, 
             d.name, 
             d.code, 
-            d.hod_name, 
-            d.hod_name AS hod, 
-            d.hod_email, 
             d.coordinator_user_id, 
             u.username AS coordinator_name,
             u.email AS coordinator_email,
@@ -30,8 +27,6 @@ export const getDepartmentById = async (id) => {
             d.id, 
             d.name, 
             d.code, 
-            d.hod_name, 
-            d.hod_email, 
             d.coordinator_user_id, 
             u.username AS coordinator_name,
             u.email AS coordinator_email,
@@ -46,44 +41,46 @@ export const getDepartmentById = async (id) => {
     return rows[0] || null;
 };
 
-export const createDepartmentSql = async ({ name, code, hodName = null, hodEmail = null, coordinatorUserId = null, colorCode = '#3b82f6' }) => {
+export const createDepartmentSql = async ({ name, code, coordinatorUserId = null, colorCode = '#3b82f6' }) => {
     const sql = `
-        INSERT INTO departments (name, code, hod_name, hod_email, coordinator_user_id, color_code)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO departments (name, code, coordinator_user_id, color_code)
+        VALUES (?, ?, ?, ?)
     `;
     const [result] = await pool.execute(sql, [
         name,
         code.toUpperCase(),
-        hodName || null,
-        hodEmail || null,
         coordinatorUserId || null,
         colorCode || '#3b82f6'
     ]);
     return result.insertId;
 };
 
-export const updateDepartmentSql = async (id, { name, code, hodName, hodEmail, coordinatorUserId, colorCode }) => {
+// coordinatorUserId: undefined = leave unchanged; null = unassign; number = assign.
+export const updateDepartmentSql = async (id, { name, code, coordinatorUserId, colorCode }) => {
+    const coordinatorProvided = coordinatorUserId !== undefined;
     const sql = `
         UPDATE departments
         SET 
             name = COALESCE(?, name),
             code = COALESCE(?, code),
-            hod_name = COALESCE(?, hod_name),
-            hod_email = COALESCE(?, hod_email),
-            coordinator_user_id = ?,
+            coordinator_user_id = CASE WHEN ? THEN ? ELSE coordinator_user_id END,
             color_code = COALESCE(?, color_code)
         WHERE id = ?
     `;
     const [result] = await pool.execute(sql, [
         name || null,
         code ? code.toUpperCase() : null,
-        hodName !== undefined ? hodName : null,
-        hodEmail !== undefined ? hodEmail : null,
-        coordinatorUserId !== undefined ? coordinatorUserId : null,
+        coordinatorProvided ? 1 : 0,
+        coordinatorProvided ? (coordinatorUserId || null) : null,
         colorCode || null,
         id
     ]);
     return result.affectedRows > 0;
+};
+
+export const countDepartmentStudents = async (id) => {
+    const [[row]] = await pool.execute('SELECT COUNT(*) AS cnt FROM students WHERE department_id = ?', [id]);
+    return Number(row.cnt);
 };
 
 export const deleteDepartmentSql = async (id) => {

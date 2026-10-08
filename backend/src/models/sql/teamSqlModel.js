@@ -257,13 +257,37 @@ export const updateTeamStatus = async (teamId, status) => {
     return result.affectedRows > 0;
 };
 
+// Returns { status: 'not_found' | 'has_fixtures' | 'deleted' }.
+// Teams with fixtures are never hard-deleted (matches are RESTRICT); they are
+// disqualified instead so results history is preserved.
 export const deleteTeam = async (teamId) => {
-    const sql = `
-        DELETE FROM teams
-        WHERE team_id = ?
-    `;
-    const [result] = await pool.execute(sql, [teamId]);
-    return result.affectedRows > 0;
+    const conn = await pool.getConnection();
+    try {
+        await conn.beginTransaction();
+        const [[team]] = await conn.execute('SELECT team_id FROM teams WHERE team_id = ? FOR UPDATE', [teamId]);
+        if (!team) {
+            await conn.rollback();
+            return { status: 'not_found' };
+        }
+        const [[fixtures]] = await conn.execute(
+            'SELECT COUNT(*) AS cnt FROM matches WHERE team_a_id = ? OR team_b_id = ?',
+            [teamId, teamId]
+        );
+        if (Number(fixtures.cnt) > 0) {
+            await conn.execute("UPDATE teams SET status = 'Disqualified' WHERE team_id = ?", [teamId]);
+            await conn.commit();
+            return { status: 'has_fixtures', fixtures: Number(fixtures.cnt) };
+        }
+        await conn.execute('DELETE FROM team_members WHERE team_id = ?', [teamId]);
+        await conn.execute('DELETE FROM teams WHERE team_id = ?', [teamId]);
+        await conn.commit();
+        return { status: 'deleted' };
+    } catch (err) {
+        await conn.rollback();
+        throw err;
+    } finally {
+        conn.release();
+    }
 };
 
 export const updateTeamDetails = async (teamId, updates) => {

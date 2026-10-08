@@ -17,7 +17,6 @@ import {
     createDepartmentController,
     updateDepartmentController,
     deleteDepartmentController,
-    getCoordinatorsListController,
     getAnnouncements,
     getLeaderboard,
     getEvents,
@@ -99,6 +98,21 @@ import {
     getCollegeTeamSuggestionsV2,
     confirmCollegeTeamV2
 } from '../controllers/squadController.js';
+import {
+    listSportCategoriesController,
+    createSportCategoryController,
+    deleteSportCategoryController,
+    getEventTeamsController,
+    getEventEntriesController,
+    addEventEntryController,
+    removeEventEntryController
+} from '../controllers/eventRegistrationController.js';
+import {
+    listCoordinatorsController,
+    createCoordinatorController,
+    updateCoordinatorController,
+    setCoordinatorStatusController
+} from '../controllers/coordinatorController.js';
 import { doubleCsrfProtection } from '../middleware/csrfMiddleware.js';
 import { listUsersController, updateUserRoleController, searchUsersController } from '../controllers/userController.js';
 
@@ -231,13 +245,23 @@ router.put('/teams/:id/status', protect, authorize('Admin', 'Coordinator'), upda
 router.delete('/teams/:id', protect, authorize('Admin', 'Coordinator'), deleteTeam);
 
 // Department CRUD & Coordinators (Admin)
-router.get('/coordinators', protect, authorize('Admin'), getCoordinatorsListController);
+router.get('/coordinators', protect, authorize('Admin'), listCoordinatorsController);
+router.post('/coordinators', protect, authorize('Admin'), createCoordinatorController);
+router.put('/coordinators/:id', protect, authorize('Admin'), updateCoordinatorController);
+router.patch('/coordinators/:id/status', protect, authorize('Admin'), setCoordinatorStatusController);
 router.post('/departments', protect, authorize('Admin'), createDepartmentController);
 router.put('/departments/:id', protect, authorize('Admin'), updateDepartmentController);
 router.delete('/departments/:id', protect, authorize('Admin'), deleteDepartmentController);
 
 // Events / Tournament Registration Control
 router.get('/events/:id', getEventByIdController);
+router.get('/events/:id/teams', protect, authorize('Admin', 'Coordinator'), getEventTeamsController);
+router.get('/events/:id/entries', protect, authorize('Admin', 'Coordinator'), getEventEntriesController);
+router.post('/events/:id/entries', protect, authorize('Admin', 'Coordinator'), addEventEntryController);
+router.delete('/event-entries/:entryId', protect, authorize('Admin', 'Coordinator'), removeEventEntryController);
+router.get('/sports/:id/categories', listSportCategoriesController);
+router.post('/sports/:id/categories', protect, authorize('Admin'), createSportCategoryController);
+router.delete('/sport-categories/:categoryId', protect, authorize('Admin'), deleteSportCategoryController);
 router.post('/events', protect, authorize('Admin'), createEventController);
 router.put('/events/:id', protect, authorize('Admin'), updateEventController);
 router.delete('/events/:id', protect, authorize('Admin'), deleteEventController);

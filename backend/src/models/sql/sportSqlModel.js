@@ -9,6 +9,7 @@ export const getAllSports = async () => {
             s.min_players, 
             s.max_players, 
             s.points_rule, 
+            s.sport_type,
             s.captain_user_id,
             s.created_at,
             u.username AS captain_username,
@@ -35,6 +36,7 @@ export const getSportById = async (sportId) => {
             s.min_players, 
             s.max_players, 
             s.points_rule, 
+            s.sport_type,
             s.captain_user_id,
             s.created_at,
             u.username AS captain_username,
@@ -55,8 +57,8 @@ export const getSportById = async (sportId) => {
 
 export const createSport = async (sportData) => {
     const sql = `
-        INSERT INTO sports (name, category, min_players, max_players, points_rule, captain_user_id)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO sports (name, category, min_players, max_players, points_rule, captain_user_id, sport_type)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
     `;
     const [result] = await pool.execute(sql, [
         sportData.name,
@@ -64,7 +66,8 @@ export const createSport = async (sportData) => {
         sportData.min_players,
         sportData.max_players,
         sportData.points_rule,
-        sportData.captain_user_id || null
+        sportData.captain_user_id || null,
+        sportData.sport_type === 'Individual' ? 'Individual' : 'Team'
     ]);
     return result.insertId;
 };
@@ -72,7 +75,8 @@ export const createSport = async (sportData) => {
 export const updateSport = async (sportId, sportData) => {
     const sql = `
         UPDATE sports
-        SET name = ?, category = ?, min_players = ?, max_players = ?, points_rule = ?, captain_user_id = ?
+        SET name = ?, category = ?, min_players = ?, max_players = ?, points_rule = ?, captain_user_id = ?,
+            sport_type = COALESCE(?, sport_type)
         WHERE sport_id = ?
     `;
     const [result] = await pool.execute(sql, [
@@ -82,6 +86,7 @@ export const updateSport = async (sportId, sportData) => {
         sportData.max_players,
         sportData.points_rule,
         sportData.captain_user_id || null,
+        sportData.sport_type ? (sportData.sport_type === 'Individual' ? 'Individual' : 'Team') : null,
         sportId
     ]);
     return result.affectedRows > 0;
@@ -113,3 +118,30 @@ export const deleteSport = async (sportId) => {
     return result.affectedRows > 0;
 };
 
+
+// ---- Per-sport categories (sub-events such as Athletics: 100m, 200m) ----
+export const getSportCategories = async (sportId) => {
+    const [rows] = await pool.execute(
+        'SELECT category_id, sport_id, name, sort_order FROM sport_categories WHERE sport_id = ? ORDER BY sort_order ASC, name ASC',
+        [sportId]
+    );
+    return rows;
+};
+
+export const createSportCategory = async (sportId, name, sortOrder = 0) => {
+    const [result] = await pool.execute(
+        'INSERT INTO sport_categories (sport_id, name, sort_order) VALUES (?, ?, ?)',
+        [sportId, name, sortOrder]
+    );
+    return result.insertId;
+};
+
+export const deleteSportCategory = async (categoryId) => {
+    const [result] = await pool.execute('DELETE FROM sport_categories WHERE category_id = ?', [categoryId]);
+    return result.affectedRows > 0;
+};
+
+export const getSportTypeById = async (sportId) => {
+    const [[row]] = await pool.execute('SELECT sport_type FROM sports WHERE sport_id = ? LIMIT 1', [sportId]);
+    return row ? row.sport_type : null;
+};

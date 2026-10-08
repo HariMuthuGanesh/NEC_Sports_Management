@@ -143,7 +143,7 @@ export default function AdminDashboard({ onNavigate }) {
               title={t.administrativeTasks || "Administrative Tasks"}
               subtitle={`${stats.pendingApprovals} pending team requests require PT Sir approval`}
               action={
-                <Button variant="ghost" size="sm" icon={ArrowRight} onClick={() => onNavigate("admin_regs")}>
+                <Button variant="ghost" size="sm" icon={ArrowRight} onClick={() => onNavigate("admin_teams")}>
                   Review All
                 </Button>
               }

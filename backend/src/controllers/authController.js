@@ -536,16 +536,8 @@ export const forgotPasswordRequest = async (req, res, next) => {
                 [tempHash, user.id]
             );
 
-            // Notify the user themselves (in-app)
-            await pool.execute(
-                'INSERT INTO notifications (user_id, message, status, type) VALUES (?, ?, ?, ?)',
-                [
-                    user.id,
-                    `[Password Reset] A temporary password has been set for your account: ${tempPassword} — Please log in and change it immediately.`,
-                    'Unread',
-                    'SECURITY'
-                ]
-            );
+            // Never store the plaintext temporary password in notifications;
+            // the credential is delivered only by email below.
 
             // Dispatch password reset email directly to the user's email address
             await sendPasswordResetEmail({

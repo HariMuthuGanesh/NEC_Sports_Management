@@ -29,6 +29,7 @@ import {
     createDepartmentSql,
     updateDepartmentSql,
     deleteDepartmentSql,
+    countDepartmentStudents,
     getAvailableCoordinators
 } from '../models/sql/departmentSqlModel.js';
 import { getAllAnnouncements, createAnnouncement as createAnnouncementSql, deleteAnnouncement as deleteAnnouncementSql } from '../models/sql/announcementSqlModel.js';
@@ -371,19 +372,17 @@ export const getDepartments = async (req, res, next) => {
 
 export const createDepartmentController = async (req, res, next) => {
     try {
-        const { name, code, hodName, hod, hodEmail, coordinatorUserId, coordinatorId, colorCode, color } = req.body;
+        const { name, code, coordinatorUserId, coordinatorId, colorCode, color } = req.body;
         if (!name || !code) {
             return res.status(400).json({ success: false, error: { message: 'Department name and code are required.' } });
         }
         const deptId = await createDepartmentSql({
             name,
             code,
-            hodName: hodName || hod || null,
-            hodEmail: hodEmail || null,
             coordinatorUserId: Number(coordinatorUserId || coordinatorId) || null,
             colorCode: colorCode || color || '#3b82f6'
         });
-        return res.status(201).json({ success: true, data: { id: deptId, ...req.body } });
+        return res.status(201).json({ success: true, data: { id: deptId, name, code } });
     } catch (err) {
         next(err);
     }
@@ -391,19 +390,19 @@ export const createDepartmentController = async (req, res, next) => {
 
 export const updateDepartmentController = async (req, res, next) => {
     try {
-        const { name, code, hodName, hod, hodEmail, coordinatorUserId, coordinatorId, colorCode, color } = req.body;
+        const { name, code, coordinatorUserId, coordinatorId, colorCode, color } = req.body;
         const success = await updateDepartmentSql(req.params.id, {
             name,
             code,
-            hodName: hodName !== undefined ? hodName : hod,
-            hodEmail,
-            coordinatorUserId: coordinatorUserId !== undefined ? (Number(coordinatorUserId || coordinatorId) || null) : undefined,
+            coordinatorUserId: (coordinatorUserId !== undefined || coordinatorId !== undefined)
+                ? (Number(coordinatorUserId ?? coordinatorId) || null)
+                : undefined,
             colorCode: colorCode || color
         });
         if (!success) {
             return res.status(404).json({ success: false, error: { message: 'Department not found.' } });
         }
-        return res.json({ success: true, data: { id: Number(req.params.id), ...req.body } });
+        return res.json({ success: true, data: { id: Number(req.params.id), name, code } });
     } catch (err) {
         next(err);
     }
@@ -411,6 +410,13 @@ export const updateDepartmentController = async (req, res, next) => {
 
 export const deleteDepartmentController = async (req, res, next) => {
     try {
+        const studentCount = await countDepartmentStudents(req.params.id);
+        if (studentCount > 0) {
+            return res.status(409).json({
+                success: false,
+                error: { code: 'DEPARTMENT_HAS_STUDENTS', message: `Cannot delete a department with ${studentCount} student(s). Move or remove them first.` }
+            });
+        }
         const success = await deleteDepartmentSql(req.params.id);
         if (!success) {
             return res.status(404).json({ success: false, error: { message: 'Department not found.' } });
@@ -552,6 +558,12 @@ export const searchStudentsController = async (req, res, next) => {
         if (data === null) {
             data = await searchStudentsSql(query);
             source = 'sportsdb';
+        }
+
+        // Personal contact details are only visible to staff roles that manage rosters.
+        const canSeeContact = ['Admin', 'Sports President', 'Coordinator'].includes(req.user?.role);
+        if (!canSeeContact && Array.isArray(data)) {
+            data = data.map(({ personal_email, email, personal_phone, phone, ...rest }) => rest);
         }
 
         return res.json({
