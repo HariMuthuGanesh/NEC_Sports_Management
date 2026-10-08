@@ -1,15 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { Bell, Menu, User, Globe, Settings, LogIn, LogOut } from "lucide-react";
+import { Bell, Menu, Globe, LogIn, Megaphone } from "lucide-react";
 import { useAuth, ROLES } from "../../context/AuthContext";
-import { useToast } from "../../context/ToastContext";
 import { notificationsApi } from "../../services/api/apiServices";
 import NotificationDrawer from "../notifications/NotificationDrawer";
 import "./Header.css";
 
 export default function Header({ onToggleSidebar, isSidebarOpen, onSelectNav, activeNav }) {
-  const { currentUser, logout, language, setLanguage, t } = useAuth();
-  const toastContext = useToast();
-  const toast = toastContext?.toast || toastContext;
+  const { currentUser, language, setLanguage, t } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
   const [showLangMenu, setShowLangMenu] = useState(false);
   const [showNotifDrawer, setShowNotifDrawer] = useState(false);
@@ -172,22 +169,19 @@ export default function Header({ onToggleSidebar, isSidebarOpen, onSelectNav, ac
         )}
 
 
-        {/* Settings Button (Hidden for Guests) */}
-        {currentUser.role !== ROLES.PUBLIC && (
-          <button
-            className="nec-icon-btn"
-            onClick={() => onSelectNav?.("settings")}
-            title="Settings"
-            aria-label="Open settings"
-          >
-            <Settings size={18} />
-          </button>
-        )}
+        {/* Announcements shortcut: a second header action next to notifications */}
+        <button
+          type="button"
+          className="nec-icon-btn"
+          onClick={() => onSelectNav?.(currentUser.role === ROLES.ADMIN ? "admin_announcements" : "public_announcements")}
+          title="Announcements"
+          aria-label="Announcements"
+        >
+          <Megaphone size={18} />
+        </button>
 
-        {/* Theme switch lives in the sidebar footer */}
-
-        {/* Portal Sign In for Guest or User Profile Pill */}
-        {currentUser.role === ROLES.PUBLIC ? (
+        {/* Guests get a sign-in button. Signed-in users see their profile and log out in the sidebar. */}
+        {currentUser.role === ROLES.PUBLIC && (
           <button
             className="nec-header-signin-btn"
             onClick={() => onSelectNav?.("login")}
@@ -196,34 +190,6 @@ export default function Header({ onToggleSidebar, isSidebarOpen, onSelectNav, ac
             <LogIn size={15} />
             <span>{t.login || "Sign In"}</span>
           </button>
-        ) : (
-          <div className="nec-user-profile-wrapper">
-            <div className="nec-user-profile">
-              <div className="nec-avatar">
-                <User size={16} />
-              </div>
-              <div className="nec-user-info">
-                <span className="nec-user-name">{currentUser.name}</span>
-                <span className="nec-user-dept">{currentUser.dept || "NEC"}</span>
-              </div>
-            </div>
-            <button
-              className="nec-icon-btn nec-logout-btn"
-              onClick={async () => {
-                await logout();
-                if (toast?.success) {
-                  toast.success("Signed out successfully.");
-                } else if (typeof toast === "function") {
-                  toast({ type: "success", message: "Signed out successfully." });
-                }
-                onSelectNav?.("public_home");
-              }}
-              title="Log Out / Return to Guest"
-              aria-label="Log out"
-            >
-              <LogOut size={16} />
-            </button>
-          </div>
         )}
       </div>
     </header>

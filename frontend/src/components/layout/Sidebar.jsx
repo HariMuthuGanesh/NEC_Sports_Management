@@ -2,9 +2,10 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   LayoutDashboard, Trophy, Calendar, Users, CheckSquare, MapPin, Building2, FileText,
   Megaphone, Radio, Image, Award, UserCheck, X, Edit3, Bell, Home, Shield, Settings,
-  LogIn, FileCheck, ChevronDown, ChevronLeft, ChevronRight, Sun, Moon
+  LogIn, FileCheck, ChevronDown, ChevronLeft, ChevronRight, Sun, Moon, User, LogOut
 } from "lucide-react";
 import { useAuth, ROLES } from "../../context/AuthContext";
+import { useToast } from "../../context/ToastContext";
 import "./Sidebar.css";
 
 // Sidebar modes:
@@ -37,12 +38,20 @@ export default function Sidebar({
   onToggleCollapse,
   drawerOpen = false,
   onCloseDrawer,
+  width = 248,
+  onWidthChange,
+  onCollapsedChange,
 }) {
   const asideRef = useRef(null);
+  const [dragging, setDragging] = useState(false);
   const closeRef = useRef(onCloseDrawer);
   useEffect(() => { closeRef.current = onCloseDrawer; });
 
   const isDrawer = variant === "drawer";
+  const RAIL_W = 72;
+  const MIN_W = 200;
+  const MAX_W = 360;
+  const SNAP_W = 120; // dragging narrower than this collapses to the icon rail
   const isRail = !isDrawer && collapsed;
   const isHidden = isDrawer && !drawerOpen;
 
@@ -69,7 +78,7 @@ export default function Sidebar({
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [isDrawer, drawerOpen]);
 
-  const { currentUser, t, theme, toggleTheme } = useAuth();
+  const { currentUser, t, theme, toggleTheme, logout } = useAuth();
 
   const getNavItems = () => {
     switch (currentUser.role) {
@@ -205,6 +214,67 @@ export default function Sidebar({
   };
 
   const navGroups = getNavItems();
+
+  // Drag the right edge to resize. Narrower than SNAP_W collapses to the icon rail.
+  const onResizeStart = (e) => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    e.preventDefault();
+    const left = asideRef.current?.getBoundingClientRect().left ?? 0;
+    setDragging(true);
+    const move = (ev) => {
+      const raw = ev.clientX - left;
+      if (raw < SNAP_W) {
+        onCollapsedChange?.(true);
+      } else {
+        onCollapsedChange?.(false);
+        onWidthChange?.(Math.min(MAX_W, Math.max(MIN_W, Math.round(raw))));
+      }
+    };
+    const up = () => {
+      setDragging(false);
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
+  };
+
+  // Keyboard resize: arrows change width, Home/End jump to min/max, Enter/Space toggles the rail.
+  const onResizeKey = (e) => {
+    const step = 16;
+    if (e.key === "ArrowRight") {
+      e.preventDefault();
+      if (collapsed) { onCollapsedChange?.(false); onWidthChange?.(MIN_W); }
+      else onWidthChange?.(Math.min(MAX_W, width + step));
+    } else if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      if (collapsed) return;
+      if (width - step < SNAP_W) onCollapsedChange?.(true);
+      else onWidthChange?.(Math.max(MIN_W, width - step));
+    } else if (e.key === "Home") {
+      e.preventDefault(); onCollapsedChange?.(false); onWidthChange?.(MIN_W);
+    } else if (e.key === "End") {
+      e.preventDefault(); onCollapsedChange?.(false); onWidthChange?.(MAX_W);
+    } else if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault(); onToggleCollapse?.();
+    }
+  };
+
+  // Same sign-out behaviour the header used to have.
+  const toastContext = useToast();
+  const toast = toastContext?.toast || toastContext;
+  const handleSignOut = async () => {
+    await logout();
+    if (toast?.success) toast.success("Signed out successfully.");
+    else if (typeof toast === "function") toast({ type: "success", message: "Signed out successfully." });
+    onSelectNav("public_home");
+    onCloseDrawer?.();
+  };
+  const profileName = currentUser?.name || currentUser?.username || "";
+  const profileSub = currentUser?.dept || currentUser?.role || "";
+  const isPublic = currentUser?.role === ROLES.PUBLIC;
   const [openGroups, setOpenGroups] = useState({});
   const [flyoutKey, setFlyoutKey] = useState(null);
 
@@ -238,17 +308,36 @@ export default function Sidebar({
           isDrawer ? "nec-sidebar--drawer" : "nec-sidebar--docked",
           isRail ? "is-rail" : "",
           isDrawer && drawerOpen ? "open" : "",
+          dragging ? "is-dragging" : "",
         ].join(" ")}
+        style={isDrawer ? undefined : { width: isRail ? RAIL_W : width, minWidth: isRail ? RAIL_W : width }}
         aria-label="Main navigation"
         aria-hidden={isHidden ? "true" : undefined}
         {...(isHidden ? { inert: "" } : {})}
       >
         <div className="nec-sidebar-inner">
           <div className="nec-sidebar-head">
-            <div className="nec-sidebar-brand" title="NEC Sports">
-              <img src="/assets/logo.jpg" alt="" className="nec-sidebar-logo" />
-              {showLabel && <span className="nec-sidebar-brand-name">NEC Sports</span>}
-            </div>
+            {isPublic ? (
+              <button type="button" className="nec-sidebar-profile nec-sidebar-signin" onClick={() => activate("login")} aria-label="Sign in to the sports portal">
+                <span className="nec-sidebar-avatar" aria-hidden="true"><LogIn size={16} /></span>
+                {showLabel && <span className="nec-sidebar-profile-text"><span className="nec-sidebar-profile-name">Sign in</span><span className="nec-sidebar-profile-sub">Sports portal</span></span>}
+              </button>
+            ) : (
+              <div className="nec-sidebar-profile" title={profileName}>
+                <span className="nec-sidebar-avatar" aria-hidden="true"><User size={16} /></span>
+                {showLabel && (
+                  <span className="nec-sidebar-profile-text">
+                    <span className="nec-sidebar-profile-name">{profileName}</span>
+                    {profileSub && <span className="nec-sidebar-profile-sub">{profileSub}</span>}
+                  </span>
+                )}
+              </div>
+            )}
+            {showLabel && !isPublic && (
+              <button type="button" className="nec-sidebar-icon-btn nec-sidebar-signout" onClick={handleSignOut} aria-label="Log out" title="Log out">
+                <LogOut size={16} />
+              </button>
+            )}
             {isDrawer && (
               <button type="button" className="nec-sidebar-icon-btn" onClick={onCloseDrawer} aria-label="Close navigation drawer">
                 <X size={18} />
@@ -369,6 +458,13 @@ export default function Sidebar({
               </button>
             </div>
 
+            {isRail && !isPublic && (
+              <button type="button" className="nec-nav-item nec-signout-rail" onClick={handleSignOut} aria-label="Log out">
+                <LogOut className="nec-nav-icon" size={18} aria-hidden="true" />
+                <span className="nec-rail-tooltip" aria-hidden="true">Log out</span>
+              </button>
+            )}
+
             {currentUser.role !== ROLES.PUBLIC && (
               <button
                 type="button"
@@ -391,6 +487,22 @@ export default function Sidebar({
             )}
           </div>
         </div>
+        {!isDrawer && (
+          <div
+            className={`nec-sidebar-resizer ${dragging ? "dragging" : ""}`}
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Resize sidebar. Drag, or use arrow keys."
+            aria-valuemin={MIN_W}
+            aria-valuemax={MAX_W}
+            aria-valuenow={isRail ? RAIL_W : width}
+            tabIndex={0}
+            onPointerDown={onResizeStart}
+            onKeyDown={onResizeKey}
+            onDoubleClick={onToggleCollapse}
+            title="Drag to resize. Double-click to collapse."
+          />
+        )}
       </aside>
     </>
   );

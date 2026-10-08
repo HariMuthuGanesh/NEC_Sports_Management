@@ -118,9 +118,9 @@ export const deleteCompetitionLevelController = async (req, res, next) => {
 // Shared by tournament create/update. Resolves levelId to an active level and
 // returns the body with tier (name) and levelId filled in. Returns null when invalid.
 export const applyTournamentLevel = async (body = {}) => {
-    const rawId = body.levelId ?? body.level_id;
+    const rawId = body.competitionLevelId ?? body.levelId ?? body.level_id ?? body.competition_level_id;
     if (rawId === undefined || rawId === null || rawId === '') return { body };
     const level = await resolveActiveLevel(rawId);
     if (!level) return { error: 'Selected competition level is invalid or inactive.' };
-    return { body: { ...body, levelId: level.level_id, tier: level.name } };
+    return { body: { ...body, competitionLevelId: level.id, tier: level.name } };
 };

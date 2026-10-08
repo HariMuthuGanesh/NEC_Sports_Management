@@ -487,3 +487,117 @@
     width: 86vw;
   }
 }
+
+/* ---------- Profile card (replaces the brand block) ---------- */
+.nec-sidebar-profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+button.nec-sidebar-profile {
+  cursor: pointer;
+  border-radius: 10px;
+}
+
+.nec-sidebar-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--nec-accent);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.nec-sidebar-profile-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.nec-sidebar-profile-name {
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--nec-text-main);
+}
+
+.nec-sidebar-profile-sub {
+  font-size: 0.75rem;
+  color: var(--nec-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nec-sidebar.is-rail .nec-sidebar-head {
+  flex-direction: column;
+}
+
+.nec-sidebar.is-rail .nec-sidebar-profile {
+  flex: none;
+  justify-content: center;
+}
+
+/* ---------- Drag handle on the right edge ---------- */
+.nec-sidebar--docked {
+  overflow: visible;
+  position: sticky;
+  align-self: flex-start;
+}
+
+.nec-sidebar-resizer {
+  position: absolute;
+  top: 0;
+  right: -5px;
+  width: 10px;
+  height: 100%;
+  cursor: col-resize;
+  touch-action: none;
+  z-index: 50;
+  background: transparent;
+}
+
+.nec-sidebar-resizer::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2px;
+  height: 44px;
+  border-radius: 2px;
+  background: var(--nec-border-dark);
+  opacity: 0;
+  transition: opacity 200ms, background-color 200ms;
+}
+
+.nec-sidebar-resizer:hover::after,
+.nec-sidebar-resizer:focus-visible::after,
+.nec-sidebar-resizer.dragging::after {
+  opacity: 1;
+  background: var(--nec-accent);
+}
+
+.nec-sidebar-resizer:focus-visible {
+  outline: none;
+}
+
+.nec-sidebar.is-dragging {
+  transition: none !important;
+  user-select: none;
+}
+
