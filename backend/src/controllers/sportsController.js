@@ -701,3 +701,45 @@ export const createStudentController = async (req, res, next) => {
         next(err);
     }
 };
+
+// Logged-in student's own record (students.user_id = session user) plus their team memberships.
+// Lets player pages show only the player's own data instead of the full student registry.
+export const getMyStudentProfileController = async (req, res, next) => {
+    try {
+        const [[student]] = await pool.execute(
+            `SELECT s.student_id, s.student_name, s.register_number, s.department_id,
+                    d.code AS dept_code, d.name AS dept_name
+             FROM students s
+             LEFT JOIN departments d ON d.id = s.department_id
+             WHERE s.user_id = ? LIMIT 1`,
+            [req.user.id]
+        );
+        if (!student) {
+            return res.status(404).json({ success: false, error: { message: 'No student record is linked to your account yet. Ask the coordinator to link it.' } });
+        }
+        const [teams] = await pool.execute(
+            `SELECT t.team_id AS id, t.name, tm.role, t.sport_id, sp.name AS sport_name, t.status
+             FROM team_members tm
+             JOIN teams t ON t.team_id = tm.team_id
+             LEFT JOIN sports sp ON sp.sport_id = t.sport_id
+             WHERE tm.student_id = ? AND t.status <> 'Disqualified'
+             ORDER BY t.name ASC`,
+            [student.student_id]
+        );
+        return res.json({
+            success: true,
+            data: {
+                studentId: student.student_id,
+                name: student.student_name,
+                rollNo: student.register_number,
+                deptId: student.department_id,
+                deptCode: student.dept_code,
+                deptName: student.dept_name,
+                teamId: teams[0]?.id ?? null,
+                teams
+            }
+        });
+    } catch (err) {
+        next(err);
+    }
+};

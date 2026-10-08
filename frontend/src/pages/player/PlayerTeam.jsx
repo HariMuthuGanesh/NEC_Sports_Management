@@ -9,8 +9,8 @@ import "./PlayerPortal.css";
 
 export default function PlayerTeam() {
   const { currentUser, t } = useAuth();
-  const playerDept = currentUser.dept || "MECH";
-  const playerName = currentUser.name || "Priya Patel";
+  const playerDept = currentUser.dept || "";
+  const playerName = currentUser.name || currentUser.username || "";
 
   const [myTeam, setMyTeam] = useState(null);
   const [myPlayerInfo, setMyPlayerInfo] = useState(null);
@@ -23,20 +23,9 @@ export default function PlayerTeam() {
     setError(null);
     try {
       const teams = await teamsApi.getTeams();
-      const playersResponse = await playersApi.getAllPlayers();
-      const players = Array.isArray(playersResponse) ? playersResponse : playersResponse.data || [];
-      const playerObj = players.find(p => 
-        (p.name && playerName && p.name.toLowerCase().includes(playerName.toLowerCase())) || 
-        p.studentId === currentUser.id ||
-        p.rollNo === currentUser.username
-      ) || players[0];
-      setMyPlayerInfo(playerObj);
-
-      const teamObj = teams.find(t => 
-        t.id === playerObj?.teamId || 
-        t.team_id === playerObj?.teamId || 
-        (t.deptCode && playerDept && t.deptCode.toUpperCase() === playerDept.toUpperCase())
-      ) || teams[0];
+      const me = await playersApi.getMyProfile();
+      setMyPlayerInfo(me);
+      const teamObj = me?.teamId ? teams.find(t => (t.id || t.team_id) === me.teamId) || null : null;
       setMyTeam(teamObj);
 
       if (teamObj) {
@@ -80,7 +69,7 @@ export default function PlayerTeam() {
         <>
           <div className="nec-stats-grid">
             <StatCard title="Team Name" value={myTeam ? myTeam.name : "Loading..."} subtext={`${playerDept} Department`} icon={Users} color="navy" />
-            <StatCard title="Coach / Coordinator" value={myTeam?.coordinatorId || "Assigned by HOD"} subtext="Primary Contact" icon={UserCircle} color="gold" />
+            <StatCard title="Coach / Coordinator" value={myTeam?.coordinatorId || "Not assigned"} subtext="Primary Contact" icon={UserCircle} color="gold" />
             <StatCard title="My Position" value={myPlayerInfo?.position || "Player"} subtext={`Jersey #${myPlayerInfo?.jerseyNo || "00"}`} icon={Star} color="success" />
           </div>
 

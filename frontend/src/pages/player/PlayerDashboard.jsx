@@ -10,7 +10,7 @@ import "./PlayerPortal.css";
 
 export default function PlayerDashboard({ onNavigate }) {
   const { currentUser, t } = useAuth();
-  const playerDept = currentUser.dept || currentUser.studentProfile?.department_code || "CSE";
+  const playerDept = currentUser.dept || currentUser.studentProfile?.department_code || "";
   const playerName = currentUser.name || currentUser.playerName || currentUser.studentProfile?.student_name || currentUser.username || "Athlete";
   const studentRegNo = currentUser.studentProfile?.register_number || currentUser.registerNumber;
 
@@ -27,14 +27,11 @@ export default function PlayerDashboard({ onNavigate }) {
     setError(null);
     Promise.all([
       teamsApi.getTeams(),
-      playersApi.getAllPlayers(),
+      playersApi.getMyProfile(),
       matchesApi.getMatches()
-    ]).then(([teams, playersResponse, matches]) => {
-      const players = Array.isArray(playersResponse) ? playersResponse : playersResponse.data || [];
-      const playerObj = players.find(p => p.name?.toLowerCase().includes(playerName.toLowerCase()) || p.studentId === currentUser.id) || players[0];
-      setMyPlayerInfo(playerObj);
-
-      const teamObj = teams.find(t => t.id === playerObj?.teamId || t.deptCode === playerDept) || teams[0];
+    ]).then(([teams, me, matches]) => {
+      setMyPlayerInfo(me);
+      const teamObj = me?.teamId ? teams.find(t => t.id === me.teamId) || null : null;
       setMyTeam(teamObj);
 
       const filteredMatches = matches.filter(m =>
@@ -78,7 +75,7 @@ export default function PlayerDashboard({ onNavigate }) {
           <div className="nec-stats-grid">
             <StatCard title={t.mySquad || "My Squad"} value={myTeam ? myTeam.name : "Loading..."} subtext={`${playerDept} Department Squad`} icon={Users} color="navy" />
             <StatCard title={t.nextMatchFixture || "Next Match Fixture"} value={nextMatch ? nextMatch.date : "TBD"} subtext={nextMatch ? `${nextMatch.time} at ${nextMatch.venue}` : "Check Schedule"} icon={Calendar} color="gold" />
-            <StatCard title={t.myAttendanceRate || "My Attendance Rate"} value={`${myPlayerInfo?.attendancePct || 95}%`} subtext="Verified Athlete Eligibility" icon={Trophy} color="success" />
+            <StatCard title={t.myAttendanceRate || "My Attendance Rate"} value={`${myPlayerInfo?.attendancePct != null ? `${myPlayerInfo.attendancePct}%` : "—"}`} subtext="Verified Athlete Eligibility" icon={Trophy} color="success" />
           </div>
 
           <div className="nec-admin-main-grid" style={{ marginTop: "20px" }}>

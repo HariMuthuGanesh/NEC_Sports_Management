@@ -301,6 +301,8 @@ export const studentLookupApi = {
 
 export const playersApi = {
   getAllPlayers: (query = "") => apiFetchFull(`/students?q=${encodeURIComponent(query)}`),
+  // The logged-in student's own record and teams. Resolves to null when no student record is linked (404).
+  getMyProfile: () => apiFetch("/students/me").catch((err) => (err?.status === 404 ? null : Promise.reject(err))),
   createStudent: (studentData) => apiFetch("/students", "POST", studentData),
   getPlayersByTeam: (teamId) => apiFetch(`/teams/${teamId}/players`),
   addPlayerToTeam: (teamId, playerData) => apiFetch(`/teams/${teamId}/players`, "POST", playerData),

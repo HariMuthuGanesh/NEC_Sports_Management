@@ -33,6 +33,7 @@ import {
     deleteEventController,
     toggleEventStatusController,
     searchStudentsController,
+    getMyStudentProfileController,
     createStudentController,
     createAnnouncementController,
     deleteAnnouncementController,
@@ -134,12 +135,14 @@ router.get('/csrf-token', (req, res) => {
 });
 
 // Client audit event ingestion (telemetry, exempt from CSRF token enforcement)
-router.post('/audit/log', async (req, res, next) => {
+// Client-side audit events. Identity comes only from the verified session, never from the body.
+router.post('/audit/log', optionalProtect, async (req, res, next) => {
     try {
+        const body = req.body && typeof req.body === 'object' ? req.body : {};
         await addAuditEntry({
-            ...req.body,
-            userId: req.user?.id || req.body.userId || null,
-            role: req.user?.role || req.body.role || 'Public',
+            ...body,
+            userId: req.user?.id || null,
+            role: req.user?.role || 'Public',
             ipAddress: req.ip || req.headers['x-forwarded-for'] || ''
         });
         return res.json({ success: true });
@@ -186,8 +189,10 @@ router.get('/od/public/sports', getPublicApprovedOdSportsController);
 router.get('/od/public/official-documents', getPublicOfficialOdDocsController);
 router.get('/od/public/official-documents/options', getPublicOfficialOdFilterOptionsController);
 router.get('/od/public/official-documents/:id/view', viewOfficialOdPdfController);
-router.get('/students', protect, searchStudentsController);
-router.get('/students/search', protect, searchStudentsController);
+// Student registry is staff-only. Players use /students/me for their own record.
+router.get('/students/me', protect, getMyStudentProfileController);
+router.get('/students', protect, authorize('Admin', 'Coordinator', 'Captain', 'Sports President'), searchStudentsController);
+router.get('/students/search', protect, authorize('Admin', 'Coordinator', 'Captain', 'Sports President'), searchStudentsController);
 // Must be before any /students/:param routes that could clash
 router.get('/students/:registerNumber/attendance', protect, authorize('Admin', 'Coordinator'), getStudentAttendanceController);
 router.post('/students', protect, authorize('Admin', 'Coordinator'), createStudentController);
