@@ -48,13 +48,6 @@ import {
     getStudentAttendanceController,
     getOverviewStats
 } from '../controllers/sportsController.js';
-import {
-    getCompetitionLevels,
-    getCompetitionLevelByIdController,
-    createCompetitionLevelController,
-    updateCompetitionLevelController,
-    deleteCompetitionLevelController
-} from '../controllers/competitionLevelController.js';
 import { createMatch, deleteMatch, updateScore } from '../controllers/matchController.js';
 import { 
     addPlayerToTeam, 
@@ -194,13 +187,6 @@ router.get('/leaderboard/:id/matches', getDepartmentLeaderboardMatches);
 router.get('/departments/:id/matches', getDepartmentLeaderboardMatches);
 router.get('/events', getEvents);
 router.get('/stats/overview', getOverviewStats);
-
-// Competition Levels Master Data CRUD
-router.get('/competition-levels', optionalProtect, getCompetitionLevels);
-router.get('/competition-levels/:id', optionalProtect, getCompetitionLevelByIdController);
-router.post('/competition-levels', protect, authorize('Admin'), createCompetitionLevelController);
-router.put('/competition-levels/:id', protect, authorize('Admin'), updateCompetitionLevelController);
-router.delete('/competition-levels/:id', protect, authorize('Admin'), deleteCompetitionLevelController);
 router.get('/od/public', getPublicApprovedOdController);
 router.get('/od/public/sports', getPublicApprovedOdSportsController);
 router.get('/od/public/official-documents', getPublicOfficialOdDocsController);
