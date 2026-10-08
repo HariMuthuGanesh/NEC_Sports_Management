@@ -1,5 +1,12 @@
 import express from 'express';
 import { protect, optionalProtect, authorize, requireAdminScope } from '../middleware/authMiddleware.js';
+import {
+    listCompetitionLevelsController,
+    getCompetitionLevelController,
+    createCompetitionLevelController,
+    updateCompetitionLevelController,
+    deleteCompetitionLevelController
+} from '../controllers/competitionLevelController.js';
 import { syncScheduledStatuses } from '../services/scheduledStatusService.js';
 import {
     getSports,
@@ -17,7 +24,6 @@ import {
     createDepartmentController,
     updateDepartmentController,
     deleteDepartmentController,
-    getCoordinatorsListController,
     getAnnouncements,
     getLeaderboard,
     getDepartmentLeaderboardMatches,
@@ -28,6 +34,7 @@ import {
     deleteEventController,
     toggleEventStatusController,
     searchStudentsController,
+    getMyStudentProfileController,
     createStudentController,
     createAnnouncementController,
     deleteAnnouncementController,
@@ -107,6 +114,21 @@ import {
     getCollegeTeamSuggestionsV2,
     confirmCollegeTeamV2
 } from '../controllers/squadController.js';
+import {
+    listSportCategoriesController,
+    createSportCategoryController,
+    deleteSportCategoryController,
+    getEventTeamsController,
+    getEventEntriesController,
+    addEventEntryController,
+    removeEventEntryController
+} from '../controllers/eventRegistrationController.js';
+import {
+    listCoordinatorsController,
+    createCoordinatorController,
+    updateCoordinatorController,
+    setCoordinatorStatusController
+} from '../controllers/coordinatorController.js';
 import { doubleCsrfProtection } from '../middleware/csrfMiddleware.js';
 import { listUsersController, updateUserRoleController, searchUsersController } from '../controllers/userController.js';
 
@@ -121,12 +143,14 @@ router.get('/csrf-token', (req, res) => {
 });
 
 // Client audit event ingestion (telemetry, exempt from CSRF token enforcement)
-router.post('/audit/log', async (req, res, next) => {
+// Client-side audit events. Identity comes only from the verified session, never from the body.
+router.post('/audit/log', optionalProtect, async (req, res, next) => {
     try {
+        const body = req.body && typeof req.body === 'object' ? req.body : {};
         await addAuditEntry({
-            ...req.body,
-            userId: req.user?.id || req.body.userId || null,
-            role: req.user?.role || req.body.role || 'Public',
+            ...body,
+            userId: req.user?.id || null,
+            role: req.user?.role || 'Public',
             ipAddress: req.ip || req.headers['x-forwarded-for'] || ''
         });
         return res.json({ success: true });
@@ -155,6 +179,11 @@ router.get('/admin/audit-log', protect, authorize('Admin'), async (req, res, nex
 
 // Publicly accessible endpoints (MySQL-backed)
 router.get('/sports', getSports);
+router.get('/competition-levels', optionalProtect, listCompetitionLevelsController);
+router.get('/competition-levels/:id', optionalProtect, getCompetitionLevelController);
+router.post('/competition-levels', protect, authorize('Admin'), createCompetitionLevelController);
+router.put('/competition-levels/:id', protect, authorize('Admin'), updateCompetitionLevelController);
+router.delete('/competition-levels/:id', protect, authorize('Admin'), deleteCompetitionLevelController);
 router.get('/tournaments', getTournaments);
 router.get('/venues', getVenues);
 router.get('/departments', getDepartments);
@@ -177,8 +206,10 @@ router.get('/od/public/sports', getPublicApprovedOdSportsController);
 router.get('/od/public/official-documents', getPublicOfficialOdDocsController);
 router.get('/od/public/official-documents/options', getPublicOfficialOdFilterOptionsController);
 router.get('/od/public/official-documents/:id/view', viewOfficialOdPdfController);
-router.get('/students', protect, searchStudentsController);
-router.get('/students/search', protect, searchStudentsController);
+// Student registry is staff-only. Players use /students/me for their own record.
+router.get('/students/me', protect, getMyStudentProfileController);
+router.get('/students', protect, authorize('Admin', 'Coordinator', 'Captain', 'Sports President'), searchStudentsController);
+router.get('/students/search', protect, authorize('Admin', 'Coordinator', 'Captain', 'Sports President'), searchStudentsController);
 // Must be before any /students/:param routes that could clash
 router.get('/students/:registerNumber/attendance', protect, authorize('Admin', 'Coordinator'), getStudentAttendanceController);
 router.post('/students', protect, authorize('Admin', 'Coordinator'), createStudentController);
@@ -248,13 +279,23 @@ router.put('/teams/:id/status', protect, authorize('Admin', 'Coordinator'), upda
 router.delete('/teams/:id', protect, authorize('Admin', 'Coordinator'), deleteTeam);
 
 // Department CRUD & Coordinators (Admin)
-router.get('/coordinators', protect, authorize('Admin'), getCoordinatorsListController);
+router.get('/coordinators', protect, authorize('Admin'), listCoordinatorsController);
+router.post('/coordinators', protect, authorize('Admin'), createCoordinatorController);
+router.put('/coordinators/:id', protect, authorize('Admin'), updateCoordinatorController);
+router.patch('/coordinators/:id/status', protect, authorize('Admin'), setCoordinatorStatusController);
 router.post('/departments', protect, authorize('Admin'), createDepartmentController);
 router.put('/departments/:id', protect, authorize('Admin'), updateDepartmentController);
 router.delete('/departments/:id', protect, authorize('Admin'), deleteDepartmentController);
 
 // Events / Tournament Registration Control
 router.get('/events/:id', getEventByIdController);
+router.get('/events/:id/teams', protect, authorize('Admin', 'Coordinator'), getEventTeamsController);
+router.get('/events/:id/entries', protect, authorize('Admin', 'Coordinator'), getEventEntriesController);
+router.post('/events/:id/entries', protect, authorize('Admin', 'Coordinator'), addEventEntryController);
+router.delete('/event-entries/:entryId', protect, authorize('Admin', 'Coordinator'), removeEventEntryController);
+router.get('/sports/:id/categories', listSportCategoriesController);
+router.post('/sports/:id/categories', protect, authorize('Admin'), createSportCategoryController);
+router.delete('/sport-categories/:categoryId', protect, authorize('Admin'), deleteSportCategoryController);
 router.post('/events', protect, authorize('Admin'), createEventController);
 router.put('/events/:id', protect, authorize('Admin'), updateEventController);
 router.delete('/events/:id', protect, authorize('Admin'), deleteEventController);

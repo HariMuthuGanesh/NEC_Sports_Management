@@ -1,237 +1,108 @@
 import pool from '../../config/db.js';
 
-/**
- * Fetch all competition levels with optional search, filtering, and tournament counts.
- */
-export const getAllCompetitionLevels = async ({
-    includeInactive = false,
-    search = '',
-    page = 1,
-    limit = 100
-} = {}) => {
-    let whereClauses = ['cl.is_deleted = 0'];
-    const params = [];
-
-    if (!includeInactive) {
-        whereClauses.push("cl.status = 'Active'");
-    }
-
-    if (search && search.trim()) {
-        const queryTerm = `%${search.trim().toLowerCase()}%`;
-        whereClauses.push('(LOWER(cl.name) LIKE ? OR LOWER(COALESCE(cl.code, "")) LIKE ? OR LOWER(COALESCE(cl.description, "")) LIKE ?)');
-        params.push(queryTerm, queryTerm, queryTerm);
-    }
-
-    const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
-
-    // Count query
-    const countSql = `SELECT COUNT(*) AS total FROM competition_levels cl ${whereSql}`;
-    const [countRows] = await pool.execute(countSql, params);
-    const total = countRows[0]?.total || 0;
-
-    // Data query with tournament usage count
-    const offset = Math.max(0, (page - 1) * limit);
-    const dataSql = `
-        SELECT 
-            cl.id,
-            cl.id AS level_id,
-            cl.name,
-            cl.code,
-            cl.description,
-            cl.display_order,
-            cl.status,
-            cl.created_at,
-            cl.updated_at,
-            (
-                SELECT COUNT(*) 
-                FROM tournaments t 
-                WHERE t.competition_level_id = cl.id 
-                   OR LOWER(TRIM(t.tier)) = LOWER(TRIM(cl.name))
-            ) AS tournament_count
-        FROM competition_levels cl
-        ${whereSql}
-        ORDER BY cl.display_order ASC, cl.name ASC
-        LIMIT ? OFFSET ?
-    `;
-
-    // Limit and offset must be numbers passed to pool
-    const [rows] = await pool.query(dataSql, [...params, Number(limit), Number(offset)]);
-
-    return {
-        data: rows,
-        total,
-        page: Number(page),
-        limit: Number(limit),
-        totalPages: Math.ceil(total / limit)
-    };
+// Column names follow master's migration 015 (id, status, is_deleted).
+// API fields (isActive, displayOrder, createdAt...) are aliased so the frontend contract is unchanged.
+const SORTABLE = {
+    name: 'name',
+    code: 'code',
+    display_order: 'display_order',
+    is_active: 'status',
+    created_at: 'created_at',
+    updated_at: 'updated_at'
 };
 
-/**
- * Fetch single competition level by ID
- */
-export const getCompetitionLevelById = async (id) => {
-    const sql = `
-        SELECT 
-            cl.id,
-            cl.id AS level_id,
-            cl.name,
-            cl.code,
-            cl.description,
-            cl.display_order,
-            cl.status,
-            cl.created_at,
-            cl.updated_at,
-            (
-                SELECT COUNT(*) 
-                FROM tournaments t 
-                WHERE t.competition_level_id = cl.id 
-                   OR LOWER(TRIM(t.tier)) = LOWER(TRIM(cl.name))
-            ) AS tournament_count
-        FROM competition_levels cl
-        WHERE cl.id = ? AND cl.is_deleted = 0
-        LIMIT 1
-    `;
-    const [rows] = await pool.execute(sql, [id]);
-    return rows[0] || null;
-};
-
-/**
- * Create a new competition level with duplicate prevention
- */
-export const createCompetitionLevel = async ({
+const COLUMNS = `
+    id,
+    id AS level_id,
     name,
-    code = null,
-    description = '',
-    display_order = 0,
-    status = 'Active'
-}) => {
-    const cleanName = (name || '').trim();
-    const cleanCode = code ? code.trim().toUpperCase() : null;
+    code,
+    description,
+    display_order,
+    display_order AS displayOrder,
+    status,
+    CASE WHEN status = 'Active' THEN 1 ELSE 0 END AS isActive,
+    created_at AS createdAt,
+    updated_at AS updatedAt
+`;
 
-    if (!cleanName) {
-        throw new Error('Level name is required.');
+// Paginated, searchable, sortable list. Soft-deleted rows are never returned.
+export const listCompetitionLevels = async ({ search = '', sort = 'display_order', dir = 'asc', page = 1, pageSize = 10, includeInactive = false }) => {
+    const where = ['is_deleted = 0'];
+    const params = [];
+    if (!includeInactive) where.push("status = 'Active'");
+    if (search) {
+        where.push('(name LIKE ? OR code LIKE ? OR description LIKE ?)');
+        const like = `%${search}%`;
+        params.push(like, like, like);
     }
+    const whereSql = where.join(' AND ');
+    const sortCol = SORTABLE[sort] || 'display_order';
+    const sortDir = dir === 'desc' ? 'DESC' : 'ASC';
+    const limit = Math.min(Math.max(Number(pageSize) || 10, 1), 100);
+    const safePage = Math.max(Number(page) || 1, 1);
+    const offset = (safePage - 1) * limit;
 
-    // Check duplicate name
-    const [dupName] = await pool.execute(
-        'SELECT id FROM competition_levels WHERE LOWER(name) = LOWER(?) AND is_deleted = 0 LIMIT 1',
-        [cleanName]
+    const [[countRow]] = await pool.execute(`SELECT COUNT(*) AS total FROM competition_levels WHERE ${whereSql}`, params);
+    // LIMIT/OFFSET are validated integers, so they are safe to inline.
+    const [rows] = await pool.execute(
+        `SELECT ${COLUMNS} FROM competition_levels WHERE ${whereSql}
+         ORDER BY ${sortCol} ${sortDir}, name ASC LIMIT ${limit} OFFSET ${offset}`,
+        params
     );
-    if (dupName[0]) {
-        throw new Error(`Competition level with name "${cleanName}" already exists.`);
-    }
-
-    // Check duplicate code if code provided
-    if (cleanCode) {
-        const [dupCode] = await pool.execute(
-            'SELECT id FROM competition_levels WHERE LOWER(code) = LOWER(?) AND is_deleted = 0 LIMIT 1',
-            [cleanCode]
-        );
-        if (dupCode[0]) {
-            throw new Error(`Competition level with code "${cleanCode}" already exists.`);
-        }
-    }
-
-    const sql = `
-        INSERT INTO competition_levels (name, code, description, display_order, status, is_deleted)
-        VALUES (?, ?, ?, ?, ?, 0)
-    `;
-    const [result] = await pool.execute(sql, [
-        cleanName,
-        cleanCode,
-        description || '',
-        parseInt(display_order, 10) || 0,
-        status === 'Inactive' ? 'Inactive' : 'Active'
-    ]);
-
-    return getCompetitionLevelById(result.insertId);
+    const total = Number(countRow.total);
+    return { items: rows, total, page: safePage, pageSize: limit, totalPages: Math.max(1, Math.ceil(total / limit)) };
 };
 
-/**
- * Update an existing competition level with duplicate validation
- */
-export const updateCompetitionLevel = async (id, data) => {
-    const existing = await getCompetitionLevelById(id);
-    if (!existing) {
-        throw new Error('Competition level not found.');
-    }
-
-    const {
-        name,
-        code,
-        description,
-        display_order,
-        status
-    } = data;
-
-    const nextName = name !== undefined ? name.trim() : existing.name;
-    const nextCode = code !== undefined ? (code ? code.trim().toUpperCase() : null) : existing.code;
-    const nextDesc = description !== undefined ? description : existing.description;
-    const nextOrder = display_order !== undefined ? (parseInt(display_order, 10) || 0) : existing.display_order;
-    const nextStatus = status !== undefined ? (status === 'Inactive' ? 'Inactive' : 'Active') : existing.status;
-
-    if (!nextName) {
-        throw new Error('Level name cannot be empty.');
-    }
-
-    // Check duplicate name on another record
-    const [dupName] = await pool.execute(
-        'SELECT id FROM competition_levels WHERE LOWER(name) = LOWER(?) AND id != ? AND is_deleted = 0 LIMIT 1',
-        [nextName, id]
+export const getCompetitionLevelById = async (id) => {
+    const [[row]] = await pool.execute(
+        `SELECT ${COLUMNS} FROM competition_levels WHERE id = ? AND is_deleted = 0 LIMIT 1`,
+        [id]
     );
-    if (dupName[0]) {
-        throw new Error(`Another competition level with name "${nextName}" already exists.`);
-    }
-
-    // Check duplicate code on another record
-    if (nextCode) {
-        const [dupCode] = await pool.execute(
-            'SELECT id FROM competition_levels WHERE LOWER(code) = LOWER(?) AND id != ? AND is_deleted = 0 LIMIT 1',
-            [nextCode, id]
-        );
-        if (dupCode[0]) {
-            throw new Error(`Another competition level with code "${nextCode}" already exists.`);
-        }
-    }
-
-    const sql = `
-        UPDATE competition_levels
-        SET name = ?, code = ?, description = ?, display_order = ?, status = ?
-        WHERE id = ? AND is_deleted = 0
-    `;
-    await pool.execute(sql, [nextName, nextCode, nextDesc, nextOrder, nextStatus, id]);
-
-    return getCompetitionLevelById(id);
+    return row || null;
 };
 
-/**
- * Soft delete competition level after verifying no active tournaments are assigned
- */
-export const deleteCompetitionLevel = async (id, { allowSoftCascade = false } = {}) => {
-    const existing = await getCompetitionLevelById(id);
-    if (!existing) {
-        throw new Error('Competition level not found.');
-    }
-
-    // Check tournament association
-    const [tourRows] = await pool.execute(
-        'SELECT tournament_id, name FROM tournaments WHERE competition_level_id = ? OR LOWER(TRIM(tier)) = LOWER(TRIM(?)) LIMIT 5',
-        [id, existing.name]
+// Used by tournament forms: only active, non-deleted levels can be assigned.
+export const resolveActiveLevel = async (id) => {
+    const [[row]] = await pool.execute(
+        "SELECT id, name FROM competition_levels WHERE id = ? AND status = 'Active' AND is_deleted = 0 LIMIT 1",
+        [id]
     );
+    return row || null;
+};
 
-    if (tourRows.length > 0 && !allowSoftCascade) {
-        const sampleTournaments = tourRows.map(t => `"${t.name}"`).join(', ');
-        throw new Error(
-            `Cannot delete "${existing.name}" because it is currently assigned to tournaments (${sampleTournaments}). Please set this level to "Inactive" instead.`
-        );
-    }
+export const createCompetitionLevel = async ({ name, code, description, displayOrder, isActive }) => {
+    const [result] = await pool.execute(
+        'INSERT INTO competition_levels (name, code, description, display_order, status, is_deleted) VALUES (?, ?, ?, ?, ?, 0)',
+        [name, code, description || null, displayOrder, isActive ? 'Active' : 'Inactive']
+    );
+    return result.insertId;
+};
 
-    // Soft delete: marks is_deleted = 1 and status = Inactive
-    const sql = `
-        UPDATE competition_levels
-        SET is_deleted = 1, status = 'Inactive'
-        WHERE id = ?
-    `;
-    const [result] = await pool.execute(sql, [id]);
+export const updateCompetitionLevel = async (id, { name, code, description, displayOrder, isActive }) => {
+    const [result] = await pool.execute(
+        `UPDATE competition_levels
+         SET name = ?, code = ?, description = ?, display_order = ?, status = ?
+         WHERE id = ? AND is_deleted = 0`,
+        [name, code, description || null, displayOrder, isActive ? 'Active' : 'Inactive', id]
+    );
+    return result.affectedRows > 0;
+};
+
+// Tournaments reference the level by id, or by its name in the legacy tier text.
+export const countTournamentsUsingLevel = async (id) => {
+    const [[row]] = await pool.execute(
+        `SELECT COUNT(*) AS cnt FROM tournaments t
+         WHERE t.competition_level_id = ?
+            OR t.tier = (SELECT name FROM competition_levels WHERE id = ?)`,
+        [id, id]
+    );
+    return Number(row.cnt);
+};
+
+export const softDeleteCompetitionLevel = async (id) => {
+    const [result] = await pool.execute(
+        "UPDATE competition_levels SET is_deleted = 1, status = 'Inactive' WHERE id = ? AND is_deleted = 0",
+        [id]
+    );
     return result.affectedRows > 0;
 };

@@ -180,12 +180,31 @@ export const apiFetchFull = async (endpoint, method = 'GET', body = null, isRetr
 
 
 /* --- Sports & Departments API --- */
+// Competition levels master (tournament tiers). List returns { items, total, page, pageSize, totalPages }.
+export const competitionLevelsApi = {
+  list: (params = {}) => {
+    const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== "" && v !== false));
+    const suffix = qs.toString() ? `?${qs.toString()}` : "";
+    return apiFetch(`/competition-levels${suffix}`);
+  },
+  get: (id) => apiFetch(`/competition-levels/${id}`),
+  create: (body) => apiFetch("/competition-levels", "POST", body),
+  update: (id, body) => apiFetch(`/competition-levels/${id}`, "PUT", body),
+  remove: (id) => apiFetch(`/competition-levels/${id}`, "DELETE"),
+};
+
 export const sportsApi = {
   getDepartments: () => apiFetch("/departments"),
   createDepartment: (deptData) => apiFetch("/departments", "POST", deptData),
   updateDepartment: (deptId, deptData) => apiFetch(`/departments/${deptId}`, "PUT", deptData),
   deleteDepartment: (deptId) => apiFetch(`/departments/${deptId}`, "DELETE"),
   getCoordinators: () => apiFetch("/coordinators"),
+  createCoordinator: (body) => apiFetch("/coordinators", "POST", body),
+  updateCoordinator: (staffId, body) => apiFetch(`/coordinators/${staffId}`, "PUT", body),
+  setCoordinatorStatus: (staffId, isActive) => apiFetch(`/coordinators/${staffId}/status`, "PATCH", { isActive }),
+  getSportCategories: (sportId) => apiFetch(`/sports/${sportId}/categories`),
+  createSportCategory: (sportId, body) => apiFetch(`/sports/${sportId}/categories`, "POST", body),
+  deleteSportCategory: (categoryId) => apiFetch(`/sport-categories/${categoryId}`, "DELETE"),
   getSports: () => apiFetch("/sports"),
   addSport: (sportData) => apiFetch("/sports", "POST", sportData),
   updateSport: (sportId, sportData) => apiFetch(`/sports/${sportId}`, "PUT", sportData),
@@ -239,7 +258,11 @@ export const eventsApi = {
   }),
   updateEvent: (eventId, data) => apiFetch(`/events/${eventId}`, "PUT", data),
   deleteEvent: (eventId) => apiFetch(`/events/${eventId}`, "DELETE"),
-  toggleEventStatus: (eventId, status) => apiFetch(`/events/${eventId}/toggle`, "POST", { status })
+  toggleEventStatus: (eventId, status) => apiFetch(`/events/${eventId}/toggle`, "POST", { status }),
+  getEventTeams: (eventId) => apiFetch(`/events/${eventId}/teams`),
+  getEventEntries: (eventId) => apiFetch(`/events/${eventId}/entries`),
+  addEventEntry: (eventId, body) => apiFetch(`/events/${eventId}/entries`, "POST", body),
+  removeEventEntry: (entryId) => apiFetch(`/event-entries/${entryId}`, "DELETE")
 };
 
 /* --- Teams & Roster API --- */
@@ -278,6 +301,8 @@ export const studentLookupApi = {
 
 export const playersApi = {
   getAllPlayers: (query = "") => apiFetchFull(`/students?q=${encodeURIComponent(query)}`),
+  // The logged-in student's own record and teams. Resolves to null when no student record is linked (404).
+  getMyProfile: () => apiFetch("/students/me").catch((err) => (err?.status === 404 ? null : Promise.reject(err))),
   createStudent: (studentData) => apiFetch("/students", "POST", studentData),
   getPlayersByTeam: (teamId) => apiFetch(`/teams/${teamId}/players`),
   addPlayerToTeam: (teamId, playerData) => apiFetch(`/teams/${teamId}/players`, "POST", playerData),
@@ -312,7 +337,13 @@ export const matchesApi = {
 
 /* --- Reports API --- */
 export const reportsApi = {
-  getPerformanceReport: (timeframe = '1month') => apiFetch(`/reports/performance?timeframe=${timeframe}`),
+  // params: { timeframe } or { from, to } with YYYY-MM-DD dates (inclusive)
+  getPerformanceReport: (params = { timeframe: '1month' }) => {
+    const qs = new URLSearchParams(
+      typeof params === 'string' ? { timeframe: params } : params
+    ).toString();
+    return apiFetch(`/reports/performance?${qs}`);
+  },
   getPlayerPerformanceReport: () => apiFetch('/players/me/performance-report')
 };
 

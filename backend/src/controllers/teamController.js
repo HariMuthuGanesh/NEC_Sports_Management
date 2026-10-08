@@ -17,6 +17,7 @@ import {
     sendSystemNotification
 } from '../services/emailService.js';
 import pool from '../config/db.js';
+import { getSportTypeById } from '../models/sql/sportSqlModel.js';
 import { ensureStudentAndUserExists } from '../services/studentProvisionService.js';
 
 export const getTeams = async (req, res, next) => {
@@ -153,6 +154,13 @@ export const createTeam = async (req, res, next) => {
         if (!resolvedSportId) {
             return res.status(400).json({ success: false, error: { message: 'A sport selection is required.' } });
         }
+        // Individual sports (e.g. Athletics) register students as event entries, never as teams.
+        if ((await getSportTypeById(resolvedSportId)) === 'Individual') {
+            return res.status(400).json({
+                success: false,
+                error: { code: 'INDIVIDUAL_SPORT_NO_TEAM', message: 'This is an individual sport. Register students as event entries instead of creating a team.' }
+            });
+        }
 
         // Resolve tournament_id
         let resolvedTourId = Number(tournament_id || tournamentId) || null;
@@ -221,6 +229,18 @@ export const updateTeamStatus = async (req, res, next) => {
     try {
         const teamId = req.params.id;
         const newStatus = req.body.status;
+        if (!['Pending', 'Approved', 'Disqualified'].includes(newStatus)) {
+            return res.status(400).json({ success: false, error: { code: 'INVALID_STATUS', message: 'Status must be Pending, Approved or Disqualified.' } });
+        }
+        if (req.user?.role === 'Coordinator') {
+            const [own] = await pool.execute('SELECT department_id FROM teams WHERE team_id = ? LIMIT 1', [teamId]);
+            if (!own[0]) {
+                return res.status(404).json({ success: false, error: { message: 'Team not found' } });
+            }
+            if (Number(own[0].department_id) !== Number(req.user.dept_id)) {
+                return res.status(403).json({ success: false, error: { message: 'You are only authorized to manage teams in your assigned department.' } });
+            }
+        }
         const success = await updateTeamStatusSql(teamId, newStatus);
         if (!success) {
             return res.status(404).json({ success: false, error: { message: "Team not found" } });
@@ -256,7 +276,7 @@ export const deleteTeam = async (req, res, next) => {
     try {
         if (req.user?.role === 'Coordinator' && req.user.dept_id) {
             const [teamRows] = await pool.execute('SELECT department_id FROM teams WHERE team_id = ? LIMIT 1', [req.params.id]);
-            if (teamRows[0] && teamRows[0].department_id !== req.user.dept_id) {
+            if (teamRows[0] && Number(teamRows[0].department_id) !== Number(req.user.dept_id)) {
                 return res.status(403).json({
                     success: false,
                     error: { message: 'You are only authorized to manage teams in your assigned department.' }
@@ -264,9 +284,19 @@ export const deleteTeam = async (req, res, next) => {
             }
         }
 
-        const success = await deleteTeamSql(req.params.id);
-        if (!success) {
+        const result = await deleteTeamSql(req.params.id);
+        if (result.status === 'not_found') {
             return res.status(404).json({ success: false, error: { message: "Team not found" } });
+        }
+        if (result.status === 'has_fixtures') {
+            return res.json({
+                success: true,
+                data: {
+                    softDeleted: true,
+                    status: 'Disqualified',
+                    message: `Team has ${result.fixtures} fixture(s), so it was disqualified instead of deleted to keep match history.`
+                }
+            });
         }
         return res.json({ success: true, data: { message: "Team deleted successfully" } });
     } catch (err) {

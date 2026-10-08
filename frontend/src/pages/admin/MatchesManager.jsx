@@ -21,7 +21,9 @@ export default function MatchesManager() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [scheduleError, setScheduleError] = useState("");
 
-  const [sport, setSport] = useState("Football");
+  const [sports, setSports] = useState([]);
+  // Selections are IDs (not names) so the value always matches an option.
+  const [sportId, setSportId] = useState("");
   const [teamA, setTeamA] = useState("");
   const [teamB, setTeamB] = useState("");
   const [venue, setVenue] = useState("");
@@ -64,8 +66,9 @@ export default function MatchesManager() {
       matchesApi.getMatches().catch(err => { console.warn("[MatchesManager] Failed to fetch matches:", err); return []; }),
       sportsApi.getVenues().catch(err => { console.warn("[MatchesManager] Failed to fetch venues:", err); return []; }),
       teamsApi.getTeams().catch(err => { console.warn("[MatchesManager] Failed to fetch teams:", err); return []; }),
-      tournamentsApi.getTournaments().catch(err => { console.warn("[MatchesManager] Failed to fetch tournaments:", err); return []; })
-    ]).then(([mList = [], vList = [], tList = [], tourList = []]) => {
+      tournamentsApi.getTournaments().catch(err => { console.warn("[MatchesManager] Failed to fetch tournaments:", err); return []; }),
+      sportsApi.getSports().catch(err => { console.warn("[MatchesManager] Failed to fetch sports:", err); return []; })
+    ]).then(([mList = [], vList = [], tList = [], tourList = [], spList = []]) => {
       const safeMatches = Array.isArray(mList) ? mList : [];
       const safeVenues = Array.isArray(vList) ? vList : [];
       const safeTeams = Array.isArray(tList) ? tList : [];
@@ -75,12 +78,11 @@ export default function MatchesManager() {
       setVenues(safeVenues);
       setTeams(safeTeams);
       setTournaments(safeTournaments);
+      const safeSports = (Array.isArray(spList) ? spList : []).filter(sp => (sp.sport_type || "Team") === "Team");
+      setSports(safeSports);
       if (!isBackground) {
-        if (safeTeams.length >= 2) {
-          setTeamA(safeTeams[0].name);
-          setTeamB(safeTeams[1].name);
-        }
-        if (safeVenues.length > 0) setVenue(safeVenues[0].name);
+        if (safeSports.length > 0 && !sportId) setSportId(String(safeSports[0].sport_id || safeSports[0].id));
+        if (safeVenues.length > 0) setVenue(String(safeVenues[0].venue_id || safeVenues[0].id));
         if (safeTournaments.length > 0) setTournamentId(String(safeTournaments[0].id || safeTournaments[0].tournament_id));
       }
       setLoading(false);
@@ -91,11 +93,26 @@ export default function MatchesManager() {
     });
   };
 
+  // Approved teams of the selected sport only; pending/disqualified teams cannot be scheduled.
+  const eligibleTeams = teams.filter(t => String(t.sportId ?? t.sport_id) === String(sportId) && t.status === "Approved");
+
+  // Keep team choices valid when the sport changes.
+  // Runs when the sport changes or the modal opens, not on background refreshes,
+  // so an admin's in-progress choice is never overwritten.
+  useEffect(() => {
+    const ids = eligibleTeams.map(t => String(t.team_id ?? t.id));
+    const a = ids.includes(teamA) ? teamA : (ids[0] || "");
+    const b = ids.includes(teamB) && teamB !== a ? teamB : (ids.find(id => id !== a) || "");
+    setTeamA(a);
+    setTeamB(b);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sportId, isModalOpen]);
+
   const handleSchedule = (e) => {
     e.preventDefault();
     setScheduleError("");
-    if (!teamA || !teamB || !venue) {
-      setScheduleError("Please select Team A, Team B, and a Venue.");
+    if (!sportId || !teamA || !teamB || !venue) {
+      setScheduleError("Please select a Sport, Team A, Team B, and a Venue.");
       return;
     }
     if (teamA === teamB) {
@@ -108,10 +125,10 @@ export default function MatchesManager() {
     }
 
     matchesApi.scheduleMatch({
-      sport,
-      teamA,
-      teamB,
-      venue,
+      sport_id: Number(sportId),
+      team_a_id: Number(teamA),
+      team_b_id: Number(teamB),
+      venue_id: Number(venue),
       date,
       time,
       round,
@@ -306,11 +323,14 @@ export default function MatchesManager() {
           <div>
             <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: "4px" }}>Sport</label>
             <SearchableSelect
-              options={["Football", "Cricket", "Basketball", "Volleyball", "Badminton", "Table Tennis", "Athletics", "Chess"]}
-              value={sport}
-              onChange={(e) => setSport(e.target.value)}
+              options={sports}
+              value={sportId}
+              onChange={(e) => setSportId(e.target.value)}
+              getValue={(sp) => String(sp.sport_id ?? sp.id)}
+              getLabel={(sp) => sp.name}
               placeholder="-- Select Sport --"
               searchPlaceholder="Search sport..."
+              required
             />
           </div>
 
@@ -318,13 +338,13 @@ export default function MatchesManager() {
             <div>
               <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: "4px" }}>Team A *</label>
               <SearchableSelect
-                options={teams}
+                options={eligibleTeams}
                 value={teamA}
                 onChange={(e) => setTeamA(e.target.value)}
-                getValue={(t) => t.name}
+                getValue={(t) => String(t.team_id ?? t.id)}
                 getLabel={(t) => t.name}
                 getSearchText={(t) => `${t.name} ${t.deptCode || t.dept_code || ""} ${t.sportName || t.sport || ""}`}
-                placeholder="-- Select Team --"
+                placeholder={eligibleTeams.length ? "-- Select Team --" : "No approved teams for this sport"}
                 searchPlaceholder="Search team, dept, or sport..."
                 required
                 renderOption={(t) => (
@@ -353,13 +373,13 @@ export default function MatchesManager() {
             <div>
               <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: "4px" }}>Team B *</label>
               <SearchableSelect
-                options={teams}
+                options={eligibleTeams}
                 value={teamB}
                 onChange={(e) => setTeamB(e.target.value)}
-                getValue={(t) => t.name}
+                getValue={(t) => String(t.team_id ?? t.id)}
                 getLabel={(t) => t.name}
                 getSearchText={(t) => `${t.name} ${t.deptCode || t.dept_code || ""} ${t.sportName || t.sport || ""}`}
-                placeholder="-- Select Team --"
+                placeholder={eligibleTeams.length ? "-- Select Team --" : "No approved teams for this sport"}
                 searchPlaceholder="Search team, dept, or sport..."
                 required
                 renderOption={(t) => (
@@ -393,7 +413,7 @@ export default function MatchesManager() {
               options={venues}
               value={venue}
               onChange={(e) => setVenue(e.target.value)}
-              getValue={(v) => v.name}
+              getValue={(v) => String(v.venue_id ?? v.id)}
               getLabel={(v) => v.name}
               getSearchText={(v) => `${v.name} ${v.type || ""} ${v.location || ""}`}
               placeholder="-- Select Venue --"

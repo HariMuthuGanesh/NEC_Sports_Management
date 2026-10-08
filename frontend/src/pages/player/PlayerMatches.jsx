@@ -10,8 +10,8 @@ import "./PlayerPortal.css";
 
 export default function PlayerMatches() {
   const { currentUser, t } = useAuth();
-  const playerDept = currentUser.dept || "MECH";
-  const playerName = currentUser.name || "Priya Patel";
+  const playerDept = currentUser.dept || "";
+  const playerName = currentUser.name || currentUser.username || "";
 
   const [myMatches, setMyMatches] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -24,18 +24,14 @@ export default function PlayerMatches() {
     Promise.all([
       matchesApi.getMatches(),
       teamsApi.getTeams(),
-      playersApi.getAllPlayers()
-    ]).then(([matches, teams, playersResponse]) => {
-      const players = Array.isArray(playersResponse) ? playersResponse : playersResponse.data || [];
-      const playerObj = players.find(p => p.name.toLowerCase().includes(playerName.toLowerCase()) || p.studentId === currentUser.id) || players[0];
-      const teamObj = teams.find(t => t.id === playerObj?.teamId || t.deptCode === playerDept) || teams[0];
-
-      const filteredMatches = matches.filter(m => 
+      playersApi.getMyProfile()
+    ]).then(([matches, teams, me]) => {
+      const teamObj = me?.teamId ? teams.find(t => (t.id || t.team_id) === me.teamId) || null : null;
+      const filteredMatches = matches.filter(m =>
         (teamObj && (m.teamA === teamObj.name || m.teamB === teamObj.name)) ||
-        m.deptA === playerDept || m.deptB === playerDept
+        (playerDept && (m.deptA === playerDept || m.deptB === playerDept))
       );
-      
-      setMyMatches(filteredMatches.length > 0 ? filteredMatches : matches.slice(0, 5));
+      setMyMatches(filteredMatches);
       setLoading(false);
     }).catch(err => {
       console.error(err);

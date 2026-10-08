@@ -1,69 +1,71 @@
 import {
-    getAllCompetitionLevels,
+    listCompetitionLevels,
     getCompetitionLevelById,
     createCompetitionLevel,
     updateCompetitionLevel,
-    deleteCompetitionLevel
+    countTournamentsUsingLevel,
+    softDeleteCompetitionLevel,
+    resolveActiveLevel
 } from '../models/sql/competitionLevelSqlModel.js';
 
-export const getCompetitionLevels = async (req, res, next) => {
+const CODE_PATTERN = /^[A-Z][A-Z0-9_-]{1,29}$/;
+
+const fail = (res, status, message, code) =>
+    res.status(status).json({ success: false, error: { message, ...(code ? { code } : {}) } });
+
+const isDuplicateError = (err) => err?.code === 'ER_DUP_ENTRY';
+
+// Validates and normalises the request body. Returns { value } or { error }.
+const parseLevelBody = (body = {}) => {
+    const name = typeof body.name === 'string' ? body.name.trim() : '';
+    const code = typeof body.code === 'string' ? body.code.trim().toUpperCase() : '';
+    const description = typeof body.description === 'string' ? body.description.trim() : '';
+    const rawOrder = body.displayOrder ?? body.display_order ?? 0;
+    const displayOrder = Number(rawOrder);
+    const isActive = body.isActive ?? body.is_active ?? true;
+
+    if (name.length < 2 || name.length > 100) return { error: 'Name must be between 2 and 100 characters.' };
+    if (!CODE_PATTERN.test(code)) return { error: 'Code must be 2-30 characters: letters, digits, hyphen or underscore, starting with a letter.' };
+    if (description.length > 500) return { error: 'Description must be 500 characters or fewer.' };
+    if (!Number.isInteger(displayOrder) || displayOrder < 0 || displayOrder > 9999) return { error: 'Display order must be a whole number between 0 and 9999.' };
+
+    return {
+        value: {
+            name,
+            code,
+            description,
+            displayOrder,
+            isActive: isActive === true || isActive === 1 || isActive === '1' || isActive === 'true'
+        }
+    };
+};
+
+export const listCompetitionLevelsController = async (req, res, next) => {
     try {
-        const {
-            includeInactive,
-            all,
-            search,
-            page = 1,
-            limit = 100
-        } = req.query;
-
-        // If user is Admin and explicitly requests includeInactive or all, return inactive too
-        const isAdmin = req.user && (req.user.role === 'Admin' || req.user.role === 'Sys Admin' || req.user.role === 'Sys-Admin');
-        const showInactive = includeInactive === 'true' || (isAdmin && all === 'true');
-
-        const result = await getAllCompetitionLevels({
-            includeInactive: Boolean(showInactive),
-            search: search || '',
-            page: parseInt(page, 10) || 1,
-            limit: parseInt(limit, 10) || 100
+        const isAdmin = req.user?.role === 'Admin';
+        // Public callers only ever see active levels.
+        const includeInactive = isAdmin && ['1', 'true'].includes(String(req.query.includeInactive));
+        const result = await listCompetitionLevels({
+            search: String(req.query.search || '').trim(),
+            sort: req.query.sort,
+            dir: req.query.dir,
+            page: req.query.page,
+            pageSize: req.query.pageSize,
+            includeInactive
         });
-
-        return res.json({
-            success: true,
-            data: result.data,
-            pagination: {
-                total: result.total,
-                page: result.page,
-                limit: result.limit,
-                totalPages: result.totalPages
-            }
-        });
+        return res.json({ success: true, data: result });
     } catch (err) {
         next(err);
     }
 };
 
-export const getCompetitionLevelByIdController = async (req, res, next) => {
+export const getCompetitionLevelController = async (req, res, next) => {
     try {
-        const id = Number(req.params.id);
-        if (!id) {
-            return res.status(400).json({
-                success: false,
-                error: { code: 'INVALID_ID', message: 'A valid competition level ID is required.' }
-            });
+        const level = await getCompetitionLevelById(req.params.id);
+        if (!level || (!level.isActive && req.user?.role !== 'Admin')) {
+            return fail(res, 404, 'Competition level not found.');
         }
-
-        const level = await getCompetitionLevelById(id);
-        if (!level) {
-            return res.status(404).json({
-                success: false,
-                error: { code: 'NOT_FOUND', message: 'Competition level not found.' }
-            });
-        }
-
-        return res.json({
-            success: true,
-            data: level
-        });
+        return res.json({ success: true, data: level });
     } catch (err) {
         next(err);
     }
@@ -71,117 +73,54 @@ export const getCompetitionLevelByIdController = async (req, res, next) => {
 
 export const createCompetitionLevelController = async (req, res, next) => {
     try {
-        const { name, code, description, display_order, status } = req.body || {};
-
-        if (!name || !name.trim()) {
-            return res.status(400).json({
-                success: false,
-                error: { code: 'VALIDATION_ERROR', message: 'Competition level name is required.' }
-            });
-        }
-
-        const newLevel = await createCompetitionLevel({
-            name: name.trim(),
-            code: code ? code.trim() : null,
-            description: description || '',
-            display_order: display_order !== undefined ? Number(display_order) : 0,
-            status: status || 'Active'
-        });
-
-        return res.status(201).json({
-            success: true,
-            data: newLevel,
-            message: 'Competition level created successfully.'
-        });
+        const { value, error } = parseLevelBody(req.body);
+        if (error) return fail(res, 400, error);
+        const id = await createCompetitionLevel(value);
+        const level = await getCompetitionLevelById(id);
+        return res.status(201).json({ success: true, data: level });
     } catch (err) {
-        if (err.message && err.message.includes('already exists')) {
-            return res.status(409).json({
-                success: false,
-                error: { code: 'DUPLICATE_ENTRY', message: err.message }
-            });
-        }
+        if (isDuplicateError(err)) return fail(res, 409, 'A competition level with this name or code already exists.', 'DUPLICATE_LEVEL');
         next(err);
     }
 };
 
 export const updateCompetitionLevelController = async (req, res, next) => {
     try {
-        const id = Number(req.params.id);
-        if (!id) {
-            return res.status(400).json({
-                success: false,
-                error: { code: 'INVALID_ID', message: 'A valid competition level ID is required.' }
-            });
-        }
-
-        const { name, code, description, display_order, status } = req.body || {};
-
-        if (name !== undefined && !name.trim()) {
-            return res.status(400).json({
-                success: false,
-                error: { code: 'VALIDATION_ERROR', message: 'Level name cannot be empty.' }
-            });
-        }
-
-        const updated = await updateCompetitionLevel(id, {
-            name,
-            code,
-            description,
-            display_order,
-            status
-        });
-
-        return res.json({
-            success: true,
-            data: updated,
-            message: 'Competition level updated successfully.'
-        });
+        const existing = await getCompetitionLevelById(req.params.id);
+        if (!existing) return fail(res, 404, 'Competition level not found.');
+        const { value, error } = parseLevelBody({ ...existing, ...req.body });
+        if (error) return fail(res, 400, error);
+        await updateCompetitionLevel(req.params.id, value);
+        const level = await getCompetitionLevelById(req.params.id);
+        return res.json({ success: true, data: level });
     } catch (err) {
-        if (err.message && err.message.includes('not found')) {
-            return res.status(404).json({
-                success: false,
-                error: { code: 'NOT_FOUND', message: err.message }
-            });
-        }
-        if (err.message && err.message.includes('already exists')) {
-            return res.status(409).json({
-                success: false,
-                error: { code: 'DUPLICATE_ENTRY', message: err.message }
-            });
-        }
+        if (isDuplicateError(err)) return fail(res, 409, 'A competition level with this name or code already exists.', 'DUPLICATE_LEVEL');
         next(err);
     }
 };
 
+// Soft delete. Blocked while any tournament is assigned to the level.
 export const deleteCompetitionLevelController = async (req, res, next) => {
     try {
-        const id = Number(req.params.id);
-        if (!id) {
-            return res.status(400).json({
-                success: false,
-                error: { code: 'INVALID_ID', message: 'A valid competition level ID is required.' }
-            });
+        const existing = await getCompetitionLevelById(req.params.id);
+        if (!existing) return fail(res, 404, 'Competition level not found.');
+        const used = await countTournamentsUsingLevel(req.params.id);
+        if (used > 0) {
+            return fail(res, 409, `This level is assigned to ${used} tournament(s). Reassign them before deleting.`, 'LEVEL_IN_USE');
         }
-
-        await deleteCompetitionLevel(id);
-
-        return res.json({
-            success: true,
-            message: 'Competition level removed successfully.'
-        });
+        await softDeleteCompetitionLevel(req.params.id);
+        return res.json({ success: true, data: { id: Number(req.params.id) } });
     } catch (err) {
-        if (err.message && err.message.includes('not found')) {
-            return res.status(404).json({
-                success: false,
-                error: { code: 'NOT_FOUND', message: err.message }
-            });
-        }
-        if (err.message && err.message.includes('currently assigned to tournaments')) {
-            return res.status(400).json({
-                success: false,
-                error: { code: 'ASSIGNED_TO_TOURNAMENT', message: err.message }
-            });
-        }
         next(err);
     }
+};
+
+// Shared by tournament create/update. Resolves levelId to an active level and
+// returns the body with tier (name) and levelId filled in. Returns null when invalid.
+export const applyTournamentLevel = async (body = {}) => {
+    const rawId = body.competitionLevelId ?? body.levelId ?? body.level_id ?? body.competition_level_id;
+    if (rawId === undefined || rawId === null || rawId === '') return { body };
+    const level = await resolveActiveLevel(rawId);
+    if (!level) return { error: 'Selected competition level is invalid or inactive.' };
+    return { body: { ...body, competitionLevelId: level.id, tier: level.name } };
 };

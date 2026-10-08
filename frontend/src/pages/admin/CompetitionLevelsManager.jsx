@@ -1,394 +1,161 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { competitionLevelsApi } from "../../services/api/apiServices";
-import Button from "../../components/common/Button";
-import Badge from "../../components/common/Badge";
-import { Modal } from "../../components/common/Modal";
 import Table from "../../components/common/Table";
-import {
-  Layers,
-  Plus,
-  Edit2,
-  Trash2,
-  CheckCircle2,
-  AlertCircle,
-  AlertTriangle
-} from "lucide-react";
-import ErrorState from "../../components/common/ErrorState";
+import Badge from "../../components/common/Badge";
+import Button from "../../components/common/Button";
+import { Modal } from "../../components/common/Modal";
+import { Plus, Pencil, Trash2 } from "lucide-react";
 import "./AdminPortal.css";
 
+const emptyForm = { name: "", code: "", description: "", displayOrder: 0, isActive: true };
+
+// Competition Levels master: admin-managed tiers used by tournaments.
+// Deletes are soft and blocked while a tournament is assigned to the level.
 export default function CompetitionLevelsManager() {
   const [levels, setLevels] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [successMsg, setSuccessMsg] = useState("");
-
-  // Modal State
-  const [showModal, setShowModal] = useState(false);
-  const [editingLevel, setEditingLevel] = useState(null);
-  const [submitting, setSubmitting] = useState(false);
+  const [pageError, setPageError] = useState("");
+  const [showInactive, setShowInactive] = useState(true);
+  const [editing, setEditing] = useState(null); // row, or "new"
+  const [form, setForm] = useState(emptyForm);
   const [formError, setFormError] = useState("");
-  const [form, setForm] = useState({
-    name: "",
-    code: "",
-    description: "",
-    display_order: 1,
-    status: "Active"
-  });
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(null);
+  const [deleteError, setDeleteError] = useState("");
 
-  // Delete Confirmation Modal State
-  const [deleteTarget, setDeleteTarget] = useState(null);
-  const [deleting, setDeleting] = useState(false);
-
-  const loadLevels = async () => {
+  const load = () => {
     setLoading(true);
-    setError(null);
-    try {
-      const res = await competitionLevelsApi.getLevels({ all: "true", limit: 100 });
-      const data = Array.isArray(res) ? res : (res?.data || []);
-      setLevels(data);
-    } catch (err) {
-      console.error(err);
-      setError(err.message || "Failed to load competition levels");
-    } finally {
-      setLoading(false);
-    }
+    setPageError("");
+    competitionLevelsApi
+      .list({ includeInactive: showInactive ? 1 : 0, pageSize: 100, sort: "display_order", dir: "asc" })
+      .then((res) => setLevels(Array.isArray(res?.items) ? res.items : []))
+      .catch((err) => setPageError(err.message || "Could not load competition levels."))
+      .finally(() => setLoading(false));
   };
 
-  useEffect(() => {
-    loadLevels();
-  }, []);
+  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [showInactive]);
 
-  const openAdd = () => {
-    setEditingLevel(null);
+  const openNew = () => { setForm({ ...emptyForm, displayOrder: (levels.at(-1)?.displayOrder ?? 0) + 1 }); setFormError(""); setEditing("new"); };
+  const openEdit = (row) => {
+    setForm({ name: row.name, code: row.code, description: row.description || "", displayOrder: row.displayOrder ?? 0, isActive: !!row.isActive });
     setFormError("");
-    setForm({
-      name: "",
-      code: "",
-      description: "",
-      display_order: (levels.length + 1) * 1,
-      status: "Active"
-    });
-    setShowModal(true);
+    setEditing(row);
   };
 
-  const openEdit = (lvl) => {
-    setEditingLevel(lvl);
-    setFormError("");
-    setForm({
-      name: lvl.name || "",
-      code: lvl.code || "",
-      description: lvl.description || "",
-      display_order: lvl.display_order ?? 0,
-      status: lvl.status || "Active"
-    });
-    setShowModal(true);
-  };
-
-  const handleSave = async (e) => {
+  const save = async (e) => {
     e.preventDefault();
-    if (!form.name.trim()) {
-      setFormError("Competition level name is required.");
-      return;
-    }
-
-    setSubmitting(true);
     setFormError("");
+    const name = form.name.trim();
+    const code = form.code.trim().toUpperCase();
+    if (name.length < 2) return setFormError("Name must be at least 2 characters.");
+    if (!/^[A-Z][A-Z0-9_-]{1,29}$/.test(code)) return setFormError("Code must be 2-30 characters (letters, digits, - or _), starting with a letter.");
+    const duplicate = levels.find((l) => l.id !== editing?.id && (l.name.toLowerCase() === name.toLowerCase() || l.code === code));
+    if (duplicate) return setFormError(`"${duplicate.name}" already uses this ${duplicate.name.toLowerCase() === name.toLowerCase() ? "name" : "code"}.`);
+    setSaving(true);
     try {
-      const payload = {
-        name: form.name.trim(),
-        code: form.code.trim() ? form.code.trim().toUpperCase() : null,
-        description: form.description.trim(),
-        display_order: Number(form.display_order) || 0,
-        status: form.status
-      };
-
-      if (editingLevel) {
-        await competitionLevelsApi.updateLevel(editingLevel.id || editingLevel.level_id, payload);
-        setSuccessMsg(`Competition level "${payload.name}" updated successfully.`);
-      } else {
-        await competitionLevelsApi.createLevel(payload);
-        setSuccessMsg(`Competition level "${payload.name}" created successfully.`);
-      }
-
-      setShowModal(false);
-      await loadLevels();
-      setTimeout(() => setSuccessMsg(""), 4000);
+      const body = { ...form, name, code, displayOrder: Number(form.displayOrder) || 0 };
+      if (editing === "new") await competitionLevelsApi.create(body);
+      else await competitionLevelsApi.update(editing.id, body);
+      setEditing(null);
+      load();
     } catch (err) {
-      setFormError(err.message || "Operation failed.");
+      setFormError(err.message || "Could not save the competition level.");
     } finally {
-      setSubmitting(false);
+      setSaving(false);
     }
   };
 
   const confirmDelete = async () => {
-    if (!deleteTarget) return;
-    setDeleting(true);
+    setDeleteError("");
     try {
-      await competitionLevelsApi.deleteLevel(deleteTarget.id || deleteTarget.level_id);
-      setSuccessMsg(`Competition level "${deleteTarget.name}" deleted successfully.`);
-      setDeleteTarget(null);
-      await loadLevels();
-      setTimeout(() => setSuccessMsg(""), 4000);
+      await competitionLevelsApi.remove(deleting.id);
+      setDeleting(null);
+      load();
     } catch (err) {
-      alert(err.message || "Failed to delete competition level.");
-    } finally {
-      setDeleting(false);
+      setDeleteError(err.message || "Could not delete this level.");
     }
   };
 
   const columns = [
+    { key: "name", label: "Name", sortable: true, render: (v) => <strong>{v}</strong> },
+    { key: "code", label: "Code", sortable: true },
+    { key: "displayOrder", label: "Order", sortable: true },
+    { key: "description", label: "Description", render: (v) => v || <span style={{ opacity: 0.6 }}>—</span> },
     {
-      key: "display_order",
-      label: "Order",
-      width: "80px",
-      render: (val) => (
-        <span style={{ fontWeight: 700, color: "var(--nec-text-muted)" }}>
-          #{val ?? 0}
-        </span>
-      )
-    },
-    {
-      key: "name",
-      label: "Level Name",
-      render: (val, r) => (
-        <div>
-          <div style={{ fontWeight: 700, color: "var(--nec-text-main)" }}>
-            {val}
-          </div>
-          {r.description && (
-            <div style={{ fontSize: "0.78rem", color: "var(--nec-text-muted)", marginTop: "2px" }}>
-              {r.description}
-            </div>
-          )}
-        </div>
-      )
-    },
-    {
-      key: "code",
-      label: "Code",
-      width: "110px",
-      render: (val) => (
-        val ? (
-          <span className="nec-fixture-dept-tag">
-            {val}
-          </span>
-        ) : (
-          <span style={{ color: "var(--nec-text-muted)" }}>-</span>
-        )
-      )
-    },
-    {
-      key: "tournament_count",
-      label: "Tournaments",
-      width: "130px",
-      render: (val) => (
-        <span style={{ fontSize: "0.85rem", color: "var(--nec-text-muted)" }}>
-          {val || 0} assigned
-        </span>
-      )
-    },
-    {
-      key: "status",
+      key: "isActive",
       label: "Status",
-      width: "120px",
-      render: (val) => (
-        <Badge status={val === "Active" ? "success" : "neutral"}>
-          {val || "Active"}
-        </Badge>
-      )
+      render: (v) => <Badge status={v ? "success" : "neutral"}>{v ? "Active" : "Inactive"}</Badge>,
     },
     {
-      key: "actions",
       label: "Actions",
-      width: "140px",
+      key: "actions",
+      sortable: false,
       render: (_, row) => (
         <div style={{ display: "flex", gap: "6px" }}>
-          <Button
-            variant="outline"
-            size="sm"
-            icon={Edit2}
-            onClick={() => openEdit(row)}
-          >
-            Edit
-          </Button>
-          <Button
-            variant="danger"
-            size="sm"
-            icon={Trash2}
-            title="Delete Competition Level"
-            ariaLabel="Delete Competition Level"
-            onClick={() => setDeleteTarget(row)}
-          />
+          <Button variant="ghost" size="sm" icon={Pencil} aria-label={`Edit ${row.name}`} title="Edit" onClick={() => openEdit(row)} />
+          <Button variant="ghost" size="sm" icon={Trash2} aria-label={`Delete ${row.name}`} title="Delete" onClick={() => { setDeleteError(""); setDeleting(row); }} />
         </div>
-      )
-    }
+      ),
+    },
   ];
 
-  return (
-    <div className="nec-portal-page">
-      {/* Header */}
-      <div className="nec-page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "12px" }}>
-        <div>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <Layers size={22} color="var(--nec-blue, #0274be)" />
-            <h2 className="nec-page-title" style={{ margin: 0 }}>Competition Levels</h2>
-          </div>
-        </div>
+  const field = (label, key, props = {}) => (
+    <div className="nec-form-group">
+      <label className="nec-form-label">{label}</label>
+      <input className="nec-table-search-input" style={{ maxWidth: "100%" }} value={form[key]} onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))} {...props} />
+    </div>
+  );
 
-        <Button variant="primary" icon={Plus} onClick={openAdd}>
-          Add Competition Level
-        </Button>
+  return (
+    <div className="nec-admin-dashboard">
+      <div className="nec-admin-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+        <div>
+          <h2 style={{ margin: 0 }}>Competition Levels</h2>
+                  </div>
+        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+          <label style={{ display: "flex", gap: 6, alignItems: "center" }}>
+            <input type="checkbox" checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} /> Show inactive
+          </label>
+          <Button variant="primary" icon={Plus} onClick={openNew}>Add Level</Button>
+        </div>
       </div>
 
-      {/* Success Notification */}
-      {successMsg && (
-        <div style={{
-          padding: "12px 16px",
-          borderRadius: "8px",
-          background: "var(--nec-success-bg, rgba(16, 185, 129, 0.1))",
-          color: "var(--nec-success-text, #059669)",
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-          marginBottom: "16px",
-          border: "1px solid rgba(16, 185, 129, 0.2)"
-        }}>
-          <CheckCircle2 size={18} />
-          <span>{successMsg}</span>
-        </div>
-      )}
+      {pageError && <p role="alert" style={{ color: "var(--nec-danger, #b91c1c)" }}>{pageError}</p>}
 
-      {/* Error Banner */}
-      {error && (
-        <div style={{ marginBottom: "16px" }}>
-          <ErrorState message={error} onRetry={loadLevels} />
-        </div>
-      )}
-
-      {/* Data Table with Single Integrated Search Bar */}
       <Table
         columns={columns}
         data={levels}
         loading={loading}
-        searchable={true}
-        searchPlaceholder="Search levels..."
-        emptyMessage="No competition levels found"
+        searchPlaceholder="Search levels by name or code..."
+        emptyTitle="No competition levels"
+        emptyMessage="Click 'Add Level' to create the first competition level."
       />
 
-      {/* Add / Edit Modal */}
-      <Modal
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
-        title={editingLevel ? "Edit Competition Level" : "Add Competition Level"}
-      >
-        <form onSubmit={handleSave} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-          {formError && (
-            <div style={{
-              padding: "10px 14px",
-              borderRadius: "6px",
-              background: "rgba(239, 68, 68, 0.1)",
-              color: "#dc2626",
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              fontSize: "0.85rem"
-            }}>
-              <AlertCircle size={16} />
-              <span>{formError}</span>
-            </div>
-          )}
-
-          <div className="nec-form-group">
-            <label className="nec-form-label">Level Name *</label>
-            <input
-              type="text"
-              required
-              className="nec-form-input"
-              placeholder="e.g. State, Zonal, Inter-Collegiate"
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-            />
+      <Modal isOpen={!!editing} onClose={() => setEditing(null)} title={editing === "new" ? "Add Competition Level" : `Edit ${editing?.name || ""}`} size="md">
+        <form onSubmit={save} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {field("Name *", "name", { required: true, maxLength: 100 })}
+          {field("Code * (unique, e.g. STATE)", "code", { required: true, maxLength: 30, style: { maxWidth: "100%", textTransform: "uppercase" } })}
+          {field("Description", "description", { maxLength: 500 })}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, alignItems: "end" }}>
+            {field("Display order", "displayOrder", { type: "number", min: 0, max: 9999 })}
+            <label style={{ display: "flex", gap: 6, alignItems: "center", paddingBottom: 10 }}>
+              <input type="checkbox" checked={form.isActive} onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))} /> Active
+            </label>
           </div>
-
-          <div className="nec-form-grid-2">
-            <div className="nec-form-group">
-              <label className="nec-form-label">Level Code (Optional)</label>
-              <input
-                type="text"
-                className="nec-form-input"
-                placeholder="e.g. STATE, ZONE, NATL"
-                value={form.code}
-                onChange={(e) => setForm({ ...form, code: e.target.value })}
-              />
-            </div>
-
-            <div className="nec-form-group">
-              <label className="nec-form-label">Display Order</label>
-              <input
-                type="number"
-                min="0"
-                className="nec-form-input"
-                value={form.display_order}
-                onChange={(e) => setForm({ ...form, display_order: e.target.value })}
-              />
-            </div>
-          </div>
-
-          <div className="nec-form-group">
-            <label className="nec-form-label">Status</label>
-            <select
-              className="nec-form-select"
-              value={form.status}
-              onChange={(e) => setForm({ ...form, status: e.target.value })}
-            >
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
-            </select>
-          </div>
-
-          <div className="nec-form-group">
-            <label className="nec-form-label">Description (Optional)</label>
-            <textarea
-              rows={3}
-              className="nec-form-input"
-              value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-            />
-          </div>
-
-          <div className="nec-form-actions" style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "12px" }}>
-            <Button variant="outline" onClick={() => setShowModal(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" variant="primary" disabled={submitting}>
-              {submitting ? "Saving..." : editingLevel ? "Save Changes" : "Create Level"}
-            </Button>
+          {formError && <p role="alert" style={{ color: "var(--nec-danger, #b91c1c)", margin: 0 }}>{formError}</p>}
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+            <Button variant="outline" type="button" onClick={() => setEditing(null)}>Cancel</Button>
+            <Button variant="primary" type="submit" disabled={saving}>{saving ? "Saving..." : "Save"}</Button>
           </div>
         </form>
       </Modal>
 
-      {/* Delete Confirmation Modal */}
-      <Modal
-        isOpen={Boolean(deleteTarget)}
-        onClose={() => setDeleteTarget(null)}
-        title="Delete Level"
-      >
-        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "12px", color: "var(--nec-danger, #ef4444)" }}>
-            <AlertTriangle size={24} />
-            <strong style={{ fontSize: "0.95rem", color: "var(--nec-text-main)" }}>
-              Delete "{deleteTarget?.name}"?
-            </strong>
-          </div>
-
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "10px" }}>
-            <Button variant="outline" onClick={() => setDeleteTarget(null)}>
-              Cancel
-            </Button>
-            <Button variant="danger" onClick={confirmDelete} disabled={deleting}>
-              {deleting ? "Deleting..." : "Delete"}
-            </Button>
-          </div>
+      <Modal isOpen={!!deleting} onClose={() => setDeleting(null)} title="Delete competition level?" size="sm">
+        <p>Delete <strong>{deleting?.name}</strong>?</p>
+        {deleteError && <p role="alert" style={{ color: "var(--nec-danger, #b91c1c)" }}>{deleteError}</p>}
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+          <Button variant="outline" onClick={() => setDeleting(null)}>Cancel</Button>
+          <Button variant="danger" icon={Trash2} aria-label="Confirm delete" title="Confirm delete" onClick={confirmDelete} />
         </div>
       </Modal>
     </div>

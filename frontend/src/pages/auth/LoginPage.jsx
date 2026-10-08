@@ -261,38 +261,36 @@ export default function LoginPage({ onLoginSuccess, onNavigate }) {
       <main className="nec-auth-main">
         <div className="nec-auth-grid">
 
-          {/* ── Left Column: Institutional College & LASA Showcase ── */}
-          <section className="nec-auth-showcase">
-            <div className="nec-showcase-glass">
-              {/* College Badges */}
-              <div className="nec-showcase-badges">
-                <div className="nec-pill-badge nec-gold-pill">
-                  <ShieldCheck size={14} />
-                  <span>Autonomous Institution • Estd. 1984</span>
+          {/* ── Right Column: Login Card & Persona Switcher ── */}
+          <section className="nec-auth-form-panel">
+            {/* ── Left Column: Institutional College & LASA Showcase ── */}
+            <section className="nec-auth-showcase">
+              <div className="nec-showcase-glass">
+                {/* College Badges */}
+                <div className="nec-showcase-badges">
+                  <div className="nec-pill-badge nec-gold-pill">
+                    <ShieldCheck size={14} />
+                    <span>Autonomous Institution • Estd. 1984</span>
+                  </div>
+                  <div className="nec-pill-badge nec-navy-pill">
+                    <Award size={14} />
+                    <span>Kovilpatti, Tamil Nadu</span>
+                  </div>
                 </div>
-                <div className="nec-pill-badge nec-navy-pill">
-                  <Award size={14} />
-                  <span>Kovilpatti, Tamil Nadu</span>
-                </div>
-              </div>
 
-              {/* Title & Institutional Identity */}
-              <div className="nec-showcase-branding">
-                <div className="nec-showcase-logo">
-                  <img src="/assets/logo.jpg" alt="NEC Logo" />
-                </div>
-                <div>
+                {/* Title & Institutional Identity */}
+                <div className="nec-showcase-branding">
+                  <div className="nec-showcase-logo">
+                    <img src="/assets/logo.jpg" alt="National Engineering College logo" className="nec-showcase-logo-img" />
+                  </div>
                   <h1 className="nec-showcase-title">
                     National Engineering College
                   </h1>
-                  <p className="nec-showcase-academy">Department of Physical Education</p>
                 </div>
-              </div>
-            </div>
-          </section>
 
-          {/* ── Right Column: Login Card & Persona Switcher ── */}
-          <section className="nec-auth-form-panel">
+              </div>
+            </section>
+
             <div className="nec-auth-card">
 
               {/* Form Header */}

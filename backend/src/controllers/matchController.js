@@ -46,6 +46,28 @@ export const createMatch = async (req, res, next) => {
             });
         }
 
+        // Fixtures are built from team IDs, never names, and only approved teams of the same sport can play.
+        const idA = Number(team_a_id), idB = Number(team_b_id);
+        if (!idA || !idB) {
+            return res.status(400).json({ success: false, error: { code: 'TEAM_IDS_REQUIRED', message: 'Team A and Team B must be selected.' } });
+        }
+        const [teamRows] = await pool.execute(
+            'SELECT team_id, sport_id, status, name FROM teams WHERE team_id IN (?, ?)',
+            [idA, idB]
+        );
+        if (teamRows.length !== 2) {
+            return res.status(404).json({ success: false, error: { code: 'TEAM_NOT_FOUND', message: 'One or both teams do not exist.' } });
+        }
+        const sportIdNum = Number(sport_id) || null;
+        for (const t of teamRows) {
+            if (t.status !== 'Approved') {
+                return res.status(400).json({ success: false, error: { code: 'TEAM_NOT_APPROVED', message: `Team "${t.name}" is not approved yet.` } });
+            }
+            if (sportIdNum && Number(t.sport_id) !== sportIdNum) {
+                return res.status(400).json({ success: false, error: { code: 'SPORT_MISMATCH', message: `Team "${t.name}" does not play the selected sport.` } });
+            }
+        }
+
         const matchId = await createMatchSql({
             tournament_id: tournament_id || null,
             sport_id: sport_id || null,

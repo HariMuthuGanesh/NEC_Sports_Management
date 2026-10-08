@@ -5,11 +5,13 @@ import Badge from "../../components/common/Badge";
 import Button from "../../components/common/Button";
 import { Modal } from "../../components/common/Modal";
 import ErrorState from "../../components/common/ErrorState";
-import { Users, Filter, Plus, Trophy, Calendar, Eye, Activity, CheckCircle2, AlertCircle, X, Trash2, Check } from "lucide-react";
+import { Users, Filter, Plus, Trophy, Calendar, Eye, Activity, CheckCircle2, AlertCircle, X, Trash2, Ban } from "lucide-react";
 import "./AdminPortal.css";
 
 export default function TeamsManager() {
   const [teams, setTeams] = useState([]);
+  // Merged page: one catalog with status tabs (replaces the separate Team Approvals page).
+  const [statusFilter, setStatusFilter] = useState("ALL");
   const [departments, setDepartments] = useState([]);
   const [sports, setSports] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -74,9 +76,10 @@ export default function TeamsManager() {
   }, []);
 
   const handleDeleteTeam = async (teamId) => {
-    if (!window.confirm("Are you sure you want to permanently delete this team?")) return;
+    if (!window.confirm("Delete this team? Teams that already have fixtures are disqualified instead, to keep match history.")) return;
     try {
-      await teamsApi.deleteTeam(teamId);
+      const res = await teamsApi.deleteTeam(teamId);
+      if (res?.softDeleted) alert(res.message);
       loadTeams();
     } catch (err) {
       alert("Failed to delete team: " + err.message);
@@ -154,9 +157,10 @@ export default function TeamsManager() {
   };
 
   // Filtered dataset
-  const displayedTeams = selectedDeptFilter === "ALL"
-    ? teams
-    : teams.filter(t => (t.deptCode || t.deptName || "").toUpperCase() === selectedDeptFilter.toUpperCase());
+  const displayedTeams = teams
+    .filter(t => statusFilter === "ALL" || t.status === statusFilter)
+    .filter(t => selectedDeptFilter === "ALL"
+      || (t.deptCode || t.deptName || "").toUpperCase() === selectedDeptFilter.toUpperCase());
 
   const columns = [
     {
@@ -204,22 +208,23 @@ export default function TeamsManager() {
       label: "Status",
       width: "120px",
       render: (val) => (
-        <Badge status={val === "Approved" ? "success" : "warning"}>
-          {val === "Approved" ? "Active ✓" : "Pending"}
+        <Badge status={val === "Approved" ? "success" : val === "Disqualified" ? "danger" : "warning"}>
+          {val === "Approved" ? "Approved" : val === "Disqualified" ? "Disqualified" : "Pending"}
         </Badge>
       )
     },
     {
       key: "actions",
       label: "Actions",
-      width: "220px",
+      width: "210px",
       sortable: false,
       render: (_, row) => (
         <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-          {row.status === "Pending" && (
-            <Button variant="primary" size="sm" icon={Check} onClick={() => handleUpdateStatus(row.team_id || row.id, "Approved")}>
-              Approve
-            </Button>
+          {row.status !== "Approved" && (
+            <Button variant="outline" size="sm" icon={CheckCircle2} aria-label="Approve team" title="Approve team" onClick={() => handleUpdateStatus(row.team_id || row.id, "Approved")} />
+          )}
+          {row.status !== "Disqualified" && (
+            <Button variant="ghost" size="sm" icon={Ban} onClick={() => handleUpdateStatus(row.team_id || row.id, "Disqualified")} aria-label="Disqualify team" title="Disqualify team" />
           )}
           <Button variant="ghost" size="sm" icon={Eye} onClick={() => handleViewRoster(row)}>
             Roster
@@ -230,8 +235,9 @@ export default function TeamsManager() {
             icon={Trash2}
             onClick={() => handleDeleteTeam(row.team_id || row.id)}
             title="Delete Team"
-            ariaLabel="Delete Team"
-          />
+          >
+            Delete
+          </Button>
         </div>
       )
     }
@@ -241,8 +247,7 @@ export default function TeamsManager() {
     <div className="nec-portal-page">
       <div className="nec-page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "12px" }}>
         <div>
-          <h1 className="nec-page-title" style={{ fontSize: "1.75rem" }}>Team Catalog &amp; Rosters</h1>
-          <p className="nec-page-desc">Oversee active rosters, monitor upcoming fixtures, and manage coaching assignments across all engineering disciplines.</p>
+          <h1 className="nec-page-title" style={{ fontSize: "1.75rem" }}>Team Approvals &amp; Catalog</h1>
         </div>
         <div style={{ display: "flex", gap: "10px", alignItems: "center", position: "relative" }}>
           {/* Department Filter Toggle */}
@@ -318,6 +323,27 @@ export default function TeamsManager() {
         </div>
       </div>
 
+      {/* Status tabs */}
+      <div role="tablist" aria-label="Team status" style={{ display: "flex", gap: "8px", marginBottom: "16px", flexWrap: "wrap" }}>
+        {[
+          { id: "ALL", label: `All (${teams.length})` },
+          { id: "Pending", label: `Pending (${teams.filter(t => t.status === "Pending").length})` },
+          { id: "Approved", label: `Approved (${teams.filter(t => t.status === "Approved").length})` },
+          { id: "Disqualified", label: `Disqualified (${teams.filter(t => t.status === "Disqualified").length})` }
+        ].map(tab => (
+          <Button
+            key={tab.id}
+            variant={statusFilter === tab.id ? "primary" : "outline"}
+            size="sm"
+            role="tab"
+            aria-selected={statusFilter === tab.id}
+            onClick={() => setStatusFilter(tab.id)}
+          >
+            {tab.label}
+          </Button>
+        ))}
+      </div>
+
       {/* Active Filter Indicator */}
       {selectedDeptFilter !== "ALL" && (
         <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px" }}>
@@ -342,41 +368,12 @@ export default function TeamsManager() {
         </div>
       ) : (
         <>
-          <div className="nec-stats-grid">
-            <div className="nec-stat-card nec-stat-card-navy">
-              <div className="nec-stat-card-top">
-                <span className="nec-stat-title">Total Teams</span>
-                <div className="nec-stat-icon-wrapper"><Users size={20} /></div>
-              </div>
-              <div className="nec-stat-value">{teams.length}</div>
-              <div className="nec-stat-subtext">Registered this semester</div>
-            </div>
-
-            <div className="nec-stat-card nec-stat-card-gold">
-              <div className="nec-stat-card-top">
-                <span className="nec-stat-title">Pending Approvals</span>
-                <div className="nec-stat-icon-wrapper"><Activity size={20} /></div>
-              </div>
-              <div className="nec-stat-value">{teams.filter(t => t.status === "Pending").length}</div>
-              <div className="nec-stat-subtext">Requires attention</div>
-            </div>
-            
-            <div className="nec-stat-card nec-stat-card-navy">
-              <div className="nec-stat-card-top">
-                <span className="nec-stat-title">Approved Teams</span>
-                <div className="nec-stat-icon-wrapper"><Trophy size={20} /></div>
-              </div>
-              <div className="nec-stat-value">{teams.filter(t => t.status === "Approved").length}</div>
-              <div className="nec-stat-subtext">Active for tournaments</div>
-            </div>
-          </div>
-
           <Table
             columns={columns}
             data={displayedTeams}
             loading={loading}
             searchPlaceholder="Search teams by name, department, captain..."
-            emptyMessage={selectedDeptFilter !== "ALL" ? `No teams found for department ${selectedDeptFilter}.` : "No teams have registered yet. Click '+ Register Team' to create one."}
+            emptyMessage={selectedDeptFilter !== "ALL" ? `No teams found for department ${selectedDeptFilter}.` : statusFilter !== "ALL" ? `No ${statusFilter.toLowerCase()} teams.` : "No teams have registered yet. Click '+ Register Team' to create one."}
           />
         </>
       )}

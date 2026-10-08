@@ -225,6 +225,7 @@ export default function ScoreSheet({ onNavigate }) {
   return (
     <div className="nec-portal-page nec-score-sheet-page">
       {/* ── Top Control & Navigation Bar ───────────────────────────────── */}
+      <div className="nec-score-sheet-sticky">
       <div className="nec-score-sheet-control-bar">
         <div className="nec-score-sheet-control-left">
           <Button
@@ -296,6 +297,12 @@ export default function ScoreSheet({ onNavigate }) {
           </Button>
         </div>
       </div>
+        <div className="nec-score-sheet-strip" aria-live="polite">
+          <span className="nec-score-sheet-strip-team">{currentMatch.teamA}</span>
+          <span className="nec-score-sheet-strip-score">{displayScoreA} : {displayScoreB}</span>
+          <span className="nec-score-sheet-strip-team nec-score-sheet-strip-team--right">{currentMatch.teamB}</span>
+        </div>
+      </div>
 
       {/* ── Scheduled Notice Banner ────────────────────────────────────── */}
       {isScheduled && (
@@ -315,7 +322,7 @@ export default function ScoreSheet({ onNavigate }) {
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <Calendar size={18} style={{ color: "var(--nec-blue-accent, #1d4ed8)", flexShrink: 0 }} />
             <span style={{ fontSize: "0.88rem", color: "var(--nec-text-main)", fontWeight: 600 }}>
-              This match is scheduled. Click "Start Match" to begin live broadcasting to the campus.
+              Match is scheduled.
             </span>
           </div>
           <Button
@@ -401,11 +408,6 @@ export default function ScoreSheet({ onNavigate }) {
       <div className="nec-score-sheet-main-card-wrap">
         <Card
           title={`${currentMatch.sport} Score Sheet`}
-          subtitle={
-            isScheduled
-              ? "Updating scores will automatically start the match and broadcast live to campus"
-              : "Enter real-time points, period statistics, and live match details"
-          }
           className="nec-score-sheet-card"
         >
           <ScoreboardComponent

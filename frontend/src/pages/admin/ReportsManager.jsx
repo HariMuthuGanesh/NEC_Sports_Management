@@ -5,13 +5,15 @@ import Table from "../../components/common/Table";
 import { FileText, Printer, Download, Award, Trophy, RefreshCw } from "lucide-react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
-import { reportsApi, leaderboardApi } from "../../services/api/apiServices";
+import { reportsApi } from "../../services/api/apiServices";
 import ErrorState from "../../components/common/ErrorState";
 import "./AdminPortal.css";
 
 export default function ReportsManager() {
   const [activeTab, setActiveTab] = useState("reports");
   const [timeframe, setTimeframe] = useState("1month");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
   const [reportType, setReportType] = useState("dept_perf");
   const [reportData, setReportData] = useState([]);
   const [summaryData, setSummaryData] = useState({});
@@ -28,26 +30,33 @@ export default function ReportsManager() {
   const reportRef = useRef(null);
 
   const loadReport = async () => {
+    if (timeframe === "custom" && (!fromDate || !toDate)) return;
+    if (timeframe === "custom" && fromDate > toDate) {
+      setError("From date must be on or before the to date.");
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
-      const rows = await leaderboardApi.getLeaderboard();
+      const params = timeframe === "custom" ? { from: fromDate, to: toDate } : { timeframe };
+      const report = await reportsApi.getPerformanceReport(params);
+      const rows = Array.isArray(report?.departments) ? report.departments : [];
       const mapped = rows.map((r, i) => ({
         rank: r.rank ?? i + 1,
         dept: r.name,
         code: r.code,
-        totalEvents: r.wins,
+        totalEvents: r.totalEvents,
         wins: r.wins,
         gold: r.gold,
         silver: r.silver,
         bronze: r.bronze,
-        points: r.total_points,
-        participation: r.students ?? '-'
+        points: r.points,
+        participation: r.participation ?? null
       }));
       setReportData(mapped);
       setSummaryData({
-        totalCompleted: rows.reduce((s, r) => s + (r.wins || 0), 0),
-        totalScheduled: rows.length
+        totalCompleted: report?.summary?.totalCompleted ?? null,
+        totalScheduled: report?.summary?.totalScheduled ?? null
       });
     } catch (err) {
       console.error(err);
@@ -59,7 +68,7 @@ export default function ReportsManager() {
 
   useEffect(() => {
     loadReport();
-  }, [timeframe]);
+  }, [timeframe, fromDate, toDate]);
 
   const columns = [
     { key: "rank", label: "Rank", width: "70px", render: (val) => <strong>#{val}</strong> },
@@ -70,7 +79,7 @@ export default function ReportsManager() {
     { key: "silver", label: "🥈 Silver", width: "90px" },
     { key: "bronze", label: "🥉 Bronze", width: "90px" },
     { key: "points", label: "Total Points", width: "110px", render: (val) => <strong>{val} pts</strong> },
-    { key: "participation", label: "Athlete Activity", width: "140px" }
+    { key: "participation", label: "Athlete Activity", width: "140px", render: (val) => val ?? "—" }
   ];
 
   const generatePDF = async (elementRef, filename) => {
@@ -97,7 +106,9 @@ export default function ReportsManager() {
     window.print();
   };
 
-  const timeframeLabel = timeframe === "1month" 
+  const timeframeLabel = timeframe === "custom"
+    ? `${fromDate || "?"} to ${toDate || "?"}`
+    : timeframe === "1month" 
     ? "Past 1 Month (Current Cycle)" 
     : timeframe === "6months" 
     ? "Past 6 Months (Semester)" 
@@ -110,7 +121,6 @@ export default function ReportsManager() {
       <div className="nec-page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
         <div>
           <h2 className="nec-page-title">Institutional Sports Performance & Reporting Engine</h2>
-          <p className="nec-page-desc">Automated 1-month, 6-month, and 12-month departmental performance audits and certificates.</p>
         </div>
         <div style={{ display: "flex", gap: "8px" }}>
           <Button variant={activeTab === "reports" ? "primary" : "outline"} icon={FileText} onClick={() => setActiveTab("reports")}>
@@ -138,7 +148,15 @@ export default function ReportsManager() {
                   <option value="6months">Past 6 Months (Semester Audit)</option>
                   <option value="12months">Past 12 Months (Annual Report)</option>
                   <option value="all">All-Time Cumulative</option>
+                  <option value="custom">Custom date range</option>
                 </select>
+                {timeframe === "custom" && (
+                  <span style={{ display: "inline-flex", gap: "6px", alignItems: "center", marginLeft: "8px" }}>
+                    <input type="date" className="nec-table-search-input" style={{ width: "auto" }} value={fromDate} max={toDate || undefined} onChange={(e) => setFromDate(e.target.value)} aria-label="From date" />
+                    <span>to</span>
+                    <input type="date" className="nec-table-search-input" style={{ width: "auto" }} value={toDate} min={fromDate || undefined} onChange={(e) => setToDate(e.target.value)} aria-label="To date" />
+                  </span>
+                )}
               </div>
 
               <div>
@@ -178,7 +196,7 @@ export default function ReportsManager() {
                     Department Sports Performance & Medal Tally Report ({timeframeLabel})
                   </h4>
                   <div style={{ fontSize: "0.8rem", color: "#666", marginTop: "4px" }}>
-                    Completed Fixtures in Scope: <strong>{summaryData.totalCompleted || 0}</strong> | Total Matches: <strong>{summaryData.totalScheduled || 0}</strong>
+                    Completed Fixtures in Scope: <strong>{summaryData.totalCompleted ?? "—"}</strong> | Total Matches: <strong>{summaryData.totalScheduled ?? "—"}</strong>
                   </div>
                 </div>
 

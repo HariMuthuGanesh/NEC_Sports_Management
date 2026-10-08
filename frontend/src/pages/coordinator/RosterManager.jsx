@@ -228,17 +228,12 @@ export default function RosterManager() {
     {
       key: "actions",
       label: "Actions",
-      width: "90px",
+      width: "100px",
       sortable: false,
       render: (_, row) => (
-        <Button
-          variant="danger"
-          size="sm"
-          icon={Trash2}
-          onClick={() => handleRemove(row.id)}
-          title="Remove Player"
-          ariaLabel="Remove Player"
-        />
+        <Button variant="danger" size="sm" icon={Trash2} onClick={() => handleRemove(row.id)}>
+          Remove
+        </Button>
       )
     }
   ];
@@ -323,17 +318,10 @@ export default function RosterManager() {
         </div>
         {selectedTeamId && (
           <div style={{ display: "flex", gap: "8px", marginLeft: "auto" }}>
-            <Button variant="ghost" size="sm" icon={Edit} onClick={() => handleOpenTeamModal(true)}>
-              Edit
+            <Button variant="ghost" size="sm" icon={Edit} aria-label="Edit team" title="Edit team" onClick={() => handleOpenTeamModal(true)} />
+            <Button variant="danger" size="sm" icon={Trash2} onClick={handleDeleteTeam}>
+              Delete
             </Button>
-            <Button
-              variant="danger"
-              size="sm"
-              icon={Trash2}
-              onClick={handleDeleteTeam}
-              title="Delete Team"
-              ariaLabel="Delete Team"
-            />
           </div>
         )}
       </div>

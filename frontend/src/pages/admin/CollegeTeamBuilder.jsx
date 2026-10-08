@@ -122,7 +122,6 @@ export default function CollegeTeamBuilder() {
       <div className="nec-page-header">
         <div>
           <h2 className="nec-page-title">College Team Builder</h2>
-          <p className="nec-page-desc">Select and confirm institutional college team rosters across all departments.</p>
         </div>
       </div>
 

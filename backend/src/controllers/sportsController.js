@@ -1,3 +1,4 @@
+import { applyTournamentLevel } from './competitionLevelController.js';
 import pool from '../config/db.js';
 import {
     getAllSports,
@@ -29,6 +30,7 @@ import {
     createDepartmentSql,
     updateDepartmentSql,
     deleteDepartmentSql,
+    countDepartmentStudents,
     getAvailableCoordinators
 } from '../models/sql/departmentSqlModel.js';
 import { getAllAnnouncements, createAnnouncement as createAnnouncementSql, deleteAnnouncement as deleteAnnouncementSql } from '../models/sql/announcementSqlModel.js';
@@ -127,8 +129,10 @@ export const getTournamentByIdController = async (req, res, next) => {
 
 export const createTournamentController = async (req, res, next) => {
     try {
-        const tourId = await createTournamentSql(req.body);
-        return res.status(201).json({ success: true, data: { tournament_id: tourId, id: tourId, ...req.body } });
+        const level = await applyTournamentLevel(req.body);
+        if (level.error) return res.status(400).json({ success: false, error: { message: level.error } });
+        const tourId = await createTournamentSql(level.body);
+        return res.status(201).json({ success: true, data: { tournament_id: tourId, id: tourId, ...level.body } });
     } catch (err) {
         next(err);
     }
@@ -136,11 +140,13 @@ export const createTournamentController = async (req, res, next) => {
 
 export const updateTournamentController = async (req, res, next) => {
     try {
-        const success = await updateTournamentSql(req.params.id, req.body);
+        const level = await applyTournamentLevel(req.body);
+        if (level.error) return res.status(400).json({ success: false, error: { message: level.error } });
+        const success = await updateTournamentSql(req.params.id, level.body);
         if (!success) {
             return res.status(404).json({ success: false, error: { message: 'Tournament not found.' } });
         }
-        return res.json({ success: true, data: { tournament_id: req.params.id, id: req.params.id, ...req.body } });
+        return res.json({ success: true, data: { tournament_id: req.params.id, id: req.params.id, ...level.body } });
     } catch (err) {
         next(err);
     }
@@ -371,19 +377,17 @@ export const getDepartments = async (req, res, next) => {
 
 export const createDepartmentController = async (req, res, next) => {
     try {
-        const { name, code, hodName, hod, hodEmail, coordinatorUserId, coordinatorId, colorCode, color } = req.body;
+        const { name, code, coordinatorUserId, coordinatorId, colorCode, color } = req.body;
         if (!name || !code) {
             return res.status(400).json({ success: false, error: { message: 'Department name and code are required.' } });
         }
         const deptId = await createDepartmentSql({
             name,
             code,
-            hodName: hodName || hod || null,
-            hodEmail: hodEmail || null,
             coordinatorUserId: Number(coordinatorUserId || coordinatorId) || null,
             colorCode: colorCode || color || '#3b82f6'
         });
-        return res.status(201).json({ success: true, data: { id: deptId, ...req.body } });
+        return res.status(201).json({ success: true, data: { id: deptId, name, code } });
     } catch (err) {
         next(err);
     }
@@ -391,19 +395,19 @@ export const createDepartmentController = async (req, res, next) => {
 
 export const updateDepartmentController = async (req, res, next) => {
     try {
-        const { name, code, hodName, hod, hodEmail, coordinatorUserId, coordinatorId, colorCode, color } = req.body;
+        const { name, code, coordinatorUserId, coordinatorId, colorCode, color } = req.body;
         const success = await updateDepartmentSql(req.params.id, {
             name,
             code,
-            hodName: hodName !== undefined ? hodName : hod,
-            hodEmail,
-            coordinatorUserId: coordinatorUserId !== undefined ? (Number(coordinatorUserId || coordinatorId) || null) : undefined,
+            coordinatorUserId: (coordinatorUserId !== undefined || coordinatorId !== undefined)
+                ? (Number(coordinatorUserId ?? coordinatorId) || null)
+                : undefined,
             colorCode: colorCode || color
         });
         if (!success) {
             return res.status(404).json({ success: false, error: { message: 'Department not found.' } });
         }
-        return res.json({ success: true, data: { id: Number(req.params.id), ...req.body } });
+        return res.json({ success: true, data: { id: Number(req.params.id), name, code } });
     } catch (err) {
         next(err);
     }
@@ -411,6 +415,13 @@ export const updateDepartmentController = async (req, res, next) => {
 
 export const deleteDepartmentController = async (req, res, next) => {
     try {
+        const studentCount = await countDepartmentStudents(req.params.id);
+        if (studentCount > 0) {
+            return res.status(409).json({
+                success: false,
+                error: { code: 'DEPARTMENT_HAS_STUDENTS', message: `Cannot delete a department with ${studentCount} student(s). Move or remove them first.` }
+            });
+        }
         const success = await deleteDepartmentSql(req.params.id);
         if (!success) {
             return res.status(404).json({ success: false, error: { message: 'Department not found.' } });
@@ -648,6 +659,12 @@ export const searchStudentsController = async (req, res, next) => {
             source = 'sportsdb';
         }
 
+        // Personal contact details are only visible to staff roles that manage rosters.
+        const canSeeContact = ['Admin', 'Sports President', 'Coordinator'].includes(req.user?.role);
+        if (!canSeeContact && Array.isArray(data)) {
+            data = data.map(({ personal_email, email, personal_phone, phone, ...rest }) => rest);
+        }
+
         return res.json({
             success: true,
             data,
@@ -772,6 +789,48 @@ export const createStudentController = async (req, res, next) => {
                 rollNo: cleanRegNo,
                 email: cleanEmail,
                 deptId: resolvedDeptId
+            }
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+// Logged-in student's own record (students.user_id = session user) plus their team memberships.
+// Lets player pages show only the player's own data instead of the full student registry.
+export const getMyStudentProfileController = async (req, res, next) => {
+    try {
+        const [[student]] = await pool.execute(
+            `SELECT s.student_id, s.student_name, s.register_number, s.department_id,
+                    d.code AS dept_code, d.name AS dept_name
+             FROM students s
+             LEFT JOIN departments d ON d.id = s.department_id
+             WHERE s.user_id = ? LIMIT 1`,
+            [req.user.id]
+        );
+        if (!student) {
+            return res.status(404).json({ success: false, error: { message: 'No student record is linked to your account yet. Ask the coordinator to link it.' } });
+        }
+        const [teams] = await pool.execute(
+            `SELECT t.team_id AS id, t.name, tm.role, t.sport_id, sp.name AS sport_name, t.status
+             FROM team_members tm
+             JOIN teams t ON t.team_id = tm.team_id
+             LEFT JOIN sports sp ON sp.sport_id = t.sport_id
+             WHERE tm.student_id = ? AND t.status <> 'Disqualified'
+             ORDER BY t.name ASC`,
+            [student.student_id]
+        );
+        return res.json({
+            success: true,
+            data: {
+                studentId: student.student_id,
+                name: student.student_name,
+                rollNo: student.register_number,
+                deptId: student.department_id,
+                deptCode: student.dept_code,
+                deptName: student.dept_name,
+                teamId: teams[0]?.id ?? null,
+                teams
             }
         });
     } catch (err) {

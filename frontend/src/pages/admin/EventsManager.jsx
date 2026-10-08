@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { eventsApi } from "../../services/api/apiServices";
+import { eventsApi, sportsApi, tournamentsApi } from "../../services/api/apiServices";
 import { useToast } from "../../context/ToastContext";
 import Table from "../../components/common/Table";
 import Badge from "../../components/common/Badge";
 import Button from "../../components/common/Button";
 import { Modal } from "../../components/common/Modal";
 import ErrorState from "../../components/common/ErrorState";
-import { Plus, ToggleLeft, ToggleRight, Trash2 } from "lucide-react";
+import { Plus, ToggleLeft, ToggleRight, Trash2, Users } from "lucide-react";
 import { useAutoRefresh } from "../../hooks/useAutoRefresh";
 import "./AdminPortal.css";
 
@@ -26,13 +26,50 @@ export default function EventsManager() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [title, setTitle] = useState("");
-  const [sportId, setSportId] = useState(1);
+  const [sportId, setSportId] = useState("");
+  const [tournamentId, setTournamentId] = useState("");
+  const [sports, setSports] = useState([]);
+  const [tournaments, setTournaments] = useState([]);
+  // Registered-teams view
+  const [teamsEvent, setTeamsEvent] = useState(null);
+  const [teamsData, setTeamsData] = useState(null);
+  const [teamsLoading, setTeamsLoading] = useState(false);
   const [category, setCategory] = useState("Men");
   const [eventCategory, setEventCategory] = useState("Inter-Department");
   const [maxTeams, setMaxTeams] = useState(8);
   const [regDeadline, setRegDeadline] = useState("2026-08-20");
   const [startTime, setStartTime] = useState("");
   const [durationMinutes, setDurationMinutes] = useState(120);
+
+  useEffect(() => {
+    sportsApi.getSports().then(list => setSports(Array.isArray(list) ? list : [])).catch(() => setSports([]));
+    tournamentsApi.getTournaments().then(list => {
+      const arr = Array.isArray(list) ? list : [];
+      setTournaments(arr);
+      if (arr.length) setTournamentId(prev => prev || String(arr[0].tournament_id || arr[0].id));
+    }).catch(() => setTournaments([]));
+  }, []);
+
+  const handleOpenTeams = async (ev) => {
+    setTeamsEvent(ev);
+    setTeamsData(null);
+    setTeamsLoading(true);
+    try {
+      const isIndividual = (ev.sportType || "Team") === "Individual";
+      if (isIndividual) {
+        const entries = await eventsApi.getEventEntries(ev.id || ev.event_id);
+        setTeamsData({ entries });
+      } else {
+        const res = await eventsApi.getEventTeams(ev.id || ev.event_id);
+        setTeamsData(res);
+      }
+    } catch (err) {
+      toast.error("Failed to load registrations: " + err.message);
+      setTeamsEvent(null);
+    } finally {
+      setTeamsLoading(false);
+    }
+  };
 
   const { data: rawEvents, loading, error, refetch } = useAutoRefresh(
     () => eventsApi.getEvents(),
@@ -64,7 +101,7 @@ export default function EventsManager() {
     }));
 
     try {
-      await eventsApi.toggleEventStatus(eventId, { status: nextStatus });
+      await eventsApi.toggleEventStatus(eventId, nextStatus);
       toast.success(`Event registration ${nextStatus.toLowerCase()}!`);
     } catch (err) {
       setLocalEvents(prevEvents);
@@ -87,15 +124,24 @@ export default function EventsManager() {
     e.preventDefault();
     if (!title.trim()) return;
 
+    if (!tournamentId) {
+      toast.error("Select a tournament for this event.");
+      return;
+    }
+    if (!sportId) {
+      toast.error("Select a sport for this event.");
+      return;
+    }
     try {
       await eventsApi.createEvent({
+        tournamentId: Number(tournamentId),
         title: title.trim(),
         eventCategory,
         regDeadline,
         startTime: startTime || null,
         durationMinutes: Number(durationMinutes) || 120,
         status: "Open",
-        sportId: Number(sportId) || 1,
+        sportId: Number(sportId),
         category,
         maxTeams: Number(maxTeams) || 8,
       });
@@ -163,7 +209,9 @@ export default function EventsManager() {
       key: "teamsLimit",
       label: "Teams Registered",
       width: "150px",
-      render: (_, row) => <span>{row.registeredTeams ?? 0} / {row.maxTeams || row.max_teams || 32} Teams</span>
+      render: (_, row) => row.sportType === "Individual"
+        ? <span>{row.registeredEntries ?? 0} entries</span>
+        : <span>{row.registeredTeams ?? 0} / {row.maxTeams || row.max_teams || 32} Teams</span>
     },
     {
       key: "regDeadline",
@@ -196,6 +244,9 @@ export default function EventsManager() {
         const isOpen = st === "Open" || st === "Registration Open";
         return (
           <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+            <Button variant="ghost" size="sm" icon={Users} onClick={() => handleOpenTeams(row)} title="View registered teams">
+              Teams
+            </Button>
             <Button
               variant={isOpen ? "outline" : "primary"}
               size="sm"
@@ -244,6 +295,45 @@ export default function EventsManager() {
       )}
 
       <Modal
+        isOpen={!!teamsEvent}
+        onClose={() => setTeamsEvent(null)}
+        title={`Registrations: ${teamsEvent?.name || teamsEvent?.title || ""}`}
+        size="lg"
+      >
+        {teamsLoading && <p>Loading registrations...</p>}
+        {!teamsLoading && teamsData?.entries && (
+          <Table
+            columns={[
+              { key: "student_name", label: "Student", render: (v, r) => <strong>{v}</strong> },
+              { key: "register_number", label: "Register No." },
+              { key: "department_code", label: "Dept", width: "90px" },
+              { key: "category_name", label: "Category", render: (v) => v || "-" }
+            ]}
+            data={teamsData.entries}
+            emptyMessage="No students have entered this event yet."
+          />
+        )}
+        {!teamsLoading && teamsData?.teams && (
+          <>
+            <p style={{ fontSize: "0.85rem", marginBottom: "10px" }}>
+              {teamsData.summary.total} team(s): {teamsData.summary.approved} approved, {teamsData.summary.pending} pending, {teamsData.summary.disqualified} disqualified.
+            </p>
+            <Table
+              columns={[
+                { key: "name", label: "Team", render: (v) => <strong>{v}</strong> },
+                { key: "department_code", label: "Dept", width: "90px", render: (v) => v || "-" },
+                { key: "status", label: "Status", width: "120px", render: (v) => <Badge status={v === "Approved" ? "success" : v === "Disqualified" ? "danger" : "warning"}>{v}</Badge> },
+                { key: "playerCount", label: "Players", width: "90px" },
+                { key: "fixtureCount", label: "Fixtures", width: "90px" }
+              ]}
+              data={teamsData.teams}
+              emptyMessage="No teams have registered for this event yet."
+            />
+          </>
+        )}
+      </Modal>
+
+      <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         title="Create New Sports Event"
@@ -262,6 +352,22 @@ export default function EventsManager() {
             />
           </div>
 
+          <div>
+            <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: "4px" }}>Tournament *</label>
+            <select
+              className="nec-table-search-input"
+              style={{ maxWidth: "100%" }}
+              value={tournamentId}
+              onChange={(e) => setTournamentId(e.target.value)}
+              required
+            >
+              <option value="">-- Select tournament --</option>
+              {tournaments.map(t => (
+                <option key={t.tournament_id || t.id} value={t.tournament_id || t.id}>{t.name || t.title}</option>
+              ))}
+            </select>
+          </div>
+
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
             <div>
               <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: "4px" }}>Sport</label>
@@ -270,15 +376,12 @@ export default function EventsManager() {
                 style={{ maxWidth: "100%" }}
                 value={sportId}
                 onChange={(e) => setSportId(e.target.value)}
+                required
               >
-                <option value="1">Football</option>
-                <option value="2">Cricket</option>
-                <option value="3">Basketball</option>
-                <option value="4">Volleyball</option>
-                <option value="5">Badminton</option>
-                <option value="6">Table Tennis</option>
-                <option value="7">Athletics</option>
-                <option value="8">Chess</option>
+                <option value="">-- Select sport --</option>
+                {sports.map(sp => (
+                  <option key={sp.sport_id} value={sp.sport_id}>{sp.name}{sp.sport_type === "Individual" ? " (individual)" : ""}</option>
+                ))}
               </select>
             </div>
 

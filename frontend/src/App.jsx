@@ -29,8 +29,9 @@ import SportsCatalog from "./pages/admin/SportsCatalog";
 import TournamentsManager from "./pages/admin/TournamentsManager";
 import CompetitionLevelsManager from "./pages/admin/CompetitionLevelsManager";
 import EventsManager from "./pages/admin/EventsManager";
-import RegistrationsManager from "./pages/admin/RegistrationsManager";
 import TeamsManager from "./pages/admin/TeamsManager";
+import StaffCoordinatorsManager from "./pages/admin/StaffCoordinatorsManager";
+import CompetitionLevelsManager from "./pages/admin/CompetitionLevelsManager";
 import MatchesManager from "./pages/admin/MatchesManager";
 import ReportsManager from "./pages/admin/ReportsManager";
 import AnnouncementsManager from "./pages/admin/AnnouncementsManager";
@@ -233,16 +234,24 @@ function MainApp() {
             <EventsManager />
           </ProtectedRoute>
         );
-      case "admin_regs":
-        return (
-          <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={redirectNav}>
-            <RegistrationsManager />
-          </ProtectedRoute>
-        );
       case "admin_teams":
         return (
           <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={redirectNav}>
             <TeamsManager />
+          </ProtectedRoute>
+        );
+
+      case "admin_levels":
+        return (
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={redirectNav} routeId="admin_levels">
+            <CompetitionLevelsManager />
+          </ProtectedRoute>
+        );
+
+      case "admin_staff":
+        return (
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={redirectNav} routeId="admin_staff">
+            <StaffCoordinatorsManager />
           </ProtectedRoute>
         );
 

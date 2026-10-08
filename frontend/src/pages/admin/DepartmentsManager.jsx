@@ -5,7 +5,7 @@ import Badge from "../../components/common/Badge";
 import { Modal } from "../../components/common/Modal";
 import Table from "../../components/common/Table";
 import { sportsApi } from "../../services/api/apiServices";
-import { sanitizeInput, getAuthToken } from "../../utils/security";
+import { sanitizeInput } from "../../utils/security";
 import { Building2, Plus, Edit2, Trash2, UserCheck, Mail } from "lucide-react";
 import ErrorState from "../../components/common/ErrorState";
 import "../admin/AdminPortal.css";
@@ -33,9 +33,7 @@ export default function DepartmentsManager() {
   const [form, setForm] = useState({ 
     name: "", 
     code: "", 
-    color: "#3b82f6", 
-    hod: "", 
-    hodEmail: "",
+    color: "#3b82f6",
     coordinatorUserId: "" 
   });
 
@@ -47,14 +45,8 @@ export default function DepartmentsManager() {
       setDepts(Array.isArray(data) ? data : []);
 
       // Fetch coordinators
-      const token = getAuthToken();
-      const coordRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/coordinators`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (coordRes.ok) {
-        const cJson = await coordRes.json();
-        setCoordinators(cJson.data || []);
-      }
+      const coordList = await sportsApi.getCoordinators().catch(() => []);
+      setCoordinators(Array.isArray(coordList) ? coordList : []);
     } catch (err) {
       console.error(err);
       setError(err.message || "Failed to load departments");
@@ -66,7 +58,7 @@ export default function DepartmentsManager() {
 
   const openAdd = () => { 
     setEditDept(null); 
-    setForm({ name: "", code: "", color: "#3b82f6", hod: "", hodEmail: "", coordinatorUserId: "" }); 
+    setForm({ name: "", code: "", color: "#3b82f6", coordinatorUserId: "" }); 
     setShowModal(true); 
   };
   
@@ -76,8 +68,6 @@ export default function DepartmentsManager() {
       name: unescapeEntity(d.name), 
       code: unescapeEntity(d.code), 
       color: d.color_code || d.color || "#3b82f6", 
-      hod: d.hod_name || d.hod || "", 
-      hodEmail: d.hod_email || "",
       coordinatorUserId: d.coordinator_user_id ? String(d.coordinator_user_id) : "" 
     }); 
     setShowModal(true); 
@@ -88,8 +78,6 @@ export default function DepartmentsManager() {
     const entry = { 
       name: form.name.trim(), 
       code: form.code.trim().toUpperCase(), 
-      hodName: form.hod.trim(), 
-      hodEmail: form.hodEmail.trim(),
       coordinatorUserId: form.coordinatorUserId ? Number(form.coordinatorUserId) : null,
       colorCode: form.color 
     };
@@ -137,16 +125,6 @@ export default function DepartmentsManager() {
         </div>
       ) : (
         <span style={{ color: "var(--nec-text-muted)", fontStyle: "italic" }}>Not Assigned</span>
-      ) 
-    },
-    { 
-      key: "hod_name", 
-      label: "Head of Department", 
-      render: (val, row) => (
-        <div>
-          <div>{unescapeEntity(val) || unescapeEntity(row.hod) || "-"}</div>
-          {row.hod_email && <div style={{ fontSize: "0.75rem", color: "var(--nec-text-muted)" }}>{row.hod_email}</div>}
-        </div>
       ) 
     },
     { key: "students", label: "Athletes", width: "90px", render: (val) => <span>{val || 0} enrolled</span> },
@@ -232,16 +210,6 @@ export default function DepartmentsManager() {
                   <option key={c.id} value={c.id}>{c.username} ({c.email})</option>
                 ))}
               </select>
-            </div>
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-            <div className="nec-form-group">
-              <label className="nec-form-label">Head of Department (HOD)</label>
-              <input className="nec-table-search-input" style={{ maxWidth: "100%" }} value={form.hod} onChange={e => setForm(f => ({ ...f, hod: e.target.value }))} placeholder="Dr. Name" />
-            </div>
-            <div className="nec-form-group">
-              <label className="nec-form-label">HOD Official Email</label>
-              <input type="email" className="nec-table-search-input" style={{ maxWidth: "100%" }} value={form.hodEmail} onChange={e => setForm(f => ({ ...f, hodEmail: e.target.value }))} placeholder="hod_cse@nec.edu.in" />
             </div>
           </div>
           <div className="nec-form-group">
