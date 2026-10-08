@@ -3,16 +3,38 @@ import pool from '../config/db.js';
 /**
  * GET /api/reports/performance
  * Returns periodic department performance, medal tally, and event breakdown.
- * Query params: timeframe (1month | 6months | 12months | all)
+ * Query params: timeframe (1month | 6months | 12months | all) OR from & to (YYYY-MM-DD, inclusive)
  */
 export const getPerformanceReportController = async (req, res, next) => {
     try {
-        const { timeframe = '1month' } = req.query;
+        const { timeframe = '1month', from, to } = req.query;
 
-        let intervalClause = 'INTERVAL 1 MONTH';
-        if (timeframe === '6months') intervalClause = 'INTERVAL 6 MONTH';
-        else if (timeframe === '12months' || timeframe === '1year') intervalClause = 'INTERVAL 1 YEAR';
-        else if (timeframe === 'all') intervalClause = 'INTERVAL 100 YEAR';
+        // Custom range (YYYY-MM-DD, inclusive) takes precedence over the presets.
+        const isDate = (v) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v));
+        let range;
+        if (from || to) {
+            if (!isDate(from) || !isDate(to)) {
+                return res.status(400).json({ success: false, error: { code: 'INVALID_DATE_RANGE', message: 'Both from and to are required as YYYY-MM-DD.' } });
+            }
+            if (from > to) {
+                return res.status(400).json({ success: false, error: { code: 'INVALID_DATE_RANGE', message: 'From date must be on or before to date.' } });
+            }
+            range = {
+                clause: 'm.scheduled_time >= ? AND m.scheduled_time < DATE_ADD(?, INTERVAL 1 DAY)',
+                params: [from, to],
+                plainClause: 'scheduled_time >= ? AND scheduled_time < DATE_ADD(?, INTERVAL 1 DAY)',
+                label: { from, to }
+            };
+        } else {
+            const presets = { '6months': 'INTERVAL 6 MONTH', '12months': 'INTERVAL 1 YEAR', '1year': 'INTERVAL 1 YEAR', all: 'INTERVAL 100 YEAR' };
+            const interval = presets[timeframe] || 'INTERVAL 1 MONTH';
+            range = {
+                clause: `m.scheduled_time >= DATE_SUB(NOW(), ${interval})`,
+                params: [],
+                plainClause: `scheduled_time >= DATE_SUB(NOW(), ${interval})`,
+                label: null
+            };
+        }
 
         // 1. Department Performance & Medals within timeframe
         const deptSql = `
@@ -40,20 +62,23 @@ export const getPerformanceReportController = async (req, res, next) => {
             FROM departments d
             LEFT JOIN teams t ON d.id = t.department_id
             LEFT JOIN matches m ON (t.team_id = m.team_a_id OR t.team_id = m.team_b_id) 
-                 AND m.scheduled_time >= DATE_SUB(NOW(), ${intervalClause})
+                 AND ${range.clause}
             GROUP BY d.id, d.name, d.code, d.color_code
             ORDER BY points DESC, gold DESC, wins DESC, d.name ASC
         `;
 
-        const [deptRows] = await pool.execute(deptSql);
+        const [deptRows] = await pool.execute(deptSql, range.params);
 
         const enrichedDepts = deptRows.map((r, idx) => {
-            const studentBase = r.totalDepartmentStudents || 100;
-            const participationRate = Math.min(100, Math.round(((r.activeAthletes || (r.wins * 3 + 10)) / studentBase) * 100)) || 85;
+            // Real participation only: athletes on rosters / students in the department. No placeholder values.
+            const studentBase = Number(r.totalDepartmentStudents) || 0;
+            const participation = studentBase > 0
+                ? `${Math.min(100, Math.round((Number(r.activeAthletes || 0) / studentBase) * 100))}%`
+                : null;
             return {
                 ...r,
                 rank: idx + 1,
-                participation: `${Math.max(75, participationRate)}%`
+                participation
             };
         });
 
@@ -64,13 +89,15 @@ export const getPerformanceReportController = async (req, res, next) => {
                 COUNT(CASE WHEN status = 'Completed' THEN 1 END) AS totalCompleted,
                 COUNT(CASE WHEN status = 'Ongoing' THEN 1 END) AS totalLive
              FROM matches
-             WHERE scheduled_time >= DATE_SUB(NOW(), ${intervalClause})`
+             WHERE ${range.plainClause}`,
+            range.params
         );
 
         return res.json({
             success: true,
             data: {
-                timeframe,
+                timeframe: range.label ? 'custom' : timeframe,
+                period: range.label,
                 departments: enrichedDepts,
                 summary: overallMatches[0] || {},
                 generatedAt: new Date().toISOString()

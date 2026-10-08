@@ -6,7 +6,7 @@ import Badge from "../../components/common/Badge";
 import Button from "../../components/common/Button";
 import { Modal } from "../../components/common/Modal";
 import ErrorState from "../../components/common/ErrorState";
-import { Plus, Trophy, Users, Trash2, Edit2 } from "lucide-react";
+import { Plus, Trophy, Users, Trash2, Pencil, ListPlus, X } from "lucide-react";
 import "./AdminPortal.css";
 
 export default function SportsCatalog() {
@@ -19,6 +19,12 @@ export default function SportsCatalog() {
 
   const [name, setName] = useState("");
   const [category, setCategory] = useState("Team");
+  const [sportType, setSportType] = useState("Team");
+  // Per-sport categories (e.g. Athletics: 100m, 200m)
+  const [catSport, setCatSport] = useState(null);
+  const [catList, setCatList] = useState([]);
+  const [catName, setCatName] = useState("");
+  const [catError, setCatError] = useState("");
   const [minPlayers, setMinPlayers] = useState(11);
   const [maxPlayers, setMaxPlayers] = useState(18);
 
@@ -43,6 +49,7 @@ export default function SportsCatalog() {
     setEditingSport(null);
     setName("");
     setCategory("Team");
+    setSportType("Team");
     setMinPlayers(11);
     setMaxPlayers(18);
     setIsModalOpen(true);
@@ -52,9 +59,41 @@ export default function SportsCatalog() {
     setEditingSport(sport);
     setName(sport.name || "");
     setCategory(sport.category || "Team");
+    setSportType(sport.sport_type || "Team");
     setMinPlayers(sport.min_players ?? 11);
     setMaxPlayers(sport.max_players ?? 18);
     setIsModalOpen(true);
+  };
+
+  const openCategories = (sport) => {
+    setCatSport(sport);
+    setCatName("");
+    setCatError("");
+    sportsApi.getSportCategories(sport.sport_id).then(list => setCatList(Array.isArray(list) ? list : [])).catch(() => setCatList([]));
+  };
+
+  const addCategory = async (e) => {
+    e.preventDefault();
+    setCatError("");
+    if (!catName.trim()) return;
+    try {
+      await sportsApi.createSportCategory(catSport.sport_id, { name: catName.trim() });
+      setCatName("");
+      const list = await sportsApi.getSportCategories(catSport.sport_id);
+      setCatList(Array.isArray(list) ? list : []);
+    } catch (err) {
+      setCatError(err.message || "Could not add category.");
+    }
+  };
+
+  const removeCategory = async (categoryId) => {
+    if (!window.confirm("Remove this category?")) return;
+    try {
+      await sportsApi.deleteSportCategory(categoryId);
+      setCatList(prev => prev.filter(c => c.category_id !== categoryId));
+    } catch (err) {
+      setCatError(err.message || "Could not remove category.");
+    }
   };
 
   const handleSaveSport = (e) => {
@@ -64,6 +103,7 @@ export default function SportsCatalog() {
     const payload = {
       name: name.trim(),
       category,
+      sport_type: sportType,
       min_players: Number(minPlayers),
       max_players: Number(maxPlayers),
       points_rule: editingSport?.points_rule || "Standard",
@@ -118,9 +158,10 @@ export default function SportsCatalog() {
       sortable: false,
       render: (_, row) => (
         <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-          <Button variant="outline" size="sm" icon={Edit2} onClick={() => openEditModal(row)}>
-            {t.edit || "Edit"}
+          <Button variant="outline" size="sm" icon={ListPlus} onClick={() => openCategories(row)} title="Manage categories">
+            Categories
           </Button>
+          <Button variant="ghost" size="sm" icon={Pencil} aria-label="Edit" title="Edit" onClick={() => openEditModal(row)} />
           <Button variant="danger" size="sm" icon={Trash2} onClick={() => handleRemoveSport(row.sport_id)}>
             {t.delete || "Delete"}
           </Button>
@@ -155,6 +196,24 @@ export default function SportsCatalog() {
         />
       )}
 
+      <Modal isOpen={!!catSport} onClose={() => setCatSport(null)} title={`Categories: ${catSport?.name || ""}`} size="sm">
+        <p style={{ fontSize: "0.85rem", marginBottom: 10 }}>Divisions or events for this sport, for example Athletics: 100m, 200m. Works for team and individual sports.</p>
+        <ul style={{ listStyle: "none", padding: 0, margin: "0 0 12px" }}>
+          {catList.length === 0 && <li style={{ color: "var(--nec-text-muted)" }}>No categories yet.</li>}
+          {catList.map(c => (
+            <li key={c.category_id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 0" }}>
+              <span>{c.name}</span>
+              <Button variant="ghost" size="sm" icon={X} aria-label={`Remove ${c.name}`} title="Remove" onClick={() => removeCategory(c.category_id)} />
+            </li>
+          ))}
+        </ul>
+        <form onSubmit={addCategory} style={{ display: "flex", gap: 8 }}>
+          <input className="nec-table-search-input" style={{ flex: 1 }} value={catName} onChange={(e) => setCatName(e.target.value)} placeholder="e.g. 100m" maxLength={100} />
+          <Button variant="primary" type="submit" icon={Plus}>Add</Button>
+        </form>
+        {catError && <p role="alert" style={{ color: "var(--nec-danger, #b91c1c)", marginTop: 8 }}>{catError}</p>}
+      </Modal>
+
       <Modal
         isOpen={isModalOpen}
         onClose={() => {
@@ -175,6 +234,14 @@ export default function SportsCatalog() {
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
+          </div>
+
+          <div>
+            <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: "4px" }}>Sport Type</label>
+            <select className="nec-table-search-input" style={{ maxWidth: "100%" }} value={sportType} onChange={(e) => setSportType(e.target.value)}>
+              <option value="Team">Team sport (teams register)</option>
+              <option value="Individual">Individual sport (students enter, no team)</option>
+            </select>
           </div>
 
           <div>

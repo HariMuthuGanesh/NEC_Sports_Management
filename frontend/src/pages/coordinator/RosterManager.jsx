@@ -318,9 +318,7 @@ export default function RosterManager() {
         </div>
         {selectedTeamId && (
           <div style={{ display: "flex", gap: "8px", marginLeft: "auto" }}>
-            <Button variant="ghost" size="sm" icon={Edit} onClick={() => handleOpenTeamModal(true)}>
-              Edit
-            </Button>
+            <Button variant="ghost" size="sm" icon={Edit} aria-label="Edit team" title="Edit team" onClick={() => handleOpenTeamModal(true)} />
             <Button variant="danger" size="sm" icon={Trash2} onClick={handleDeleteTeam}>
               Delete
             </Button>

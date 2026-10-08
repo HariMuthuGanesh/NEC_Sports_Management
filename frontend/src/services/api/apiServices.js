@@ -322,7 +322,13 @@ export const matchesApi = {
 
 /* --- Reports API --- */
 export const reportsApi = {
-  getPerformanceReport: (timeframe = '1month') => apiFetch(`/reports/performance?timeframe=${timeframe}`),
+  // params: { timeframe } or { from, to } with YYYY-MM-DD dates (inclusive)
+  getPerformanceReport: (params = { timeframe: '1month' }) => {
+    const qs = new URLSearchParams(
+      typeof params === 'string' ? { timeframe: params } : params
+    ).toString();
+    return apiFetch(`/reports/performance?${qs}`);
+  },
   getPlayerPerformanceReport: () => apiFetch('/players/me/performance-report')
 };
 

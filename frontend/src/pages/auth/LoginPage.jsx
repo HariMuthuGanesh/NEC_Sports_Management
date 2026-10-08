@@ -261,56 +261,56 @@ export default function LoginPage({ onLoginSuccess, onNavigate }) {
       <main className="nec-auth-main">
         <div className="nec-auth-grid">
 
-          {/* ── Left Column: Institutional College & LASA Showcase ── */}
-          <section className="nec-auth-showcase">
-            <div className="nec-showcase-glass">
-              {/* College Badges */}
-              <div className="nec-showcase-badges">
-                <div className="nec-pill-badge nec-gold-pill">
-                  <ShieldCheck size={14} />
-                  <span>Autonomous Institution • Estd. 1984</span>
-                </div>
-                <div className="nec-pill-badge nec-navy-pill">
-                  <Award size={14} />
-                  <span>Kovilpatti, Tamil Nadu</span>
-                </div>
-              </div>
-
-              {/* Title & Institutional Identity */}
-              <div className="nec-showcase-branding">
-                <div className="nec-showcase-logo">
-                  <img src="/assets/logo.jpg" alt="NEC Logo" style={{ width: "64px", height: "64px", borderRadius: "50%", objectFit: "cover" }} />
-                </div>
-                <h1 className="nec-showcase-title">
-                  National Engineering College
-                </h1>
-              </div>
-
-              {/* Campus Sports Stats Showcase */}
-              <div className="nec-showcase-stats">
-                <div className="nec-stat-box">
-                  <span className="nec-stat-num">8+</span>
-                  <span className="nec-stat-lbl">Sports Disciplines</span>
-                </div>
-                <div className="nec-stat-box">
-                  <span className="nec-stat-num">500+</span>
-                  <span className="nec-stat-lbl">Student Athletes</span>
-                </div>
-                <div className="nec-stat-box">
-                  <span className="nec-stat-num">15+</span>
-                  <span className="nec-stat-lbl">Annual Tournaments</span>
-                </div>
-                <div className="nec-stat-box">
-                  <span className="nec-stat-num">100%</span>
-                  <span className="nec-stat-lbl">Digital Scoring</span>
-                </div>
-              </div>
-
-            </div>
-          </section>
-
           {/* ── Right Column: Login Card & Persona Switcher ── */}
           <section className="nec-auth-form-panel">
+            {/* ── Left Column: Institutional College & LASA Showcase ── */}
+            <section className="nec-auth-showcase">
+              <div className="nec-showcase-glass">
+                {/* College Badges */}
+                <div className="nec-showcase-badges">
+                  <div className="nec-pill-badge nec-gold-pill">
+                    <ShieldCheck size={14} />
+                    <span>Autonomous Institution • Estd. 1984</span>
+                  </div>
+                  <div className="nec-pill-badge nec-navy-pill">
+                    <Award size={14} />
+                    <span>Kovilpatti, Tamil Nadu</span>
+                  </div>
+                </div>
+
+                {/* Title & Institutional Identity */}
+                <div className="nec-showcase-branding">
+                  <div className="nec-showcase-logo">
+                    <img src="/assets/logo.jpg" alt="NEC Logo" style={{ width: "64px", height: "64px", borderRadius: "50%", objectFit: "cover" }} />
+                  </div>
+                  <h1 className="nec-showcase-title">
+                    National Engineering College
+                  </h1>
+                </div>
+
+                {/* Campus Sports Stats Showcase */}
+                <div className="nec-showcase-stats">
+                  <div className="nec-stat-box">
+                    <span className="nec-stat-num">8+</span>
+                    <span className="nec-stat-lbl">Sports Disciplines</span>
+                  </div>
+                  <div className="nec-stat-box">
+                    <span className="nec-stat-num">500+</span>
+                    <span className="nec-stat-lbl">Student Athletes</span>
+                  </div>
+                  <div className="nec-stat-box">
+                    <span className="nec-stat-num">15+</span>
+                    <span className="nec-stat-lbl">Annual Tournaments</span>
+                  </div>
+                  <div className="nec-stat-box">
+                    <span className="nec-stat-num">100%</span>
+                    <span className="nec-stat-lbl">Digital Scoring</span>
+                  </div>
+                </div>
+
+              </div>
+            </section>
+
             <div className="nec-auth-card">
 
               {/* Form Header */}

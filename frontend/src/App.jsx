@@ -29,6 +29,7 @@ import SportsCatalog from "./pages/admin/SportsCatalog";
 import TournamentsManager from "./pages/admin/TournamentsManager";
 import EventsManager from "./pages/admin/EventsManager";
 import TeamsManager from "./pages/admin/TeamsManager";
+import StaffCoordinatorsManager from "./pages/admin/StaffCoordinatorsManager";
 import MatchesManager from "./pages/admin/MatchesManager";
 import ReportsManager from "./pages/admin/ReportsManager";
 import AnnouncementsManager from "./pages/admin/AnnouncementsManager";
@@ -229,6 +230,13 @@ function MainApp() {
         return (
           <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={redirectNav}>
             <TeamsManager />
+          </ProtectedRoute>
+        );
+
+      case "admin_staff":
+        return (
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={redirectNav} routeId="admin_staff">
+            <StaffCoordinatorsManager />
           </ProtectedRoute>
         );
 

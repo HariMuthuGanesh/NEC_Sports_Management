@@ -194,3 +194,27 @@
     top: 62px;
   }
 }
+
+/* Top-right close control inside the side panel */
+.nec-sidebar-topbar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px 12px 0;
+}
+
+.nec-sidebar-close-btn {
+  background: transparent;
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  padding: 4px 6px;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.8;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nec-sidebar-close-btn:hover {
+  opacity: 1;
+}

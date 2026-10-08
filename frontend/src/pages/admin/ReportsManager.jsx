@@ -5,13 +5,15 @@ import Table from "../../components/common/Table";
 import { FileText, Printer, Download, Award, Trophy, RefreshCw } from "lucide-react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
-import { reportsApi, leaderboardApi } from "../../services/api/apiServices";
+import { reportsApi } from "../../services/api/apiServices";
 import ErrorState from "../../components/common/ErrorState";
 import "./AdminPortal.css";
 
 export default function ReportsManager() {
   const [activeTab, setActiveTab] = useState("reports");
   const [timeframe, setTimeframe] = useState("1month");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
   const [reportType, setReportType] = useState("dept_perf");
   const [reportData, setReportData] = useState([]);
   const [summaryData, setSummaryData] = useState({});
@@ -28,26 +30,33 @@ export default function ReportsManager() {
   const reportRef = useRef(null);
 
   const loadReport = async () => {
+    if (timeframe === "custom" && (!fromDate || !toDate)) return;
+    if (timeframe === "custom" && fromDate > toDate) {
+      setError("From date must be on or before the to date.");
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
-      const rows = await leaderboardApi.getLeaderboard();
+      const params = timeframe === "custom" ? { from: fromDate, to: toDate } : { timeframe };
+      const report = await reportsApi.getPerformanceReport(params);
+      const rows = Array.isArray(report?.departments) ? report.departments : [];
       const mapped = rows.map((r, i) => ({
         rank: r.rank ?? i + 1,
         dept: r.name,
         code: r.code,
-        totalEvents: r.wins,
+        totalEvents: r.totalEvents,
         wins: r.wins,
         gold: r.gold,
         silver: r.silver,
         bronze: r.bronze,
-        points: r.total_points,
-        participation: r.students ?? '-'
+        points: r.points,
+        participation: r.participation ?? "No students"
       }));
       setReportData(mapped);
       setSummaryData({
-        totalCompleted: rows.reduce((s, r) => s + (r.wins || 0), 0),
-        totalScheduled: rows.length
+        totalCompleted: report?.summary?.totalCompleted ?? 0,
+        totalScheduled: report?.summary?.totalScheduled ?? 0
       });
     } catch (err) {
       console.error(err);
@@ -59,7 +68,7 @@ export default function ReportsManager() {
 
   useEffect(() => {
     loadReport();
-  }, [timeframe]);
+  }, [timeframe, fromDate, toDate]);
 
   const columns = [
     { key: "rank", label: "Rank", width: "70px", render: (val) => <strong>#{val}</strong> },
@@ -97,7 +106,9 @@ export default function ReportsManager() {
     window.print();
   };
 
-  const timeframeLabel = timeframe === "1month" 
+  const timeframeLabel = timeframe === "custom"
+    ? `${fromDate || "?"} to ${toDate || "?"}`
+    : timeframe === "1month" 
     ? "Past 1 Month (Current Cycle)" 
     : timeframe === "6months" 
     ? "Past 6 Months (Semester)" 
@@ -138,7 +149,15 @@ export default function ReportsManager() {
                   <option value="6months">Past 6 Months (Semester Audit)</option>
                   <option value="12months">Past 12 Months (Annual Report)</option>
                   <option value="all">All-Time Cumulative</option>
+                  <option value="custom">Custom date range</option>
                 </select>
+                {timeframe === "custom" && (
+                  <span style={{ display: "inline-flex", gap: "6px", alignItems: "center", marginLeft: "8px" }}>
+                    <input type="date" className="nec-table-search-input" style={{ width: "auto" }} value={fromDate} max={toDate || undefined} onChange={(e) => setFromDate(e.target.value)} aria-label="From date" />
+                    <span>to</span>
+                    <input type="date" className="nec-table-search-input" style={{ width: "auto" }} value={toDate} min={fromDate || undefined} onChange={(e) => setToDate(e.target.value)} aria-label="To date" />
+                  </span>
+                )}
               </div>
 
               <div>

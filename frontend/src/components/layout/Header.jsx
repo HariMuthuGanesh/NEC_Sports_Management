@@ -93,9 +93,10 @@ export default function Header({ onToggleSidebar, isSidebarOpen, onSelectNav, ac
         <button
           className="nec-menu-toggle-btn"
           onClick={onToggleSidebar}
-          aria-label="Toggle navigation drawer"
+          aria-label="Open navigation drawer"
+          aria-expanded={isSidebarOpen}
         >
-          {isSidebarOpen ? <X size={20} /> : <Menu size={20} />}
+          <Menu size={20} />
         </button>
 
         <div className="nec-brand" onClick={() => onSelectNav?.(currentUser?.role === ROLES.PUBLIC ? "public_home" : "public_home")}>

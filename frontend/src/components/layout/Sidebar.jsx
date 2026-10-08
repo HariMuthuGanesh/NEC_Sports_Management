@@ -13,6 +13,7 @@ import {
   Image,
   Award,
   UserCheck,
+  X,
   Edit3,
   Bell,
   Home,
@@ -46,6 +47,7 @@ export default function Sidebar({ activeNav, onSelectNav, isOpen, onCloseMobile 
               { id: "admin_teams", label: "Team Approvals & Catalog", icon: Users },
               { id: "admin_students", label: "Student Registry", icon: UserCheck },
               { id: "admin_depts", label: "Departments", icon: Building2 },
+              { id: "admin_staff", label: "Staff Coordinators", icon: UserCheck },
               { id: "admin_matches", label: t.matchScheduler, icon: Calendar },
               { id: "admin_venues", label: t.venues, icon: MapPin },
               { id: "admin_od", label: "On Duty Requests", icon: FileText }
@@ -165,6 +167,17 @@ export default function Sidebar({ activeNav, onSelectNav, isOpen, onCloseMobile 
       {isOpen && <div className="nec-sidebar-overlay" onClick={onCloseMobile} />}
       <aside className={`nec-sidebar ${isOpen ? "open" : ""}`}>
         <div className="nec-sidebar-inner">
+          {/* Close control sits at the top-right of the side panel (Task 6). */}
+          <div className="nec-sidebar-topbar">
+            <button
+              type="button"
+              className="nec-sidebar-close-btn"
+              onClick={onCloseMobile}
+              aria-label="Close navigation drawer"
+            >
+              <X size={18} />
+            </button>
+          </div>
           <nav className="nec-sidebar-nav">
             {navGroups.map((group, idx) => (
               <div key={idx} className="nec-nav-group">
