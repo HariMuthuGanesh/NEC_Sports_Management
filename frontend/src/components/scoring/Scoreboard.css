@@ -879,3 +879,63 @@
     font-size: 0.8rem;
   }
 }
+
+/* ── Score entry stays in view ─────────────────────────────────────────── */
+/* Header stays sticky at the top; the control bar and live score strip stay under it. */
+.nec-score-sheet-sticky {
+  position: sticky;
+  top: var(--nec-header-h, 64px);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 0 8px;
+  background: var(--nec-bg, #f5f7fb);
+}
+
+.nec-score-sheet-strip {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--nec-border, rgba(15, 23, 42, 0.1));
+  background: var(--nec-surface, #fff);
+}
+
+.nec-score-sheet-strip-team {
+  font-weight: 700;
+  font-size: 0.9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nec-score-sheet-strip-team--right {
+  text-align: right;
+}
+
+.nec-score-sheet-strip-score {
+  font-weight: 800;
+  font-size: 1.25rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Submit button stays visible at the bottom of the viewport while scores are entered. */
+.nec-scoreboard-form > button[type="submit"] {
+  position: sticky;
+  bottom: 12px;
+  z-index: 10;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.18);
+}
+
+@media (max-width: 640px) {
+  .nec-score-sheet-strip-team { font-size: 0.8rem; }
+  .nec-score-sheet-strip-score { font-size: 1.05rem; }
+}
+
+/* Card clips by default; allow the sticky submit to work inside the score sheet card. */
+.nec-score-sheet-card.nec-card {
+  overflow: visible;
+}

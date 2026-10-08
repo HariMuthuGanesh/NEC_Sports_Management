@@ -225,6 +225,7 @@ export default function ScoreSheet({ onNavigate }) {
   return (
     <div className="nec-portal-page nec-score-sheet-page">
       {/* ── Top Control & Navigation Bar ───────────────────────────────── */}
+      <div className="nec-score-sheet-sticky">
       <div className="nec-score-sheet-control-bar">
         <div className="nec-score-sheet-control-left">
           <Button
@@ -294,6 +295,12 @@ export default function ScoreSheet({ onNavigate }) {
           <Button variant="ghost" size="sm" icon={RefreshCw} onClick={refetch}>
             Refresh
           </Button>
+        </div>
+      </div>
+        <div className="nec-score-sheet-strip" aria-live="polite">
+          <span className="nec-score-sheet-strip-team">{currentMatch.teamA}</span>
+          <span className="nec-score-sheet-strip-score">{displayScoreA} : {displayScoreB}</span>
+          <span className="nec-score-sheet-strip-team nec-score-sheet-strip-team--right">{currentMatch.teamB}</span>
         </div>
       </div>
 
