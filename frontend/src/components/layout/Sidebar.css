@@ -1,18 +1,40 @@
 /* National Engineering College (NEC) Sidebar Component Styles */
 /* Theme: Collegiate Heritage & Modern Varsity Editorial */
 
+/* Collapsible drawer: slides over the page at every width, so content never shifts. */
 .nec-sidebar {
+  --nec-drawer-duration: 280ms;
   width: 270px;
+  max-width: 86vw;
   background-color: var(--nec-surface);
   border-right: 1px solid var(--nec-border);
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 68px);
-  position: sticky;
-  top: 68px;
-  flex-shrink: 0;
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  position: fixed;
+  top: var(--nec-header-h, 64px);
+  left: 0;
+  bottom: 0;
+  height: calc(100vh - var(--nec-header-h, 64px));
+  transform: translateX(-100%);
+  visibility: hidden;
+  transition:
+    transform var(--nec-drawer-duration) cubic-bezier(0.16, 1, 0.3, 1),
+    visibility 0s linear var(--nec-drawer-duration);
+  box-shadow: none;
   z-index: 800;
+}
+
+.nec-sidebar.open {
+  transform: translateX(0);
+  visibility: visible;
+  transition:
+    transform var(--nec-drawer-duration) cubic-bezier(0.16, 1, 0.3, 1),
+    visibility 0s linear 0s;
+  box-shadow: var(--nec-shadow-lg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nec-sidebar { transition: none; }
 }
 
 .nec-sidebar-inner {
@@ -154,45 +176,19 @@
   margin-top: 2px;
 }
 
-/* Mobile responsive drawer overlay */
+/* Backdrop: clicking it closes the drawer */
 .nec-sidebar-overlay {
-  display: none;
+  position: fixed;
+  inset: 0;
+  top: var(--nec-header-h, 64px);
+  background: rgba(0, 26, 46, 0.45);
+  z-index: 750;
+  animation: nec-overlay-in 280ms ease-out both;
 }
 
-@media (max-width: 900px) {
-  .nec-sidebar {
-    position: fixed;
-    top: 68px;
-    left: 0;
-    transform: translateX(-100%);
-    height: calc(100vh - 68px);
-    box-shadow: var(--nec-shadow-lg);
-  }
-
-  .nec-sidebar.open {
-    transform: translateX(0);
-  }
-
-  .nec-sidebar-overlay {
-    display: block;
-    position: fixed;
-    inset: 0;
-    top: 68px;
-    background: rgba(0, 26, 46, 0.6);
-    backdrop-filter: blur(4px);
-    z-index: 750;
-  }
-}
-
-@media (max-width: 640px) {
-  .nec-sidebar {
-    top: 62px;
-    height: calc(100vh - 62px);
-  }
-
-  .nec-sidebar-overlay {
-    top: 62px;
-  }
+@keyframes nec-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 /* Top-right close control inside the side panel */

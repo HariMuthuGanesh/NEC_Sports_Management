@@ -373,35 +373,6 @@ export default function TeamsManager() {
         </div>
       ) : (
         <>
-          <div className="nec-stats-grid">
-            <div className="nec-stat-card nec-stat-card-navy">
-              <div className="nec-stat-card-top">
-                <span className="nec-stat-title">Total Teams</span>
-                <div className="nec-stat-icon-wrapper"><Users size={20} /></div>
-              </div>
-              <div className="nec-stat-value">{teams.length}</div>
-              <div className="nec-stat-subtext">Registered this semester</div>
-            </div>
-
-            <div className="nec-stat-card nec-stat-card-gold">
-              <div className="nec-stat-card-top">
-                <span className="nec-stat-title">Pending Approvals</span>
-                <div className="nec-stat-icon-wrapper"><Activity size={20} /></div>
-              </div>
-              <div className="nec-stat-value">{teams.filter(t => t.status === "Pending").length}</div>
-              <div className="nec-stat-subtext">Requires attention</div>
-            </div>
-            
-            <div className="nec-stat-card nec-stat-card-navy">
-              <div className="nec-stat-card-top">
-                <span className="nec-stat-title">Approved Teams</span>
-                <div className="nec-stat-icon-wrapper"><Trophy size={20} /></div>
-              </div>
-              <div className="nec-stat-value">{teams.filter(t => t.status === "Approved").length}</div>
-              <div className="nec-stat-subtext">Active for tournaments</div>
-            </div>
-          </div>
-
           <Table
             columns={columns}
             data={displayedTeams}

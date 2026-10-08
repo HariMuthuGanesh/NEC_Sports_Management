@@ -1,5 +1,12 @@
 import express from 'express';
 import { protect, optionalProtect, authorize, requireAdminScope } from '../middleware/authMiddleware.js';
+import {
+    listCompetitionLevelsController,
+    getCompetitionLevelController,
+    createCompetitionLevelController,
+    updateCompetitionLevelController,
+    deleteCompetitionLevelController
+} from '../controllers/competitionLevelController.js';
 import { syncScheduledStatuses } from '../services/scheduledStatusService.js';
 import {
     getSports,
@@ -161,6 +168,11 @@ router.get('/admin/audit-log', protect, authorize('Admin'), async (req, res, nex
 
 // Publicly accessible endpoints (MySQL-backed)
 router.get('/sports', getSports);
+router.get('/competition-levels', optionalProtect, listCompetitionLevelsController);
+router.get('/competition-levels/:id', optionalProtect, getCompetitionLevelController);
+router.post('/competition-levels', protect, authorize('Admin'), createCompetitionLevelController);
+router.put('/competition-levels/:id', protect, authorize('Admin'), updateCompetitionLevelController);
+router.delete('/competition-levels/:id', protect, authorize('Admin'), deleteCompetitionLevelController);
 router.get('/tournaments', getTournaments);
 router.get('/venues', getVenues);
 router.get('/departments', getDepartments);

@@ -6,6 +6,7 @@ import {
   matchesApi 
 } from "../../services/api/apiServices";
 import { useAuth } from "../../context/AuthContext";
+import { competitionLevelsApi } from "../../services/api/apiServices";
 import Badge from "../../components/common/Badge";
 import Button from "../../components/common/Button";
 import { Modal } from "../../components/common/Modal";
@@ -90,18 +91,22 @@ export default function TournamentsManager() {
   };
 
   // New Tournament Form
+  const [competitionLevels, setCompetitionLevels] = useState([]);
+  const [levelsError, setLevelsError] = useState("");
   const [newTournament, setNewTournament] = useState({
     title: "",
     academicYear: "2025-2026",
-    tier: "Intramural",
+    levelId: "",
     description: "",
     startDate: new Date().toISOString().split("T")[0],
     endDate: "2026-09-30"
   });
 
   // New Match Fixture Form
+  const [sportCategories, setSportCategories] = useState([]);
   const [newMatch, setNewMatch] = useState({
     sportId: "",
+    categoryId: "",
     teamAId: "",
     teamBId: "",
     venueId: "",
@@ -115,6 +120,11 @@ export default function TournamentsManager() {
   useEffect(() => {
     loadTournaments();
     loadVenuesAndSports();
+    // Only active competition levels are offered; the API already filters inactive ones for this list.
+    competitionLevelsApi
+      .list({ pageSize: 100, sort: "display_order", dir: "asc" })
+      .then(res => { setCompetitionLevels(Array.isArray(res?.items) ? res.items : []); setLevelsError(""); })
+      .catch(err => setLevelsError(err.message || "Could not load competition levels."));
   }, []);
 
   useEffect(() => {
@@ -162,13 +172,6 @@ export default function TournamentsManager() {
       setRegisteredTeams(teamsData || []);
       setTournamentMatches(matchesData || []);
 
-      if (teamsData.length >= 2) {
-        setNewMatch(prev => ({
-          ...prev,
-          teamAId: teamsData[0].id || teamsData[0].team_id,
-          teamBId: teamsData[1].id || teamsData[1].team_id
-        }));
-      }
       setLoading(false);
     } catch (err) {
       console.error(err);
@@ -180,12 +183,17 @@ export default function TournamentsManager() {
   const handleCreateTournament = async (e) => {
     e.preventDefault();
     if (!newTournament.title.trim()) return;
+    if (!newTournament.levelId) {
+      setError("Please select a competition level.");
+      setTimeout(() => setError(null), 4000);
+      return;
+    }
 
     try {
       await tournamentsApi.createTournament({
         title: newTournament.title,
         academicYear: newTournament.academicYear,
-        tier: newTournament.tier,
+        levelId: Number(newTournament.levelId),
         description: newTournament.description,
         startDate: newTournament.startDate,
         endDate: newTournament.endDate,
@@ -196,7 +204,7 @@ export default function TournamentsManager() {
       setNewTournament({
         title: "",
         academicYear: "2025-2026",
-        tier: "Intramural",
+        levelId: "",
         description: "",
         startDate: new Date().toISOString().split("T")[0],
         endDate: "2026-09-30"
@@ -224,10 +232,46 @@ export default function TournamentsManager() {
     }
   };
 
+  // Fixture choices depend on the selected sport: only approved teams of that sport.
+  const selectedSport = sports.find(sp => String(sp.sport_id || sp.id) === String(newMatch.sportId));
+  const isIndividualSport = selectedSport?.sport_type === "Individual";
+  const fixtureTeams = registeredTeams.filter(t =>
+    String((t.sportId ?? t.sport_id)) === String(newMatch.sportId) && t.status === "Approved"
+  );
+
+  // Pick the sport's first two approved teams whenever the sport changes.
+  const handleFixtureSportChange = async (sportId) => {
+    const teamsForSport = registeredTeams.filter(t =>
+      String((t.sportId ?? t.sport_id)) === String(sportId) && t.status === "Approved"
+    );
+    const sp = sports.find(x => String(x.sport_id || x.id) === String(sportId));
+    let categories = [];
+    if (sp?.sport_type === "Individual") {
+      categories = await sportsApi.getSportCategories(sportId).catch(() => []);
+    }
+    setSportCategories(Array.isArray(categories) ? categories : []);
+    setNewMatch(prev => ({
+      ...prev,
+      sportId,
+      categoryId: "",
+      teamAId: teamsForSport[0] ? String(teamsForSport[0].id || teamsForSport[0].team_id) : "",
+      teamBId: teamsForSport[1] ? String(teamsForSport[1].id || teamsForSport[1].team_id) : ""
+    }));
+  };
+
   const handleCreateFixtureMatch = async (e) => {
     e.preventDefault();
-    if (!selectedTournament || !newMatch.teamAId || !newMatch.teamBId) {
-      setError("Please select both participating teams");
+    if (!selectedTournament) return;
+    if (isIndividualSport) {
+      setError("Individual sports are not scheduled team-vs-team. Record their entries per category from Events.");
+      return;
+    }
+    if (!newMatch.sportId || !newMatch.teamAId || !newMatch.teamBId) {
+      setError("Please select a sport and both participating teams");
+      return;
+    }
+    if (newMatch.teamAId === newMatch.teamBId) {
+      setError("Team A and Team B must be different");
       return;
     }
 
@@ -612,9 +656,10 @@ export default function TournamentsManager() {
                 <label className="nec-form-label">Sport *</label>
                 <select
                   value={newMatch.sportId}
-                  onChange={e => setNewMatch({ ...newMatch, sportId: e.target.value })}
+                  onChange={e => handleFixtureSportChange(e.target.value)}
                   className="nec-form-select"
                 >
+                  <option value="">-- Select sport --</option>
                   {sports.map(s => (
                     <option key={s.sport_id || s.id} value={s.sport_id || s.id}>
                       {s.name}
@@ -641,6 +686,26 @@ export default function TournamentsManager() {
               </div>
             </div>
 
+            {isIndividualSport ? (
+              <div className="nec-form-group">
+                <label className="nec-form-label">Category *</label>
+                <select
+                  value={newMatch.categoryId}
+                  onChange={e => setNewMatch({ ...newMatch, categoryId: e.target.value })}
+                  className="nec-form-select"
+                >
+                  <option value="">-- Select category --</option>
+                  {sportCategories.map(c => (
+                    <option key={c.category_id} value={c.category_id}>{c.name}</option>
+                  ))}
+                </select>
+                <p className="nec-form-helper">
+                  {sportCategories.length === 0
+                    ? "This individual sport has no categories yet. Add them in Sports Catalog → Categories."
+                    : "Individual sports are recorded per category, not team vs team."}
+                </p>
+              </div>
+            ) : (
             <div className="nec-form-grid-2">
               <div className="nec-form-group">
                 <label className="nec-form-label">Team A *</label>
@@ -649,7 +714,7 @@ export default function TournamentsManager() {
                   onChange={e => setNewMatch({ ...newMatch, teamAId: e.target.value })}
                   className="nec-form-select"
                 >
-                  {registeredTeams.map(t => (
+                  {fixtureTeams.map(t => (
                     <option key={t.id || t.team_id} value={t.id || t.team_id}>
                       {t.name} ({t.deptCode || t.deptName || "NEC"})
                     </option>
@@ -664,7 +729,7 @@ export default function TournamentsManager() {
                   onChange={e => setNewMatch({ ...newMatch, teamBId: e.target.value })}
                   className="nec-form-select"
                 >
-                  {registeredTeams.map(t => (
+                  {fixtureTeams.map(t => (
                     <option key={t.id || t.team_id} value={t.id || t.team_id}>
                       {t.name} ({t.deptCode || t.deptName || "NEC"})
                     </option>
@@ -672,6 +737,7 @@ export default function TournamentsManager() {
                 </select>
               </div>
             </div>
+            )}
 
             <div className="nec-form-group">
               <label className="nec-form-label">Ground / College Venue *</label>
@@ -700,7 +766,7 @@ export default function TournamentsManager() {
 
             <div className="nec-form-actions">
               <Button variant="outline" onClick={() => setIsAddMatchModalOpen(false)}>Cancel</Button>
-              <Button type="submit" variant="primary">Add Fixture Match</Button>
+              <Button type="submit" variant="primary" disabled={isIndividualSport || !newMatch.sportId}>Add Fixture Match</Button>
             </div>
           </form>
         </Modal>
@@ -937,18 +1003,22 @@ export default function TournamentsManager() {
             </div>
 
             <div className="nec-form-group">
-              <label className="nec-form-label">Tier / Category</label>
+              <label className="nec-form-label">Competition Level *</label>
               <select
                 className="nec-form-select"
-                value={newTournament.tier}
-                onChange={(e) => setNewTournament({ ...newTournament, tier: e.target.value })}
+                required
+                value={newTournament.levelId}
+                onChange={(e) => setNewTournament({ ...newTournament, levelId: e.target.value })}
               >
-                <option value="Intramural">Intramural</option>
-                <option value="District">District</option>
-                <option value="Zonal">Zonal</option>
-                <option value="Inter-Collegiate">Inter-Collegiate</option>
-                <option value="State / National">State / National</option>
+                <option value="">-- Select level --</option>
+                {competitionLevels.map(level => (
+                  <option key={level.id} value={level.id}>{level.name}</option>
+                ))}
               </select>
+              {levelsError && <small role="alert" style={{ color: "var(--nec-danger, #b91c1c)" }}>{levelsError}</small>}
+              {!levelsError && competitionLevels.length === 0 && (
+                <small style={{ opacity: 0.7 }}>No active competition levels. Add one under Competition Levels first.</small>
+              )}
             </div>
           </div>
 

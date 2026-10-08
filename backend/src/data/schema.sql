@@ -8,8 +8,6 @@ CREATE TABLE IF NOT EXISTS departments (
   id INT PRIMARY KEY AUTO_INCREMENT,
   name VARCHAR(100) NOT NULL UNIQUE,
   code VARCHAR(10) NOT NULL UNIQUE,
-  hod_name VARCHAR(100),
-  hod_email VARCHAR(100),
   coordinator_user_id INT,
   color_code VARCHAR(7) DEFAULT '#0056b3',
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP

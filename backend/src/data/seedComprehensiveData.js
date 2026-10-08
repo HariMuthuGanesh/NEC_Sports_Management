@@ -33,11 +33,11 @@ export async function runComprehensiveSeed() {
             let id;
             if (exists.length) {
                 id = exists[0].id;
-                await conn.execute('UPDATE departments SET name = ?, hod_name = ?, hod_email = ?, color_code = ? WHERE id = ?',
-                    [d.name, d.hod, d.email, d.color, id]);
+                await conn.execute('UPDATE departments SET name = ?, color_code = ? WHERE id = ?',
+                    [d.name, d.color, id]);
             } else {
-                const [ins] = await conn.execute('INSERT INTO departments (name, code, hod_name, hod_email, color_code) VALUES (?, ?, ?, ?, ?)',
-                    [d.name, d.code, d.hod, d.email, d.color]);
+                const [ins] = await conn.execute('INSERT INTO departments (name, code, color_code) VALUES (?, ?, ?)',
+                    [d.name, d.code, d.color]);
                 id = ins.insertId;
             }
             deptMap[d.code] = id;

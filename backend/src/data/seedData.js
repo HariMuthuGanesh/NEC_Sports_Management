@@ -13,8 +13,6 @@ async function ensureTables(conn) {
             id INT PRIMARY KEY AUTO_INCREMENT,
             name VARCHAR(100) NOT NULL UNIQUE,
             code VARCHAR(10) NOT NULL UNIQUE,
-            hod_name VARCHAR(100),
-            hod_email VARCHAR(100),
             coordinator_user_id INT NULL,
             color_code VARCHAR(7) DEFAULT '#0056b3',
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -415,10 +413,10 @@ export async function seedDatabase() {
         const deptMap = {};
         for (const d of DEPARTMENTS) {
             await conn.execute(
-                `INSERT INTO departments (code, name, hod_name, hod_email, color_code)
-                 VALUES (?, ?, ?, ?, ?)
-                 ON DUPLICATE KEY UPDATE name = VALUES(name), hod_name = VALUES(hod_name), hod_email = VALUES(hod_email), color_code = VALUES(color_code)`,
-                [d.code, d.name, d.hod, d.hodEmail, d.color]
+                `INSERT INTO departments (code, name, color_code)
+                 VALUES (?, ?, ?)
+                 ON DUPLICATE KEY UPDATE name = VALUES(name), color_code = VALUES(color_code)`,
+                [d.code, d.name, d.color]
             );
         }
 

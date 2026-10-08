@@ -854,3 +854,37 @@
     font-size: 0.68rem;
   }
 }
+
+/* Centered institutional header (promotional stats removed) */
+.nec-showcase-glass {
+  text-align: center;
+}
+
+.nec-showcase-badges {
+  justify-content: center;
+}
+
+.nec-showcase-branding {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.nec-showcase-logo {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: #ffffff;
+  padding: 6px;
+  box-sizing: border-box;
+  margin: 0 auto;
+}
+
+.nec-showcase-logo-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}

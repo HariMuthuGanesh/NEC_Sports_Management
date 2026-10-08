@@ -91,10 +91,12 @@ export default function Header({ onToggleSidebar, isSidebarOpen, onSelectNav, ac
     <header className="nec-header">
       <div className="nec-header-left">
         <button
+          id="nec-menu-toggle"
           className="nec-menu-toggle-btn"
           onClick={onToggleSidebar}
-          aria-label="Open navigation drawer"
+          aria-label={isSidebarOpen ? "Close navigation drawer" : "Open navigation drawer"}
           aria-expanded={isSidebarOpen}
+          aria-controls="nec-sidebar"
         >
           <Menu size={20} />
         </button>

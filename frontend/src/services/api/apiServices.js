@@ -180,6 +180,19 @@ export const apiFetchFull = async (endpoint, method = 'GET', body = null, isRetr
 
 
 /* --- Sports & Departments API --- */
+// Competition levels master (tournament tiers). List returns { items, total, page, pageSize, totalPages }.
+export const competitionLevelsApi = {
+  list: (params = {}) => {
+    const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== "" && v !== false));
+    const suffix = qs.toString() ? `?${qs.toString()}` : "";
+    return apiFetch(`/competition-levels${suffix}`);
+  },
+  get: (id) => apiFetch(`/competition-levels/${id}`),
+  create: (body) => apiFetch("/competition-levels", "POST", body),
+  update: (id, body) => apiFetch(`/competition-levels/${id}`, "PUT", body),
+  remove: (id) => apiFetch(`/competition-levels/${id}`, "DELETE"),
+};
+
 export const sportsApi = {
   getDepartments: () => apiFetch("/departments"),
   createDepartment: (deptData) => apiFetch("/departments", "POST", deptData),

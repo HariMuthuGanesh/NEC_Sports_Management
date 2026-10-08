@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import {
   LayoutDashboard,
   Trophy,
@@ -26,6 +26,47 @@ import { useAuth, ROLES } from "../../context/AuthContext";
 import "./Sidebar.css";
 
 export default function Sidebar({ activeNav, onSelectNav, isOpen, onCloseMobile }) {
+  const asideRef = useRef(null);
+  // Keep the latest close handler in a ref so the effect below does not re-run (and re-focus) on every render.
+  const closeRef = useRef(onCloseMobile);
+  useEffect(() => {
+    closeRef.current = onCloseMobile;
+  });
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const aside = asideRef.current;
+    const getFocusable = () => (aside ? Array.from(aside.querySelectorAll(
+      'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    )) : []);
+
+    const first = getFocusable()[0];
+    if (first) first.focus();
+
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        closeRef.current?.();
+        return;
+      }
+      if (e.key !== "Tab") return;
+      const items = getFocusable();
+      if (items.length === 0) return;
+      const firstEl = items[0];
+      const lastEl = items[items.length - 1];
+      const inside = aside && aside.contains(document.activeElement);
+      if (e.shiftKey && (!inside || document.activeElement === firstEl)) {
+        e.preventDefault();
+        lastEl.focus();
+      } else if (!e.shiftKey && (!inside || document.activeElement === lastEl)) {
+        e.preventDefault();
+        firstEl.focus();
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [isOpen]);
+
   const { currentUser, t } = useAuth();
 
   const getNavItems = () => {
@@ -38,7 +79,8 @@ export default function Sidebar({ activeNav, onSelectNav, isOpen, onCloseMobile 
             items: [
               { id: "admin_sports", label: t.sportsCatalog, icon: Trophy },
               { id: "admin_tournaments", label: t.tournaments, icon: Calendar },
-              { id: "admin_events", label: t.events, icon: Award }
+              { id: "admin_events", label: t.events, icon: Award },
+              { id: "admin_levels", label: "Competition Levels", icon: Award }
             ]
           },
           {
@@ -165,7 +207,14 @@ export default function Sidebar({ activeNav, onSelectNav, isOpen, onCloseMobile 
   return (
     <>
       {isOpen && <div className="nec-sidebar-overlay" onClick={onCloseMobile} />}
-      <aside className={`nec-sidebar ${isOpen ? "open" : ""}`}>
+      <aside
+        ref={asideRef}
+        id="nec-sidebar"
+        className={`nec-sidebar ${isOpen ? "open" : ""}`}
+        aria-label="Main navigation"
+        aria-hidden={!isOpen}
+        {...(!isOpen ? { inert: "" } : {})}
+      >
         <div className="nec-sidebar-inner">
           {/* Close control sits at the top-right of the side panel (Task 6). */}
           <div className="nec-sidebar-topbar">

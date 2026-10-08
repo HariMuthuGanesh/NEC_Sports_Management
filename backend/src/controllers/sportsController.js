@@ -1,3 +1,4 @@
+import { applyTournamentLevel } from './competitionLevelController.js';
 import pool from '../config/db.js';
 import {
     getAllSports,
@@ -128,8 +129,10 @@ export const getTournamentByIdController = async (req, res, next) => {
 
 export const createTournamentController = async (req, res, next) => {
     try {
-        const tourId = await createTournamentSql(req.body);
-        return res.status(201).json({ success: true, data: { tournament_id: tourId, id: tourId, ...req.body } });
+        const level = await applyTournamentLevel(req.body);
+        if (level.error) return res.status(400).json({ success: false, error: { message: level.error } });
+        const tourId = await createTournamentSql(level.body);
+        return res.status(201).json({ success: true, data: { tournament_id: tourId, id: tourId, ...level.body } });
     } catch (err) {
         next(err);
     }
@@ -137,11 +140,13 @@ export const createTournamentController = async (req, res, next) => {
 
 export const updateTournamentController = async (req, res, next) => {
     try {
-        const success = await updateTournamentSql(req.params.id, req.body);
+        const level = await applyTournamentLevel(req.body);
+        if (level.error) return res.status(400).json({ success: false, error: { message: level.error } });
+        const success = await updateTournamentSql(req.params.id, level.body);
         if (!success) {
             return res.status(404).json({ success: false, error: { message: 'Tournament not found.' } });
         }
-        return res.json({ success: true, data: { tournament_id: req.params.id, id: req.params.id, ...req.body } });
+        return res.json({ success: true, data: { tournament_id: req.params.id, id: req.params.id, ...level.body } });
     } catch (err) {
         next(err);
     }

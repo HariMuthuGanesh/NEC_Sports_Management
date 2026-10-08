@@ -51,12 +51,12 @@ export default function ReportsManager() {
         silver: r.silver,
         bronze: r.bronze,
         points: r.points,
-        participation: r.participation ?? "No students"
+        participation: r.participation ?? null
       }));
       setReportData(mapped);
       setSummaryData({
-        totalCompleted: report?.summary?.totalCompleted ?? 0,
-        totalScheduled: report?.summary?.totalScheduled ?? 0
+        totalCompleted: report?.summary?.totalCompleted ?? null,
+        totalScheduled: report?.summary?.totalScheduled ?? null
       });
     } catch (err) {
       console.error(err);
@@ -79,7 +79,7 @@ export default function ReportsManager() {
     { key: "silver", label: "🥈 Silver", width: "90px" },
     { key: "bronze", label: "🥉 Bronze", width: "90px" },
     { key: "points", label: "Total Points", width: "110px", render: (val) => <strong>{val} pts</strong> },
-    { key: "participation", label: "Athlete Activity", width: "140px" }
+    { key: "participation", label: "Athlete Activity", width: "140px", render: (val) => val ?? "—" }
   ];
 
   const generatePDF = async (elementRef, filename) => {
@@ -197,7 +197,7 @@ export default function ReportsManager() {
                     Department Sports Performance & Medal Tally Report ({timeframeLabel})
                   </h4>
                   <div style={{ fontSize: "0.8rem", color: "#666", marginTop: "4px" }}>
-                    Completed Fixtures in Scope: <strong>{summaryData.totalCompleted || 0}</strong> | Total Matches: <strong>{summaryData.totalScheduled || 0}</strong>
+                    Completed Fixtures in Scope: <strong>{summaryData.totalCompleted ?? "—"}</strong> | Total Matches: <strong>{summaryData.totalScheduled ?? "—"}</strong>
                   </div>
                 </div>
 

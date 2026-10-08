@@ -11,6 +11,7 @@ export const getAllTournaments = async () => {
             academic_year AS academicYear,
             tier,
             tier AS eventCategory,
+            level_id,
             start_date,
             start_date AS startDate,
             end_date,
@@ -45,10 +46,11 @@ export const createTournament = async (data) => {
     const tourEnd = endDate || end_date || null;
 
     const sql = `
-        INSERT INTO tournaments (name, academic_year, tier, start_date, end_date, status)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO tournaments (name, academic_year, tier, level_id, start_date, end_date, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
     `;
-    const [result] = await pool.execute(sql, [tourName, tourYear, tier, tourStart, tourEnd, status]);
+    const levelId = data.levelId ?? data.level_id ?? null;
+    const [result] = await pool.execute(sql, [tourName, tourYear, tier, levelId, tourStart, tourEnd, status]);
     return result.insertId;
 };
 
@@ -63,6 +65,7 @@ export const getTournamentById = async (id) => {
             academic_year AS academicYear,
             tier,
             tier AS eventCategory,
+            level_id,
             start_date,
             start_date AS startDate,
             end_date,
@@ -103,6 +106,7 @@ export const updateTournament = async (id, data) => {
             name = COALESCE(?, name),
             academic_year = COALESCE(?, academic_year),
             tier = COALESCE(?, tier),
+            level_id = COALESCE(?, level_id),
             start_date = COALESCE(?, start_date),
             end_date = COALESCE(?, end_date),
             status = COALESCE(?, status)
@@ -112,6 +116,7 @@ export const updateTournament = async (id, data) => {
         tourName || null,
         tourYear || null,
         tier || null,
+        data.levelId ?? data.level_id ?? null,
         tourStart || null,
         tourEnd || null,
         status || null,
