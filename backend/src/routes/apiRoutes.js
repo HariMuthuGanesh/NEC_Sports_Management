@@ -49,20 +49,20 @@ import {
     getOverviewStats
 } from '../controllers/sportsController.js';
 import { createMatch, deleteMatch, updateScore } from '../controllers/matchController.js';
-import { 
-    addPlayerToTeam, 
-    createTeam, 
-    deleteTeam, 
-    getTeamPlayers, 
-    getTeams, 
-    removePlayer, 
+import {
+    addPlayerToTeam,
+    createTeam,
+    deleteTeam,
+    getTeamPlayers,
+    getTeams,
+    removePlayer,
     updateTeamStatus,
     getTeamDetailsController,
     getCaptainTeamsController,
     updateTeamDetailsController
 } from '../controllers/teamController.js';
-import { 
-    saveSquadAttendanceController, 
+import {
+    saveSquadAttendanceController,
     getTeamAttendanceController,
     getDepartmentAttendanceController,
     getMatchAttendanceController
@@ -187,6 +187,7 @@ router.get('/leaderboard/:id/matches', getDepartmentLeaderboardMatches);
 router.get('/departments/:id/matches', getDepartmentLeaderboardMatches);
 router.get('/events', getEvents);
 router.get('/stats/overview', getOverviewStats);
+
 router.get('/od/public', getPublicApprovedOdController);
 router.get('/od/public/sports', getPublicApprovedOdSportsController);
 router.get('/od/public/official-documents', getPublicOfficialOdDocsController);

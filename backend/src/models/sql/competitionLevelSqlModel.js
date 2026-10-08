@@ -70,22 +70,58 @@ export const resolveActiveLevel = async (id) => {
     return row || null;
 };
 
-export const createCompetitionLevel = async ({ name, code, description, displayOrder, isActive }) => {
-    const [result] = await pool.execute(
-        'INSERT INTO competition_levels (name, code, description, display_order, status, is_deleted) VALUES (?, ?, ?, ?, ?, 0)',
-        [name, code, description || null, displayOrder, isActive ? 'Active' : 'Inactive']
-    );
-    return result.insertId;
+export const createCompetitionLevel = async (payload = {}) => {
+    const name = payload.name;
+    const code = payload.code || null;
+    const description = payload.description || null;
+    const displayOrder = payload.displayOrder ?? payload.display_order ?? 0;
+    const isActive = payload.isActive ?? (payload.status === 'Active' || payload.status === undefined ? true : false);
+
+    try {
+        const [result] = await pool.execute(
+            'INSERT INTO competition_levels (name, code, description, display_order, status, is_deleted) VALUES (?, ?, ?, ?, ?, 0)',
+            [name, code, description, displayOrder, isActive ? 'Active' : 'Inactive']
+        );
+        const newId = result.insertId;
+        const level = await getCompetitionLevelById(newId);
+        return level || { id: newId, name, code, description, display_order: displayOrder, status: isActive ? 'Active' : 'Inactive' };
+    } catch (err) {
+        if (err?.code === 'ER_DUP_ENTRY') {
+            const dupErr = new Error('A competition level with this name or code already exists.');
+            dupErr.code = 'ER_DUP_ENTRY';
+            throw dupErr;
+        }
+        throw err;
+    }
 };
 
-export const updateCompetitionLevel = async (id, { name, code, description, displayOrder, isActive }) => {
-    const [result] = await pool.execute(
-        `UPDATE competition_levels
-         SET name = ?, code = ?, description = ?, display_order = ?, status = ?
-         WHERE id = ? AND is_deleted = 0`,
-        [name, code, description || null, displayOrder, isActive ? 'Active' : 'Inactive', id]
-    );
-    return result.affectedRows > 0;
+export const updateCompetitionLevel = async (id, payload = {}) => {
+    const existing = await getCompetitionLevelById(id);
+    const name = payload.name !== undefined ? payload.name : existing?.name;
+    const code = payload.code !== undefined ? payload.code : existing?.code;
+    const description = payload.description !== undefined ? payload.description : existing?.description;
+    const displayOrder = payload.displayOrder ?? payload.display_order ?? existing?.displayOrder ?? 0;
+    const isActive = payload.isActive !== undefined ? payload.isActive : (payload.status !== undefined ? payload.status === 'Active' : existing?.isActive);
+
+    try {
+        const [result] = await pool.execute(
+            `UPDATE competition_levels
+             SET name = ?, code = ?, description = ?, display_order = ?, status = ?
+             WHERE id = ? AND is_deleted = 0`,
+            [name, code, description || null, displayOrder, isActive ? 'Active' : 'Inactive', id]
+        );
+        if (result.affectedRows > 0) {
+            return getCompetitionLevelById(id);
+        }
+        return null;
+    } catch (err) {
+        if (err?.code === 'ER_DUP_ENTRY') {
+            const dupErr = new Error('A competition level with this name or code already exists.');
+            dupErr.code = 'ER_DUP_ENTRY';
+            throw dupErr;
+        }
+        throw err;
+    }
 };
 
 // Tournaments reference the level by id, or by its name in the legacy tier text.
@@ -106,3 +142,17 @@ export const softDeleteCompetitionLevel = async (id) => {
     );
     return result.affectedRows > 0;
 };
+
+export const getAllCompetitionLevels = async (options = {}) => {
+    const res = await listCompetitionLevels(options);
+    return { data: res.items || [], ...res };
+};
+
+export const deleteCompetitionLevel = async (id) => {
+    const used = await countTournamentsUsingLevel(id);
+    if (used > 0) {
+        throw new Error(`Cannot delete: competition level is currently assigned to tournaments (${used} tournament(s))`);
+    }
+    return softDeleteCompetitionLevel(id);
+};
+

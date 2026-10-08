@@ -31,7 +31,6 @@ import CompetitionLevelsManager from "./pages/admin/CompetitionLevelsManager";
 import EventsManager from "./pages/admin/EventsManager";
 import TeamsManager from "./pages/admin/TeamsManager";
 import StaffCoordinatorsManager from "./pages/admin/StaffCoordinatorsManager";
-import CompetitionLevelsManager from "./pages/admin/CompetitionLevelsManager";
 import MatchesManager from "./pages/admin/MatchesManager";
 import ReportsManager from "./pages/admin/ReportsManager";
 import AnnouncementsManager from "./pages/admin/AnnouncementsManager";

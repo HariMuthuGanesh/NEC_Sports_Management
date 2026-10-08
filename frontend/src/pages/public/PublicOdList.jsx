@@ -24,8 +24,7 @@ import {
   Eye,
   Download,
   Layers,
-  Users,
-  AlertCircle
+  Users
 } from "lucide-react";
 import "./PublicOdList.css";
 import "./PublicPortal.css";

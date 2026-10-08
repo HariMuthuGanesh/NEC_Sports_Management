@@ -180,17 +180,31 @@ export const apiFetchFull = async (endpoint, method = 'GET', body = null, isRetr
 
 
 /* --- Sports & Departments API --- */
-// Competition levels master (tournament tiers). List returns { items, total, page, pageSize, totalPages }.
+// Competition levels master (tournament tiers).
 export const competitionLevelsApi = {
   list: (params = {}) => {
     const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== "" && v !== false));
     const suffix = qs.toString() ? `?${qs.toString()}` : "";
     return apiFetch(`/competition-levels${suffix}`);
   },
+  getLevels: (params = {}) => {
+    const query = new URLSearchParams();
+    if (params.includeInactive !== undefined) query.set('includeInactive', params.includeInactive);
+    if (params.all !== undefined) query.set('all', params.all);
+    if (params.search) query.set('search', params.search);
+    if (params.page) query.set('page', params.page);
+    if (params.limit) query.set('limit', params.limit);
+    const qs = query.toString();
+    return apiFetch(`/competition-levels${qs ? `?${qs}` : ''}`);
+  },
   get: (id) => apiFetch(`/competition-levels/${id}`),
+  getLevelById: (id) => apiFetch(`/competition-levels/${id}`),
   create: (body) => apiFetch("/competition-levels", "POST", body),
+  createLevel: (data) => apiFetch("/competition-levels", "POST", data),
   update: (id, body) => apiFetch(`/competition-levels/${id}`, "PUT", body),
+  updateLevel: (id, data) => apiFetch(`/competition-levels/${id}`, "PUT", data),
   remove: (id) => apiFetch(`/competition-levels/${id}`, "DELETE"),
+  deleteLevel: (id) => apiFetch(`/competition-levels/${id}`, "DELETE"),
 };
 
 export const sportsApi = {
@@ -351,24 +365,6 @@ export const reportsApi = {
 export const leaderboardApi = {
   getLeaderboard: () => apiFetch("/leaderboard"),
   getDepartmentMatches: (deptId) => apiFetch(`/leaderboard/${deptId}/matches`)
-};
-
-/* --- Competition Levels Master API --- */
-export const competitionLevelsApi = {
-  getLevels: (params = {}) => {
-    const query = new URLSearchParams();
-    if (params.includeInactive !== undefined) query.set('includeInactive', params.includeInactive);
-    if (params.all !== undefined) query.set('all', params.all);
-    if (params.search) query.set('search', params.search);
-    if (params.page) query.set('page', params.page);
-    if (params.limit) query.set('limit', params.limit);
-    const qs = query.toString();
-    return apiFetch(`/competition-levels${qs ? `?${qs}` : ''}`);
-  },
-  getLevelById: (id) => apiFetch(`/competition-levels/${id}`),
-  createLevel: (data) => apiFetch("/competition-levels", "POST", data),
-  updateLevel: (id, data) => apiFetch(`/competition-levels/${id}`, "PUT", data),
-  deleteLevel: (id) => apiFetch(`/competition-levels/${id}`, "DELETE")
 };
 
 /* --- Announcements API --- */
