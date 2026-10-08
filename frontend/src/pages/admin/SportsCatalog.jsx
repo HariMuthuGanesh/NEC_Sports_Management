@@ -162,9 +162,7 @@ export default function SportsCatalog() {
             Categories
           </Button>
           <Button variant="ghost" size="sm" icon={Pencil} aria-label="Edit" title="Edit" onClick={() => openEditModal(row)} />
-          <Button variant="danger" size="sm" icon={Trash2} onClick={() => handleRemoveSport(row.sport_id)}>
-            {t.delete || "Delete"}
-          </Button>
+          <Button variant="danger" size="sm" icon={Trash2} aria-label="Delete sport" title="Delete sport" onClick={() => handleRemoveSport(row.sport_id)} />
         </div>
       )
     }
@@ -197,7 +195,6 @@ export default function SportsCatalog() {
       )}
 
       <Modal isOpen={!!catSport} onClose={() => setCatSport(null)} title={`Categories: ${catSport?.name || ""}`} size="sm">
-        <p style={{ fontSize: "0.85rem", marginBottom: 10 }}>Divisions or events for this sport, for example Athletics: 100m, 200m. Works for team and individual sports.</p>
         <ul style={{ listStyle: "none", padding: 0, margin: "0 0 12px" }}>
           {catList.length === 0 && <li style={{ color: "var(--nec-text-muted)" }}>No categories yet.</li>}
           {catList.map(c => (

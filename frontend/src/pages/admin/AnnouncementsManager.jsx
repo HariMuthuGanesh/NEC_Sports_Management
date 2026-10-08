@@ -65,7 +65,6 @@ export default function AnnouncementsManager() {
       <div className="nec-page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
           <h2 className="nec-page-title">Institutional Announcements & Circulars</h2>
-          <p className="nec-page-desc">Publish official sports circulars, tournament deadlines, and campus facility notices.</p>
         </div>
         <Button variant="primary" icon={Plus} onClick={() => setIsModalOpen(true)}>
           Post New Announcement

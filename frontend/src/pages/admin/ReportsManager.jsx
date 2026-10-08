@@ -121,7 +121,6 @@ export default function ReportsManager() {
       <div className="nec-page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
         <div>
           <h2 className="nec-page-title">Institutional Sports Performance & Reporting Engine</h2>
-          <p className="nec-page-desc">Automated 1-month, 6-month, and 12-month departmental performance audits and certificates.</p>
         </div>
         <div style={{ display: "flex", gap: "8px" }}>
           <Button variant={activeTab === "reports" ? "primary" : "outline"} icon={FileText} onClick={() => setActiveTab("reports")}>

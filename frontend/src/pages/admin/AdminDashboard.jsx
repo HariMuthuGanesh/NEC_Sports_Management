@@ -84,7 +84,6 @@ export default function AdminDashboard({ onNavigate }) {
             {t.navOverview || "OVERVIEW"}
           </span>
           <h1 className="nec-page-title" style={{ fontSize: "2rem", marginTop: "2px" }}>{t.directorsDesk || "Physical Director's Desk"}</h1>
-          <p className="nec-page-desc">Institutional overview of athletic programs, student participation metrics, and recent administrative actions across all departments.</p>
         </div>
         <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
           <Button variant="primary" icon={Plus} onClick={() => onNavigate("admin_events")}>

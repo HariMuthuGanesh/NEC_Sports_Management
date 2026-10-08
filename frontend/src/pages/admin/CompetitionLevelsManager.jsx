@@ -111,8 +111,7 @@ export default function CompetitionLevelsManager() {
       <div className="nec-admin-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
         <div>
           <h2 style={{ margin: 0 }}>Competition Levels</h2>
-          <p style={{ margin: "4px 0 0", opacity: 0.7 }}>Tiers used when creating tournaments. Only active levels appear in tournament forms.</p>
-        </div>
+                  </div>
         <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
           <label style={{ display: "flex", gap: 6, alignItems: "center" }}>
             <input type="checkbox" checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} /> Show inactive
@@ -152,14 +151,11 @@ export default function CompetitionLevelsManager() {
       </Modal>
 
       <Modal isOpen={!!deleting} onClose={() => setDeleting(null)} title="Delete competition level?" size="sm">
-        <p>
-          <strong>{deleting?.name}</strong> will be removed from the list. Existing tournaments keep their history.
-          A level that is still assigned to a tournament cannot be deleted.
-        </p>
+        <p>Delete <strong>{deleting?.name}</strong>?</p>
         {deleteError && <p role="alert" style={{ color: "var(--nec-danger, #b91c1c)" }}>{deleteError}</p>}
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
           <Button variant="outline" onClick={() => setDeleting(null)}>Cancel</Button>
-          <Button variant="danger" onClick={confirmDelete}>Delete</Button>
+          <Button variant="danger" icon={Trash2} aria-label="Confirm delete" title="Confirm delete" onClick={confirmDelete} />
         </div>
       </Modal>
     </div>

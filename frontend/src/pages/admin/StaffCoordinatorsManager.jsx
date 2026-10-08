@@ -134,7 +134,6 @@ export default function StaffCoordinatorsManager() {
       <div className="nec-page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 12 }}>
         <div>
           <h1 className="nec-page-title" style={{ fontSize: "1.75rem" }}>Staff Coordinators</h1>
-          <p className="nec-page-desc">Add staff details, create their coordinator login, and assign the department they coordinate. Staff are deactivated, never deleted.</p>
         </div>
         <Button variant="primary" icon={Plus} onClick={openNew}>Add Staff Coordinator</Button>
       </div>
@@ -173,7 +172,7 @@ export default function StaffCoordinatorsManager() {
       </Modal>
 
       <Modal isOpen={!!issuedPassword} onClose={() => setIssuedPassword(null)} title="Coordinator login created" size="sm">
-        <p>Share these credentials with the coordinator. The password is shown only once; they must change it at first login.</p>
+        <p>Shown once. The coordinator must change it at first login.</p>
         <p><strong>Username:</strong> {issuedPassword?.username}</p>
         <p><strong>Temporary password:</strong> <code>{issuedPassword?.password}</code></p>
         <Button variant="outline" icon={Copy} onClick={() => navigator.clipboard?.writeText(issuedPassword?.password || "")}>Copy password</Button>

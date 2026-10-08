@@ -888,3 +888,33 @@
   object-fit: cover;
   display: block;
 }
+
+/* Compact, centred sign-in: the whole panel fits the viewport without scrolling. */
+.nec-auth-main {
+  padding: 24px 16px;
+  align-items: center;
+}
+
+.nec-auth-grid {
+  max-width: 400px;
+  margin: 0 auto;
+  gap: 16px;
+}
+
+.nec-showcase-glass {
+  padding: 24px 20px;
+}
+
+.nec-showcase-logo {
+  width: 72px;
+  height: 72px;
+}
+
+.nec-showcase-title {
+  font-size: 1.35rem;
+}
+
+.nec-auth-card {
+  padding: 22px;
+  gap: 14px;
+}

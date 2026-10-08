@@ -221,14 +221,10 @@ export default function TeamsManager() {
       render: (_, row) => (
         <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
           {row.status !== "Approved" && (
-            <Button variant="outline" size="sm" icon={CheckCircle2} onClick={() => handleUpdateStatus(row.team_id || row.id, "Approved")}>
-              Approve
-            </Button>
+            <Button variant="outline" size="sm" icon={CheckCircle2} aria-label="Approve team" title="Approve team" onClick={() => handleUpdateStatus(row.team_id || row.id, "Approved")} />
           )}
           {row.status !== "Disqualified" && (
-            <Button variant="ghost" size="sm" icon={Ban} onClick={() => handleUpdateStatus(row.team_id || row.id, "Disqualified")} title="Disqualify team">
-              Disqualify
-            </Button>
+            <Button variant="ghost" size="sm" icon={Ban} onClick={() => handleUpdateStatus(row.team_id || row.id, "Disqualified")} aria-label="Disqualify team" title="Disqualify team" />
           )}
           <Button variant="ghost" size="sm" icon={Eye} onClick={() => handleViewRoster(row)}>
             Roster
@@ -252,7 +248,6 @@ export default function TeamsManager() {
       <div className="nec-page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "12px" }}>
         <div>
           <h1 className="nec-page-title" style={{ fontSize: "1.75rem" }}>Team Approvals &amp; Catalog</h1>
-          <p className="nec-page-desc">Oversee active rosters, monitor upcoming fixtures, and manage coaching assignments across all engineering disciplines.</p>
         </div>
         <div style={{ display: "flex", gap: "10px", alignItems: "center", position: "relative" }}>
           {/* Department Filter Toggle */}

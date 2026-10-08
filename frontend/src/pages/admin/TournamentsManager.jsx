@@ -437,14 +437,14 @@ export default function TournamentsManager() {
         render: (_, row) => (
           <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
             {row.status !== "Approved" && (
-              <Button 
-                size="sm" 
-                variant="primary" 
-                icon={Check} 
+              <Button
+                size="sm"
+                variant="primary"
+                icon={Check}
+                aria-label="Approve team"
+                title="Approve team"
                 onClick={() => handleUpdateTeamStatus(row.id || row.team_id, "Approved")}
-              >
-                Approve
-              </Button>
+              />
             )}
           </div>
         )
