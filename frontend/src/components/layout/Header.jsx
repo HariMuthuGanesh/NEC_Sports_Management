@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { Sun, Moon, Bell, Menu, X, User, Globe, Settings, LogIn, LogOut } from "lucide-react";
+import { Bell, Menu, User, Globe, Settings, LogIn, LogOut } from "lucide-react";
 import { useAuth, ROLES } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
 import { notificationsApi } from "../../services/api/apiServices";
@@ -7,7 +7,7 @@ import NotificationDrawer from "../notifications/NotificationDrawer";
 import "./Header.css";
 
 export default function Header({ onToggleSidebar, isSidebarOpen, onSelectNav, activeNav }) {
-  const { currentUser, logout, theme, toggleTheme, language, setLanguage, t } = useAuth();
+  const { currentUser, logout, language, setLanguage, t } = useAuth();
   const toastContext = useToast();
   const toast = toastContext?.toast || toastContext;
   const [unreadCount, setUnreadCount] = useState(0);
@@ -184,15 +184,7 @@ export default function Header({ onToggleSidebar, isSidebarOpen, onSelectNav, ac
           </button>
         )}
 
-        {/* Theme Toggle */}
-        <button
-          className="nec-icon-btn"
-          onClick={toggleTheme}
-          title={`Switch to ${theme === "light" ? "Dark" : "Light"} Mode`}
-          aria-label="Toggle theme"
-        >
-          {theme === "light" ? <Moon size={18} /> : <Sun size={18} />}
-        </button>
+        {/* Theme switch lives in the sidebar footer */}
 
         {/* Portal Sign In for Guest or User Profile Pill */}
         {currentUser.role === ROLES.PUBLIC ? (
