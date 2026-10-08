@@ -315,7 +315,7 @@ export default function ScoreSheet({ onNavigate }) {
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <Calendar size={18} style={{ color: "var(--nec-blue-accent, #1d4ed8)", flexShrink: 0 }} />
             <span style={{ fontSize: "0.88rem", color: "var(--nec-text-main)", fontWeight: 600 }}>
-              This match is scheduled. Click "Start Match" to begin live broadcasting to the campus.
+              Match is scheduled.
             </span>
           </div>
           <Button
@@ -401,11 +401,6 @@ export default function ScoreSheet({ onNavigate }) {
       <div className="nec-score-sheet-main-card-wrap">
         <Card
           title={`${currentMatch.sport} Score Sheet`}
-          subtitle={
-            isScheduled
-              ? "Updating scores will automatically start the match and broadcast live to campus"
-              : "Enter real-time points, period statistics, and live match details"
-          }
           className="nec-score-sheet-card"
         >
           <ScoreboardComponent
