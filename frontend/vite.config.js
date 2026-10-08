@@ -7,6 +7,7 @@ export default defineConfig({
   server: {
     allowedHosts: [
       'customable-donald-bigwigged.ngrok-free.dev',
+      '.e2b.app', // sandbox live preview hosts
       // Or use true to allow all tunnel hostnames:
       // allowedHosts: true
     ]
