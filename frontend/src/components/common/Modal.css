@@ -17,6 +17,7 @@
 }
 
 .nec-modal-content {
+  position: relative;
   background-color: var(--nec-surface);
   border: 1px solid var(--nec-border);
   border-radius: var(--nec-radius-lg);
@@ -27,6 +28,18 @@
   display: flex;
   flex-direction: column;
   max-height: 90vh;
+  min-width: 320px;
+  min-height: 200px;
+}
+
+.nec-modal-content.is-resizing {
+  user-select: none;
+  box-shadow: var(--nec-shadow-lg), 0 0 0 2px var(--nec-primary-alpha, rgba(37, 99, 235, 0.25));
+}
+
+body.nec-modal-resizing {
+  user-select: none !important;
+  cursor: nwse-resize !important;
 }
 
 .nec-modal-content.nec-modal-sm {
@@ -79,6 +92,8 @@
 
 .nec-modal-body {
   padding: 20px;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
 }
 
@@ -90,6 +105,31 @@
   align-items: center;
   justify-content: flex-end;
   gap: 12px;
+}
+
+.nec-modal-resize-handle {
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: nwse-resize;
+  color: var(--nec-text-muted);
+  opacity: 0.55;
+  transition: opacity 0.15s ease, color 0.15s ease, transform 0.15s ease;
+  user-select: none;
+  touch-action: none;
+  z-index: 15;
+}
+
+.nec-modal-resize-handle:hover,
+.nec-modal-content.is-resizing .nec-modal-resize-handle {
+  opacity: 1;
+  color: var(--nec-primary, #2563eb);
+  transform: scale(1.15);
 }
 
 .nec-confirm-message {
