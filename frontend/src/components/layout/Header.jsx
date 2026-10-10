@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { Bell, Menu, Globe, LogIn, Megaphone } from "lucide-react";
+import { BellRing, Menu, Globe, LogIn, Megaphone } from "lucide-react";
 import { useAuth, ROLES } from "../../context/AuthContext";
 import { notificationsApi } from "../../services/api/apiServices";
 import NotificationDrawer from "../notifications/NotificationDrawer";
@@ -151,7 +151,7 @@ export default function Header({ onToggleSidebar, isSidebarOpen, onSelectNav, ac
               aria-label="Notifications"
               aria-expanded={showNotifDrawer}
             >
-              <Bell size={18} />
+              <BellRing size={18} />
               {unreadCount > 0 && <span className="nec-notif-dot" />}
             </button>
 

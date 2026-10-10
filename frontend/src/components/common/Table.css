@@ -91,10 +91,10 @@
   background-color: #ffffff;
   color: #475569;
   font-weight: 700;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  padding: 14px 16px;
+  padding: 10px 12px;
   border-bottom: 1px solid #e2e8f0;
   user-select: none;
   white-space: nowrap;
@@ -131,10 +131,10 @@
 
 /* ── Table Rows & Cells ────────────────────────────────────────────── */
 .nec-table td {
-  padding: 13px 16px;
+  padding: 9px 12px;
   border-bottom: 1px solid #f1f5f9;
   color: var(--nec-text-main, #1f2937);
-  font-size: 0.875rem;
+  font-size: 0.85rem;
   vertical-align: middle;
   transition: background-color 0.14s ease;
 }

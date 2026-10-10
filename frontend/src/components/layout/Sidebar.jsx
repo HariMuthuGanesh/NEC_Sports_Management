@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
   LayoutDashboard, Trophy, Calendar, Users, CheckSquare, MapPin, Building2, FileText,
-  Megaphone, Radio, Image, Award, UserCheck, X, Edit3, Bell, Home, Shield, Settings,
+  Megaphone, Radio, Image, Award, UserCheck, X, Edit3, BellRing, Home, Shield, Settings,
   LogIn, FileCheck, ChevronDown, ChevronLeft, ChevronRight, Sun, Moon, User, LogOut
 } from "lucide-react";
 import { useAuth, ROLES } from "../../context/AuthContext";
@@ -127,7 +127,7 @@ export default function Sidebar({
               { id: "coord_dept_teams", label: "Sport Captains", icon: Award },
               { id: "coord_event_reg", label: t.eventRegistration, icon: CheckSquare },
               { id: "coord_matches", label: t.departmentMatches, icon: Calendar },
-              { id: "notifications", label: t.notifications, icon: Bell }
+              { id: "notifications", label: t.notifications, icon: BellRing }
             ]
           },
           {
@@ -149,7 +149,7 @@ export default function Sidebar({
               { id: "college_teams", label: "Outer-College Teams", icon: Building2 },
               { id: "admin_tournaments", label: "Tournaments & Events", icon: Calendar },
               { id: "president_od", label: "OD Information Matrix", icon: FileText },
-              { id: "notifications", label: t.notifications || "Notifications", icon: Bell }
+              { id: "notifications", label: t.notifications || "Notifications", icon: BellRing }
             ]
           }
         ];
@@ -161,7 +161,7 @@ export default function Sidebar({
             category: "Matches",
             items: [
               { id: "coord_matches", label: "All Scheduled & Ongoing", icon: Calendar },
-              { id: "notifications", label: t.notifications || "Notifications", icon: Bell }
+              { id: "notifications", label: t.notifications || "Notifications", icon: BellRing }
             ]
           }
         ];
@@ -174,7 +174,7 @@ export default function Sidebar({
             items: [
               { id: "captain_roster", label: "My Sports Squad", icon: Users },
               { id: "coord_matches", label: "Tournament Fixtures", icon: Calendar },
-              { id: "notifications", label: t.notifications || "Notifications", icon: Bell }
+              { id: "notifications", label: t.notifications || "Notifications", icon: BellRing }
             ]
           }
         ];
@@ -188,7 +188,7 @@ export default function Sidebar({
               { id: "player_team", label: t.myTeam, icon: Users },
               { id: "player_matches", label: t.myFixtures, icon: Calendar },
               { id: "player_performance", label: "Performance Report", icon: Award },
-              { id: "notifications", label: t.notifications, icon: Bell }
+              { id: "notifications", label: t.notifications, icon: BellRing }
             ]
           }
         ];
@@ -316,28 +316,8 @@ export default function Sidebar({
         {...(isHidden ? { inert: "" } : {})}
       >
         <div className="nec-sidebar-inner">
-          <div className="nec-sidebar-head">
-            {isPublic ? (
-              <button type="button" className="nec-sidebar-profile nec-sidebar-signin" onClick={() => activate("login")} aria-label="Sign in to the sports portal">
-                <span className="nec-sidebar-avatar" aria-hidden="true"><LogIn size={16} /></span>
-                {showLabel && <span className="nec-sidebar-profile-text"><span className="nec-sidebar-profile-name">Sign in</span><span className="nec-sidebar-profile-sub">Sports portal</span></span>}
-              </button>
-            ) : (
-              <div className="nec-sidebar-profile" title={profileName}>
-                <span className="nec-sidebar-avatar" aria-hidden="true"><User size={16} /></span>
-                {showLabel && (
-                  <span className="nec-sidebar-profile-text">
-                    <span className="nec-sidebar-profile-name">{profileName}</span>
-                    {profileSub && <span className="nec-sidebar-profile-sub">{profileSub}</span>}
-                  </span>
-                )}
-              </div>
-            )}
-            {showLabel && !isPublic && (
-              <button type="button" className="nec-sidebar-icon-btn nec-sidebar-signout" onClick={handleSignOut} aria-label="Log out" title="Log out">
-                <LogOut size={16} />
-              </button>
-            )}
+          <div className="nec-sidebar-head nec-sidebar-head--blank">
+            <div className="nec-sidebar-head-spacer" />
             {isDrawer && (
               <button type="button" className="nec-sidebar-icon-btn" onClick={onCloseDrawer} aria-label="Close navigation drawer">
                 <X size={18} />
@@ -457,6 +437,49 @@ export default function Sidebar({
                 {showLabel && <span>Dark</span>}
               </button>
             </div>
+
+            {/* User Profile / Admin card or Guest Sign-in — placed directly above Settings */}
+            {isPublic ? (
+              <button
+                type="button"
+                className="nec-sidebar-profile nec-sidebar-signin"
+                onClick={() => activate("login")}
+                aria-label="Sign in to the sports portal"
+              >
+                <span className="nec-sidebar-avatar" aria-hidden="true"><LogIn size={16} /></span>
+                {showLabel && (
+                  <span className="nec-sidebar-profile-text">
+                    <span className="nec-sidebar-profile-name">Sign in</span>
+                    <span className="nec-sidebar-profile-sub">Sports portal</span>
+                  </span>
+                )}
+                {!showLabel && <span className="nec-rail-tooltip" aria-hidden="true">Sign in</span>}
+              </button>
+            ) : (
+              <div className="nec-sidebar-user-card" title={profileName}>
+                <div className="nec-sidebar-profile">
+                  <span className="nec-sidebar-avatar" aria-hidden="true"><User size={16} /></span>
+                  {showLabel && (
+                    <span className="nec-sidebar-profile-text">
+                      <span className="nec-sidebar-profile-name">{profileName}</span>
+                      {profileSub && <span className="nec-sidebar-profile-sub">{profileSub}</span>}
+                    </span>
+                  )}
+                  {!showLabel && <span className="nec-rail-tooltip" aria-hidden="true">{profileName}</span>}
+                </div>
+                {showLabel && (
+                  <button
+                    type="button"
+                    className="nec-sidebar-icon-btn nec-sidebar-signout"
+                    onClick={handleSignOut}
+                    aria-label="Log out"
+                    title="Log out"
+                  >
+                    <LogOut size={16} />
+                  </button>
+                )}
+              </div>
+            )}
 
             {isRail && !isPublic && (
               <button type="button" className="nec-nav-item nec-signout-rail" onClick={handleSignOut} aria-label="Log out">

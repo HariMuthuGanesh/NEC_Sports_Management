@@ -75,32 +75,42 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding: 14px 12px 12px;
+  padding: 8px 10px 10px;
   box-sizing: border-box;
   min-height: 0;
 }
 
-/* ---------- Head: brand + collapse ---------- */
+/* ---------- Head: blank spacer + collapse toggle ---------- */
 .nec-sidebar-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 8px;
-  margin-bottom: 18px;
-  min-height: 40px;
+  margin-bottom: 6px;
+  min-height: 28px;
+}
+
+.nec-sidebar-head-spacer {
+  flex: 1;
+}
+
+.nec-sidebar-head--blank {
+  justify-content: flex-end;
+  margin-bottom: 6px;
+  min-height: 28px;
 }
 
 .nec-sidebar-brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   min-width: 0;
 }
 
 .nec-sidebar-logo {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   object-fit: contain;
   background: #fff;
   border: 1px solid var(--nec-border);
@@ -118,8 +128,8 @@
 }
 
 .nec-sidebar-icon-btn {
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   border-radius: 8px;
   border: 1px solid var(--nec-border);
   background: var(--nec-surface);
@@ -146,11 +156,12 @@
   outline-offset: 2px;
 }
 
-/* Rail: stack brand and collapse button so the rail stays narrow */
+/* Rail: center collapse button */
 .nec-sidebar.is-rail .nec-sidebar-head {
   flex-direction: column;
-  gap: 10px;
-  margin-bottom: 14px;
+  gap: 6px;
+  margin-bottom: 8px;
+  justify-content: center;
 }
 
 .nec-sidebar.is-rail .nec-sidebar-inner {
@@ -172,7 +183,7 @@
   overflow-x: visible;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
   padding-right: 2px;
   scrollbar-width: thin;
 }
@@ -188,8 +199,8 @@
 
 .nec-nav-sub {
   position: relative;
-  margin: 2px 0 8px 18px;
-  padding-left: 12px;
+  margin: 1px 0 4px 14px;
+  padding-left: 10px;
   border-left: 1px solid var(--nec-border);
 }
 
@@ -206,7 +217,7 @@
 .nec-nav-group + .nec-nav-group,
 .nec-nav-group + .nec-nav-list,
 .nec-nav-list + .nec-nav-group {
-  margin-top: 6px;
+  margin-top: 4px;
 }
 
 .nec-nav-category,
@@ -214,20 +225,20 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
   width: 100%;
-  padding: 8px 10px;
-  margin-bottom: 2px;
+  padding: 5px 8px;
+  margin-bottom: 1px;
   border: none;
   background: transparent;
   color: var(--nec-text-light);
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   text-align: left;
   cursor: pointer;
-  border-radius: 8px;
+  border-radius: 6px;
   transition: color 200ms, background-color 200ms;
 }
 
@@ -249,15 +260,16 @@
   position: relative;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   width: 100%;
-  min-height: 40px;
-  padding: 9px 10px;
+  min-height: 34px;
+  padding: 6px 8px;
   border: none;
-  border-radius: 10px;
+  border-radius: 8px;
   background: transparent;
   color: var(--nec-text-muted);
   font: inherit;
+  font-size: 0.85rem;
   font-weight: 500;
   text-align: left;
   cursor: pointer;
@@ -399,9 +411,9 @@
 .nec-sidebar-footer {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding-top: 12px;
-  margin-top: 8px;
+  gap: 6px;
+  padding-top: 8px;
+  margin-top: 4px;
   border-top: 1px solid var(--nec-border);
 }
 
@@ -488,7 +500,46 @@
   }
 }
 
-/* ---------- Profile card (replaces the brand block) ---------- */
+/* ---------- Profile card & Sign-in (in footer above Settings) ---------- */
+.nec-sidebar-user-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: var(--nec-surface-raised);
+  border: 1px solid var(--nec-border);
+  box-sizing: border-box;
+  transition: background-color 200ms, border-color 200ms;
+}
+
+.nec-sidebar-user-card:hover {
+  background: var(--nec-surface-hover);
+}
+
+.nec-sidebar-signin {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--nec-surface-raised);
+  border: 1px solid var(--nec-border);
+  color: var(--nec-text-main);
+  cursor: pointer;
+  box-sizing: border-box;
+  position: relative;
+  transition: background-color 200ms, border-color 200ms;
+}
+
+.nec-sidebar-signin:hover {
+  background: var(--nec-surface-hover);
+  color: var(--nec-accent);
+}
+
 .nec-sidebar-profile {
   display: flex;
   align-items: center;
@@ -501,6 +552,7 @@
   color: inherit;
   font: inherit;
   text-align: left;
+  position: relative;
 }
 
 button.nec-sidebar-profile {
@@ -509,8 +561,8 @@ button.nec-sidebar-profile {
 }
 
 .nec-sidebar-avatar {
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   background: var(--nec-accent);
   color: #fff;
@@ -533,23 +585,57 @@ button.nec-sidebar-profile {
   overflow: hidden;
   text-overflow: ellipsis;
   color: var(--nec-text-main);
+  font-size: 0.84rem;
 }
 
 .nec-sidebar-profile-sub {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   color: var(--nec-text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.nec-sidebar.is-rail .nec-sidebar-head {
-  flex-direction: column;
+.nec-sidebar-signout {
+  transition: background-color 200ms, color 200ms, border-color 200ms;
+}
+
+.nec-sidebar-signout:hover {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+/* Rail adjustments for user card & signin */
+.nec-sidebar.is-rail .nec-sidebar-user-card {
+  padding: 0;
+  background: transparent;
+  border: none;
+  justify-content: center;
+  width: 44px;
+  margin: 0 auto;
+}
+
+.nec-sidebar.is-rail .nec-sidebar-signin {
+  padding: 0;
+  background: transparent;
+  border: none;
+  justify-content: center;
+  width: 44px;
+  min-height: 44px;
+  margin: 0 auto;
 }
 
 .nec-sidebar.is-rail .nec-sidebar-profile {
   flex: none;
   justify-content: center;
+}
+
+.nec-sidebar.is-rail .nec-sidebar-profile:hover .nec-rail-tooltip,
+.nec-sidebar.is-rail .nec-sidebar-signin:hover .nec-rail-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(0, -50%);
 }
 
 /* ---------- Drag handle on the right edge ---------- */

@@ -159,11 +159,12 @@ export default function EventsManager() {
     {
       key: "title",
       label: "Event Name",
+      minWidth: "180px",
       render: (val, row) => (
-        <div>
-          <strong style={{ fontSize: "0.95rem" }}>{val || row.name || "Sports Event"}</strong>
+        <div style={{ minWidth: "160px" }}>
+          <strong style={{ fontSize: "0.92rem", display: "block" }}>{val || row.name || "Sports Event"}</strong>
           {row.tournament_name && (
-            <div style={{ fontSize: "0.78rem", color: "var(--nec-text-muted)", marginTop: "2px" }}>
+            <div style={{ fontSize: "0.76rem", color: "var(--nec-text-muted)", marginTop: "2px" }}>
               🏆 {row.tournament_name}
             </div>
           )}
@@ -173,7 +174,7 @@ export default function EventsManager() {
     {
       key: "category",
       label: "Category",
-      width: "120px",
+      width: "100px",
       render: (val, row) => {
         const cat = val || row.category || "Open";
         return (
@@ -186,7 +187,7 @@ export default function EventsManager() {
     {
       key: "eventCategory",
       label: "Tournament Tier",
-      width: "140px",
+      width: "130px",
       render: (val, row) => {
         const tier = val || row.event_category || row.tier || "Intramural";
         return (
@@ -199,7 +200,7 @@ export default function EventsManager() {
     {
       key: "sportId",
       label: "Sport",
-      width: "130px",
+      width: "110px",
       render: (val, row) => {
         const name = row.sportName || row.sport_name || (val ? `Sport #${val}` : "General");
         return String(name).replace("sp_", "").toUpperCase();
@@ -208,7 +209,7 @@ export default function EventsManager() {
     {
       key: "teamsLimit",
       label: "Teams Registered",
-      width: "150px",
+      width: "130px",
       render: (_, row) => row.sportType === "Individual"
         ? <span>{row.registeredEntries ?? 0} entries</span>
         : <span>{row.registeredTeams ?? 0} / {row.maxTeams || row.max_teams || 32} Teams</span>
@@ -216,13 +217,13 @@ export default function EventsManager() {
     {
       key: "regDeadline",
       label: "Entry Deadline",
-      width: "140px",
+      width: "130px",
       render: (val, row) => <span>📅 {formatDeadline(val || row.reg_deadline)}</span>
     },
     {
       key: "status",
       label: "Registration Status",
-      width: "140px",
+      width: "110px",
       render: (val, row) => {
         const st = val || row.registration_status || "Open";
         const isOpen = st === "Open" || st === "Registration Open";
