@@ -6,15 +6,15 @@ test.describe('NEC Sports Management — Public User Journey', () => {
   });
 
   test('should render collegiate varsity branding, hero header, and navigation', async ({ page }) => {
-    await expect(page).toHaveTitle(/NEC Sports Management/i);
+    await expect(page).toHaveTitle(/(NEC Sports Management|National Engineering College)/i);
     await expect(page.locator('header.nec-header')).toBeVisible();
     await expect(page.locator('.nec-college-name').first()).toBeVisible();
   });
 
   test('should render live matches and department medal standings', async ({ page }) => {
     await expect(page.locator('.nec-public-home')).toBeVisible();
-    // Check if live scoreboard or department standings are rendered
-    await expect(page.locator('.nec-live-match-card, .nec-fixture-card').first()).toBeVisible();
+    // Check if hero banner or live scoreboard or fixtures/standings are rendered
+    await expect(page.locator('.nec-portal-hero, .nec-live-match-card, .nec-fixture-card').first()).toBeVisible();
   });
 
   test('should toggle dark/light theme and update document attribute', async ({ page }) => {

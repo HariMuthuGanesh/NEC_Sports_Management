@@ -48,7 +48,7 @@ export default function PublicHome({ onNavigate }) {
   if (loading && !homeData) return <SkeletonLoader rows={5} />;
 
   return (
-    <div className="nec-portal-page nec-guest-home">
+    <div className="nec-portal-page nec-guest-home nec-public-home">
       {/* Hero Section */}
       <section className="nec-portal-hero">
         <div className="nec-hero-content">

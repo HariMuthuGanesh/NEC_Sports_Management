@@ -10,11 +10,13 @@ on:
   push:
     branches:
       - main
+      - master
       - Frontend
       - Backend
   pull_request:
     branches:
       - main
+      - master
       - Frontend
       - Backend
 
@@ -54,9 +56,10 @@ jobs:
           MYSQL_USER: root
           MYSQL_PASSWORD: root
           MYSQL_DATABASE: SportsDB
-          JWT_SECRET: testing_secret
-          COOKIE_SECRET: testing_cookie_secret
-          CSRF_SECRET: testing_csrf_secret
+          JWT_SECRET: testing_jwt_secret_must_be_32_characters_long!
+          COOKIE_SECRET: testing_cookie_secret_must_be_32_characters_long!
+          CSRF_SECRET: testing_csrf_secret_must_be_32_characters_long!
+          SEED_STUDENT_PASSWORD: testing_student_password_123
         run: |
           npm ci
           # backend/src/data/seed.sql was never committed (it is intentionally
@@ -75,14 +78,11 @@ jobs:
           MYSQL_USER: root
           MYSQL_PASSWORD: root
           MYSQL_DATABASE: SportsDB
-          # `npm start` runs with NODE_ENV=production (see package.json), and
-          # backend/src/config/securityConfig.js exits the process immediately
-          # if JWT_SECRET, COOKIE_SECRET, or CSRF_SECRET are unset in
-          # production — all three must be provided here or the server never
-          # comes up and the wait-on step below times out.
-          JWT_SECRET: testing_secret
-          COOKIE_SECRET: testing_cookie_secret
-          CSRF_SECRET: testing_csrf_secret
+          # Provide full secrets so securityConfig.js passes validation cleanly
+          JWT_SECRET: testing_jwt_secret_must_be_32_characters_long!
+          COOKIE_SECRET: testing_cookie_secret_must_be_32_characters_long!
+          CSRF_SECRET: testing_csrf_secret_must_be_32_characters_long!
+          SEED_STUDENT_PASSWORD: testing_student_password_123
         run: |
           npm start &
           npx wait-on http://127.0.0.1:5000/api/sports
@@ -100,6 +100,7 @@ jobs:
         run: npx playwright test --project=chromium
         env:
           CI: true
+          E2E_PLAYER_PASSWORD: testing_student_password_123
 
       - name: 📊 Upload Playwright HTML Test Report
         uses: actions/upload-artifact@v4
