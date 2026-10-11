@@ -7,7 +7,7 @@ export const CSRF_SESSION_COOKIE_NAME = 'csrf-session';
 
 const csrfCookieOptions = {
     httpOnly: true,
-    sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     path: '/',
     secure: process.env.NODE_ENV === 'production'
 };

@@ -38,13 +38,32 @@ SET @col_exists = (
 
 SET @add_col_sql = IF(
     @col_exists = 0,
-    'ALTER TABLE tournaments ADD COLUMN competition_level_id INT NULL, ADD CONSTRAINT fk_tournaments_competition_level FOREIGN KEY (competition_level_id) REFERENCES competition_levels(id) ON DELETE SET NULL',
+    'ALTER TABLE tournaments ADD COLUMN competition_level_id INT NULL',
     'SELECT 1'
 );
 
 PREPARE stmt FROM @add_col_sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
+
+SET @fk_exists = (
+    SELECT COUNT(*) 
+    FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE 
+    WHERE TABLE_SCHEMA = DATABASE() 
+      AND TABLE_NAME = 'tournaments' 
+      AND COLUMN_NAME = 'competition_level_id'
+      AND REFERENCED_TABLE_NAME = 'competition_levels'
+);
+
+SET @add_fk_sql = IF(
+    @fk_exists = 0,
+    'ALTER TABLE tournaments ADD CONSTRAINT fk_tournaments_competition_level FOREIGN KEY (competition_level_id) REFERENCES competition_levels(id) ON DELETE SET NULL',
+    'SELECT 1'
+);
+
+PREPARE stmt_fk FROM @add_fk_sql;
+EXECUTE stmt_fk;
+DEALLOCATE PREPARE stmt_fk;
 
 -- Migrate existing tournaments tier to competition_level_id
 UPDATE tournaments t
