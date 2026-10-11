@@ -42,7 +42,13 @@ app.use(cors({
         // explicitly allow-listed origin. Reject everything else — this was
         // previously always returning `true`, which silently disabled the
         // allow-list and permitted credentialed requests from ANY origin.
-        if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+        if (
+            !origin ||
+            allowedOrigins.includes(origin) ||
+            allowedOrigins.includes('*') ||
+            origin.endsWith('.vercel.app') ||
+            origin.endsWith('.nec.edu.in')
+        ) {
             return callback(null, true);
         }
         return callback(new Error('Not allowed by CORS'));
