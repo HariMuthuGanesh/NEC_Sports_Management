@@ -1,3 +1,4 @@
+import { assertDepartmentAccess } from '../services/accessScope.js';
 import pool from '../config/db.js';
 import { getSportCategories, createSportCategory, deleteSportCategory, getSportTypeById } from '../models/sql/sportSqlModel.js';
 import { getEventTeamsSql, getEventEntriesSql, addEventEntrySql, removeEventEntrySql } from '../models/sql/eventSqlModel.js';
@@ -79,7 +80,8 @@ export const getEventEntriesController = async (req, res, next) => {
     try {
         const eventId = parseEventId(req.params.id);
         if (!eventId) return res.status(400).json({ success: false, error: { message: 'Invalid event ID.' } });
-        const data = await getEventEntriesSql(eventId);
+        let data = await getEventEntriesSql(eventId);
+        if (req.user.role === 'Coordinator') data = data.filter(row => Number(row.department_id) === Number(req.user.dept_id));
         return res.json({ success: true, data });
     } catch (err) {
         next(err);
@@ -103,11 +105,12 @@ export const addEventEntryController = async (req, res, next) => {
 
         const reg = String(req.body?.registerNumber || '').trim();
         const [[student]] = await pool.execute(
-            'SELECT student_id, student_name FROM students WHERE register_number = ? OR student_id = ? LIMIT 1',
+            'SELECT student_id, student_name, department_id FROM students WHERE register_number = ? OR student_id = ? LIMIT 1',
             [reg, Number(reg) || 0]
         );
         if (!student) return res.status(404).json({ success: false, error: { code: 'STUDENT_NOT_FOUND', message: 'No student found with that register number.' } });
 
+        assertDepartmentAccess(req.user, student.department_id);
         const categoryId = Number(req.body?.categoryId) || null;
         if (categoryId) {
             const [[cat]] = await pool.execute('SELECT category_id FROM sport_categories WHERE category_id = ? AND sport_id = ?', [categoryId, event.sport_id]);
@@ -125,6 +128,9 @@ export const addEventEntryController = async (req, res, next) => {
 // DELETE /api/event-entries/:entryId  (Admin, Coordinator)
 export const removeEventEntryController = async (req, res, next) => {
     try {
+        const [[entry]] = await pool.execute('SELECT s.department_id FROM event_entries ee JOIN students s ON s.student_id=ee.student_id WHERE ee.entry_id=?', [Number(req.params.entryId)]);
+        if (!entry) return res.status(404).json({ success: false, error: { message: 'Entry not found.' } });
+        assertDepartmentAccess(req.user, entry.department_id);
         const ok = await removeEventEntrySql(Number(req.params.entryId));
         if (!ok) return res.status(404).json({ success: false, error: { message: 'Entry not found.' } });
         return res.json({ success: true, data: { message: 'Entry removed.' } });

@@ -98,8 +98,8 @@ export default function Table({
                   {columns.map((col) => (
                     <th
                       key={col.key}
-                      style={{ width: col.width || "auto" }}
-                      className={col.sortable !== false ? "sortable" : ""}
+                      style={{ width: col.width || "auto", minWidth: col.minWidth }}
+                      className={[col.sortable !== false ? "sortable" : "", col.className].filter(Boolean).join(" ")}
                       onClick={() => col.sortable !== false && handleSort(col.key)}
                     >
                       <div className="nec-th-content">
@@ -122,7 +122,11 @@ export default function Table({
                 {paginatedData.map((row, idx) => (
                   <tr key={row.id || row._id || idx}>
                     {columns.map((col) => (
-                      <td key={col.key}>
+                      <td
+                        key={col.key}
+                        className={col.className || ""}
+                        style={{ width: col.width, minWidth: col.minWidth }}
+                      >
                         {col.render ? col.render(row[col.key], row, idx) : row[col.key]}
                       </td>
                     ))}

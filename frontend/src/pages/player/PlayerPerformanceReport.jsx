@@ -391,6 +391,15 @@ export default function PlayerPerformanceReport() {
       )}
 
       {/* ── Tab Content: Match History ── */}
+      {activeTab === "matches" && <Card title="Event Participation">
+        <Table data={data?.individualCompetitions || []} columns={[
+          {key:'sport_name',label:'Sport'}, {key:'category_name',label:'Category'}, {key:'name',label:'Event'},
+          {key:'tournament_name',label:'Tournament'}, {key:'entry_name',label:'Entry'}, {key:'status',label:'Status'},
+          {key:'result_value',label:'Result',render:(v,r)=>v==null?r.result_status:`${v} ${r.unit}`},
+          {key:'rank',label:'Place',render:(v,r)=>r.status==='Completed'?(v===1?'Winner':v===2?'Runner-up':v || '?'):'?'}
+        ]} />
+      </Card>}
+
       {activeTab === "matches" && (
         <div>
           {/* Filters Bar */}
@@ -509,6 +518,7 @@ export default function PlayerPerformanceReport() {
           </Card>
 
           <Card title="Digital Sports Certificates">
+            {certificates.length === 0 && <EmptyState title="No certificates issued" />}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "16px" }}>
               {certificates.map(cert => (
                 <div key={cert.id} className="nec-cert-card">
@@ -521,9 +531,7 @@ export default function PlayerPerformanceReport() {
                       <Badge status={cert.category === "Merit" ? "gold" : "neutral"}>{cert.category}</Badge>
                     </div>
                   </div>
-                  <Button variant="outline" size="sm" onClick={() => alert(`Certificate ${cert.referenceNo} verified and authenticated by NEC Physical Education Department.`)}>
-                    Verify
-                  </Button>
+
                 </div>
               ))}
             </div>

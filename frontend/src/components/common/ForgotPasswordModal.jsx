@@ -42,15 +42,7 @@ export default function ForgotPasswordModal({ isOpen, onClose }) {
       await authApi.forgotPassword(identifier.trim());
       setStep(2);
     } catch (err) {
-      // Even on network error, show the same generic message to avoid
-      // giving any hint about whether the account exists.
-      // Only surface hard network errors.
-      if (err?.code === "NETWORK_ERROR") {
-        setError("Unable to reach the server. Please check your connection.");
-      } else {
-        // Treat everything else as success to remain timing-safe
-        setStep(2);
-      }
+      setError(err.message || "Unable to submit your request. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -68,11 +60,7 @@ export default function ForgotPasswordModal({ isOpen, onClose }) {
           <div className="fp-icon-wrap">
             <KeyRound size={32} className="fp-icon" />
           </div>
-          <p className="fp-desc">
-            Enter your registered <strong>email address</strong>, <strong>username</strong>,
-            or <strong>roll number</strong>. A temporary password and login instructions
-            will be emailed directly to your registered mail.
-          </p>
+
 
           <div className="fp-field">
             <label htmlFor="fp-identifier" className="fp-label">
@@ -102,7 +90,7 @@ export default function ForgotPasswordModal({ isOpen, onClose }) {
               Cancel
             </Button>
             <Button type="submit" variant="primary" size="sm" loading={loading}>
-              Send Reset Email
+              Request Reset
             </Button>
           </div>
         </form>
@@ -111,12 +99,8 @@ export default function ForgotPasswordModal({ isOpen, onClose }) {
           <div className="fp-success-icon">
             <CheckCircle2 size={40} />
           </div>
-          <h4 className="fp-success-title">Email Sent</h4>
-          <p className="fp-success-body">
-            If an account matching <strong>{identifier}</strong> exists, a temporary
-            password has been dispatched to your registered email address.
-            Please check your inbox, log in, and change your password immediately.
-          </p>
+          <h4 className="fp-success-title">Request Submitted</h4>
+          <p className="fp-success-body">If that account exists, the administrator has been notified.</p>
           <Button variant="primary" size="sm" onClick={handleClose} className="fp-done-btn">
             Got it
           </Button>

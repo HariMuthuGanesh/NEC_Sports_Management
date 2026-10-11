@@ -1,3 +1,4 @@
+import { assertTeamAccess, assertDepartmentAccess } from '../services/accessScope.js';
 import {
     addPlayerToTeam as addPlayerToTeamSql,
     createTeam as createTeamSql,
@@ -23,6 +24,10 @@ import { ensureStudentAndUserExists } from '../services/studentProvisionService.
 export const getTeams = async (req, res, next) => {
     try {
         let data = await getAllTeams();
+        if (['Captain', 'Team Captain'].includes(req.user?.role)) {
+            const [assigned] = await pool.execute("SELECT department_id,sport_id FROM department_sport_captains WHERE user_id=? AND status='Active'", [req.user.id]);
+            data = data.filter(t => assigned.some(a => Number(a.department_id) === Number(t.department_id || t.deptId) && Number(a.sport_id) === Number(t.sport_id || t.sportId)));
+        }
         if (req.user?.role === 'Coordinator') {
             const userDeptId = Number(req.user.dept_id || req.user.deptId);
             const userDeptCode = (req.user.deptCode || req.user.dept || '').toUpperCase();
@@ -79,7 +84,9 @@ export const getCaptainTeamsController = async (req, res, next) => {
         if (!captainUserId) {
             return res.status(401).json({ success: false, error: { message: "Unauthorized" } });
         }
-        const data = await getTeamsByCaptainSql(captainUserId);
+        const allTeams = await getAllTeams();
+        const [assignments] = await pool.execute("SELECT department_id,sport_id FROM department_sport_captains WHERE user_id=? AND status='Active'",[captainUserId]);
+        const data = allTeams.filter(t => assignments.some(a => Number(a.department_id)===Number(t.deptId) && Number(a.sport_id)===Number(t.sportId)));
         return res.json({ success: true, data });
     } catch (err) {
         next(err);
@@ -88,6 +95,7 @@ export const getCaptainTeamsController = async (req, res, next) => {
 
 export const getTeamPlayers = async (req, res, next) => {
     try {
+        await assertTeamAccess(req.user, Number(req.params.id));
         const teamId = Number(req.params.id);
         if (req.user?.role === 'Coordinator' && req.user.dept_id) {
             const [teamRows] = await pool.execute('SELECT department_id FROM teams WHERE team_id = ? LIMIT 1', [teamId]);
@@ -103,7 +111,7 @@ export const getTeamPlayers = async (req, res, next) => {
         }
 
         const data = await getPlayersByTeam(teamId);
-        return res.json({ success: true, data });
+        return res.json({ success: true, data: ['Admin','Coordinator','Sports President'].includes(req.user.role) ? data : data.map(({ personal_email, personal_phone, email, phone, blood_group, ...member }) => member) });
     } catch (err) {
         next(err);
     }
@@ -134,6 +142,12 @@ export const createTeam = async (req, res, next) => {
         // Resolve department_id
         let resolvedDeptId = Number(department_id || deptId) || null;
 
+        if (req.user.role === 'Captain') {
+            const [[assignment]] = await pool.execute("SELECT department_id FROM department_sport_captains WHERE user_id=? AND sport_id=? AND status='Active'",[req.user.id,Number(sport_id || sportId) || 0]);
+            if (!assignment || (resolvedDeptId && resolvedDeptId!==Number(assignment.department_id))) return res.status(403).json({success:false,error:{message:'Select your assigned department and sport.'}});
+            resolvedDeptId=Number(assignment.department_id);
+        }
+
         // If coordinator, lock department to coordinator's assigned department
         if (req.user?.role === 'Coordinator' && req.user.dept_id) {
             resolvedDeptId = req.user.dept_id;
@@ -154,6 +168,11 @@ export const createTeam = async (req, res, next) => {
         if (!resolvedSportId) {
             return res.status(400).json({ success: false, error: { message: 'A sport selection is required.' } });
         }
+        if (req.user.role === 'Coordinator') assertDepartmentAccess(req.user, resolvedDeptId);
+        if (req.user.role === 'Captain') {
+            const [[assignment]] = await pool.execute("SELECT id FROM department_sport_captains WHERE user_id=? AND department_id=? AND sport_id=? AND status='Active'",[req.user.id,resolvedDeptId,resolvedSportId]);
+            if (!assignment) return res.status(403).json({success:false,error:{message:'Select your assigned department and sport.'}});
+        }
         // Individual sports (e.g. Athletics) register students as event entries, never as teams.
         if ((await getSportTypeById(resolvedSportId)) === 'Individual') {
             return res.status(400).json({
@@ -170,6 +189,11 @@ export const createTeam = async (req, res, next) => {
         }
 
         const resolvedEventId = Number(event_id || eventId) || null;
+        if (resolvedEventId) {
+            const [[event]] = await pool.execute('SELECT sport_id,tournament_id,registration_status FROM events WHERE event_id=?',[resolvedEventId]);
+            if (!event || Number(event.sport_id)!==resolvedSportId || Number(event.tournament_id)!==resolvedTourId) return res.status(400).json({success:false,error:{message:'Event, tournament and sport must match.'}});
+            if (event.registration_status!=='Open') return res.status(409).json({success:false,error:{message:'Event registration is closed.'}});
+        }
         const resolvedCaptainId = captain_id || (req.user?.role === 'Captain' ? req.user.id : null);
 
         const teamId = await createTeamSql({
@@ -181,7 +205,7 @@ export const createTeam = async (req, res, next) => {
             captain_id: resolvedCaptainId,
             coach_name: coach_name || coachName || null,
             jersey_color: jersey_color || jerseyColor || null,
-            status: req.user?.role === 'Admin' ? (status || 'Approved') : 'Pending'
+            status: ['Admin','Sports President'].includes(req.user?.role) ? (status || 'Approved') : 'Pending'
         });
 
         const captainRoll = req.body.captainRoll;
@@ -217,7 +241,7 @@ export const createTeam = async (req, res, next) => {
                 department_id: resolvedDeptId,
                 sportId: resolvedSportId,
                 tournamentId: resolvedTourId,
-                status: req.user?.role === 'Admin' ? (status || 'Approved') : 'Pending'
+                status: ['Admin','Sports President'].includes(req.user?.role) ? (status || 'Approved') : 'Pending'
             }
         });
     } catch (err) {
@@ -227,6 +251,7 @@ export const createTeam = async (req, res, next) => {
 
 export const updateTeamStatus = async (req, res, next) => {
     try {
+        await assertTeamAccess(req.user, Number(req.params.id));
         const teamId = req.params.id;
         const newStatus = req.body.status;
         if (!['Pending', 'Approved', 'Disqualified'].includes(newStatus)) {
@@ -274,6 +299,7 @@ export const updateTeamStatus = async (req, res, next) => {
 
 export const deleteTeam = async (req, res, next) => {
     try {
+        await assertTeamAccess(req.user, Number(req.params.id));
         if (req.user?.role === 'Coordinator' && req.user.dept_id) {
             const [teamRows] = await pool.execute('SELECT department_id FROM teams WHERE team_id = ? LIMIT 1', [req.params.id]);
             if (teamRows[0] && Number(teamRows[0].department_id) !== Number(req.user.dept_id)) {
@@ -306,6 +332,7 @@ export const deleteTeam = async (req, res, next) => {
 
 export const addPlayerToTeam = async (req, res, next) => {
     try {
+        const scopedTeam = await assertTeamAccess(req.user, Number(req.params.id));
         const teamId = req.params.id;
 
         if (req.user?.role === 'Coordinator' && req.user.dept_id) {
@@ -315,19 +342,6 @@ export const addPlayerToTeam = async (req, res, next) => {
                     success: false,
                     error: { message: 'You are only authorized to add players to teams in your assigned department.' }
                 });
-            }
-        }
-
-        if (req.user?.role === 'Team Captain' || req.user?.role === 'Captain') {
-            const [teamRows] = await pool.execute('SELECT captain_id, sport_id FROM teams WHERE team_id = ? LIMIT 1', [teamId]);
-            if (teamRows[0] && Number(teamRows[0].captain_id) !== Number(req.user.id)) {
-                const [sportRows] = await pool.execute('SELECT captain_user_id FROM sports WHERE sport_id = ? LIMIT 1', [teamRows[0].sport_id]);
-                if (!sportRows[0] || Number(sportRows[0].captain_user_id) !== Number(req.user.id)) {
-                    return res.status(403).json({
-                        success: false,
-                        error: { message: 'As Team Captain, you can only manage players for your assigned sport team.' }
-                    });
-                }
             }
         }
 
@@ -346,7 +360,8 @@ export const addPlayerToTeam = async (req, res, next) => {
             name,
             dept,
             year,
-            role: role === 'Captain' ? 'Captain' : 'Player'
+            role: role === 'Captain' ? 'Captain' : 'Player',
+            requiredDepartmentId: scopedTeam.department_id
         });
 
         const member = await addPlayerToTeamSql(teamId, provisionResult.studentId, role, jerseyNumber);
@@ -371,8 +386,7 @@ export const addPlayerToTeam = async (req, res, next) => {
             data: {
                 ...member,
                 studentName: provisionResult.studentName,
-                isNewUser: provisionResult.isNewUser,
-                defaultPassword: provisionResult.defaultPassword
+                isNewUser: provisionResult.isNewUser
             }
         });
     } catch (error) {
@@ -395,6 +409,7 @@ export const removePlayer = async (req, res, next) => {
         );
         
         if (memberRows[0]) {
+            await assertTeamAccess(req.user, memberRows[0].team_id);
             userIdToNotify = memberRows[0].user_id;
             teamNameForNotify = memberRows[0].team_name;
             if (req.user?.role === 'Coordinator' && req.user.dept_id) {
@@ -429,6 +444,7 @@ export const removePlayer = async (req, res, next) => {
 
 export const updateTeamDetailsController = async (req, res, next) => {
     try {
+        await assertTeamAccess(req.user, Number(req.params.id));
         const teamId = req.params.id;
         const { name, sport_id, sportId, coach_name, coachName, jersey_color, jerseyColor } = req.body;
 

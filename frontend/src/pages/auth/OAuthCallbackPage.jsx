@@ -1,41 +1,31 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { AlertTriangle, Loader2 } from 'lucide-react';
-import { setAuthToken } from '../../utils/security';
 import Button from '../../components/common/Button';
 
 export default function OAuthCallbackPage({ onLoginSuccess, onNavigate }) {
   const { login } = useAuth();
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const processCallback = async () => {
       try {
         const params = new URLSearchParams(window.location.search);
-        const token = params.get('token');
-        const errorParam = params.get('error');
+        const success = params.get('success');
+        const errorParam = params.get('error') || new URLSearchParams(window.location.hash.slice(1)).get('error');
 
         if (errorParam) {
           setError(decodeURIComponent(errorParam));
-          setLoading(false);
           return;
         }
 
-        if (!token) {
-          setError('No authentication token received.');
-          setLoading(false);
+        if (success !== '1') {
+          setError('Authentication session was not established.');
           return;
         }
 
-        // Store JWT token
-        setAuthToken(token);
-
-        // Fetch user profile using the token
         const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/me`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+          credentials: 'include'
         });
 
         const resData = await response.json();
@@ -53,7 +43,7 @@ export default function OAuthCallbackPage({ onLoginSuccess, onNavigate }) {
             title: userData.role,
             id: userData.username
           };
-          login(sessionUser, token);
+          login(sessionUser);
 
           if (typeof onLoginSuccess === 'function') {
             onLoginSuccess(sessionUser);
@@ -63,8 +53,6 @@ export default function OAuthCallbackPage({ onLoginSuccess, onNavigate }) {
         }
       } catch (err) {
         setError('Authentication process failed. Please try again.');
-      } finally {
-        setLoading(false);
       }
     };
 

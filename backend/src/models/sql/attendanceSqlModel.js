@@ -1,93 +1,29 @@
 import pool from '../../config/db.js';
 
-/**
- * Ensure match_attendance table exists dynamically
- */
-export const ensureAttendanceTable = async () => {
-    const createSql = `
-        CREATE TABLE IF NOT EXISTS match_attendance (
-            attendance_id INT PRIMARY KEY AUTO_INCREMENT,
-            team_id INT NOT NULL,
-            match_id INT,
-            student_id INT NOT NULL,
-            status ENUM('Present','Absent') NOT NULL DEFAULT 'Present',
-            marked_by INT NOT NULL,
-            recorded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (team_id) REFERENCES teams(team_id) ON DELETE CASCADE,
-            FOREIGN KEY (student_id) REFERENCES students(student_id) ON DELETE CASCADE,
-            FOREIGN KEY (marked_by) REFERENCES users(id) ON DELETE CASCADE
-        )
-    `;
+// Migrations own the schema; runtime requests only read and write attendance.
+export const recordSquadAttendance = async ({ teamId, matchId, attendanceMap = {}, markedBy }) => {
+    const connection = await pool.getConnection();
     try {
-        await pool.execute(createSql);
-    } catch (err) {
-        // Table may already exist or foreign keys might be soft-handled
-    }
-};
-
-/**
- * Record squad attendance for a team
- * @param {Object} params
- * @param {number} params.teamId
- * @param {number|null} params.matchId
- * @param {Object} params.attendanceMap - Map of member_id/student_id -> boolean
- * @param {number} params.markedBy - user_id who marked attendance
- */
-export const recordSquadAttendance = async ({ teamId, matchId = null, attendanceMap = {}, markedBy }) => {
-    await ensureAttendanceTable();
-
-    // Fetch team members with their student_ids
-    const [members] = await pool.execute(
-        `SELECT tm.member_id, tm.student_id, tm.role, st.student_name, st.register_number, st.department_id, d.code AS dept_code
-         FROM team_members tm
-         JOIN students st ON tm.student_id = st.student_id
-         JOIN departments d ON st.department_id = d.id
-         WHERE tm.team_id = ?`,
-        [teamId]
-    );
-
-    if (!members.length) {
-        return { recorded: 0, members: [] };
-    }
-
-    let recordedCount = 0;
-    const results = [];
-
-    for (const m of members) {
-        let isPresent = true;
-        if (attendanceMap[m.member_id] !== undefined) {
-            isPresent = Boolean(attendanceMap[m.member_id]);
-        } else if (attendanceMap[m.student_id] !== undefined) {
-            isPresent = Boolean(attendanceMap[m.student_id]);
-        } else if (attendanceMap[m.register_number] !== undefined) {
-            isPresent = Boolean(attendanceMap[m.register_number]);
+        await connection.beginTransaction();
+        const [[team]] = await connection.execute('SELECT team_id FROM teams WHERE team_id = ? FOR UPDATE', [teamId]);
+        const [[match]] = await connection.execute('SELECT match_id FROM matches WHERE match_id = ? AND (team_a_id = ? OR team_b_id = ?)', [matchId, teamId, teamId]);
+        if (!team || !match) { const error = new Error('Select a match involving this team.'); error.statusCode = 400; throw error; }
+        const [members] = await connection.execute(`SELECT tm.member_id, tm.student_id FROM team_members tm WHERE tm.team_id = ?`, [teamId]);
+        if (members.some(m => typeof attendanceMap[m.member_id] !== 'boolean')) {
+            const error = new Error('Mark each roster member present or absent.'); error.statusCode = 400; throw error;
         }
-
-        const status = isPresent ? 'Present' : 'Absent';
-
-        const [insertRes] = await pool.execute(
-            `INSERT INTO match_attendance (team_id, match_id, student_id, status, marked_by)
-             VALUES (?, ?, ?, ?, ?)`,
-            [teamId, matchId, m.student_id, status, markedBy || 1]
-        );
-
-        results.push({
-            attendance_id: insertRes.insertId,
-            student_id: m.student_id,
-            student_name: m.student_name,
-            register_number: m.register_number,
-            department_code: m.dept_code,
-            department_id: m.department_id,
-            status
-        });
-        recordedCount++;
-    }
-
-    return { recorded: recordedCount, results };
+        await connection.execute('DELETE FROM match_attendance WHERE team_id = ? AND match_id = ?', [teamId, matchId]);
+        for (const member of members) {
+            await connection.execute('INSERT INTO match_attendance (team_id,match_id,student_id,status,marked_by) VALUES (?,?,?,?,?)',
+                [teamId, matchId, member.student_id, attendanceMap[member.member_id] ? 'Present' : 'Absent', markedBy]);
+        }
+        await connection.commit();
+        return { recorded: members.length };
+    } catch (error) { await connection.rollback(); throw error; }
+    finally { connection.release(); }
 };
 
-export const getTeamAttendance = async (teamId) => {
-    await ensureAttendanceTable();
+export const getTeamAttendance = async (teamId, matchId = null) => {
     const sql = `
         SELECT 
             ma.attendance_id,
@@ -103,16 +39,14 @@ export const getTeamAttendance = async (teamId) => {
         FROM match_attendance ma
         JOIN students st ON ma.student_id = st.student_id
         JOIN departments d ON st.department_id = d.id
-        WHERE ma.team_id = ?
+        WHERE ma.team_id = ? AND (? IS NULL OR ma.match_id = ?)
         ORDER BY ma.recorded_at DESC
-        LIMIT 100
     `;
-    const [rows] = await pool.execute(sql, [teamId]);
+    const [rows] = await pool.execute(sql, [teamId, matchId, matchId]);
     return rows;
 };
 
 export const getDepartmentAttendance = async (departmentId) => {
-    await ensureAttendanceTable();
     const sql = `
         SELECT 
             ma.attendance_id,
@@ -143,7 +77,6 @@ export const getDepartmentAttendance = async (departmentId) => {
 };
 
 export const getMatchAttendanceSql = async (matchId) => {
-    await ensureAttendanceTable();
     const sql = `
         SELECT 
             ma.attendance_id,

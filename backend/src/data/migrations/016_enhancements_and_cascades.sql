@@ -1,12 +1,10 @@
--- Migration 016: Cascading team deletions and sports disciplines/categories
-
--- 1. Ensure sports table has sport_type and sub_categories
-ALTER TABLE sports ADD COLUMN IF NOT EXISTS sport_type ENUM('Team', 'Individual', 'Dual') DEFAULT 'Team';
-ALTER TABLE sports ADD COLUMN IF NOT EXISTS sub_categories TEXT NULL;
-
--- 2. Ensure coordinators can be easily queried or role-indexed
-ALTER TABLE users ADD INDEX IF NOT EXISTS idx_user_role (role);
-
--- 3. In departments, ensure hod_name and hod_email are optional
-ALTER TABLE departments MODIFY COLUMN hod_name VARCHAR(100) NULL;
-ALTER TABLE departments MODIFY COLUMN hod_email VARCHAR(100) NULL;
+-- MySQL-compatible guards; retired HOD columns are intentionally untouched.
+SET @exists = (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'sports' AND COLUMN_NAME = 'sport_type');
+SET @sql = IF(@exists = 0, "ALTER TABLE sports ADD COLUMN sport_type ENUM('Team','Individual','Dual') NOT NULL DEFAULT 'Team'", 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+SET @exists = (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'sports' AND COLUMN_NAME = 'sub_categories');
+SET @sql = IF(@exists = 0, "ALTER TABLE sports ADD COLUMN sub_categories TEXT NULL", 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+SET @exists = (SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND INDEX_NAME = 'idx_user_role');
+SET @sql = IF(@exists = 0, "ALTER TABLE users ADD INDEX idx_user_role (role)", 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;

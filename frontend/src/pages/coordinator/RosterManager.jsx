@@ -184,21 +184,7 @@ export default function RosterManager() {
       position: position || "Player",
       jerseyNo: jerseyNo || "0"
     }).then((res) => {
-      const isNew = res?.data?.isNewUser;
-      const pwd = res?.data?.defaultPassword;
-      const sName = res?.data?.studentName || selectedStudent.name;
-
-      if (isNew && pwd) {
-        setRosterFeedback({
-          type: "success",
-          text: `Athlete "${sName}" (${selectedStudent.studentId}) registered and added to squad! Temporary login password: "${pwd}". Student will be asked to set a new password on first login.`
-        });
-      } else {
-        setRosterFeedback({
-          type: "success",
-          text: `Athlete "${sName}" successfully added to roster!`
-        });
-      }
+      setRosterFeedback({ type: "success", text: `${res?.studentName || selectedStudent.name} added to roster.` });
 
       setSelectedStudent(null);
       setSearchModalOpen(false);

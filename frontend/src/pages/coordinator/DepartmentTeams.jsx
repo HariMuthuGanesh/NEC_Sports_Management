@@ -63,7 +63,7 @@ export default function DepartmentTeams() {
     setSuccessMsg(null);
 
     try {
-      const res = await squadApi.assignDepartmentSportCaptain(
+      await squadApi.assignDepartmentSportCaptain(
         Number(selectedSportId),
         selectedStudent.studentId,
         selectedStudent.name,
@@ -71,11 +71,7 @@ export default function DepartmentTeams() {
         selectedStudent.year
       );
 
-      if (res.data?.isNewUser && res.data?.defaultPassword) {
-        setSuccessMsg(`Captain account auto-provisioned! Login Roll No: "${selectedStudent.studentId}" | Default Password: "${res.data.defaultPassword}". Student will be asked to set a new password on first login.`);
-      } else {
-        setSuccessMsg(`Captain assigned successfully for selected sport!`);
-      }
+      setSuccessMsg("Captain assigned.");
 
       setSelectedSportId("");
       setSelectedCaptainId("");

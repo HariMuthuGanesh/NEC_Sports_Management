@@ -6,6 +6,7 @@
  */
 
 import crypto from 'crypto';
+import pool from '../config/db.js';
 import { addAuditEntry } from '../services/auditStore.js';
 
 const sanitizeLogString = (str) => {
@@ -30,6 +31,20 @@ export const auditLogger = (req, res, next) => {
 
     res.setHeader('X-Request-ID', requestId);
 
+    const sendJson = res.json.bind(res);
+    res.json = (body) => {
+        const resource = sanitizedUrl.split('?')[0].split('/')[2];
+        const sharedResources = new Set(['sports', 'sport-categories', 'tournaments', 'events', 'teams', 'matches', 'venues', 'departments', 'coordinators', 'competition-levels', 'college-teams', 'competitions', 'users', 'announcements', 'od']);
+        if (req.user?.role === 'Admin' && ['POST','PUT','PATCH','DELETE'].includes(method) && res.statusCode < 300 && sharedResources.has(resource)) {
+            const verb = method === 'DELETE' ? 'deleted' : method === 'POST' ? 'added' : 'updated';
+            const record = String(req.body?.name || req.body?.title || req.params?.id || '').slice(0, 100);
+            const message = `[Admin Update] ${req.user.name || req.user.username || 'Admin'} ${verb} ${resource.replaceAll('-', ' ')}${record ? ': ' + record : ''}.`;
+            pool.execute("INSERT INTO notifications (user_id,message,type,status) SELECT id,?,'LEADERSHIP_ALERT','Unread' FROM users WHERE role='Admin' AND is_active=1 AND id<>?", [message,req.user.id]).then(() => sendJson(body)).catch(err => { console.error('Admin notification failed:', err.message); sendJson(body); });
+            return res;
+        }
+        return sendJson(body);
+    };
+
     // Listen for response completion
     res.on('finish', () => {
         const duration = Date.now() - start;
@@ -38,7 +53,7 @@ export const auditLogger = (req, res, next) => {
             : statusCode === 403 ? 'AUTHORIZATION_FAILURE'
                 : statusCode === 429 ? 'RATE_LIMITED'
                     : statusCode >= 500 ? 'SERVER_ERROR' : 'REQUEST';
-        addAuditEntry({
+        if (!['GET','HEAD','OPTIONS'].includes(method) || statusCode >= 400) addAuditEntry({
             timestamp: new Date().toISOString(),
             requestId,
             eventType,

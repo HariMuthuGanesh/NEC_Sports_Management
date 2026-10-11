@@ -1,41 +1,14 @@
-import dotenv from 'dotenv';
-import path from 'path';
 import mysql from 'mysql2/promise';
+import { getDatabaseConfig } from './databaseConfig.js';
 
-const envMode = process.env.NODE_ENV || 'development';
-dotenv.config({ path: path.resolve(process.cwd(), `.env.${envMode}`) });
-dotenv.config();
-
-// MySQL Connection Pool Configuration with Cloud & Local Support
-const sslConfig = (process.env.MYSQL_SSL === 'true' || process.env.MYSQL_SSL === '1')
-    ? { rejectUnauthorized: false }
-    : undefined;
-
-const dbUri = process.env.DATABASE_URL || process.env.MYSQL_URL || process.env.MYSQL_URI;
-
-const poolConfig = dbUri
-    ? {
-        uri: dbUri,
-        waitForConnections: true,
-        connectionLimit: parseInt(process.env.MYSQL_CONNECTION_LIMIT || '10', 10),
-        queueLimit: 0,
-        enableKeepAlive: true,
-        keepAliveInitialDelay: 0,
-        ...(sslConfig ? { ssl: sslConfig } : {})
-    }
-    : {
-        host: process.env.MYSQL_HOST || 'localhost',
-        user: process.env.MYSQL_USER || 'root',
-        password: (process.env.MYSQL_PASSWORD || '').trim(),
-        database: process.env.MYSQL_DATABASE || 'nec_sports_db',
-        port: parseInt(process.env.MYSQL_PORT || '3306', 10),
-        waitForConnections: true,
-        connectionLimit: parseInt(process.env.MYSQL_CONNECTION_LIMIT || '10', 10),
-        queueLimit: 0,
-        enableKeepAlive: true,
-        keepAliveInitialDelay: 0,
-        ...(sslConfig ? { ssl: sslConfig } : {})
-    };
+const poolConfig = {
+    ...getDatabaseConfig(),
+    waitForConnections: true,
+    connectionLimit: Number(process.env.MYSQL_CONNECTION_LIMIT || 10),
+    queueLimit: 0,
+    enableKeepAlive: true,
+    keepAliveInitialDelay: 0
+};
 
 const pool = mysql.createPool(poolConfig);
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { useAuth } from "../../context/AuthContext";
 import { matchesApi } from "../../services/api/apiServices";
 import { useToast } from "../../context/ToastContext";
 import { useAutoRefresh } from "../../hooks/useAutoRefresh";
@@ -17,6 +18,7 @@ const ACTIVE_STATUSES = ["Ongoing", "Scheduled"];
 
 export default function ScoreEntry({ onNavigate }) {
   const toast = useToast();
+  const { currentUser } = useAuth();
   const [selectedSport, setSelectedSport] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all"); // "all" | "ongoing" | "scheduled"
@@ -77,6 +79,7 @@ export default function ScoreEntry({ onNavigate }) {
   };
 
   const handleOpenScoreSheet = (m) => {
+    if (m.status !== "Ongoing" && currentUser.role !== "Admin") return;
     sessionStorage.setItem("nec_sports_selected_match_id", m.id);
     sessionStorage.setItem("nec_sports_selected_match", JSON.stringify(m));
     if (onNavigate) {
@@ -332,7 +335,7 @@ export default function ScoreEntry({ onNavigate }) {
                         </div>
 
                         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                          {!isMatchLive && (
+                          {!isMatchLive && currentUser.role === "Admin" && (
                             <Button
                               variant="outline"
                               size="sm"
@@ -344,7 +347,7 @@ export default function ScoreEntry({ onNavigate }) {
                           )}
                           <div className="nec-ssb-card-action">
                             <span className="nec-ssb-card-action-text">
-                              {isMatchLive ? "Update Score" : "Score Sheet"}
+                              {isMatchLive ? "Update Score" : "Scheduled"}
                             </span>
                             <ChevronRight size={16} />
                           </div>

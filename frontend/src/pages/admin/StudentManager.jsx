@@ -11,9 +11,6 @@ import {
 } from "lucide-react";
 import "./AdminPortal.css";
 
-const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"];
-const ACADEMIC_YEARS = ["1st Year", "2nd Year", "3rd Year", "Final Year"];
-const STUDENT_TYPES = ["Day-Scholar", "Hosteller"];
 
 // ── Attendance badge: colour by eligibility threshold ─────────────────────────
 function AttendanceBadge({ pct }) {
@@ -94,11 +91,7 @@ export default function StudentManager() {
   const [selectedDeptFilter, setSelectedDeptFilter] = useState("ALL");
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
 
-  const initialFormState = {
-    name: "", rollNo: "", departmentCode: "",
-    year: "3rd Year", section: "A",
-    email: "", phone: "", bloodGroup: "O+", studentType: "Day-Scholar"
-  };
+  const initialFormState = { rollNo: "" };
   const [formData, setFormData] = useState(initialFormState);
 
   // ── Data loading ────────────────────────────────────────────────────────────
@@ -122,9 +115,6 @@ export default function StudentManager() {
 
         const depts = Array.isArray(deptsData) ? deptsData : [];
         setDepartments(depts);
-        if (depts.length > 0 && !formData.departmentCode) {
-          setFormData(prev => ({ ...prev, departmentCode: depts[0].code || "CSE" }));
-        }
         setLoading(false);
       })
       .catch(err => {
@@ -151,23 +141,12 @@ export default function StudentManager() {
 
   const handleSubmitStudent = async (e) => {
     e.preventDefault();
-    if (!formData.name.trim()) { setFormError("Student Full Name is required."); return; }
     if (!formData.rollNo.trim()) { setFormError("Roll Number / Registration Number is required."); return; }
 
     setSubmitting(true);
     setFormError(null);
     try {
-      await playersApi.createStudent({
-        name: formData.name.trim(),
-        rollNo: formData.rollNo.trim(),
-        departmentCode: formData.departmentCode || "CSE",
-        year: formData.year,
-        section: formData.section.trim() || "A",
-        email: formData.email.trim() || `${formData.rollNo.trim().toLowerCase()}@nec.edu.in`,
-        phone: formData.phone.trim() || "9876543210",
-        bloodGroup: formData.bloodGroup,
-        studentType: formData.studentType
-      });
+      await playersApi.createStudent({ registerNumber: formData.rollNo.trim() });
       setFormSuccess("Student athlete registered successfully.");
       setTimeout(() => {
         setIsAddModalOpen(false);
@@ -434,66 +413,9 @@ export default function StudentManager() {
             </div>
           )}
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-            <div>
-              <label style={{ display: "block", fontSize: "0.825rem", fontWeight: "600", marginBottom: "4px" }}>Student Full Name *</label>
-              <input type="text" required className="nec-form-control" placeholder="e.g. Vignesh Kumar" value={formData.name} onChange={(e) => handleInputChange("name", e.target.value)} />
-            </div>
-            <div>
-              <label style={{ display: "block", fontSize: "0.825rem", fontWeight: "600", marginBottom: "4px" }}>Roll / Register Number *</label>
-              <input type="text" required className="nec-form-control" placeholder="e.g. 2114002" value={formData.rollNo} onChange={(e) => handleInputChange("rollNo", e.target.value)} />
-            </div>
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-            <div>
-              <label style={{ display: "block", fontSize: "0.825rem", fontWeight: "600", marginBottom: "4px" }}>Department *</label>
-              <select className="nec-form-control" value={formData.departmentCode} onChange={(e) => handleInputChange("departmentCode", e.target.value)}>
-                {departments.map(d => <option key={d.id || d.code} value={d.code}>{d.code} — {d.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label style={{ display: "block", fontSize: "0.825rem", fontWeight: "600", marginBottom: "4px" }}>Academic Standing *</label>
-              <select className="nec-form-control" value={formData.year} onChange={(e) => handleInputChange("year", e.target.value)}>
-                {ACADEMIC_YEARS.map(y => <option key={y} value={y}>{y}</option>)}
-              </select>
-            </div>
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-            <div>
-              <label style={{ display: "block", fontSize: "0.825rem", fontWeight: "600", marginBottom: "4px" }}>Section</label>
-              <input type="text" className="nec-form-control" placeholder="A / B / C" value={formData.section} onChange={(e) => handleInputChange("section", e.target.value)} maxLength={5} />
-            </div>
-            <div>
-              <label style={{ display: "block", fontSize: "0.825rem", fontWeight: "600", marginBottom: "4px" }}>Blood Group</label>
-              <select className="nec-form-control" value={formData.bloodGroup} onChange={(e) => handleInputChange("bloodGroup", e.target.value)}>
-                {BLOOD_GROUPS.map(bg => <option key={bg} value={bg}>{bg}</option>)}
-              </select>
-            </div>
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-            <div>
-              <label style={{ display: "block", fontSize: "0.825rem", fontWeight: "600", marginBottom: "4px" }}>Personal Email</label>
-              <input type="email" className="nec-form-control" placeholder="student@nec.edu.in" value={formData.email} onChange={(e) => handleInputChange("email", e.target.value)} />
-            </div>
-            <div>
-              <label style={{ display: "block", fontSize: "0.825rem", fontWeight: "600", marginBottom: "4px" }}>Contact Phone</label>
-              <input type="tel" className="nec-form-control" placeholder="9876543210" value={formData.phone} onChange={(e) => handleInputChange("phone", e.target.value)} maxLength={12} />
-            </div>
-          </div>
-
-          <div>
-            <label style={{ display: "block", fontSize: "0.825rem", fontWeight: "600", marginBottom: "4px" }}>Student Category</label>
-            <div style={{ display: "flex", gap: "16px", marginTop: "4px" }}>
-              {STUDENT_TYPES.map(st => (
-                <label key={st} style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.85rem", cursor: "pointer" }}>
-                  <input type="radio" name="studentType" value={st} checked={formData.studentType === st} onChange={(e) => handleInputChange("studentType", e.target.value)} />
-                  {st}
-                </label>
-              ))}
-            </div>
+          <div className="nec-form-group">
+            <label htmlFor="college-student-register">College Register Number</label>
+            <input id="college-student-register" className="nec-form-control" required value={formData.rollNo} onChange={e => handleInputChange("rollNo", e.target.value)} placeholder="Enter register number" />
           </div>
 
           <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "12px" }}>

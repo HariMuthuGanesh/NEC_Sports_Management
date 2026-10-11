@@ -54,7 +54,8 @@ export const listUsersController = async (req, res, next) => {
 export const updateUserRoleController = async (req, res, next) => {
     try {
         const userId = Number(req.params.id);
-        const { role, admin_scope } = req.body || {};
+        const { role } = req.body || {};
+        const admin_scope = role === 'Admin' ? 'Full' : null;
 
         if (!userId) {
             return res.status(400).json({

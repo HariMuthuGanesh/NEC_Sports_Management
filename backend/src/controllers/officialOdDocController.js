@@ -44,7 +44,7 @@ const pdfUpload = multer({
   limits: { fileSize: 15 * 1024 * 1024 }, // 15MB limit
   fileFilter: (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
-    if (file.mimetype === 'application/pdf' || ext === '.pdf') {
+    if (file.mimetype === 'application/pdf' && ext === '.pdf') {
       cb(null, true);
     } else {
       cb(new Error('Invalid file type. Only PDF documents (.pdf) are accepted for official signed OD letters.'));
@@ -53,6 +53,17 @@ const pdfUpload = multer({
 });
 
 export const uploadOdDocMiddleware = pdfUpload.single('file');
+
+const hasPdfSignature = (filePath) => {
+  const descriptor = fs.openSync(filePath, 'r');
+  try {
+    const signature = Buffer.alloc(5);
+    return fs.readSync(descriptor, signature, 0, signature.length, 0) === signature.length
+      && signature.toString('ascii') === '%PDF-';
+  } finally {
+    fs.closeSync(descriptor);
+  }
+};
 
 /**
  * Upload an official Principal-signed OD PDF (sport-wise and department-wise)
@@ -64,6 +75,14 @@ export const uploadOfficialOdDocController = async (req, res, next) => {
       return res.status(400).json({
         success: false,
         error: { code: 'NO_FILE', message: 'Official signed OD PDF file is required.' }
+      });
+    }
+
+    if (!hasPdfSignature(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+      return res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_FILE_CONTENT', message: 'The uploaded file is not a valid PDF document.' }
       });
     }
 
@@ -224,6 +243,9 @@ export const uploadOfficialOdDocController = async (req, res, next) => {
       }
     });
   } catch (err) {
+    if (req.file?.path && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
     next(err);
   }
 };

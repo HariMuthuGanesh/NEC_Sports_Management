@@ -2,7 +2,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { generators, Issuer } from 'openid-client';
-import { JWT_SECRET, revokeToken } from '../config/securityConfig.js';
+import { JWT_SECRET } from '../config/securityConfig.js';
 import pool from '../config/db.js';
 import {
     findUserByUsernameOrEmail,
@@ -11,9 +11,8 @@ import {
     linkGoogleAccount,
     updateLastLogin
 } from '../models/sql/userSqlModel.js';
-import { getStudentByUserId, createStudent } from '../models/sql/studentSqlModel.js';
-import { generateCsrfToken } from '../middleware/csrfMiddleware.js';
-import { notifyAdmins, sendPasswordResetEmail } from '../services/emailService.js';
+import { getStudentByUserId } from '../models/sql/studentSqlModel.js';
+import { isPasswordEmailConfigured, notifyAdmins, sendPasswordResetEmail } from '../services/emailService.js';
 import { getOAuthProviders, getProviderConfig } from '../services/oauthProviders.js';
 
 const generateToken = (id, role, dept = 'All', tokenVersion = 0, deptId = null) => {
@@ -31,7 +30,7 @@ const AUTH_COOKIE_OPTIONS = {
 };
 
 // Timing-attack defense hash
-const DUMMY_HASH = bcrypt.hashSync('DummyPassword123!', 10);
+const DUMMY_HASH = bcrypt.hashSync(crypto.randomBytes(32).toString('hex'), 10);
 
 // Helper to resolve user department
 const resolveUserDepartment = async (user) => {
@@ -55,7 +54,8 @@ const resolveUserDepartment = async (user) => {
 export const loginUser = async (req, res, next) => {
     try {
         const { username, userId, email, password } = req.body || {};
-        const identifier = (userId || username || email || '').trim();
+        const rawIdentifier = userId || username || email;
+        const identifier = typeof rawIdentifier === 'string' ? rawIdentifier.trim() : '';
 
         if (!identifier || !password) {
             return res.status(400).json({
@@ -89,7 +89,6 @@ export const loginUser = async (req, res, next) => {
             return res.json({
                 success: true,
                 data: {
-                    token,
                     id: user.id,
                     username: user.username,
                     name: student?.student_name || user.username,
@@ -116,80 +115,8 @@ export const loginUser = async (req, res, next) => {
     }
 };
 
-// 2. Manual Signup
-export const signupUser = async (req, res, next) => {
-    try {
-        const { username, email, password } = req.body || {};
-        const role = 'Player'; 
-
-        if (!username || !email || !password) {
-            return res.status(400).json({
-                success: false,
-                error: { code: 'MISSING_FIELDS', message: 'Username, email, and password are required.' }
-            });
-        }
-
-        const existingUser = await findUserByUsernameOrEmail(username) || await findUserByUsernameOrEmail(email);
-        if (existingUser) {
-            return res.status(409).json({
-                success: false,
-                error: { code: 'USER_EXISTS', message: 'User with this username or email already exists.' }
-            });
-        }
-
-        const passwordHash = await bcrypt.hash(password, 10);
-        const newUserId = await createUser({ username, email, passwordHash, role });
-
-        const [deptRows] = await pool.execute('SELECT id, code, name FROM departments LIMIT 1');
-        const departmentId = deptRows[0] ? deptRows[0].id : 1;
-        const deptCode = deptRows[0] ? deptRows[0].code : 'CSE';
-        const deptName = deptRows[0] ? deptRows[0].name : 'Computer Science and Engineering';
-
-        await createStudent({
-            userId: newUserId,
-            studentName: username,
-            registerNumber: username,
-            departmentId: departmentId,
-            batch: new Date().getFullYear(),
-            section: 'A',
-            personalEmail: email,
-            personalPhone: '0000000000',
-            parentsPhone: '0000000000',
-            bloodGroup: 'O+',
-            studentType: 'Regular',
-            medicalFitness: 1
-        });
-
-        const token = generateToken(newUserId, role, deptCode, 0, departmentId);
-        res.cookie('token', token, AUTH_COOKIE_OPTIONS);
-
-        // Notify Admins
-        await notifyAdmins({
-            title: "New Student Account Created",
-            message: `${username} (${email}) joined via password signup.`
-        });
-
-        return res.status(201).json({
-            success: true,
-            data: {
-                token,
-                id: newUserId,
-                username,
-                email,
-                role,
-                dept: deptCode,
-                deptId: departmentId,
-                deptName,
-                playerName: username,
-                admin_scope: null,
-                googleLinked: false,
-                studentProfile: null
-            }
-        });
-    } catch (err) {
-        next(err);
-    }
-};
+// Student accounts are provisioned by staff from college records.
+export const signupUser = (_req, res) => res.status(403).json({ success: false, error: { code: 'REGISTRATION_RESTRICTED', message: 'Contact your department coordinator for sports portal access.' } });
 
 // 3. Logout & Me
 export const logoutUser = async (req, res, next) => {
@@ -296,7 +223,6 @@ export const changePasswordController = async (req, res, next) => {
             success: true,
             message: 'Password changed successfully. Your account is now secured.',
             data: {
-                token: newToken,
                 mustChangePassword: false
             }
         });
@@ -326,8 +252,9 @@ export const oauthStart = async (req, res, next) => {
         const code_verifier = generators.codeVerifier();
         const code_challenge = generators.codeChallenge(code_verifier);
 
-        const oauthTxn = JSON.stringify({ state, nonce, code_verifier, providerId });
+        const oauthTxn = JSON.stringify({ state, nonce, code_verifier, providerId, linkUserId: req.user?.id || null });
         res.cookie('nec_oauth_txn', oauthTxn, {
+            signed: true,
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'lax',
@@ -362,7 +289,7 @@ export const oauthCallback = async (req, res, next) => {
         const config = getProviderConfig(providerId);
         if (!config) return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/callback#error=OAUTH_UNKNOWN_PROVIDER`);
 
-        const txnCookie = req.cookies.nec_oauth_txn;
+        const txnCookie = req.signedCookies.nec_oauth_txn;
         if (!txnCookie) return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/callback#error=OAUTH_STATE_MISMATCH`);
 
         const txn = JSON.parse(txnCookie);
@@ -386,7 +313,7 @@ export const oauthCallback = async (req, res, next) => {
         );
 
         const claims = tokenSet.claims();
-        if (!claims.email_verified && providerId === 'google') {
+        if (claims.email_verified !== true || typeof claims.email !== 'string' || !claims.sub) {
             return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/callback#error=OAUTH_EMAIL_UNVERIFIED`);
         }
 
@@ -406,6 +333,9 @@ export const oauthCallback = async (req, res, next) => {
             // STEP 2: Email match in users
             const userByEmail = await findUserByUsernameOrEmail(email);
             if (userByEmail) {
+                if (!req.user || req.user.id !== userByEmail.id || txn.linkUserId !== req.user.id) {
+                    return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/callback#error=Sign%20in%20with%20your%20password%20before%20linking%20this%20account.`);
+                }
                 userIdToLogin = userByEmail.id;
                 await pool.execute('UPDATE users SET oauth_provider = ?, oauth_subject = ? WHERE id = ?', [providerId, subject, userIdToLogin]);
                 if (providerId === 'google') await linkGoogleAccount(email);
@@ -432,53 +362,7 @@ export const oauthCallback = async (req, res, next) => {
                     
                     console.log(`[OAUTH LINK] STEP 3: Linked legacy student for ${email}, user_id: ${userIdToLogin}`);
                 } else {
-                    // STEP 4: Auto-register or Reject
-                    const allowedDomain = process.env.ALLOWED_OAUTH_DOMAIN;
-                    if (allowedDomain && !email.endsWith(`@${allowedDomain}`)) {
-                        return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/callback#error=OAUTH_NOT_ON_ROSTER`);
-                    }
-                    
-                    const randomPass = crypto.randomBytes(16).toString('hex');
-                    const passwordHash = await bcrypt.hash(randomPass, 10);
-                    
-                    // Generate a pseudo-register number for auto-registered users if not provided
-                    const tempUsername = email.split('@')[0];
-                    
-                    userIdToLogin = await createUser({
-                        username: tempUsername,
-                        email: email,
-                        passwordHash,
-                        role: 'Player'
-                    });
-
-                    await pool.execute('UPDATE users SET oauth_provider = ?, oauth_subject = ? WHERE id = ?', [providerId, subject, userIdToLogin]);
-                    if (providerId === 'google') await linkGoogleAccount(email);
-
-                    // Create basic student profile
-                    const [deptRows] = await pool.execute('SELECT id FROM departments LIMIT 1');
-                    const departmentId = deptRows[0] ? deptRows[0].id : 1;
-
-                    await createStudent({
-                        userId: userIdToLogin,
-                        studentName: claims.name || tempUsername,
-                        registerNumber: tempUsername,
-                        departmentId: departmentId,
-                        batch: new Date().getFullYear(),
-                        section: 'A',
-                        personalEmail: email,
-                        personalPhone: '0000000000',
-                        parentsPhone: '0000000000',
-                        bloodGroup: 'O+',
-                        studentType: 'Regular',
-                        medicalFitness: 1
-                    });
-                    
-                    await notifyAdmins({
-                        title: "New Student Account Created",
-                        message: `${claims.name || tempUsername} (${email}) joined via OAuth (${providerId}).`
-                    });
-
-                    console.log(`[OAUTH LINK] STEP 4: Auto-registered user for ${email}, user_id: ${userIdToLogin}`);
+                    return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/callback#error=OAUTH_NOT_ON_ROSTER`);
                 }
             }
         }
@@ -500,7 +384,7 @@ export const oauthCallback = async (req, res, next) => {
         res.clearCookie('nec_oauth_txn');
         res.cookie('token', token, AUTH_COOKIE_OPTIONS);
         
-        return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/callback#token=${token}`);
+        return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/callback?success=1`);
     } catch (err) {
         console.error('[OAUTH CALLBACK ERROR]', err);
         return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/callback#error=OAUTH_FAILED`);
@@ -513,63 +397,15 @@ export const oauthCallback = async (req, res, next) => {
 // ─────────────────────────────────────────────────────────────────────────────
 export const forgotPasswordRequest = async (req, res, next) => {
     try {
-        const { identifier } = req.body || {};
-
-        if (!identifier || typeof identifier !== 'string' || identifier.trim().length < 3) {
-            // Still return 200 — never reveal whether a user exists
-            return res.json({
-                success: true,
-                message: 'If that account exists, a temporary password has been sent to the administrator.'
-            });
-        }
-
-        const user = await findUserByUsernameOrEmail(identifier.trim());
-
-        // Always hash something to prevent timing attacks even when user is not found
-        const tempPassword = crypto.randomBytes(4).toString('hex').toUpperCase(); // e.g. "A3F9B2C1"
-        const tempHash = await bcrypt.hash(tempPassword, 10);
-
-        if (user && user.is_active) {
-            // Set the temp password and flag must_change_password
-            await pool.execute(
-                'UPDATE users SET password_hash = ?, must_change_password = 1, token_version = token_version + 1 WHERE id = ?',
-                [tempHash, user.id]
-            );
-
-            // Never store the plaintext temporary password in notifications;
-            // the credential is delivered only by email below.
-
-            // Dispatch password reset email directly to the user's email address
-            await sendPasswordResetEmail({
-                to: user.email,
-                username: user.username,
-                tempPassword,
-                resetBy: 'Self-Service Password Reset'
-            });
-
-            // Notify all Admins for audit awareness
-            await notifyAdmins({
-                title: 'Password Reset Requested',
-                message: `User "${user.username}" (${user.email}) requested a password reset. Temporary credentials have been emailed directly to them.`
-            });
-
-            console.log(`[FORGOT PASSWORD] Sent direct email to: ${user.email} (${user.username})`);
-        }
-
-        // Generic response — timing is consistent whether user exists or not
-        return res.json({
-            success: true,
-            message: 'If that account exists, a temporary password has been sent directly to the registered email address.'
-        });
-    } catch (err) {
-        next(err);
-    }
+        const raw = req.body?.username || req.body?.userId || req.body?.email;
+        const identifier = typeof raw === 'string' ? raw.trim() : '';
+        if (!identifier) return res.status(400).json({ success: false, error: { message: 'Enter your account identifier.' } });
+        const user = await findUserByUsernameOrEmail(identifier);
+        if (user) await notifyAdmins({ title: 'Password Reset Requested', message: `Account ${user.username} requested password assistance.` });
+        return res.json({ success: true, message: 'If that account exists, the administrator has been notified.' });
+    } catch (err) { next(err); }
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 6. Admin Reset Password (protected — Admin / Sports President may reset any
-//    user; Coordinator may only reset Players in their own department)
-// ─────────────────────────────────────────────────────────────────────────────
 export const adminResetPassword = async (req, res, next) => {
     try {
         const requestingUser = req.user;
@@ -610,6 +446,11 @@ export const adminResetPassword = async (req, res, next) => {
         }
 
         // ── Coordinator scope check: only Players in their own department ──
+        if (requestingUser.role !== 'Admin' && ['Admin', 'Sports President'].includes(targetUser.role) ||
+            requestingUser.role === 'Admin' && requestingUser.admin_scope !== 'Full') {
+            return res.status(403).json({ success: false, error: { message: 'You cannot reset this account.' } });
+        }
+
         if (isCoordinator && !isPrivileged) {
             if (targetUser.role !== 'Player' && targetUser.role !== 'Captain' && targetUser.role !== 'Score Updater') {
                 return res.status(403).json({
@@ -644,6 +485,13 @@ export const adminResetPassword = async (req, res, next) => {
         }
 
         // ── Generate or use provided temp password ─────────────────────────
+        if (!isPasswordEmailConfigured()) {
+            return res.status(503).json({
+                success: false,
+                error: { code: 'EMAIL_UNAVAILABLE', message: 'Password reset email is not configured.' }
+            });
+        }
+
         const tempPassword = newPassword?.trim()
             ? newPassword.trim()
             : crypto.randomBytes(4).toString('hex').toUpperCase();
@@ -667,7 +515,7 @@ export const adminResetPassword = async (req, res, next) => {
             'INSERT INTO notifications (user_id, message, status, type) VALUES (?, ?, ?, ?)',
             [
                 targetUserId,
-                `[Security] Your password was reset by ${requestingUser.role} "${requestingUser.username || requestingUser.id}". Temporary password: ${tempPassword} — log in and change it immediately.`,
+                `[Security] Your password was reset by ${requestingUser.role} "${requestingUser.username || requestingUser.id}". Use the credential sent to your registered email and change it immediately after signing in.`,
                 'Unread',
                 'SECURITY'
             ]
@@ -681,6 +529,13 @@ export const adminResetPassword = async (req, res, next) => {
             resetBy: `${requestingUser.role} (${requestingUser.username || 'Staff'})`
         });
 
+        if (!emailResult.success) {
+            return res.status(502).json({
+                success: false,
+                error: { code: 'EMAIL_DELIVERY_FAILED', message: 'The password was reset, but the email could not be delivered. Reset it again after email service is restored.' }
+            });
+        }
+
         console.log(`[ADMIN RESET] Resetter: ${requestingUser.id} (${requestingUser.role}) | Target: ${targetUser.username} (${targetUser.email}) | Email Sent: ${emailResult.success}`);
 
         return res.json({
@@ -690,7 +545,6 @@ export const adminResetPassword = async (req, res, next) => {
                 targetUserId,
                 targetUsername: targetUser.username,
                 targetEmail: targetUser.email,
-                tempPassword, // provided as backup if mail service is unavailable or in dev
                 emailSent: emailResult.success,
                 mustChangePassword: true
             }

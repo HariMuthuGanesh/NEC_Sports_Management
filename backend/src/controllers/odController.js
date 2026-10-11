@@ -1,3 +1,4 @@
+import { assertMatchAccess, assertDepartmentAccess } from '../services/accessScope.js';
 import pool from '../config/db.js';
 import {
     createOdForMatch,
@@ -19,8 +20,9 @@ import {
 
 export const createOdForMatchController = async (req, res, next) => {
     try {
+        await assertMatchAccess(req.user, Number(req.params.matchId));
         const { matchId } = req.params;
-        const result = await createOdForMatch(Number(matchId), req.user.id);
+        const result = await createOdForMatch(Number(matchId), req.user.id, req.user.role === 'Coordinator' ? req.user.dept_id : null);
 
         if (result.created > 0) {
             await notifyLeadership({ 
@@ -43,7 +45,7 @@ export const createOdForMatchController = async (req, res, next) => {
 export const listOdRequestsController = async (req, res, next) => {
     try {
         const { status, tournamentId, q } = req.query;
-        const departmentId = req.user?.role === 'Coordinator' ? req.user.dept_id : null;
+        const departmentId = req.user?.role === 'Coordinator' ? (req.user.dept_id || -1) : null;
         const data = await getOdRequests({
             status: status || 'ALL',
             tournamentId: tournamentId ? Number(tournamentId) : null,
@@ -67,6 +69,7 @@ export const getMyOdRequestsController = async (req, res, next) => {
 
 export const getMatchOdStatusController = async (req, res, next) => {
     try {
+        await assertMatchAccess(req.user, Number(req.params.matchId));
         const data = await getOdRequestsByMatch(Number(req.params.matchId));
         return res.json({ success: true, data });
     } catch (err) {
@@ -212,6 +215,7 @@ export const getOdRequestController = async (req, res, next) => {
         if (!od) {
             return res.status(404).json({ success: false, error: { message: 'OD request not found.' } });
         }
+        assertDepartmentAccess(req.user, od.department_id);
         return res.json({ success: true, data: od });
     } catch (err) {
         next(err);

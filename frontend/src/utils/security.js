@@ -81,19 +81,16 @@ const TOKEN_STORAGE_KEY = "nec_sports_jwt_token";
 
 export const getAuthToken = () => {
   try {
-    return localStorage.getItem(TOKEN_STORAGE_KEY);
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
   } catch {
-    return null;
+    // Storage can be unavailable in privacy-restricted browsers.
   }
+  return null;
 };
 
-export const setAuthToken = (token) => {
+export const setAuthToken = () => {
   try {
-    if (token) {
-      localStorage.setItem(TOKEN_STORAGE_KEY, token);
-    } else {
-      localStorage.removeItem(TOKEN_STORAGE_KEY);
-    }
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
   } catch { }
 };
 

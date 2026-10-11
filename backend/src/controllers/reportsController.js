@@ -1,4 +1,5 @@
 import pool from '../config/db.js';
+import { rankEntries } from './competitionController.js';
 
 /**
  * GET /api/reports/performance
@@ -10,7 +11,7 @@ export const getPerformanceReportController = async (req, res, next) => {
         const { timeframe = '1month', from, to } = req.query;
 
         // Custom range (YYYY-MM-DD, inclusive) takes precedence over the presets.
-        const isDate = (v) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v));
+        const isDate = (v) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v)) && new Date(v).toISOString().slice(0,10) === v;
         let range;
         if (from || to) {
             if (!isDate(from) || !isDate(to)) {
@@ -26,7 +27,7 @@ export const getPerformanceReportController = async (req, res, next) => {
                 label: { from, to }
             };
         } else {
-            const presets = { '6months': 'INTERVAL 6 MONTH', '12months': 'INTERVAL 1 YEAR', '1year': 'INTERVAL 1 YEAR', all: 'INTERVAL 100 YEAR' };
+            const presets = { 'weekly': 'INTERVAL 7 DAY', '1week': 'INTERVAL 7 DAY', 'monthly': 'INTERVAL 1 MONTH', '6months': 'INTERVAL 6 MONTH', '12months': 'INTERVAL 1 YEAR', '1year': 'INTERVAL 1 YEAR', all: 'INTERVAL 100 YEAR' };
             const interval = presets[timeframe] || 'INTERVAL 1 MONTH';
             range = {
                 clause: `m.scheduled_time >= DATE_SUB(NOW(), ${interval})`,
@@ -50,10 +51,10 @@ export const getPerformanceReportController = async (req, res, next) => {
                 COUNT(CASE WHEN m.winner_team_id = t.team_id AND m.status = 'Completed' THEN 1 END) AS wins,
                 COUNT(CASE WHEN m.winner_team_id = t.team_id AND m.round = 'Final' AND m.status = 'Completed' THEN 1 END) AS gold,
                 COUNT(CASE WHEN m.winner_team_id != t.team_id AND m.winner_team_id IS NOT NULL AND m.round = 'Final' AND m.status = 'Completed' THEN 1 END) AS silver,
-                COUNT(CASE WHEN m.winner_team_id = t.team_id AND m.round = 'Semi-Final' AND m.status = 'Completed' THEN 1 END) AS bronze,
+                COUNT(CASE WHEN m.winner_team_id = t.team_id AND m.round IN ('Third Place', 'Bronze') AND m.status = 'Completed' THEN 1 END) AS bronze,
                 (COUNT(CASE WHEN m.winner_team_id = t.team_id AND m.status = 'Completed' THEN 1 END) * 10 + 
                  COUNT(CASE WHEN m.winner_team_id = t.team_id AND m.round = 'Final' AND m.status = 'Completed' THEN 1 END) * 15 + 
-                 COUNT(CASE WHEN m.winner_team_id = t.team_id AND m.round = 'Semi-Final' AND m.status = 'Completed' THEN 1 END) * 5) AS points,
+                 COUNT(CASE WHEN m.winner_team_id = t.team_id AND m.round IN ('Third Place', 'Bronze') AND m.status = 'Completed' THEN 1 END) * 5) AS points,
                 (SELECT COUNT(*) FROM students s WHERE s.department_id = d.id) AS totalDepartmentStudents,
                 (SELECT COUNT(DISTINCT tm.student_id) 
                  FROM team_members tm 
@@ -69,7 +70,7 @@ export const getPerformanceReportController = async (req, res, next) => {
 
         const [deptRows] = await pool.execute(deptSql, range.params);
 
-        const enrichedDepts = deptRows.map((r, idx) => {
+        const enrichedDepts = deptRows.filter(r => req.user.role !== 'Coordinator' || Number(r.id) === Number(req.user.dept_id)).map((r, idx) => {
             // Real participation only: athletes on rosters / students in the department. No placeholder values.
             const studentBase = Number(r.totalDepartmentStudents) || 0;
             const participation = studentBase > 0
@@ -93,13 +94,50 @@ export const getPerformanceReportController = async (req, res, next) => {
             range.params
         );
 
+        const [activities] = await pool.execute(`SELECT m.match_id,m.scheduled_time date,s.name sport,tr.name tournament,
+            m.round,m.status,a.name team_a,b.name team_b,
+            CASE WHEN m.status='Completed' THEN w.name END winner,
+            CASE WHEN m.status='Completed' AND m.winner_team_id=a.team_id THEN b.name WHEN m.status='Completed' AND m.winner_team_id=b.team_id THEN a.name END runner,
+            (SELECT COUNT(DISTINCT ma.student_id) FROM match_attendance ma WHERE ma.match_id=m.match_id AND ma.status='Present') participated,
+            (SELECT GROUP_CONCAT(DISTINCT st.student_name ORDER BY st.student_name SEPARATOR ', ') FROM match_attendance ma JOIN students st ON st.student_id=ma.student_id WHERE ma.match_id=m.match_id AND ma.status='Present') participants
+            FROM matches m JOIN sports s ON s.sport_id=m.sport_id
+            LEFT JOIN tournaments tr ON tr.tournament_id=m.tournament_id
+            JOIN teams a ON a.team_id=m.team_a_id JOIN teams b ON b.team_id=m.team_b_id
+            LEFT JOIN teams w ON w.team_id=m.winner_team_id WHERE ${range.clause}
+            ${req.user.role === 'Coordinator' ? 'AND (a.department_id=? OR b.department_id=?)' : ''}
+            ORDER BY m.scheduled_time DESC`, [...range.params,...(req.user.role==='Coordinator'?[req.user.dept_id || 0,req.user.dept_id || 0]:[])]);
+        const [competitions] = await pool.execute(`SELECT c.*,e.name event_name,s.name sport,tr.name tournament,sc.name category
+            FROM sport_competitions c JOIN events e ON e.event_id=c.event_id JOIN sports s ON s.sport_id=e.sport_id
+            LEFT JOIN tournaments tr ON tr.tournament_id=e.tournament_id JOIN sport_categories sc ON sc.category_id=c.category_id
+            WHERE ${range.clause.replaceAll('m.scheduled_time','c.scheduled_time')} ORDER BY c.scheduled_time DESC`,range.params);
+        const rankedActivities = [];
+        for (const competition of competitions) {
+            const [entries] = await pool.execute(`SELECT ce.*,GROUP_CONCAT(s.student_name ORDER BY s.student_name SEPARATOR ', ') athletes,COUNT(cm.student_id) athlete_count FROM competition_entries ce
+                JOIN competition_entry_members cm ON cm.entry_id=ce.entry_id JOIN students s ON s.student_id=cm.student_id
+                WHERE ce.competition_id=? GROUP BY ce.entry_id`,[competition.competition_id]);
+            if (req.user.role==='Coordinator' && !entries.some(e => Number(e.department_id)===Number(req.user.dept_id))) continue;
+            const ranked = rankEntries(entries,competition.scoring);
+            rankedActivities.push({ date:competition.scheduled_time,sport:competition.sport,tournament:competition.tournament,category:competition.category,round:competition.round,status:competition.status,
+                team_a:competition.name,team_b:null,
+                participated:entries.filter(e => ['Finished','DNF','DQ'].includes(e.result_status)).reduce((n,e)=>n+Number(e.athlete_count),0),
+                participants:entries.filter(e => ['Finished','DNF','DQ'].includes(e.result_status)).map(e=>e.athletes).join(', '),
+                winner:competition.status==='Completed'?ranked.filter(e=>e.rank===1).map(e=>e.name).join(', '):null,
+                runner:competition.status==='Completed'?ranked.filter(e=>e.rank===2).map(e=>e.name).join(', '):null });
+        }
+        const [events] = await pool.execute(`SELECT e.event_id,e.name,s.name sport,e.start_time,e.end_time,e.registration_status,
+            (SELECT COUNT(*) FROM event_entries ee WHERE ee.event_id=e.event_id) individual_entries,
+            (SELECT COUNT(*) FROM teams t WHERE t.event_id=e.event_id) registered_teams
+            FROM events e JOIN sports s ON s.sport_id=e.sport_id
+            WHERE ${range.clause.replaceAll('m.scheduled_time','e.start_time')} ORDER BY e.start_time`,range.params);
         return res.json({
             success: true,
             data: {
                 timeframe: range.label ? 'custom' : timeframe,
                 period: range.label,
                 departments: enrichedDepts,
-                summary: overallMatches[0] || {},
+                activities: [...activities,...rankedActivities],
+                events: req.user.role === "Coordinator" ? [] : events,
+                summary: req.user.role==='Coordinator' ? {totalScheduled:activities.length,totalCompleted:activities.filter(a=>a.status==='Completed').length} : overallMatches[0] || {},
                 generatedAt: new Date().toISOString()
             }
         });
@@ -158,18 +196,29 @@ export const getPlayerPerformanceReportController = async (req, res, next) => {
 
         // 2. Registered Sports & Teams
         const [teams] = await pool.execute(
-            `SELECT tm.member_id, tm.team_id, tm.role, tm.jersey_number, tm.join_date,
+            `SELECT tm.member_id, tm.team_id, tm.role, tm.jersey_number, tm.joined_at AS join_date,
                     t.name AS team_name, t.name AS name, t.status AS team_status,
                     s.sport_id, s.name AS sport_name, s.category AS sport_category
              FROM team_members tm
              JOIN teams t ON tm.team_id = t.team_id
              JOIN sports s ON t.sport_id = s.sport_id
              WHERE tm.student_id = ?
-             ORDER BY tm.join_date DESC`,
+             ORDER BY tm.joined_at DESC`,
             [studentId]
         );
 
         const teamIds = teams.map(t => t.team_id);
+
+        const [individualCompetitions] = await pool.execute(`SELECT c.competition_id,c.name,c.round,c.status,c.scheduled_time,c.scoring,c.unit,
+            ce.entry_id,ce.name entry_name,ce.result_value,ce.result_status,s.name sport_name,sc.name category_name,tr.name tournament_name
+            FROM competition_entry_members cm JOIN competition_entries ce ON ce.entry_id=cm.entry_id
+            JOIN sport_competitions c ON c.competition_id=ce.competition_id JOIN events e ON e.event_id=c.event_id
+            JOIN sports s ON s.sport_id=e.sport_id JOIN sport_categories sc ON sc.category_id=c.category_id
+            LEFT JOIN tournaments tr ON tr.tournament_id=e.tournament_id WHERE cm.student_id=? ORDER BY c.scheduled_time DESC`,[studentId]);
+        for (const competition of individualCompetitions) {
+            const [entries] = await pool.execute('SELECT * FROM competition_entries WHERE competition_id=?',[competition.competition_id]);
+            competition.rank = rankEntries(entries,competition.scoring).find(e => e.entry_id===competition.entry_id)?.rank || null;
+        }
 
         // 3. Match participation & history
         let matches = [];
@@ -178,6 +227,7 @@ export const getPlayerPerformanceReportController = async (req, res, next) => {
             const [mRows] = await pool.execute(
                 `SELECT m.match_id, m.scheduled_time, m.round, m.score_a, m.score_b, m.status,
                         m.detail_score, m.winner_team_id, m.scoring_method,
+                        EXISTS(SELECT 1 FROM match_attendance ma WHERE ma.match_id=m.match_id AND ma.student_id=? AND ma.status='Present') participated,
                         t_a.name AS team_a_name, t_a.team_id AS team_a_id,
                         t_b.name AS team_b_name, t_b.team_id AS team_b_id,
                         s.name AS sport_name, s.category AS sport_category,
@@ -192,7 +242,7 @@ export const getPlayerPerformanceReportController = async (req, res, next) => {
                  WHERE m.team_a_id IN (${placeholders}) OR m.team_b_id IN (${placeholders})
                     OR m.match_id IN (SELECT match_id FROM match_attendance WHERE student_id = ? AND match_id IS NOT NULL)
                  ORDER BY m.scheduled_time DESC`,
-                [...teamIds, ...teamIds, studentId]
+                [studentId, ...teamIds, ...teamIds, studentId]
             );
             matches = mRows;
         }
@@ -222,6 +272,7 @@ export const getPlayerPerformanceReportController = async (req, res, next) => {
 
             return {
                 match_id: m.match_id,
+                participated: Boolean(m.participated),
                 date: m.scheduled_time,
                 year: String(year),
                 sport: m.sport_name,
@@ -272,14 +323,14 @@ export const getPlayerPerformanceReportController = async (req, res, next) => {
 
         const presentMatches = attendanceRows.filter(a => a.status === 'Present').length;
         const totalMarked = attendanceRows.length;
-        const attendanceRate = totalMarked > 0 ? Math.round((presentMatches / totalMarked) * 100) : 96;
+        const attendanceRate = totalMarked > 0 ? Math.round((presentMatches / totalMarked) * 100) : 0;
 
         // 6. Overall Sports Statistics
-        const completedMatches = enrichedMatches.filter(m => m.status === 'Completed');
+        const completedMatches = enrichedMatches.filter(m => m.status === 'Completed' && m.participated);
         const winsCount = completedMatches.filter(m => m.result === 'Won').length;
         const lossesCount = completedMatches.filter(m => m.result === 'Lost').length;
-        const winRate = completedMatches.length > 0 ? Math.round((winsCount / completedMatches.length) * 100) : 100;
-        const distinctSports = [...new Set(teams.map(t => t.sport_name))];
+        const winRate = completedMatches.length > 0 ? Math.round((winsCount / completedMatches.length) * 100) : 0;
+        const distinctSports = [...new Set([...teams.map(t => t.sport_name),...individualCompetitions.map(c => c.sport_name)])];
 
         // 7. Achievements & Medals Tally
         const achievements = [];
@@ -293,14 +344,14 @@ export const getPlayerPerformanceReportController = async (req, res, next) => {
                     year: m.year,
                     description: `Champions in ${m.round} against ${m.opponent_team}`
                 });
-            } else if (m.result === 'Won' && m.round === 'Semi-Final') {
+            } else if (m.result === 'Lost' && m.round === 'Final') {
                 achievements.push({
                     id: `ach-silver-${m.match_id}`,
-                    title: `Silver / Finalist - ${m.tournament}`,
+                    title: `Silver Medal - ${m.tournament}`,
                     sport: m.sport,
                     type: 'Silver',
                     year: m.year,
-                    description: `Advanced through Semi-Final victory against ${m.opponent_team}`
+                    description: `Runner-up in the final against ${m.opponent_team}`
                 });
             }
         });
@@ -364,25 +415,7 @@ export const getPlayerPerformanceReportController = async (req, res, next) => {
 
         timelineEvents.sort((a, b) => b.timestamp - a.timestamp);
 
-        // 9. Scalability placeholders
-        const certificates = [
-            ...achievements.map((ach, i) => ({
-                id: `cert-${i + 1}`,
-                title: `Certificate of Merit - ${ach.title}`,
-                category: 'Merit',
-                issuedBy: 'Director of Physical Education, NEC',
-                year: ach.year,
-                referenceNo: `NEC/CERT/${student.register_number}/${ach.year}/${i + 1}`
-            })),
-            {
-                id: `cert-part-1`,
-                title: `Annual Athletic Participation Certificate`,
-                category: 'Participation',
-                issuedBy: 'Sports Council, National Engineering College',
-                year: '2025-2026',
-                referenceNo: `NEC/PART/${student.register_number}/2026`
-            }
-        ];
+        const certificates = []; // No certificate issuance records exist yet.
 
         return res.json({
             success: true,
@@ -394,16 +427,17 @@ export const getPlayerPerformanceReportController = async (req, res, next) => {
                     department_id: student.department_id,
                     department_name: student.department_name,
                     department_code: student.department_code,
-                    batch: student.batch || '2022-2026',
-                    section: student.section || 'A',
+                    batch: student.batch || null,
+                    section: student.section || null,
                     personal_email: student.personal_email || student.email,
-                    blood_group: student.blood_group || 'O+',
-                    student_type: student.student_type || 'Regular',
+                    blood_group: student.blood_group || null,
+                    student_type: student.student_type || null,
                     medical_fitness: student.medical_fitness ? 'Cleared' : 'Pending',
                     join_date: student.created_at
                 },
                 teams,
                 matches: enrichedMatches,
+                individualCompetitions,
                 odSummary: {
                     totalRequests: odRows.length,
                     approvedCount: approvedOdCount,
@@ -437,29 +471,7 @@ export const getPlayerPerformanceReportController = async (req, res, next) => {
                 achievements,
                 certificates,
                 timeline: timelineEvents,
-                scalability: {
-                    rankings: {
-                        departmentRank: 1,
-                        collegeRank: 'Top 5%',
-                        tier: 'Varsity Elite'
-                    },
-                    coachRemarks: [
-                        {
-                            coach: 'Physical Director',
-                            date: '2026-09-15',
-                            remark: 'Dedicated athlete with stellar discipline, punctual attendance, and exemplary team spirit.'
-                        }
-                    ],
-                    fitnessMetrics: {
-                        status: student.medical_fitness ? 'Fit for Competition' : 'Needs Clearance',
-                        cardioIndex: 'Optimal',
-                        lastEvaluated: '2026-09-10'
-                    },
-                    aiInsights: [
-                        'Strongest performance in tournament knockout phases with high conversion rate.',
-                        'Eligible for collegiate scholarship nomination based on approved OD attendance quota.'
-                    ]
-                }
+                scalability: null
             }
         });
     } catch (err) {

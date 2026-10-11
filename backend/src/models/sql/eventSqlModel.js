@@ -56,18 +56,17 @@ export const getAllEvents = async () => {
 };
 
 export const createEventSql = async (eventData) => {
-    let tourId = Number(eventData.tournament_id || eventData.tournamentId);
-    if (!tourId) {
-        // Fallback to first existing tournament
-        const [tRows] = await pool.execute('SELECT tournament_id FROM tournaments LIMIT 1');
-        tourId = tRows.length ? tRows[0].tournament_id : 1;
-    }
-    const sportId = Number(eventData.sport_id || eventData.sportId) || 1;
+    const tourId = Number(eventData.tournament_id || eventData.tournamentId);
+    const sportId = Number(eventData.sport_id || eventData.sportId);
+    if (!Number.isInteger(tourId) || tourId<1 || !Number.isInteger(sportId) || sportId<1) throw Object.assign(new Error('Select a tournament and sport.'), {statusCode:400});
+    const [[sport]] = await pool.execute('SELECT min_players,max_players,sport_type FROM sports WHERE sport_id=?',[sportId]);
+    if (!sport) throw Object.assign(new Error('Sport not found.'),{statusCode:404});
     const name = eventData.name || eventData.title || 'Untitled Event';
     const category = eventData.category || 'Open';
     const regStatus = eventData.registration_status || eventData.registrationStatus || eventData.status || 'Open';
-    const minPlayers = Number(eventData.min_players || eventData.minPlayers) || 1;
-    const maxPlayers = Number(eventData.max_players || eventData.maxPlayers) || 15;
+    const minPlayers = sport.sport_type==='Individual' ? 1 : Number(eventData.min_players || eventData.minPlayers || sport.min_players);
+    const maxPlayers = sport.sport_type==='Individual' ? 1 : Number(eventData.max_players || eventData.maxPlayers || sport.max_players);
+    if (minPlayers<1 || maxPlayers<minPlayers) throw Object.assign(new Error('Invalid roster size.'),{statusCode:400});
     const maxTeams = Number(eventData.max_teams || eventData.maxTeams) || 32;
     const durationMinutes = Number(eventData.duration_minutes || eventData.durationMinutes) || 120;
     const startTime = eventData.start_time || eventData.startTime || null;
@@ -243,6 +242,7 @@ export const getEventEntriesSql = async (eventId) => {
             ee.category_id,
             sc.name AS category_name,
             ee.student_id,
+            s.department_id,
             s.student_name,
             s.register_number,
             d.code AS department_code,

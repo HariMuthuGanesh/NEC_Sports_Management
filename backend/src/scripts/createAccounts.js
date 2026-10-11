@@ -76,7 +76,11 @@ const createOrUpdateUser = async ({ username, email, password, role, deptCode, a
 
 // Preset Provisioning Mode
 const runPresetProvisioning = async () => {
-  const defaultPassword = process.env.INITIAL_ACCOUNT_PASSWORD || 'Password@123';
+  const defaultPassword = process.env.INITIAL_ACCOUNT_PASSWORD;
+
+  if (!defaultPassword || defaultPassword.length < 12) {
+    throw new Error('INITIAL_ACCOUNT_PASSWORD must be set to at least 12 characters for preset provisioning.');
+  }
 
   console.log('\n============================================================');
   console.log(' NEC SPORTS SYSTEM - INITIAL ACCOUNT PROVISIONING');
@@ -94,13 +98,15 @@ const runPresetProvisioning = async () => {
     adminScope: 'Full'
   });
 
-  await createOrUpdateUser({
-    username: 'sports_admin',
-    email: 'sports.admin@nec.edu.in',
-    password: process.env.SPORTS_ADMIN_PASSWORD || defaultPassword,
-    role: 'Admin',
-    adminScope: 'CollegeTeamOnly'
-  });
+  if (process.env.SECOND_ADMIN_USERNAME && process.env.SECOND_ADMIN_EMAIL && process.env.SECOND_ADMIN_PASSWORD) {
+    await createOrUpdateUser({
+      username: process.env.SECOND_ADMIN_USERNAME,
+      email: process.env.SECOND_ADMIN_EMAIL,
+      password: process.env.SECOND_ADMIN_PASSWORD,
+      role: 'Admin',
+      adminScope: 'Full'
+    });
+  }
 
   // 2. Department Coordinator Accounts
   console.log('\n--- 2. Provisioning Department Coordinators ---');
@@ -125,12 +131,12 @@ const runPresetProvisioning = async () => {
   }
 
   console.log('\n============================================================');
-  console.log(' PROVISIONED CREDENTIALS SUMMARY');
+  console.log(' PROVISIONING SUMMARY');
   console.log('============================================================');
-  console.log(' Admin 1 (System Admin):   username = sys_admin     | Scope = Full            | pass = ' + defaultPassword);
-  console.log(' Admin 2 (Sports Admin):   username = sports_admin  | Scope = CollegeTeamOnly | pass = ' + defaultPassword);
+  console.log(' Admin 1 (System Admin):   username = sys_admin     | Scope = Full');
+  console.log(' A second full admin can be provisioned using SECOND_ADMIN_USERNAME, SECOND_ADMIN_EMAIL and SECOND_ADMIN_PASSWORD.');
   console.log(' Department Coordinators:  username = coord_cse, coord_ece, coord_mech...');
-  console.log('                           pass = ' + defaultPassword);
+  console.log(' Credentials were read from environment variables and were not logged.');
   console.log('============================================================\n');
 };
 
@@ -152,7 +158,7 @@ const runInteractiveMode = async () => {
 
     console.log('Select Account Role:');
     console.log('  1. System Administrator (Admin - Full Scope)');
-    console.log('  2. College Team & Sports Administrator (Admin - College Team Only)');
+    console.log('  2. Sports President');
     console.log('  3. Department Coordinator (Coordinator)');
     console.log('  4. Team Captain (Captain)');
     console.log('  5. Student Athlete (Player)\n');
@@ -165,26 +171,14 @@ const runInteractiveMode = async () => {
       role = 'Admin';
       adminScope = 'Full';
     } else if (roleChoice.trim() === '2') {
-      role = 'Admin';
-      adminScope = 'CollegeTeamOnly';
+      role = 'Sports President';
+      adminScope = null;
     } else if (roleChoice.trim() === '3') {
       role = 'Coordinator';
     } else if (roleChoice.trim() === '4') {
       role = 'Captain';
     } else if (roleChoice.trim() === '5') {
       role = 'Player';
-    }
-
-    if (role === 'Admin' && roleChoice.trim() !== '1' && roleChoice.trim() !== '2') {
-      console.log('\nSelect Admin Scope:');
-      console.log('  1. Full (System Admin)');
-      console.log('  2. CollegeTeamOnly (Sports Admin)');
-      const scopeChoice = await question('Enter scope choice (1-2, default 1): ');
-      if (scopeChoice.trim() === '2') {
-        adminScope = 'CollegeTeamOnly';
-      } else {
-        adminScope = 'Full';
-      }
     }
 
     const username = await question('Enter Username: ');

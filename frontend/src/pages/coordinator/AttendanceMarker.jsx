@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { playersApi, teamsApi } from "../../services/api/apiServices";
+import { playersApi, teamsApi, matchesApi, apiFetch } from "../../services/api/apiServices";
 import { useAuth } from "../../context/AuthContext";
 import { Card } from "../../components/common/Card";
 import Button from "../../components/common/Button";
@@ -11,20 +11,18 @@ export default function AttendanceMarker() {
   const { currentUser } = useAuth();
   const [teams, setTeams] = useState([]);
   const [selectedTeamId, setSelectedTeamId] = useState("");
+  const [matches, setMatches] = useState([]);
+  const [selectedMatchId, setSelectedMatchId] = useState("");
   const [players, setPlayers] = useState([]);
   const [attendance, setAttendance] = useState({});
+  const [dirty, setDirty] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const deptScope = currentUser?.deptId || currentUser?.dept;
 
   useEffect(() => {
-    teamsApi.getTeams(deptScope).then(tList => {
-      const myDept = (currentUser?.dept || currentUser?.deptCode || "").toUpperCase();
-      const list = Array.isArray(tList) ? tList : [];
-      const filtered = (myDept && myDept !== "ALL" && myDept !== "SPORTS OFFICE")
-        ? list.filter(t => (t.deptCode || t.dept_code || t.dept || "").toUpperCase() === myDept || Number(t.deptId || t.department_id) === Number(currentUser?.deptId))
-        : list;
+    teamsApi.getTeams().then(tList => {
+      const filtered = Array.isArray(tList) ? tList : [];
       setTeams(filtered);
       if (filtered.length > 0) setSelectedTeamId(filtered[0].id || filtered[0].team_id);
       else setSelectedTeamId("");
@@ -32,7 +30,7 @@ export default function AttendanceMarker() {
       console.error(err);
       setTeams([]);
     });
-  }, [currentUser, deptScope]);
+  }, [currentUser.id]);
 
   const loadPlayers = (teamId) => {
     setLoading(true);
@@ -42,6 +40,7 @@ export default function AttendanceMarker() {
       const initial = {};
       pList.forEach(p => { initial[p.id] = true; }); // Default present
       setAttendance(initial);
+      setDirty(false);
       setLoading(false);
     }).catch(err => {
       console.error(err);
@@ -53,14 +52,32 @@ export default function AttendanceMarker() {
   useEffect(() => {
     if (selectedTeamId) {
       loadPlayers(selectedTeamId);
+      setSelectedMatchId("");
+      matchesApi.getMatches().then(list => setMatches(list.filter(m => Number(m.team_a_id) === Number(selectedTeamId) || Number(m.team_b_id) === Number(selectedTeamId)))).catch(err => setError(err.message));
     }
   }, [selectedTeamId]);
 
+  useEffect(() => {
+    if (!selectedTeamId || !selectedMatchId || dirty) return;
+    let cancelled = false;
+    const refresh = () => apiFetch(`/teams/${selectedTeamId}/attendance?matchId=${selectedMatchId}`).then(rows => {
+      if (cancelled) return;
+      const saved = rows.filter(r => Number(r.match_id) === Number(selectedMatchId));
+      const next = Object.fromEntries(players.map(p => [p.id, saved.find(r => Number(r.student_id) === Number(p.student_id || p.id))?.status === 'Present']));
+      setAttendance(next);
+    }).catch(e => { if (!cancelled) setError(e.message); });
+    refresh();
+    const timer = setInterval(refresh, 10000);
+    return () => { cancelled = true; clearInterval(timer); };
+  }, [selectedTeamId, selectedMatchId, players, dirty]);
+
   const toggleStudent = (pId) => {
+    setDirty(true);
     setAttendance(prev => ({ ...prev, [pId]: !prev[pId] }));
   };
 
   const handleSelectAll = (val) => {
+    setDirty(true);
     const updated = {};
     players.forEach(p => { updated[p.id] = val; });
     setAttendance(updated);
@@ -74,7 +91,8 @@ export default function AttendanceMarker() {
     setSaving(true);
     setSuccessMsg("");
     try {
-      const res = await playersApi.saveSquadAttendance(selectedTeamId, attendance);
+      await playersApi.saveSquadAttendance(selectedTeamId, attendance, selectedMatchId);
+      setDirty(false);
       setSuccessMsg(`Matchday attendance recorded! ${presentCount} of ${players.length} athletes marked present.`);
       setTimeout(() => setSuccessMsg(""), 4000);
     } catch (err) {
@@ -89,8 +107,7 @@ export default function AttendanceMarker() {
   return (
     <div className="nec-portal-page">
       <div className="nec-page-header">
-        <h2 className="nec-page-title">Mobile Squad Attendance Checklist</h2>
-        <p className="nec-page-desc">Roster-oriented matchday attendance verification for department coordinators.</p>
+        <h2 className="nec-page-title">Match Attendance</h2>
       </div>
 
       <div className="nec-card" style={{ padding: "14px 20px" }}>
@@ -104,6 +121,11 @@ export default function AttendanceMarker() {
           {teams.map(t => (
             <option key={t.id} value={t.id}>{t.name} ({t.deptCode})</option>
           ))}
+        </select>
+        <label htmlFor="attendance-match" style={{ marginLeft: 16 }}>Match:</label>
+        <select id="attendance-match" className="nec-table-search-input" value={selectedMatchId} onChange={e => { setSelectedMatchId(e.target.value); setDirty(false); }}>
+          <option value="">Select match</option>
+          {matches.map(m => <option key={m.id} value={m.id}>{m.teamA} vs {m.teamB} ? {m.date}</option>)}
         </select>
       </div>
 
@@ -128,7 +150,7 @@ export default function AttendanceMarker() {
                   ✓ {successMsg}
                 </span>
               ) : <span />}
-              <Button variant="primary" icon={Save} onClick={handleSaveAttendance} loading={saving} disabled={saving || players.length === 0}>
+              <Button variant="primary" icon={Save} onClick={handleSaveAttendance} loading={saving} disabled={loading || saving || !selectedMatchId || players.length === 0}>
                 {saving ? "Saving..." : "Save Matchday Attendance"}
               </Button>
             </div>

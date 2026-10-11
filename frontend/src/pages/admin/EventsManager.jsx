@@ -6,7 +6,7 @@ import Badge from "../../components/common/Badge";
 import Button from "../../components/common/Button";
 import { Modal } from "../../components/common/Modal";
 import ErrorState from "../../components/common/ErrorState";
-import { Plus, ToggleLeft, ToggleRight, Trash2, Users } from "lucide-react";
+import { CalendarDays, Plus, ToggleLeft, ToggleRight, Trash2, Trophy, Users } from "lucide-react";
 import { useAutoRefresh } from "../../hooks/useAutoRefresh";
 import "./AdminPortal.css";
 
@@ -159,13 +159,14 @@ export default function EventsManager() {
     {
       key: "title",
       label: "Event Name",
-      minWidth: "180px",
+      minWidth: "220px",
+      className: "nec-events-name-col",
       render: (val, row) => (
-        <div style={{ minWidth: "160px" }}>
+        <div className="nec-event-name">
           <strong style={{ fontSize: "0.92rem", display: "block" }}>{val || row.name || "Sports Event"}</strong>
           {row.tournament_name && (
-            <div style={{ fontSize: "0.76rem", color: "var(--nec-text-muted)", marginTop: "2px" }}>
-              🏆 {row.tournament_name}
+            <div className="nec-event-tournament">
+              <Trophy size={13} aria-hidden="true" /> {row.tournament_name}
             </div>
           )}
         </div>
@@ -217,8 +218,8 @@ export default function EventsManager() {
     {
       key: "regDeadline",
       label: "Entry Deadline",
-      width: "130px",
-      render: (val, row) => <span>📅 {formatDeadline(val || row.reg_deadline)}</span>
+      minWidth: "150px",
+      render: (val, row) => <span className="nec-event-deadline"><CalendarDays size={15} aria-hidden="true" />{formatDeadline(val || row.reg_deadline)}</span>
     },
     {
       key: "status",
@@ -237,14 +238,15 @@ export default function EventsManager() {
     {
       key: "actions",
       label: "Registration Control",
-      width: "170px",
+      minWidth: "270px",
+      className: "nec-events-actions-col",
       sortable: false,
       render: (_, row) => {
         const eventId = row.id || row.event_id;
         const st = row.status || row.registration_status || "Open";
         const isOpen = st === "Open" || st === "Registration Open";
         return (
-          <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+          <div className="nec-events-actions">
             <Button variant="ghost" size="sm" icon={Users} onClick={() => handleOpenTeams(row)} title="View registered teams">
               Teams
             </Button>
@@ -271,10 +273,14 @@ export default function EventsManager() {
   ];
 
   return (
-    <div className="nec-portal-page">
-      <div className="nec-page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+    <div className="nec-portal-page nec-events-page">
+      <div className="nec-page-header nec-events-header">
         <div>
-          <h2 className="nec-page-title">Tournament Events & Registration Controls</h2>
+          <h2 className="nec-page-title">Events</h2>
+          <div className="nec-events-summary">
+            <span><strong>{localEvents.length}</strong> total</span>
+            <span><strong>{localEvents.filter(event => ["Open", "Registration Open"].includes(event.status || event.registration_status || "Open")).length}</strong> open</span>
+          </div>
         </div>
         <Button variant="primary" icon={Plus} onClick={() => setIsModalOpen(true)}>
           Create Event
@@ -287,6 +293,7 @@ export default function EventsManager() {
         </div>
       ) : (
         <Table
+          className="nec-events-table"
           columns={columns}
           data={localEvents}
           loading={loading && localEvents.length === 0}
@@ -305,7 +312,7 @@ export default function EventsManager() {
         {!teamsLoading && teamsData?.entries && (
           <Table
             columns={[
-              { key: "student_name", label: "Student", render: (v, r) => <strong>{v}</strong> },
+              { key: "student_name", label: "Student", render: (v) => <strong>{v}</strong> },
               { key: "register_number", label: "Register No." },
               { key: "department_code", label: "Dept", width: "90px" },
               { key: "category_name", label: "Category", render: (v) => v || "-" }
@@ -418,7 +425,7 @@ export default function EventsManager() {
             </div>
 
             <div>
-              <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: "4px" }}>Max Teams Limit</label>
+              <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: "4px" }}>{sports.find(sp => Number(sp.sport_id) === Number(sportId))?.sport_type === "Individual" ? "Entry Limit" : "Max Teams Limit"}</label>
               <input
                 type="number"
                 required

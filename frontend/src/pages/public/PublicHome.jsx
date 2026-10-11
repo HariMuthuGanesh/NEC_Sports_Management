@@ -4,6 +4,8 @@ import { useAuth, ROLES } from "../../context/AuthContext";
 import { Card, StatCard } from "../../components/common/Card";
 import Badge from "../../components/common/Badge";
 import Button from "../../components/common/Button";
+import ErrorState from "../../components/common/ErrorState";
+import SkeletonLoader from "../../components/common/SkeletonLoader";
 import PublicInfoCard from "../../components/common/PublicInfoCard";
 import { Trophy, Users, Radio, Calendar, Megaphone, ArrowRight, LogIn, FileCheck } from "lucide-react";
 import { useAutoRefresh } from "../../hooks/useAutoRefresh";
@@ -14,10 +16,10 @@ export default function PublicHome({ onNavigate }) {
 
   const fetchPublicHomeData = async () => {
     const [matches = [], board = [], anns = [], statsData = null] = await Promise.all([
-      matchesApi.getMatches().catch(err => { console.warn("[PublicHome] matches error:", err); return []; }),
-      leaderboardApi.getLeaderboard().catch(err => { console.warn("[PublicHome] leaderboard error:", err); return []; }),
-      announcementsApi.getAll().catch(err => { console.warn("[PublicHome] announcements error:", err); return []; }),
-      statsApi.getOverview().catch(() => ({ sportsCount: "8+", athletesCount: "500+" }))
+      matchesApi.getMatches(),
+      leaderboardApi.getLeaderboard(),
+      announcementsApi.getAll(),
+      statsApi.getOverview()
     ]);
 
     const matchList = Array.isArray(matches) ? matches : [];
@@ -28,11 +30,11 @@ export default function PublicHome({ onNavigate }) {
       liveMatches: matchList.filter(m => m.status === "Ongoing"),
       leaderboard: boardList.slice(0, 5),
       announcements: annList.slice(0, 3),
-      stats: statsData || { sportsCount: "8+", athletesCount: "500+" }
+      stats: statsData || { sportsCount: 0, athletesCount: 0 }
     };
   };
 
-  const { data: homeData, loading, error } = useAutoRefresh(
+  const { data: homeData, loading, error, refetch } = useAutoRefresh(
     fetchPublicHomeData,
     { interval: 15000 }
   );
@@ -40,7 +42,10 @@ export default function PublicHome({ onNavigate }) {
   const liveMatches = homeData?.liveMatches || [];
   const leaderboard = homeData?.leaderboard || [];
   const announcements = homeData?.announcements || [];
-  const stats = homeData?.stats || { sportsCount: "8+", athletesCount: "500+" };
+  const stats = homeData?.stats || { sportsCount: 0, athletesCount: 0 };
+
+  if (error && !homeData) return <ErrorState onRetry={refetch} />;
+  if (loading && !homeData) return <SkeletonLoader rows={5} />;
 
   return (
     <div className="nec-portal-page nec-guest-home">
@@ -181,7 +186,7 @@ export default function PublicHome({ onNavigate }) {
               <div className="nec-section-header">
                 <div className="nec-section-title">
                   <Trophy size={20} className="nec-gold-icon" />
-                  <h3>{t.topDepartments}</h3>
+                  <h3>{t.topDepartments || "Department Standings"}</h3>
                 </div>
                 <Button variant="outline" size="sm" onClick={() => onNavigate("public_leaderboard")}>
                   Full Leaderboard <ArrowRight size={14} />
@@ -213,7 +218,7 @@ export default function PublicHome({ onNavigate }) {
               <div className="nec-section-header">
                 <div className="nec-section-title">
                   <Megaphone size={20} className="nec-navy-icon" />
-                  <h3>{t.latestAnnouncements}</h3>
+                  <h3>{t.latestAnnouncements || "Announcements"}</h3>
                 </div>
                 <Button variant="outline" size="sm" onClick={() => onNavigate("public_announcements")}>
                   All News <ArrowRight size={14} />

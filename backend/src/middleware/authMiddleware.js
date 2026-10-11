@@ -23,7 +23,7 @@ export const protect = async (req, res, next) => {
 
         // 2. Query current token_version, active status, and admin_scope from database
         const [rows] = await pool.execute(
-            'SELECT token_version, is_active, admin_scope FROM users WHERE id = ? LIMIT 1',
+            'SELECT token_version, is_active, admin_scope, role, must_change_password, username FROM users WHERE id = ? LIMIT 1',
             [decoded.id]
         );
         const user = rows[0];
@@ -43,14 +43,22 @@ export const protect = async (req, res, next) => {
             });
         }
 
+        const passwordRoutes = ['/api/auth/me', '/api/auth/change-password', '/api/auth/logout'];
+        if (user.must_change_password && !passwordRoutes.includes(req.originalUrl.split('?')[0])) {
+            return res.status(403).json({ success: false, error: { code: 'PASSWORD_CHANGE_REQUIRED', message: 'Change your password before continuing.' } });
+        }
+
         // 4. Set user context and resolve department if Coordinator/Student
         req.user = {
             ...decoded,
+            role: user.role,
+            username: user.username,
+            name: decoded.name || user.username,
             admin_scope: user.admin_scope || decoded.admin_scope || 'Full'
         };
         req.token = token;
 
-        if (req.user.role === 'Coordinator' && !req.user.dept_id) {
+        if (req.user.role === 'Coordinator' ) {
             const [deptRows] = await pool.execute(
                 'SELECT id, code, name FROM departments WHERE coordinator_user_id = ? LIMIT 1',
                 [req.user.id]
@@ -87,19 +95,22 @@ export const optionalProtect = async (req, res, next) => {
     try {
         const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] });
         const [rows] = await pool.execute(
-            'SELECT token_version, is_active, admin_scope FROM users WHERE id = ? LIMIT 1',
+            'SELECT token_version, is_active, admin_scope, role, must_change_password, username FROM users WHERE id = ? LIMIT 1',
             [decoded.id]
         );
         const user = rows[0];
 
-        if (user && user.is_active && (decoded.token_version === undefined || decoded.token_version === user.token_version)) {
+        if (user && user.is_active && !user.must_change_password && decoded.token_version !== undefined && decoded.token_version === user.token_version) {
             req.user = {
                 ...decoded,
+            role: user.role,
+            username: user.username,
+            name: decoded.name || user.username,
                 admin_scope: user.admin_scope || decoded.admin_scope || 'Full'
             };
             req.token = token;
 
-            if (req.user.role === 'Coordinator' && !req.user.dept_id) {
+            if (req.user.role === 'Coordinator' ) {
                 const [deptRows] = await pool.execute(
                     'SELECT id, code, name FROM departments WHERE coordinator_user_id = ? LIMIT 1',
                     [req.user.id]

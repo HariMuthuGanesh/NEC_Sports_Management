@@ -479,9 +479,9 @@ export const squadApi = {
       year
     }),
   // Captain: view their own assigned squad (sport + department + active roster)
-  getMySquad: () => apiFetch("/my-squad"),
-  addSquadMember: (studentId) => apiFetch("/my-squad/members", "POST", { student_id: studentId }),
-  removeSquadMember: (studentId) => apiFetch(`/my-squad/members/${studentId}`, "DELETE")
+  getMySquad: (sportId) => apiFetch(`/my-squad${sportId ? `?sportId=${sportId}` : ""}`),
+  addSquadMember: (studentId, sportId) => apiFetch("/my-squad/members", "POST", { student_id: studentId, sport_id: sportId }),
+  removeSquadMember: (studentId, sportId) => apiFetch(`/my-squad/members/${studentId}${sportId ? `?sportId=${sportId}` : ""}`, "DELETE")
 };
 
 /* --- College Team Builder API --- */

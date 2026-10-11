@@ -14,7 +14,8 @@ export default function ReportsManager() {
   const [timeframe, setTimeframe] = useState("1month");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
-  const [reportType, setReportType] = useState("dept_perf");
+  const [activities, setActivities] = useState([]);
+  const [events, setEvents] = useState([]);
   const [reportData, setReportData] = useState([]);
   const [summaryData, setSummaryData] = useState({});
   const [loading, setLoading] = useState(true);
@@ -30,7 +31,11 @@ export default function ReportsManager() {
   const reportRef = useRef(null);
 
   const loadReport = async () => {
-    if (timeframe === "custom" && (!fromDate || !toDate)) return;
+    if (timeframe === "custom" && (!fromDate || !toDate)) {
+      setError("Select both dates.");
+      setLoading(false);
+      return;
+    }
     if (timeframe === "custom" && fromDate > toDate) {
       setError("From date must be on or before the to date.");
       return;
@@ -54,6 +59,8 @@ export default function ReportsManager() {
         participation: r.participation ?? null
       }));
       setReportData(mapped);
+      setActivities(report.activities || []);
+      setEvents(report.events || []);
       setSummaryData({
         totalCompleted: report?.summary?.totalCompleted ?? null,
         totalScheduled: report?.summary?.totalScheduled ?? null
@@ -91,8 +98,12 @@ export default function ReportsManager() {
       const pdf = new jsPDF("landscape", "mm", "a4");
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      
-      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      for (let offset = 0; offset < pdfHeight; offset += pageHeight) {
+        if (offset > 0) pdf.addPage();
+        pdf.addImage(imgData, "PNG", 0, -offset, pdfWidth, pdfHeight);
+      }
       pdf.save(filename);
     } catch (err) {
       console.error("PDF generation failed", err);
@@ -108,10 +119,10 @@ export default function ReportsManager() {
 
   const timeframeLabel = timeframe === "custom"
     ? `${fromDate || "?"} to ${toDate || "?"}`
-    : timeframe === "1month" 
-    ? "Past 1 Month (Current Cycle)" 
-    : timeframe === "6months" 
-    ? "Past 6 Months (Semester)" 
+    : timeframe === "weekly" ? "Past 7 Days" : timeframe === "1month"
+    ? "Monthly"
+    : timeframe === "6months"
+    ? "Past 6 Months (Semester)"
     : timeframe === "12months"
     ? "Past 12 Months (Annual Audit)"
     : "All Time Cumulative";
@@ -120,7 +131,7 @@ export default function ReportsManager() {
     <div className="nec-portal-page">
       <div className="nec-page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
         <div>
-          <h2 className="nec-page-title">Institutional Sports Performance & Reporting Engine</h2>
+          <h2 className="nec-page-title">Sports Reports</h2>
         </div>
         <div style={{ display: "flex", gap: "8px" }}>
           <Button variant={activeTab === "reports" ? "primary" : "outline"} icon={FileText} onClick={() => setActiveTab("reports")}>
@@ -144,7 +155,8 @@ export default function ReportsManager() {
                   value={timeframe}
                   onChange={(e) => setTimeframe(e.target.value)}
                 >
-                  <option value="1month">Past 1 Month (Current Cycle)</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="1month">Monthly</option>
                   <option value="6months">Past 6 Months (Semester Audit)</option>
                   <option value="12months">Past 12 Months (Annual Report)</option>
                   <option value="all">All-Time Cumulative</option>
@@ -159,18 +171,7 @@ export default function ReportsManager() {
                 )}
               </div>
 
-              <div>
-                <label style={{ fontWeight: 600, marginRight: "8px" }}>Report Type:</label>
-                <select
-                  className="nec-table-search-input"
-                  style={{ display: "inline-block", width: "auto" }}
-                  value={reportType}
-                  onChange={(e) => setReportType(e.target.value)}
-                >
-                  <option value="dept_perf">Department Medal Tally & Performance</option>
-                  <option value="attendance_summary">Athletic Attendance & Participation Summary</option>
-                </select>
-              </div>
+
             </div>
 
             <div style={{ display: "flex", gap: "8px" }}>
@@ -201,11 +202,26 @@ export default function ReportsManager() {
                 </div>
 
                 <Table
+                  pageSize={Math.max(reportData.length, 1)}
                   columns={columns}
                   data={reportData}
                   searchable={false}
                   loading={loading}
                 />
+
+                <h3>Sports Conducted and Participation</h3>
+                <Table searchable={false} pageSize={Math.max(activities.length,1)} data={activities} columns={[
+                  {key:'date',label:'Date',render:v=>v ? new Date(v).toLocaleDateString('en-IN') : '?'},
+                  {key:'sport',label:'Sport'}, {key:'category',label:'Category'}, {key:'tournament',label:'Tournament'},
+                  {key:'team_a',label:'Match / Event',render:(v,r)=>r.team_b ? `${v} vs ${r.team_b}` : v},
+                  {key:'round',label:'Round'}, {key:'status',label:'Status'}, {key:'participated',label:'Participated'},
+                  {key:'participants',label:'Athletes'}, {key:'winner',label:'Winner'}, {key:'runner',label:'Runner-up'}
+                ]} />
+                <h3>Events</h3>
+                <Table searchable={false} pageSize={Math.max(events.length,1)} data={events} columns={[
+                  {key:'name',label:'Event'}, {key:'sport',label:'Sport'}, {key:'registration_status',label:'Registration'},
+                  {key:'registered_teams',label:'Teams'}, {key:'individual_entries',label:'Individual entries'}
+                ]} />
 
                 <div style={{ marginTop: "40px", display: "flex", justifyContent: "space-between", color: "#555", fontSize: "0.85rem", borderTop: "1px solid #e2e8f0", paddingTop: "14px" }}>
                   <p>Report Generated On: {new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })}</p>
@@ -235,10 +251,10 @@ export default function ReportsManager() {
                 <option value="Participation">Certificate of Participation</option>
               </select>
             </div>
-            <Button 
-              variant="primary" 
-              icon={Download} 
-              fullWidth 
+            <Button
+              variant="primary"
+              icon={Download}
+              fullWidth
               style={{ marginTop: "20px" }}
               loading={generating}
               onClick={() => generatePDF(certRef, `${certName.replace(/\s+/g, '_')}_Certificate.pdf`)}
@@ -250,7 +266,7 @@ export default function ReportsManager() {
 
           <Card title="Live Preview">
             <div style={{ overflowX: "auto", padding: "20px", backgroundColor: "#f5f5f5", borderRadius: "8px" }}>
-              <div 
+              <div
                 ref={certRef}
                 style={{
                   width: "800px",
@@ -280,24 +296,24 @@ export default function ReportsManager() {
                     NEC SPORTS COUNCIL
                   </p>
                 </div>
-                
+
                 <h2 style={{ fontSize: "42px", color: "var(--nec-primary, #2563eb)", margin: "30px 0 10px 0", fontFamily: "Georgia, serif", fontStyle: "italic" }}>
                   Certificate of {certType}
                 </h2>
-                
+
                 <p style={{ fontSize: "1.2rem", margin: "20px 0" }}>
                   This is to certify that
                 </p>
-                
+
                 <h2 style={{ fontSize: "36px", borderBottom: "2px dotted #333", display: "inline-block", minWidth: "400px", margin: "0 0 20px 0", paddingBottom: "5px", color: "#222" }}>
                   {certName || "_______________________"}
                 </h2>
-                
+
                 <p style={{ fontSize: "1.2rem", lineHeight: "1.6", margin: "0 40px" }}>
-                  has successfully {certType === "Merit" ? "secured First Place" : "participated"} in the 
+                  has successfully {certType === "Merit" ? "secured First Place" : "participated"} in the
                   <br /><strong>{certSport}</strong> tournament held during the Academic Year 2025-2026.
                 </p>
-                
+
                 <div style={{ position: "absolute", bottom: "50px", left: "60px", right: "60px", display: "flex", justifyContent: "space-between" }}>
                   <div style={{ textAlign: "center", borderTop: "1px solid #333", paddingTop: "10px", width: "200px" }}>
                     <strong>Sports Coordinator</strong>

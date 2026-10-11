@@ -91,17 +91,20 @@ export default function Sidebar({
               { id: "admin_sports", label: t.sportsCatalog, icon: Trophy },
               { id: "admin_tournaments", label: t.tournaments, icon: Calendar },
               { id: "admin_events", label: t.events, icon: Award },
+              { id: "event_competitions", label: "Event Competitions", icon: Trophy },
               { id: "admin_levels", label: "Competition Levels", icon: Award }
             ]
           },
           {
             category: t.navManagement,
             items: [
+              { id: "college_teams", label: "College Teams", icon: Building2 },
               { id: "admin_teams", label: "Team Approvals & Catalog", icon: Users },
               { id: "admin_students", label: "Student Registry", icon: UserCheck },
               { id: "admin_depts", label: "Departments", icon: Building2 },
               { id: "admin_staff", label: "Staff Coordinators", icon: UserCheck },
               { id: "admin_matches", label: t.matchScheduler, icon: Calendar },
+              { id: "admin_score_entry", label: "Score Entry", icon: Edit3 },
               { id: "admin_venues", label: t.venues, icon: MapPin },
               { id: "admin_od", label: "On Duty Requests", icon: FileText }
             ]
@@ -133,6 +136,7 @@ export default function Sidebar({
           {
             category: t.navMatchDayActions,
             items: [
+              { id: "event_competitions", label: "Event Competitions", icon: Trophy },
               { id: "coord_attendance", label: t.squadAttendance, icon: UserCheck },
               { id: "coord_media", label: t.mediaUpload, icon: Image },
               { id: "coord_od", label: "On Duty Requests", icon: FileText }
@@ -147,7 +151,12 @@ export default function Sidebar({
             category: "Outer-College Competitions",
             items: [
               { id: "college_teams", label: "Outer-College Teams", icon: Building2 },
-              { id: "admin_tournaments", label: "Tournaments & Events", icon: Calendar },
+              { id: "admin_tournaments", label: "Tournaments", icon: Calendar },
+              { id: "admin_sports", label: "Sports", icon: Trophy },
+              { id: "admin_events", label: "Events", icon: Award },
+              { id: "admin_teams", label: "Teams", icon: Users },
+              { id: "admin_matches", label: "Matches", icon: Calendar },
+              { id: "admin_reports", label: "Reports", icon: FileText },
               { id: "president_od", label: "OD Information Matrix", icon: FileText },
               { id: "notifications", label: t.notifications || "Notifications", icon: BellRing }
             ]
@@ -156,7 +165,7 @@ export default function Sidebar({
 
       case ROLES.SCORE_UPDATER:
         return [
-          { category: "Score Operations", items: [{ id: "coord_score_entry", label: "Sports Score Board", icon: Edit3 }] },
+          { category: "Score Operations", items: [{ id: "coord_score_entry", label: "Sports Score Board", icon: Edit3 }, { id: "event_competitions", label: "Event Results", icon: Trophy }] },
           {
             category: "Matches",
             items: [
@@ -172,6 +181,8 @@ export default function Sidebar({
           {
             category: "Squad & Fixtures",
             items: [
+              { id: "event_competitions", label: "Event Competitions", icon: Trophy },
+              { id: "coord_attendance", label: "Attendance", icon: UserCheck },
               { id: "captain_roster", label: "My Sports Squad", icon: Users },
               { id: "coord_matches", label: "Tournament Fixtures", icon: Calendar },
               { id: "notifications", label: t.notifications || "Notifications", icon: BellRing }

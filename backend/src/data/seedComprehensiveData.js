@@ -2,7 +2,11 @@ import 'dotenv/config';
 import bcrypt from 'bcryptjs';
 import pool from '../config/db.js';
 
-const SEED_PASSWORD = process.env.SEED_STUDENT_PASSWORD || 'Password@123';
+const SEED_PASSWORD = process.env.SEED_STUDENT_PASSWORD;
+
+if (!SEED_PASSWORD || SEED_PASSWORD.length < 12) {
+    throw new Error('SEED_STUDENT_PASSWORD must be set to at least 12 characters before seeding.');
+}
 
 export async function runComprehensiveSeed() {
     const conn = await pool.getConnection();

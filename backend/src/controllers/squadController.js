@@ -9,112 +9,30 @@ import { ensureStudentAndUserExists } from '../services/studentProvisionService.
  * Transfers any active captain for the same department + sport.
  */
 export const assignDepartmentSportCaptain = async (req, res, next) => {
+    let connection;
     try {
-        const { sport_id, user_id, register_number, name, dept, year } = req.body || {};
-        const sportIdNum = Number(sport_id);
-        const deptIdNum = req.user.dept_id || req.user.department_id;
-
-        if (!sportIdNum || (!user_id && !register_number)) {
-            return res.status(400).json({
-                success: false,
-                error: { code: 'INVALID_INPUT', message: 'sport_id and a valid student identifier are required.' }
-            });
+        const sportId = Number(req.body.sport_id);
+        const departmentId = Number(req.user.dept_id);
+        if (!departmentId || !Number.isInteger(sportId) || sportId <= 0) return res.status(400).json({ success: false, error: { message: 'Select a sport and assigned department.' } });
+        let userId = Number(req.body.user_id);
+        if (req.body.register_number) {
+            const provision = await ensureStudentAndUserExists({ registerNumber: req.body.register_number, requiredDepartmentId: departmentId });
+            userId = provision.userId;
         }
-
-        if (!deptIdNum) {
-            return res.status(400).json({
-                success: false,
-                error: { code: 'NO_DEPARTMENT', message: 'Coordinator does not have an assigned department ID.' }
-            });
-        }
-
-        let userIdNum = Number(user_id) || null;
-        let provisionResult = null;
-
-        if (register_number) {
-            // Auto-provision user account with Captain role if not present
-            provisionResult = await ensureStudentAndUserExists({
-                registerNumber: register_number,
-                name,
-                dept: dept || req.user.dept || req.user.deptCode,
-                year,
-                role: 'Captain'
-            });
-            userIdNum = provisionResult.userId;
-        }
-
-        // Verify and upgrade user role to 'Captain' if they are just a 'Player'
-        const [users] = await pool.execute('SELECT id, role FROM users WHERE id = ? LIMIT 1', [userIdNum]);
-        const targetUser = users[0];
-
-        if (!targetUser) {
-            return res.status(404).json({
-                success: false,
-                error: { code: 'USER_NOT_FOUND', message: 'Target user account could not be found.' }
-            });
-        }
-
-        if (targetUser.role !== 'Captain') {
-            await pool.execute('UPDATE users SET role = "Captain" WHERE id = ?', [userIdNum]);
-        }
-
-        // Find existing active captain
-        const [existing] = await pool.execute(
-            `SELECT user_id FROM department_sport_captains WHERE department_id = ? AND sport_id = ? AND status = 'Active' LIMIT 1`,
-            [deptIdNum, sportIdNum]
-        );
-        const previousCaptainId = existing[0]?.user_id;
-
-        // Set any existing Active captain row for this department_id + sport_id to Transferred
-        await pool.execute(
-            `UPDATE department_sport_captains 
-             SET status = 'Transferred' 
-             WHERE department_id = ? AND sport_id = ? AND status = 'Active'`,
-            [deptIdNum, sportIdNum]
-        );
-
-        // Insert new Active captain row
-        const [result] = await pool.execute(
-            `INSERT INTO department_sport_captains 
-             (department_id, sport_id, user_id, assigned_by_user_id, status) 
-             VALUES (?, ?, ?, ?, 'Active')`,
-            [deptIdNum, sportIdNum, userIdNum, req.user.id]
-        );
-        
-        const [sportRows] = await pool.execute('SELECT name FROM sports WHERE sport_id = ?', [sportIdNum]);
-        const sportName = sportRows[0]?.name || `Sport ID ${sportIdNum}`;
-
-        await sendSystemNotification({
-            userId: userIdNum,
-            title: 'Captain Assignment',
-            message: `You have been assigned as the captain for ${sportName}.`,
-            type: 'ROSTER_ALERT'
-        });
-
-        if (previousCaptainId && previousCaptainId !== userIdNum) {
-            await sendSystemNotification({
-                userId: previousCaptainId,
-                title: 'Captaincy Transferred',
-                message: `Your captaincy for ${sportName} has been transferred to another student.`,
-                type: 'ROSTER_ALERT'
-            });
-        }
-
-        return res.status(201).json({
-            success: true,
-            data: {
-                id: result.insertId,
-                department_id: deptIdNum,
-                sport_id: sportIdNum,
-                user_id: userIdNum,
-                status: 'Active',
-                isNewUser: provisionResult?.isNewUser || false,
-                defaultPassword: provisionResult?.defaultPassword || null
-            }
-        });
-    } catch (err) {
-        next(err);
-    }
+        const [[student]] = await pool.execute("SELECT u.id,u.role FROM users u JOIN students s ON s.user_id=u.id WHERE u.id=? AND s.department_id=? AND u.is_active=1 AND u.role IN ('Player','Captain')", [userId || 0,departmentId]);
+        if (!student) return res.status(403).json({ success: false, error: { message: 'Choose a student from your department.' } });
+        const [[sport]] = await pool.execute('SELECT sport_id FROM sports WHERE sport_id=?',[sportId]);
+        if (!sport) return res.status(404).json({ success: false, error: { message: 'Sport not found.' } });
+        connection = await pool.getConnection();
+        await connection.beginTransaction();
+        await connection.execute('SELECT id FROM departments WHERE id=? FOR UPDATE',[departmentId]);
+        await connection.execute("UPDATE department_sport_captains SET status='Transferred' WHERE department_id=? AND sport_id=? AND status='Active'",[departmentId,sportId]);
+        const [result] = await connection.execute("INSERT INTO department_sport_captains (department_id,sport_id,user_id,assigned_by_user_id,status) VALUES (?,?,?,?,'Active')",[departmentId,sportId,userId,req.user.id]);
+        await connection.execute("UPDATE users SET role='Captain',token_version=token_version+1 WHERE id=? AND role='Player'",[userId]);
+        await connection.commit();
+        return res.status(201).json({ success: true, data: { id:result.insertId,department_id:departmentId,sport_id:sportId,user_id:userId,status:'Active' } });
+    } catch (err) { if (connection) await connection.rollback(); next(err); }
+    finally { connection?.release(); }
 };
 
 /**
@@ -180,10 +98,10 @@ export const listEligibleCaptains = async (req, res, next) => {
                 s.register_number
             FROM users u
             LEFT JOIN students s ON s.user_id = u.id
-            WHERE u.role = 'Captain' AND u.is_active = 1
+            WHERE u.role IN ('Player','Captain') AND u.is_active = 1 AND s.department_id = ?
             ORDER BY COALESCE(s.student_name, u.username) ASC
         `;
-        const [rows] = await pool.execute(sql);
+        const [rows] = await pool.execute(sql, [req.user.dept_id || 0]);
         return res.json({ success: true, data: rows });
     } catch (err) {
         next(err);
@@ -193,13 +111,13 @@ export const listEligibleCaptains = async (req, res, next) => {
 /**
  * Helper to resolve active captain assignment for req.user
  */
-const getActiveCaptainAssignment = async (userId) => {
+const getActiveCaptainAssignment = async (userId, sportId = null) => {
     const [rows] = await pool.execute(
         `SELECT department_id, sport_id 
          FROM department_sport_captains 
-         WHERE user_id = ? AND status = 'Active' 
-         LIMIT 1`,
-        [userId]
+         WHERE user_id = ? AND status = 'Active' AND (? IS NULL OR sport_id=?)
+         ORDER BY sport_id LIMIT 1`,
+        [userId, sportId, sportId]
     );
     return rows[0] || null;
 };
@@ -213,7 +131,7 @@ const getActiveCaptainAssignment = async (userId) => {
  */
 export const getMySquad = async (req, res, next) => {
     try {
-        const assignment = await getActiveCaptainAssignment(req.user.id);
+        const assignment = await getActiveCaptainAssignment(req.user.id, Number(req.query.sportId || req.body?.sport_id) || null);
         if (!assignment) {
             return res.status(403).json({
                 success: false,
@@ -239,6 +157,7 @@ export const getMySquad = async (req, res, next) => {
         `;
 
         const [rows] = await pool.execute(sql, [assignment.department_id, assignment.sport_id]);
+        const [assignments] = await pool.execute("SELECT c.sport_id,s.name sport_name FROM department_sport_captains c JOIN sports s ON s.sport_id=c.sport_id WHERE c.user_id=? AND c.status='Active' ORDER BY s.name",[req.user.id]);
 
         return res.json({
             success: true,
@@ -248,6 +167,7 @@ export const getMySquad = async (req, res, next) => {
                 sport_name: assignmentRows[0]?.sport_name || null,
                 department_name: assignmentRows[0]?.department_name || null,
                 department_code: assignmentRows[0]?.department_code || null,
+                assignments,
                 players: rows
             }
         });
@@ -273,7 +193,7 @@ export const addSquadMember = async (req, res, next) => {
             });
         }
 
-        const assignment = await getActiveCaptainAssignment(req.user.id);
+        const assignment = await getActiveCaptainAssignment(req.user.id, Number(req.query.sportId || req.body?.sport_id) || null);
         if (!assignment) {
             return res.status(403).json({
                 success: false,
@@ -318,7 +238,7 @@ export const removeSquadMember = async (req, res, next) => {
             });
         }
 
-        const assignment = await getActiveCaptainAssignment(req.user.id);
+        const assignment = await getActiveCaptainAssignment(req.user.id, Number(req.query.sportId || req.body?.sport_id) || null);
         if (!assignment) {
             return res.status(403).json({
                 success: false,
@@ -390,54 +310,37 @@ export const getCollegeTeamSuggestionsV2 = async (req, res, next) => {
  * Inserts confirmed students into college_team_members table.
  */
 export const confirmCollegeTeamV2 = async (req, res, next) => {
+    let connection;
     try {
-        const sportIdNum = Number(req.params.sportId);
-        const playerList = Array.isArray(req.body) ? req.body : (req.body?.players || []);
-
-        if (!sportIdNum || !Array.isArray(playerList)) {
-            return res.status(400).json({
-                success: false,
-                error: { code: 'INVALID_INPUT', message: 'sportId and players array are required.' }
-            });
+        const sportId = Number(req.params.sportId);
+        const players = Array.isArray(req.body) ? req.body : req.body?.players;
+        if (!Number.isInteger(sportId) || sportId <= 0 || !Array.isArray(players) || !players.length ||
+            players.some(p => !Number.isInteger(Number(p.student_id)) || Number(p.student_id) <= 0) ||
+            new Set(players.map(p => Number(p.student_id))).size !== players.length) {
+            return res.status(400).json({ success: false, error: { message: 'Select valid students for the team.' } });
         }
-
+        connection = await pool.getConnection();
+        await connection.beginTransaction();
+        const [eligible] = await connection.execute(
+            `SELECT student_id, department_id FROM department_squad_members WHERE sport_id = ? AND status = 'Active'`, [sportId]);
+        if (players.some(p => !eligible.some(e => e.student_id === Number(p.student_id) && e.department_id === Number(p.source_department_id)))) {
+            await connection.rollback();
+            return res.status(400).json({ success: false, error: { message: 'Selected students must belong to an active squad for this sport.' } });
+        }
         const seasonYear = new Date().getFullYear();
-
-        // Get or create college team for sport_id + season_year
-        let [teams] = await pool.execute(
-            'SELECT id FROM college_teams WHERE sport_id = ? AND season_year = ? LIMIT 1',
-            [sportIdNum, seasonYear]
-        );
-        let collegeTeamId = teams[0]?.id;
-
-        if (!collegeTeamId) {
-            const [insertRes] = await pool.execute(
-                'INSERT INTO college_teams (sport_id, season_year) VALUES (?, ?)',
-                [sportIdNum, seasonYear]
-            );
-            collegeTeamId = insertRes.insertId;
+        await connection.execute('INSERT INTO college_teams (sport_id, season_year) VALUES (?, ?) ON DUPLICATE KEY UPDATE id = LAST_INSERT_ID(id)', [sportId, seasonYear]);
+        const [[team]] = await connection.execute('SELECT id FROM college_teams WHERE sport_id = ? AND season_year = ? FOR UPDATE', [sportId, seasonYear]);
+        await connection.execute('DELETE FROM college_team_members WHERE college_team_id = ?', [team.id]);
+        for (const p of players) {
+            await connection.execute(`INSERT INTO college_team_members (college_team_id, student_id, source_department_id, suggested_by_system, admin_confirmed, confirmed_by) VALUES (?, ?, ?, TRUE, TRUE, ?)`,
+                [team.id, Number(p.student_id), Number(p.source_department_id), req.user.id]);
         }
-
-        // Insert team members
-        for (const item of playerList) {
-            const stId = Number(item.student_id);
-            const deptId = Number(item.source_department_id);
-            if (stId && deptId) {
-                await pool.execute(
-                    `INSERT INTO college_team_members 
-                     (college_team_id, student_id, source_department_id, suggested_by_system, admin_confirmed, confirmed_by)
-                     VALUES (?, ?, ?, TRUE, TRUE, ?)
-                     ON DUPLICATE KEY UPDATE admin_confirmed = TRUE, confirmed_by = VALUES(confirmed_by)`,
-                    [collegeTeamId, stId, deptId, req.user.id]
-                );
-            }
-        }
-
-        return res.status(201).json({
-            success: true,
-            data: { college_team_id: collegeTeamId, count: playerList.length }
-        });
+        await connection.commit();
+        return res.status(201).json({ success: true, data: { college_team_id: team.id, count: players.length } });
     } catch (err) {
+        if (connection) await connection.rollback();
         next(err);
+    } finally {
+        connection?.release();
     }
 };

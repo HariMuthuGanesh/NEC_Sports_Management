@@ -87,6 +87,10 @@ const serveStaticUploads = (req, res, next) => {
     next();
 };
 
+app.use('/uploads/od_documents', (req, res) => {
+    res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Resource not found.' } });
+});
+
 if (directUploads !== backendUploads) {
     app.use('/uploads', serveStaticUploads, express.static(backendUploads));
 }

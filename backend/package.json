@@ -10,13 +10,15 @@
     "start": "cross-env NODE_ENV=production node src/index.js",
     "dev": "cross-env NODE_ENV=development nodemon src/index.js",
     "migrate": "node src/scripts/runMigrations.js",
-    "seed": "node src/data/seedData.js",
-    "seed:dummy": "node src/data/seedDummyData.js",
-    "seed:comprehensive": "node src/data/seedComprehensiveData.js",
+    "seed": "npm run migrate && node src/data/seedData.js",
+    "seed:dummy": "npm run migrate && node src/data/seedDummyData.js",
+    "seed:comprehensive": "npm run migrate && node src/data/seedComprehensiveData.js",
     "provision:demo-accounts": "node src/data/provisionDemoAccounts.js",
     "seed:v2": "node src/data/seedRoleHierarchyV2.js",
     "create:account": "node src/scripts/createAccounts.js --interactive",
-    "provision:initial": "node src/scripts/createAccounts.js --preset"
+    "provision:initial": "node src/scripts/createAccounts.js --preset",
+    "test": "node scripts/verifyWorkflows.js",
+    "db:check": "node src/scripts/checkDatabase.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

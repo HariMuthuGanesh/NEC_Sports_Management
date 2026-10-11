@@ -1,0 +1,52 @@
+Role workflows and sports reports
+
+Branch: feature/role-workflows-and-sports-reports
+
+Deployment
+1. Configure backend environment values for the target database, JWT_SECRET,
+   COOKIE_SECRET, CSRF_SECRET, allowed frontend origins, and mail as needed.
+   Configure VITE_API_URL before building the frontend.
+2. Install locked dependencies with npm ci in backend and frontend.
+3. Back up the target database, then run npm run migrate in backend.
+   Migrations 022-027 are required; migration 027 disables the retired
+   CollegeTeamOnly admin login and invalidates its sessions.
+4. Run npm run build in frontend and publish its dist directory.
+   Start backend with npm start using the production environment.
+
+Full admins use College Teams from their existing session. A second full
+admin can be created with npm run create:account. Preset provisioning also
+accepts SECOND_ADMIN_USERNAME, SECOND_ADMIN_EMAIL, SECOND_ADMIN_PASSWORD.
+Do not run demo seeds against production or store passwords in source files.
+
+Roles
+- Admin: sports and teams, accounts, security audits, and OD approvals.
+- Sports President: sports and teams across departments; no user management,
+  security audit, or OD approval.
+- Coordinator: own department teams, captain assignments, attendance.
+- Captain: active department-and-sport assignments, squads, attendance.
+- Score Updater: view schedules; update only ongoing matches/competitions.
+- Player: own team memberships, match history, event results, OD status.
+- Public: existing public pages and access remain unchanged by new features.
+
+Sports workflow
+Create sports and their categories in Sports Catalog. Create a tournament
+and its events. Team sports use approved-team fixtures. Event Competitions
+supports category heats/finals, individual entrants, and same-department
+relay squads with an exact roster size. Time sorts lowest first; distance
+and points sort highest first. Equal results share a rank. DNS, DNF, and DQ
+are recorded without a rank. All results must be entered before completion.
+Officials enter the measured result; apparatus-specific attempt rules and
+automatic heat qualification are not automated.
+
+Reports
+Weekly, monthly, and custom inclusive date ranges include team fixtures,
+ranked competitions, recorded participation, winners, and runners-up.
+PDF exports include all rows over multiple pages. Team participation comes
+from marked attendance, not merely being listed on the roster.
+
+Verification
+Backend npm test creates and removes its own isolated MySQL database.
+It checks migrations, real API operations, roles, attendance, notifications,
+athletics, reports, score status restrictions, and logout revocation.
+Browser release-workflows tests use API fixtures to verify frontend behavior.
+Production database migrations and hosting deployment are separate steps.

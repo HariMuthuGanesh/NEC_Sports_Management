@@ -3,7 +3,6 @@ import { useAuth } from "../../context/AuthContext";
 import { apiFetch } from "../../services/api/apiServices";
 import Button from "../../components/common/Button";
 import {
-  Trophy,
   ShieldCheck,
   UserPlus,
   Eye,
@@ -61,9 +60,6 @@ export default function SignUpPage({ onLoginSuccess, onNavigate }) {
       if (resData) {
         const userData = resData;
 
-        // Bug fix: pass the JWT token so AuthContext stores it via setAuthToken().
-        // Without this, the session cookie works until a hard refresh, then the
-        // token is missing and every authenticated API call fails with 401.
         const sessionUser = {
           role: userData.role,
           name: userData.username,
@@ -73,7 +69,7 @@ export default function SignUpPage({ onLoginSuccess, onNavigate }) {
           id: userData.username || cleanUsername,
         };
 
-        login(sessionUser, userData.token || null);
+        login(sessionUser);
 
         setLoading(false);
         if (typeof onLoginSuccess === "function") {

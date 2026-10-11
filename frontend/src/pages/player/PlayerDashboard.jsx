@@ -3,7 +3,7 @@ import { Card, StatCard } from "../../components/common/Card";
 import Button from "../../components/common/Button";
 import Badge from "../../components/common/Badge";
 import { useAuth } from "../../context/AuthContext";
-import { matchesApi, teamsApi, playersApi, odApi } from "../../services/api/apiServices";
+import { matchesApi, teamsApi, playersApi, odApi, reportsApi } from "../../services/api/apiServices";
 import ErrorState from "../../components/common/ErrorState";
 import { Users, Calendar, Trophy, ArrowRight, FileText, Download, CheckCircle2, Clock, XCircle } from "lucide-react";
 import "./PlayerPortal.css";
@@ -14,6 +14,7 @@ export default function PlayerDashboard({ onNavigate }) {
   const playerName = currentUser.name || currentUser.playerName || currentUser.studentProfile?.student_name || currentUser.username || "Athlete";
   const studentRegNo = currentUser.studentProfile?.register_number || currentUser.registerNumber;
 
+  const [myTeams, setMyTeams] = useState([]);
   const [myTeam, setMyTeam] = useState(null);
   const [myPlayerInfo, setMyPlayerInfo] = useState(null);
   const [nextMatch, setNextMatch] = useState(null);
@@ -28,16 +29,16 @@ export default function PlayerDashboard({ onNavigate }) {
     Promise.all([
       teamsApi.getTeams(),
       playersApi.getMyProfile(),
-      matchesApi.getMatches()
-    ]).then(([teams, me, matches]) => {
+      matchesApi.getMatches(),
+      reportsApi.getPlayerPerformanceReport()
+    ]).then(([teams, me, matches, portfolio]) => {
       setMyPlayerInfo(me);
-      const teamObj = me?.teamId ? teams.find(t => t.id === me.teamId) || null : null;
+      const memberships = portfolio.teams || [];
+      setMyTeams(memberships);
+      const ids = new Set(memberships.map(t => Number(t.team_id)));
+      const teamObj = teams.find(t => ids.has(Number(t.id))) || null;
       setMyTeam(teamObj);
-
-      const filteredMatches = matches.filter(m =>
-        (teamObj && (m.teamA === teamObj.name || m.teamB === teamObj.name || m.team_a_id === teamObj.id || m.team_b_id === teamObj.id)) ||
-        m.deptA === playerDept || m.deptB === playerDept
-      );
+      const filteredMatches = matches.filter(m => ids.has(Number(m.team_a_id)) || ids.has(Number(m.team_b_id)));
       setNextMatch(filteredMatches.find(m => m.status === "Scheduled" || m.status === "Ongoing") || filteredMatches[0]);
       setMatchHistory(filteredMatches);
       setLoading(false);
@@ -78,6 +79,7 @@ export default function PlayerDashboard({ onNavigate }) {
             <StatCard title={t.myAttendanceRate || "My Attendance Rate"} value={`${myPlayerInfo?.attendancePct != null ? `${myPlayerInfo.attendancePct}%` : "—"}`} subtext="Verified Athlete Eligibility" icon={Trophy} color="success" />
           </div>
 
+          <Card title="My Teams and Sports"><ul>{myTeams.map(team => <li key={team.team_id}>{team.team_name} ? {team.sport_name} ? {team.role}</li>)}</ul>{!myTeams.length && <p>No team memberships.</p>}</Card>
           <div className="nec-admin-main-grid" style={{ marginTop: "20px" }}>
             <Card title="Quick Links">
               <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>

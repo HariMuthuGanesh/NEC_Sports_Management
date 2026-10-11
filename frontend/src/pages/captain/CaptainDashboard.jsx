@@ -1,3 +1,4 @@
+import AttendanceMarker from "../coordinator/AttendanceMarker";
 import React, { useState, useEffect } from "react";
 import {
   Shield,
@@ -19,7 +20,7 @@ import {
   tournamentsApi,
   sportsApi,
   playersApi,
-  attendanceApi,
+  squadApi,
   matchesApi
 } from "../../services/api/apiServices";
 import { useAuth } from "../../context/AuthContext";
@@ -57,12 +58,6 @@ export default function CaptainDashboard({ onNavigate }) {
   });
   const [isSubmittingTeam, setIsSubmittingTeam] = useState(false);
 
-  // Attendance state
-  const [selectedTeamForAttendance, setSelectedTeamForAttendance] = useState(null);
-  const [attendanceRoster, setAttendanceRoster] = useState([]);
-  const [attendanceMap, setAttendanceMap] = useState({});
-  const [isSavingAttendance, setIsSavingAttendance] = useState(false);
-
   useEffect(() => {
     loadCaptainData();
   }, [currentUser]);
@@ -72,22 +67,24 @@ export default function CaptainDashboard({ onNavigate }) {
       setLoading(true);
       setError(null);
 
-      const [teamsData, toursData, sportsData, matchesData] = await Promise.all([
-        teamsApi.getCaptainTeams().catch(() => []),
-        tournamentsApi.getTournaments().catch(() => []),
-        sportsApi.getSports().catch(() => []),
-        matchesApi.getMatches().catch(() => [])
+      const [teamsData, toursData, sportsData, matchesData, squadData] = await Promise.all([
+        teamsApi.getCaptainTeams(),
+        tournamentsApi.getTournaments(),
+        sportsApi.getSports(),
+        matchesApi.getMatches(),
+        squadApi.getMySquad()
       ]);
 
       const teams = teamsData || [];
       setMyTeams(teams);
       setTournaments(toursData || []);
-      setSports(sportsData || []);
+      const assignedSports = (sportsData || []).filter(s => (squadData?.assignments || []).some(a => Number(a.sport_id)===Number(s.sport_id)) && s.sport_type !== 'Individual');
+      setSports(assignedSports);
 
-      if (sportsData && sportsData.length > 0) {
+      if (assignedSports.length > 0) {
         setNewTeam((prev) => ({
           ...prev,
-          sportId: prev.sportId || sportsData[0].sport_id || sportsData[0].id
+          sportId: prev.sportId || assignedSports[0].sport_id
         }));
       }
       if (toursData && toursData.length > 0) {
@@ -106,31 +103,12 @@ export default function CaptainDashboard({ onNavigate }) {
           captainTeamIds.has(m.teamAId) ||
           captainTeamIds.has(m.teamBId)
       );
-      setMatches(filteredMatches.length > 0 ? filteredMatches : matchesData || []);
-
-      if (teams.length > 0) {
-        loadTeamRosterForAttendance(teams[0].id || teams[0].team_id);
-      }
+      setMatches(filteredMatches);
     } catch (err) {
       console.error("Failed to load captain workspace:", err);
       setError(err.message || "Could not load captain dashboard");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const loadTeamRosterForAttendance = async (teamId) => {
-    try {
-      setSelectedTeamForAttendance(teamId);
-      const players = await playersApi.getPlayersByTeam(teamId);
-      setAttendanceRoster(players || []);
-      const initMap = {};
-      (players || []).forEach((p) => {
-        initMap[p.student_id || p.id] = true;
-      });
-      setAttendanceMap(initMap);
-    } catch (err) {
-      console.error("Failed to load squad for attendance:", err);
     }
   };
 
@@ -212,21 +190,6 @@ export default function CaptainDashboard({ onNavigate }) {
     }
   };
 
-  const handleSaveAttendance = async () => {
-    if (!selectedTeamForAttendance) return;
-    try {
-      setIsSavingAttendance(true);
-      await attendanceApi.saveSquadAttendance(selectedTeamForAttendance, attendanceMap);
-      setSuccessMsg("Matchday squad attendance recorded and synced across academic departments!");
-      setTimeout(() => setSuccessMsg(null), 5000);
-    } catch (err) {
-      setError(err.message || "Failed to save attendance");
-      setTimeout(() => setError(null), 5000);
-    } finally {
-      setIsSavingAttendance(false);
-    }
-  };
-
   const captainName = currentUser?.name || currentUser?.username || "Captain";
 
   return (
@@ -240,9 +203,7 @@ export default function CaptainDashboard({ onNavigate }) {
         <h1 className="nec-captain-hero-title">
           Welcome, {captainName}
         </h1>
-        <p className="nec-captain-hero-sub">
-          Lead your sports squads, coordinate multi-department athlete rosters, submit event entries for clearance, and record verified matchday attendance.
-        </p>
+
       </div>
 
       {/* KPI Stats Grid */}
@@ -503,106 +464,7 @@ export default function CaptainDashboard({ onNavigate }) {
         </div>
       )}
 
-      {/* Tab 3: Squad Attendance Marker */}
-      {activeTab === "attendance" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-          <div className="nec-attendance-toolbar">
-            <div>
-              <h2 style={{ margin: 0, fontSize: "1.25rem", fontFamily: "var(--nec-font-display)", fontWeight: 700 }}>
-                Matchday Squad Attendance
-              </h2>
-              <p style={{ margin: "2px 0 0 0", fontSize: "0.825rem", color: "var(--nec-text-muted)" }}>
-                Verified attendance entries route instantly to each player's respective academic department.
-              </p>
-            </div>
-
-            <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-              <select
-                value={selectedTeamForAttendance || ""}
-                onChange={(e) => loadTeamRosterForAttendance(Number(e.target.value))}
-                className="nec-attendance-team-select"
-              >
-                {myTeams.map((t) => (
-                  <option key={t.id || t.team_id} value={t.id || t.team_id}>
-                    {t.name} ({t.sportName})
-                  </option>
-                ))}
-              </select>
-
-              <Button
-                variant="primary"
-                size="sm"
-                icon={CheckCircle2}
-                loading={isSavingAttendance}
-                disabled={isSavingAttendance || attendanceRoster.length === 0}
-                onClick={handleSaveAttendance}
-              >
-                Save Attendance
-              </Button>
-            </div>
-          </div>
-
-          <div className="nec-attendance-table-wrap">
-            <table className="nec-attendance-table">
-              <thead>
-                <tr>
-                  <th style={{ width: "50px", textAlign: "center" }}>Present</th>
-                  <th style={{ width: "80px" }}>Jersey</th>
-                  <th>Athlete Name</th>
-                  <th>Register Number</th>
-                  <th>Department</th>
-                  <th>Role</th>
-                </tr>
-              </thead>
-              <tbody>
-                {attendanceRoster.length > 0 ? (
-                  attendanceRoster.map((p) => {
-                    const isChecked = attendanceMap[p.student_id || p.id] ?? true;
-                    return (
-                      <tr key={p.student_id || p.id}>
-                        <td style={{ textAlign: "center" }}>
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={(e) =>
-                              setAttendanceMap({
-                                ...attendanceMap,
-                                [p.student_id || p.id]: e.target.checked
-                              })
-                            }
-                            style={{ cursor: "pointer", width: "16px", height: "16px", accentColor: "var(--nec-blue)" }}
-                          />
-                        </td>
-                        <td>
-                          <span className="nec-jersey-badge">
-                            {p.jerseyNo ? `#${p.jerseyNo}` : "-"}
-                          </span>
-                        </td>
-                        <td style={{ fontWeight: 600 }}>{p.name}</td>
-                        <td style={{ fontFamily: "monospace", fontSize: "0.8rem", color: "var(--nec-text-muted)" }}>
-                          {p.rollNo || p.studentId}
-                        </td>
-                        <td>
-                          <Badge status="neutral">{p.dept_code || p.dept}</Badge>
-                        </td>
-                        <td style={{ color: "var(--nec-text-muted)" }}>
-                          {p.role || p.position || "Player"}
-                        </td>
-                      </tr>
-                    );
-                  })
-                ) : (
-                  <tr>
-                    <td colSpan="6" style={{ padding: "36px", textAlign: "center", color: "var(--nec-text-muted)" }}>
-                      No athletes found in this squad roster. Select a squad with registered athletes.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+      {activeTab === "attendance" && <AttendanceMarker />}
 
       {/* Tab 4: Match Fixtures */}
       {activeTab === "fixtures" && (

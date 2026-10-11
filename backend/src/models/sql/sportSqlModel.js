@@ -65,7 +65,7 @@ export const createSport = async (sportData) => {
         sportData.category,
         sportData.min_players,
         sportData.max_players,
-        sportData.points_rule,
+        sportData.points_rule ?? null,
         sportData.captain_user_id || null,
         sportData.sport_type === 'Individual' ? 'Individual' : 'Team'
     ]);
@@ -84,7 +84,7 @@ export const updateSport = async (sportId, sportData) => {
         sportData.category,
         sportData.min_players,
         sportData.max_players,
-        sportData.points_rule,
+        sportData.points_rule ?? null,
         sportData.captain_user_id || null,
         sportData.sport_type ? (sportData.sport_type === 'Individual' ? 'Individual' : 'Team') : null,
         sportId

@@ -2,6 +2,26 @@ import db from '../config/db.js';
 import fs from 'fs';
 import path from 'path';
 import multer from 'multer';
+import crypto from 'crypto';
+
+const GALLERY_MEDIA_TYPES = new Map([
+    ['image/jpeg', new Set(['.jpg', '.jpeg'])],
+    ['image/png', new Set(['.png'])],
+    ['image/webp', new Set(['.webp'])],
+    ['image/gif', new Set(['.gif'])],
+    ['video/mp4', new Set(['.mp4'])],
+    ['video/webm', new Set(['.webm'])],
+    ['video/quicktime', new Set(['.mov'])]
+]);
+
+const removeUploadedFile = (filePath) => {
+    if (!filePath || !fs.existsSync(filePath)) return;
+    try {
+        fs.unlinkSync(filePath);
+    } catch (error) {
+        console.warn('[Gallery] Could not remove rejected upload:', error.message);
+    }
+};
 
 // Multer storage setup
 const getGalleryUploadsPath = () => {
@@ -22,9 +42,8 @@ const storage = multer.diskStorage({
         cb(null, uploadPath);
     },
     filename: function (req, file, cb) {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
         const ext = path.extname(file.originalname).toLowerCase();
-        cb(null, 'media-' + uniqueSuffix + ext);
+        cb(null, `media-${crypto.randomUUID()}${ext}`);
     }
 });
 
@@ -32,7 +51,9 @@ const upload = multer({
     storage: storage,
     limits: { fileSize: 50 * 1024 * 1024 }, // 50MB max
     fileFilter: (req, file, cb) => {
-        if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) {
+        const allowedExtensions = GALLERY_MEDIA_TYPES.get(file.mimetype);
+        const extension = path.extname(file.originalname).toLowerCase();
+        if (allowedExtensions?.has(extension)) {
             cb(null, true);
         } else {
             cb(new Error('Invalid file type. Only images and videos are allowed.'));
@@ -105,7 +126,7 @@ export const uploadMedia = async (req, res) => {
         const mediaUrl = '/uploads/gallery/' + req.file.filename;
         const title = (req.body?.title || '').trim() || (mediaType === 'Video' ? 'Campus Sports Video' : 'Campus Sports Photo');
         const caption = (req.body?.caption || '').trim() || null;
-        const userId = req.user?.id || 1;
+        const userId = req.user.id;
 
         const [result] = await db.execute(
             'INSERT INTO gallery (title, caption, media_type, media_url, uploaded_by) VALUES (?, ?, ?, ?, ?)',
@@ -125,6 +146,7 @@ export const uploadMedia = async (req, res) => {
             }
         });
     } catch (error) {
+        removeUploadedFile(req.file?.path);
         console.error('Error uploading media:', error);
         res.status(500).json({ success: false, error: { message: 'Failed to upload media.' } });
     }

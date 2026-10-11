@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import pool from '../config/db.js';
+import { isPasswordEmailConfigured, sendPasswordResetEmail } from '../services/emailService.js';
 
 // Staff coordinators: a staff_profiles row, optionally linked to a Coordinator login
 // and assigned to one department (departments.coordinator_user_id).
@@ -57,6 +58,7 @@ export const createCoordinatorController = async (req, res, next) => {
         if (!validEmail(email)) return res.status(400).json({ success: false, error: { code: 'INVALID_EMAIL', message: 'A valid email is required.' } });
         if (!validPhone(phone)) return res.status(400).json({ success: false, error: { code: 'INVALID_PHONE', message: 'Phone must be 7-15 digits.' } });
         if (username.length < 3 || username.length > 50) return res.status(400).json({ success: false, error: { code: 'INVALID_USERNAME', message: 'Username must be 3-50 characters.' } });
+        if (!isPasswordEmailConfigured()) return res.status(503).json({ success: false, error: { code: 'EMAIL_UNAVAILABLE', message: 'Coordinator account email delivery is not configured.' } });
 
         const [dupes] = await conn.execute('SELECT id FROM users WHERE email = ? OR username = ? LIMIT 1', [email, username]);
         if (dupes.length) return res.status(409).json({ success: false, error: { code: 'DUPLICATE_ACCOUNT', message: 'A user with this email or username already exists.' } });
@@ -81,9 +83,19 @@ export const createCoordinatorController = async (req, res, next) => {
         }
         await conn.commit();
 
+        const emailDelivery = await sendPasswordResetEmail({
+            to: email,
+            username,
+            tempPassword,
+            resetBy: 'Account Provisioning'
+        });
+        if (!emailDelivery.success) {
+            return res.status(502).json({ success: false, error: { code: 'EMAIL_DELIVERY_FAILED', message: 'The account was created, but its sign-in email could not be delivered.' } });
+        }
+
         return res.status(201).json({
             success: true,
-            data: { staff_id: staffIns.insertId, id: userId, username, email, temporaryPassword: tempPassword }
+            data: { staff_id: staffIns.insertId, id: userId, username, email }
         });
     } catch (err) {
         await conn.rollback().catch(() => {});

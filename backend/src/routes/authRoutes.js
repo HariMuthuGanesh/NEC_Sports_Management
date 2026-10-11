@@ -11,23 +11,25 @@ import {
     oauthStart,
     oauthCallback
 } from '../controllers/authController.js';
-import { protect } from '../middleware/authMiddleware.js';
+import { protect, optionalProtect } from '../middleware/authMiddleware.js';
 import { loginRateLimiter } from '../middleware/rateLimiter.js';
 import { validateLoginInput } from '../middleware/validatorMiddleware.js';
-import { generateCsrfToken } from '../middleware/csrfMiddleware.js';
+import { doubleCsrfProtection, ensureCsrfSession, generateCsrfToken } from '../middleware/csrfMiddleware.js';
 
 const router = express.Router();
 
 // Public route to obtain / refresh CSRF token
-router.get('/csrf-token', (req, res) => {
+router.get('/csrf-token', ensureCsrfSession, (req, res) => {
     const csrfToken = generateCsrfToken(req, res);
     return res.json({ success: true, data: { csrfToken } });
 });
 
 // OAuth 2.0 routes
 router.get('/oauth/providers', oauthProvidersList);
-router.get('/oauth/:provider/start', loginRateLimiter(), oauthStart);
-router.get('/oauth/:provider/callback', loginRateLimiter(), oauthCallback);
+router.get('/oauth/:provider/start', loginRateLimiter(), optionalProtect, oauthStart);
+router.get('/oauth/:provider/callback', loginRateLimiter(), optionalProtect, oauthCallback);
+
+router.use(ensureCsrfSession, doubleCsrfProtection);
 
 // Public manual login route (Students & Staff)
 router.post('/login', loginRateLimiter(), validateLoginInput, loginUser);

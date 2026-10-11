@@ -1,3 +1,5 @@
+import RoleFixtures from "./pages/shared/RoleFixtures";
+import CompetitionWorkspace from "./pages/admin/CompetitionWorkspace";
 import React, { useState, useEffect } from "react";
 import { AuthProvider, useAuth, ROLES } from "./context/AuthContext";
 import { ToastProvider } from "./context/ToastContext";
@@ -65,7 +67,6 @@ import PresidentDashboard from "./pages/president/PresidentDashboard";
 
 // Auth Pages
 import LoginPage from "./pages/auth/LoginPage";
-import SignUpPage from "./pages/auth/SignUpPage";
 import OAuthCallbackPage from "./pages/auth/OAuthCallbackPage";
 
 function MainApp() {
@@ -84,7 +85,7 @@ function MainApp() {
 
   const [activeNav, setActiveNavState] = useState(() => {
     try {
-      if (window.location.pathname === "/oauth/callback") {
+      if (["/oauth/callback", "/auth/callback"].includes(window.location.pathname)) {
         return "oauth_callback";
       }
       const savedNav = sessionStorage.getItem("nec_sports_active_nav");
@@ -116,16 +117,18 @@ function MainApp() {
       return;
     }
 
+    if (activeNav === "event_competitions" && [ROLES.ADMIN,ROLES.PRESIDENT,ROLES.COORDINATOR,ROLES.CAPTAIN,ROLES.SCORE_UPDATER].includes(role)) return;
+
     // Authenticated users can view shared routes
     if (activeNav === "settings" || activeNav === "login" || activeNav === "signup" || activeNav === "oauth_callback" || activeNav === "notifications" || activeNav === "player_notifs" || activeNav.startsWith("team_profile_")) return;
 
-    if (role === ROLES.ADMIN && !activeNav.startsWith("admin_") && !activeNav.startsWith("public_") && !activeNav.startsWith("team_")) {
+    if (role === ROLES.ADMIN && activeNav !== "college_teams" && !["coord_score_entry", "coord_score_sheet"].includes(activeNav) && !activeNav.startsWith("admin_") && !activeNav.startsWith("public_") && !activeNav.startsWith("team_")) {
       setActiveNav("admin_dash");
-    } else if (role === ROLES.PRESIDENT && !activeNav.startsWith("president_") && activeNav !== "college_teams" && activeNav !== "admin_tournaments" && !activeNav.startsWith("public_") && !activeNav.startsWith("team_")) {
+    } else if (role === ROLES.PRESIDENT && !activeNav.startsWith("president_") && activeNav !== "college_teams" && !["admin_tournaments", "admin_sports", "admin_events", "admin_teams", "admin_matches", "admin_venues", "admin_levels", "admin_reports"].includes(activeNav) && !activeNav.startsWith("public_") && !activeNav.startsWith("team_")) {
       setActiveNav("president_dash");
     } else if (role === ROLES.COORDINATOR && !activeNav.startsWith("coord_") && !activeNav.startsWith("public_") && !activeNav.startsWith("team_")) {
       setActiveNav("coord_dash");
-    } else if (role === ROLES.CAPTAIN && !activeNav.startsWith("captain_") && activeNav !== "coord_matches" && !activeNav.startsWith("public_") && !activeNav.startsWith("team_")) {
+    } else if (role === ROLES.CAPTAIN && activeNav !== "coord_attendance" && !activeNav.startsWith("captain_") && activeNav !== "coord_matches" && !activeNav.startsWith("public_") && !activeNav.startsWith("team_")) {
       setActiveNav("captain_dash");
     } else if (role === ROLES.SCORE_UPDATER && activeNav !== "coord_score_entry" && activeNav !== "coord_score_sheet" && activeNav !== "coord_matches" && !activeNav.startsWith("public_")) {
       setActiveNav("coord_score_entry");
@@ -138,7 +141,7 @@ function MainApp() {
     const defaultNav = getDefaultNav(currentUser?.role);
     const redirectNav = () => setActiveNav(defaultNav);
 
-    if (activeNav === "login") {
+    if (activeNav === "login" || activeNav === "signup") {
       return (
         <LoginPage
           onLoginSuccess={(userObj) => {
@@ -162,18 +165,6 @@ function MainApp() {
             window.history.replaceState({}, document.title, "/");
             setActiveNav(nav);
           }}
-        />
-      );
-    }
-
-    if (activeNav === "signup") {
-      return (
-        <SignUpPage
-          onLoginSuccess={(userObj) => {
-            const role = userObj?.role || currentUser?.role;
-            setActiveNav(getDefaultNav(role));
-          }}
-          onNavigate={(nav) => setActiveNav(nav)}
         />
       );
     }
@@ -211,7 +202,7 @@ function MainApp() {
         );
       case "admin_sports":
         return (
-          <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={redirectNav}>
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.PRESIDENT]} onRedirectPublic={redirectNav}>
             <SportsCatalog />
           </ProtectedRoute>
         );
@@ -229,20 +220,20 @@ function MainApp() {
         );
       case "admin_events":
         return (
-          <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={redirectNav}>
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.PRESIDENT]} onRedirectPublic={redirectNav}>
             <EventsManager />
           </ProtectedRoute>
         );
       case "admin_teams":
         return (
-          <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={redirectNav}>
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.PRESIDENT]} onRedirectPublic={redirectNav}>
             <TeamsManager />
           </ProtectedRoute>
         );
 
       case "admin_levels":
         return (
-          <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={redirectNav} routeId="admin_levels">
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.PRESIDENT]} onRedirectPublic={redirectNav} routeId="admin_levels">
             <CompetitionLevelsManager />
           </ProtectedRoute>
         );
@@ -268,13 +259,13 @@ function MainApp() {
         );
       case "admin_matches":
         return (
-          <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={redirectNav} routeId="admin_matches">
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.PRESIDENT]} onRedirectPublic={redirectNav} routeId="admin_matches">
             <MatchesManager />
           </ProtectedRoute>
         );
       case "admin_venues":
         return (
-          <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={redirectNav} routeId="admin_venues">
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.PRESIDENT]} onRedirectPublic={redirectNav} routeId="admin_venues">
             <VenuesManager />
           </ProtectedRoute>
         );
@@ -292,7 +283,7 @@ function MainApp() {
         );
       case "admin_reports":
         return (
-          <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={redirectNav}>
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.PRESIDENT]} onRedirectPublic={redirectNav}>
             <ReportsManager />
           </ProtectedRoute>
         );
@@ -329,7 +320,7 @@ function MainApp() {
           </ProtectedRoute>
         );
       case "coord_matches":
-        return <PublicFixtures departmentCode={currentUser?.dept} />;
+        return <RoleFixtures />;
       case "president_dash":
       case "president_od":
         return (
@@ -337,6 +328,8 @@ function MainApp() {
             <PresidentDashboard onSelectNav={(nav) => setActiveNav(nav)} />
           </ProtectedRoute>
         );
+      case "event_competitions":
+        return <ProtectedRoute allowedRoles={[ROLES.ADMIN,ROLES.PRESIDENT,ROLES.COORDINATOR,ROLES.CAPTAIN,ROLES.SCORE_UPDATER]} onRedirectPublic={redirectNav}><CompetitionWorkspace /></ProtectedRoute>;
       case "college_teams":
         return (
           <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.PRESIDENT]} onRedirectPublic={redirectNav}>
@@ -344,12 +337,14 @@ function MainApp() {
           </ProtectedRoute>
         );
 
+      case "admin_score_entry":
       case "coord_score_entry":
         return (
           <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.SCORE_UPDATER]} onRedirectPublic={redirectNav}>
             <ScoreEntry onNavigate={(nav) => setActiveNav(nav)} />
           </ProtectedRoute>
         );
+      case "admin_score_sheet":
       case "coord_score_sheet":
         return (
           <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.SCORE_UPDATER]} onRedirectPublic={redirectNav}>
@@ -358,7 +353,7 @@ function MainApp() {
         );
       case "coord_attendance":
         return (
-          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.COORDINATOR]} onRedirectPublic={redirectNav}>
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.COORDINATOR, ROLES.CAPTAIN]} onRedirectPublic={redirectNav}>
             <AttendanceMarker />
           </ProtectedRoute>
         );

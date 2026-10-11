@@ -9,7 +9,7 @@ import {
 } from "../utils/security";
 import { TRANSLATIONS } from "../utils/translations";
 import { getTranslations, hasTranslationCache, LANG_CODES } from "../utils/liveTranslator";
-import { initCsrf } from "../services/api/apiServices";
+import { initCsrf, apiFetch } from "../services/api/apiServices";
 
 const AuthContext = createContext();
 
@@ -30,8 +30,10 @@ const IDLE_WARNING_MS = 2 * 60 * 1000;
 
 export function AuthProvider({ children }) {
   const publicUser = { role: ROLES.PUBLIC, name: "Guest Visitor", dept: "All", id: null };
+  const sessionGeneration = useRef(0);
   const [currentUser, setCurrentUser] = useState(() => {
     try {
+      if (localStorage.getItem("nec_sports_logged_out")) return publicUser;
       const saved = localStorage.getItem("nec_sports_auth_user");
       if (saved) return JSON.parse(saved);
     } catch {}
@@ -50,6 +52,8 @@ export function AuthProvider({ children }) {
   useEffect(() => { initCsrf(); }, []);
 
   useEffect(() => {
+    if (localStorage.getItem("nec_sports_logged_out")) return;
+    const generation = sessionGeneration.current;
     const token = getAuthToken();
     
     fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/me`, {
@@ -70,7 +74,7 @@ export function AuthProvider({ children }) {
         return null;
       })
       .then(result => {
-        if (result?.success && result.data) {
+        if (generation === sessionGeneration.current && !localStorage.getItem("nec_sports_logged_out") && result?.success && result.data) {
           const normalized = {
             ...result.data,
             name: result.data.name || result.data.playerName || result.data.student_name || result.data.username || "Athlete"
@@ -171,6 +175,9 @@ export function AuthProvider({ children }) {
 
   const doIdleLogout = useCallback((user) => {
     SecurityLogger.logIdleTimeout(user);
+    sessionGeneration.current += 1;
+    localStorage.setItem("nec_sports_logged_out", "1");
+    apiFetch("/auth/logout", "POST").catch(() => {});
     removeAuthToken();
     localStorage.removeItem("nec_sports_auth_user");
     setTokenState(null);
@@ -244,6 +251,8 @@ export function AuthProvider({ children }) {
   // ── Auth Actions ─────────────────────────────────────────────
 
   const login = (userData, token = null) => {
+    sessionGeneration.current += 1;
+    localStorage.removeItem("nec_sports_logged_out");
     if (token) {
       if (isTokenExpired(token)) throw new Error("The server-issued authentication token has expired.");
       setTokenState(token);
@@ -265,20 +274,16 @@ export function AuthProvider({ children }) {
 
   const logout = async () => {
     SecurityLogger.logLogout(currentUser);
-    try {
-      await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/logout`, {
-        method: "POST",
-        credentials: "include",
-      });
-    } catch {
-      // Clear the local session even if the server is unavailable.
-    }
+    sessionGeneration.current += 1;
+    localStorage.setItem("nec_sports_logged_out", "1");
+    const pendingLogout = apiFetch("/auth/logout", "POST").catch(() => {});
     clearIdleTimers();
     removeAuthToken();
     localStorage.removeItem("nec_sports_auth_user");
     setTokenState(null);
     setSessionExpiresAt(null);
     setCurrentUser(publicUser);
+    await pendingLogout;
   };
 
   // "Stay logged in" — user dismissed idle warning

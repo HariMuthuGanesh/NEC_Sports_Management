@@ -11,8 +11,9 @@ const STAFF_ID_REGEX = /^[A-Za-z][A-Za-z0-9._-]{1,49}$/; // Staff ID or account 
  * Validates Login Request Body
  */
 export const validateLoginInput = (req, res, next) => {
-    const { username, userId, password } = req.body || {};
-    const id = (userId || username || '').trim();
+    const { username, userId, email, password } = req.body || {};
+    const rawId = userId || username || email;
+    const id = typeof rawId === 'string' ? rawId.trim() : '';
 
     if (!id || typeof id !== 'string') {
         return res.status(400).json({

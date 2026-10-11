@@ -54,7 +54,7 @@ export default function Header({ onToggleSidebar, isSidebarOpen, onSelectNav, ac
     window.addEventListener("notifications-updated", handleNotificationsUpdated);
     window.addEventListener("focus", handleFocus);
 
-    const interval = setInterval(fetchUnreadCount, 45000);
+    const interval = setInterval(fetchUnreadCount, 10000);
 
     return () => {
       window.removeEventListener("notifications-updated", handleNotificationsUpdated);

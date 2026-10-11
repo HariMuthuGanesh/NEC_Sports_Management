@@ -2,7 +2,11 @@ import 'dotenv/config';
 import bcrypt from 'bcryptjs';
 import pool from '../config/db.js';
 
-const seedStudentPassword = process.env.SEED_STUDENT_PASSWORD || 'Password@123';
+const seedStudentPassword = process.env.SEED_STUDENT_PASSWORD;
+
+if (!seedStudentPassword || seedStudentPassword.length < 12) {
+    throw new Error('SEED_STUDENT_PASSWORD must be set to at least 12 characters before seeding.');
+}
 
 async function ensureTables(conn) {
     console.log('[Seed] Verifying and ensuring all MySQL tables exist...');
@@ -387,6 +391,13 @@ async function ensureTables(conn) {
 
 }
 
+async function assertMigratedSchema(conn) {
+    const [tables] = await conn.query("SHOW TABLES LIKE 'schema_migrations'");
+    if (tables.length === 0) {
+        throw new Error('Database schema is not initialized. Run npm run migrate before seeding.');
+    }
+}
+
 export async function seedDatabase() {
     console.log('\n============================================================');
     console.log(' STARTING CANONICAL DATABASE SEED SCRIPT');
@@ -395,7 +406,7 @@ export async function seedDatabase() {
     const conn = await pool.getConnection();
 
     try {
-        await ensureTables(conn);
+        await assertMigratedSchema(conn);
 
         // 1. Seed Departments
         console.log('[Seed 1/15] Seeding Academic Departments...');

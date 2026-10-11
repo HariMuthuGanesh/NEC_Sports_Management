@@ -4,10 +4,10 @@ import Table from "../../components/common/Table";
 import Badge from "../../components/common/Badge";
 import Button from "../../components/common/Button";
 import { Modal } from "../../components/common/Modal";
-import { Plus, Pencil, UserX, UserCheck, Copy } from "lucide-react";
+import { Plus, Pencil, UserX, UserCheck } from "lucide-react";
 import "./AdminPortal.css";
 
-const emptyForm = { fullName: "", designation: "", email: "", phone: "", departmentId: "", username: "", password: "" };
+const emptyForm = { fullName: "", designation: "", email: "", phone: "", departmentId: "", username: "" };
 
 // Staff Coordinators: add staff details, optionally create their login, and assign a department.
 export default function StaffCoordinatorsManager() {
@@ -19,7 +19,6 @@ export default function StaffCoordinatorsManager() {
   const [form, setForm] = useState(emptyForm);
   const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
-  const [issuedPassword, setIssuedPassword] = useState(null);
 
   const load = () => {
     setLoading(true);
@@ -48,8 +47,7 @@ export default function StaffCoordinatorsManager() {
       email: row.email || "",
       phone: row.phone || "",
       departmentId: row.departmentId ? String(row.departmentId) : "",
-      username: "",
-      password: ""
+      username: ""
     });
     setFormError("");
     setEditing(row);
@@ -68,13 +66,11 @@ export default function StaffCoordinatorsManager() {
     };
     try {
       if (editing === "new") {
-        const created = await sportsApi.createCoordinator({
+        await sportsApi.createCoordinator({
           ...body,
-          username: form.username.trim() || undefined,
-          password: form.password || undefined
+          username: form.username.trim() || undefined
         });
         setEditing(null);
-        setIssuedPassword({ username: created.username, password: created.temporaryPassword });
       } else {
         await sportsApi.updateCoordinator(editing.staff_id, body);
         setEditing(null);
@@ -158,9 +154,8 @@ export default function StaffCoordinatorsManager() {
             </select>
           </div>
           {editing === "new" && (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div>
               {field("Login username", "username", { placeholder: "defaults to email prefix" })}
-              {field("Temporary password", "password", { placeholder: "auto-generated if empty", minLength: 8 })}
             </div>
           )}
           {formError && <p role="alert" style={{ color: "var(--nec-danger, #b91c1c)", margin: 0 }}>{formError}</p>}
@@ -171,12 +166,6 @@ export default function StaffCoordinatorsManager() {
         </form>
       </Modal>
 
-      <Modal isOpen={!!issuedPassword} onClose={() => setIssuedPassword(null)} title="Coordinator login created" size="sm">
-        <p>Shown once. The coordinator must change it at first login.</p>
-        <p><strong>Username:</strong> {issuedPassword?.username}</p>
-        <p><strong>Temporary password:</strong> <code>{issuedPassword?.password}</code></p>
-        <Button variant="outline" icon={Copy} onClick={() => navigator.clipboard?.writeText(issuedPassword?.password || "")}>Copy password</Button>
-      </Modal>
     </div>
   );
 }

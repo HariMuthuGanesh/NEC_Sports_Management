@@ -21,7 +21,7 @@ const sanitizeObject = (obj) => {
     for (const [key, value] of Object.entries(obj)) {
         // Never rewrite password fields — bcrypt requires the raw string.
         // Any field literally named "password" (case-insensitive) is passed through untouched.
-        if (key.toLowerCase() === 'password') {
+        if (/password/i.test(key)) {
             sanitized[key] = value;
         } else if (typeof value === 'object') {
             sanitized[key] = sanitizeObject(value);

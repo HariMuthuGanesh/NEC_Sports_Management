@@ -3,7 +3,7 @@ import { Card, StatCard } from "../../components/common/Card";
 import Table from "../../components/common/Table";
 import Badge from "../../components/common/Badge";
 import { useAuth } from "../../context/AuthContext";
-import { matchesApi, teamsApi, playersApi } from "../../services/api/apiServices";
+import { matchesApi, reportsApi } from "../../services/api/apiServices";
 import ErrorState from "../../components/common/ErrorState";
 import { Calendar, MapPin, Trophy } from "lucide-react";
 import "./PlayerPortal.css";
@@ -23,14 +23,10 @@ export default function PlayerMatches() {
     setError(null);
     Promise.all([
       matchesApi.getMatches(),
-      teamsApi.getTeams(),
-      playersApi.getMyProfile()
-    ]).then(([matches, teams, me]) => {
-      const teamObj = me?.teamId ? teams.find(t => (t.id || t.team_id) === me.teamId) || null : null;
-      const filteredMatches = matches.filter(m =>
-        (teamObj && (m.teamA === teamObj.name || m.teamB === teamObj.name)) ||
-        (playerDept && (m.deptA === playerDept || m.deptB === playerDept))
-      );
+      reportsApi.getPlayerPerformanceReport()
+    ]).then(([matches, portfolio]) => {
+      const matchIds = new Set((portfolio.matches || []).map(m => Number(m.match_id)));
+      const filteredMatches = matches.filter(m => matchIds.has(Number(m.id || m.match_id)));
       setMyMatches(filteredMatches);
       setLoading(false);
     }).catch(err => {

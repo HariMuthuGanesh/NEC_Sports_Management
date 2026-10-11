@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
-import { authApi } from "../../services/api/apiServices";
+import { authApi, getSecurityHeaders, initCsrf } from "../../services/api/apiServices";
 import Button from "../../components/common/Button";
 import { Modal } from "../../components/common/Modal";
 import {
@@ -11,14 +11,12 @@ import {
   Eye,
   EyeOff,
   AlertTriangle,
-  CheckCircle2,
   ShieldAlert,
   ArrowRight,
   HelpCircle,
   Building,
   KeyRound,
   Award,
-  Radio,
   Phone,
   Mail,
   MapPin
@@ -30,8 +28,6 @@ import {
   recordFailedAttempt,
   clearRateLimit,
   SecurityLogger,
-  getAuthToken,
-  setAuthToken,
 } from "../../utils/security";
 import "./LoginPage.css";
 
@@ -114,21 +110,18 @@ export default function LoginPage({ onLoginSuccess, onNavigate }) {
     setLoading(true);
 
     try {
+      await initCsrf();
       const response = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/login`, {
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: getSecurityHeaders(),
         body: JSON.stringify({ username: cleanId, password: cleanPw })
       });
 
       const resData = await response.json();
 
-      if (response.ok && resData.success && resData.data?.token) {
+      if (response.ok && resData.success && resData.data) {
         const userData = resData.data;
-        const jwtToken = userData.token;
-
-        // Store JWT in nec_sports_jwt_token via security utility
-        setAuthToken(jwtToken);
 
         if (rememberMe) {
           localStorage.setItem("nec_remembered_userid", cleanId);
@@ -157,7 +150,7 @@ export default function LoginPage({ onLoginSuccess, onNavigate }) {
           id: userData.username || cleanId
         };
 
-        login(sessionUser, jwtToken);
+        login(sessionUser);
 
         setLoading(false);
         if (typeof onLoginSuccess === "function") {
@@ -215,10 +208,7 @@ export default function LoginPage({ onLoginSuccess, onNavigate }) {
 
     setChangingPw(true);
     try {
-      const res = await authApi.changePassword(pendingUserSession.cleanPw, newPassword);
-      const newToken = res?.data?.token || getAuthToken();
-      setAuthToken(newToken);
-
+      await authApi.changePassword(pendingUserSession.cleanPw, newPassword);
       const uData = pendingUserSession.userData;
       const sessionUser = {
         ...uData,
@@ -233,7 +223,7 @@ export default function LoginPage({ onLoginSuccess, onNavigate }) {
         mustChangePassword: false
       };
 
-      login(sessionUser, newToken);
+      login(sessionUser);
 
       setMustChangeModalOpen(false);
       if (typeof onLoginSuccess === "function") {

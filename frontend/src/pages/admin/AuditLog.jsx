@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { SecurityLogger } from "../../utils/security";
 import { auditApi } from "../../services/api/apiServices";
-import * as XLSX from "xlsx";
 import Table from "../../components/common/Table";
 import Badge from "../../components/common/Badge";
 import Button from "../../components/common/Button";
@@ -20,6 +19,12 @@ const EVENT_META = {
 };
 
 const SUMMARY_EVENTS = ["LOGIN_FAILED", "UNAUTHORIZED_ACCESS"];
+
+const escapeCsvCell = (cell) => {
+  const text = String(cell ?? "");
+  const formulaSafeText = /^[=+\-@]/.test(text) ? `'${text}` : text;
+  return `"${formulaSafeText.replace(/"/g, '""')}"`;
+};
 
 export default function AuditLog() {
   const [log, setLog] = useState([]);
@@ -51,10 +56,17 @@ export default function AuditLog() {
       DurationMs: entry.durationMs || "—",
       Details: entry.reason || entry.route || entry.dept || "—",
     }));
-    const worksheet = XLSX.utils.json_to_sheet(rows);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Security Audit");
-    XLSX.writeFile(workbook, `nec-security-audit-${new Date().toISOString().slice(0, 10)}.xlsx`);
+    const columns = Object.keys(rows[0] || {});
+    const csvLines = [
+      columns.map(escapeCsvCell).join(","),
+      ...rows.map(row => columns.map(column => escapeCsvCell(row[column])).join(",")),
+    ];
+    const downloadUrl = URL.createObjectURL(new Blob([csvLines.join("\r\n")], { type: "text/csv;charset=utf-8" }));
+    const downloadLink = document.createElement("a");
+    downloadLink.href = downloadUrl;
+    downloadLink.download = `nec-security-audit-${new Date().toISOString().slice(0, 10)}.csv`;
+    downloadLink.click();
+    URL.revokeObjectURL(downloadUrl);
   };
 
   const filtered = filter === "ALL" ? log : log.filter(e => e.event === filter);
@@ -167,7 +179,7 @@ export default function AuditLog() {
         </div>
         <div style={{ display: "flex", gap: "8px" }}>
           <Button variant="outline" size="sm" icon={RefreshCw} onClick={load}>Refresh</Button>
-          <Button variant="primary" size="sm" icon={Download} onClick={handleExport}>Export Excel</Button>
+          <Button variant="primary" size="sm" icon={Download} onClick={handleExport}>Export CSV</Button>
         </div>
       </div>
 

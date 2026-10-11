@@ -146,7 +146,7 @@ export const searchImsStudents = async (query) => {
         return rows.map(mapImsStudent);
     } catch (err) {
         console.warn('[IMS] Search query failed (schema unavailable?):', err.message);
-        return [];
+        return null;
     }
 };
 
@@ -176,11 +176,11 @@ export const getImsStudentByEmail = async (email) => {
     try {
         const sql = `
             ${BASE_IMS_SELECT}
-            WHERE sd.personal_email = ? OR sd.tutorEmail = ?
+            WHERE sd.personal_email = ?
             LIMIT 1
         `;
         
-        const [rows] = await pool.execute(sql, [email, email]);
+        const [rows] = await pool.execute(sql, [email]);
         return rows[0] ? mapImsStudent(rows[0]) : null;
     } catch (err) {
         console.warn('[IMS] Get by email failed:', err.message);

@@ -44,7 +44,7 @@ export default function CollegeTeamBuilder() {
       // Default all suggested players as checked
       const initialMap = {};
       (data || []).forEach((p) => {
-        initialMap[p.player_user_id] = true;
+        initialMap[p.student_id] = true;
       });
       setSelectedPlayersMap(initialMap);
       setFetchingSuggestions(false);
@@ -55,10 +55,10 @@ export default function CollegeTeamBuilder() {
     }
   };
 
-  const handleTogglePlayer = (playerUserId) => {
+  const handleTogglePlayer = (studentId) => {
     setSelectedPlayersMap((prev) => ({
       ...prev,
-      [playerUserId]: !prev[playerUserId]
+      [studentId]: !prev[studentId]
     }));
   };
 
@@ -66,9 +66,9 @@ export default function CollegeTeamBuilder() {
     if (!selectedSportId) return;
 
     const selectedPlayers = suggestions
-      .filter((p) => selectedPlayersMap[p.player_user_id])
+      .filter((p) => selectedPlayersMap[p.student_id])
       .map((p) => ({
-        player_user_id: p.player_user_id,
+        student_id: p.student_id,
         source_department_id: p.source_department_id
       }));
 
@@ -82,7 +82,7 @@ export default function CollegeTeamBuilder() {
     setSuccessMsg(null);
 
     try {
-      const res = await collegeTeamsApi.confirmTeam(Number(selectedSportId), selectedPlayers);
+      await collegeTeamsApi.confirmTeam(Number(selectedSportId), selectedPlayers);
       setSuccessMsg(`College team confirmed successfully with ${selectedPlayers.length} athletes!`);
       setSubmitting(false);
     } catch (err) {
@@ -101,16 +101,16 @@ export default function CollegeTeamBuilder() {
       render: (_, row) => (
         <input
           type="checkbox"
-          checked={Boolean(selectedPlayersMap[row.player_user_id])}
-          onChange={() => handleTogglePlayer(row.player_user_id)}
+          checked={Boolean(selectedPlayersMap[row.student_id])}
+          onChange={() => handleTogglePlayer(row.student_id)}
         />
       )
     },
-    { key: "player_user_id", label: "User ID", width: "90px" },
-    { key: "student_name", label: "Student Athlete", render: (val, row) => <strong>{val || row.username}</strong> },
+    { key: "student_id", label: "Student ID", width: "90px" },
+    { key: "name", label: "Student Athlete", render: (val, row) => <strong>{val || row.username}</strong> },
     { key: "register_number", label: "Register #", render: (val) => val || "N/A" },
     { key: "source_department_name", label: "Department", render: (val, row) => row.source_department_code || val },
-    { key: "matches_played", label: "Matches Played", render: (val) => <span>{val}</span> }
+    { key: "attendance_count", label: "Matches Played", render: (val) => <span>{val}</span> }
   ];
 
   if (loading) {
@@ -157,10 +157,6 @@ export default function CollegeTeamBuilder() {
 
       {selectedSportId && (
         <>
-          <div style={{ marginBottom: "12px", fontSize: "0.9rem", color: "var(--nec-text-muted, #666)" }}>
-            Ranking is a placeholder until attendance tracking is built
-          </div>
-
           <Table
             columns={columns}
             data={suggestions}
@@ -174,9 +170,9 @@ export default function CollegeTeamBuilder() {
               <Button
                 variant="primary"
                 onClick={handleConfirmTeam}
-                disabled={submitting}
+                loading={submitting}
               >
-                {submitting ? "Confirming..." : "Confirm College Team Selection"}
+                {submitting ? "Confirming..." : "Confirm Team"}
               </Button>
             </div>
           )}

@@ -1,3 +1,4 @@
+import { createMatch as createValidatedMatch } from './matchController.js';
 import { applyTournamentLevel } from './competitionLevelController.js';
 import pool from '../config/db.js';
 import {
@@ -34,10 +35,9 @@ import {
     getAvailableCoordinators
 } from '../models/sql/departmentSqlModel.js';
 import { getAllAnnouncements, createAnnouncement as createAnnouncementSql, deleteAnnouncement as deleteAnnouncementSql } from '../models/sql/announcementSqlModel.js';
-import bcrypt from 'bcryptjs';
+import { ensureStudentAndUserExists } from '../services/studentProvisionService.js';
 import {
-    searchStudents as searchStudentsSql,
-    createStudent as createStudentSql
+    searchStudents as searchStudentsSql
 } from '../models/sql/studentSqlModel.js';
 import {
     searchImsStudents,
@@ -336,12 +336,8 @@ export const createTournamentMatchController = async (req, res, next) => {
         if (!tournamentId) {
             return res.status(400).json({ success: false, error: { message: "Valid tournament ID is required" } });
         }
-        const matchData = { ...req.body, tournament_id: tournamentId };
-        const matchId = await createMatchSql(matchData);
-        return res.status(201).json({
-            success: true,
-            data: { match_id: matchId, id: matchId, ...matchData }
-        });
+        req.body.tournament_id = tournamentId;
+        return createValidatedMatch(req, res, next);
     } catch (err) {
         next(err);
     }
@@ -707,93 +703,13 @@ export const getStudentAttendanceController = async (req, res, next) => {
 
 export const createStudentController = async (req, res, next) => {
     try {
-        const {
-            name,
-            studentName,
-            rollNo,
-            registerNumber,
-            deptId,
-            departmentId,
-            departmentCode,
-            year,
-            batch,
-            section,
-            email,
-            personalEmail,
-            phone,
-            personalPhone,
-            bloodGroup,
-            studentType = 'Day-Scholar'
-        } = req.body;
-
-        const cleanName = (studentName || name || '').trim();
-        const cleanRegNo = (registerNumber || rollNo || '').trim();
-        const cleanEmail = (personalEmail || email || `${cleanRegNo.toLowerCase()}@nec.edu.in`).trim();
-        const cleanPhone = (personalPhone || phone || '9876543210').trim();
-
-        if (!cleanName || !cleanRegNo) {
-            return res.status(400).json({ success: false, error: { message: 'Student name and roll number are required.' } });
-        }
-
-        let resolvedDeptId = departmentId || deptId;
-        if (!resolvedDeptId && departmentCode) {
-            const [deptRows] = await pool.execute('SELECT id FROM departments WHERE code = ? LIMIT 1', [departmentCode.toUpperCase()]);
-            if (deptRows[0]) resolvedDeptId = deptRows[0].id;
-        }
-        if (!resolvedDeptId) {
-            const [firstDept] = await pool.execute('SELECT id FROM departments ORDER BY id ASC LIMIT 1');
-            resolvedDeptId = firstDept[0]?.id;
-        }
-
-        const [existingUser] = await pool.execute('SELECT id FROM users WHERE username = ? OR email = ? LIMIT 1', [cleanRegNo, cleanEmail]);
-        let studentUserId;
-        if (existingUser[0]) {
-            studentUserId = existingUser[0].id;
-        } else {
-            const defaultHash = await bcrypt.hash('Player@123', 10);
-            const [uRes] = await pool.execute(
-                'INSERT INTO users (username, email, password_hash, role, is_active) VALUES (?, ?, ?, ?, 1)',
-                [cleanRegNo, cleanEmail, defaultHash, 'Player']
-            );
-            studentUserId = uRes.insertId;
-        }
-
-        const [existingStudent] = await pool.execute('SELECT student_id FROM students WHERE register_number = ? LIMIT 1', [cleanRegNo]);
-        if (existingStudent[0]) {
-            return res.status(400).json({ success: false, error: { message: `Student with roll number ${cleanRegNo} is already registered.` } });
-        }
-
-        const newStudentId = await createStudentSql({
-            userId: studentUserId,
-            studentName: cleanName,
-            registerNumber: cleanRegNo,
-            departmentId: resolvedDeptId,
-            batch: Number(batch || year) || 2026,
-            section: section || 'A',
-            personalEmail: cleanEmail,
-            personalPhone: cleanPhone,
-            parentsPhone: '9876543211',
-            bloodGroup: bloodGroup || 'O+',
-            studentType: studentType || 'Day-Scholar',
-            medicalFitness: 1
+        if (req.user.role === 'Coordinator' && !req.user.dept_id) return res.status(403).json({ success: false, error: { message: 'No department assigned.' } });
+        const result = await ensureStudentAndUserExists({
+            registerNumber: req.body.registerNumber || req.body.rollNo,
+            requiredDepartmentId: req.user.role === 'Coordinator' ? req.user.dept_id : null
         });
-
-        return res.status(201).json({
-            success: true,
-            data: {
-                student_id: newStudentId,
-                id: newStudentId,
-                name: cleanName,
-                studentName: cleanName,
-                studentId: cleanRegNo,
-                rollNo: cleanRegNo,
-                email: cleanEmail,
-                deptId: resolvedDeptId
-            }
-        });
-    } catch (err) {
-        next(err);
-    }
+        return res.status(201).json({ success: true, data: { ...result, student_id: result.studentId, name: result.studentName } });
+    } catch (err) { next(err); }
 };
 
 // Logged-in student's own record (students.user_id = session user) plus their team memberships.

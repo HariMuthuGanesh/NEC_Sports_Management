@@ -7,7 +7,7 @@ import pool from '../../config/db.js';
  *
  * Returns { created, skipped } counts.
  */
-export const createOdForMatch = async (matchId, requestedByUserId) => {
+export const createOdForMatch = async (matchId, requestedByUserId, departmentId = null) => {
     // Get match details
     const [[match]] = await pool.execute(
         `SELECT m.match_id, m.scheduled_time, m.tournament_id, m.team_a_id, m.team_b_id,
@@ -31,8 +31,8 @@ export const createOdForMatch = async (matchId, requestedByUserId) => {
          FROM team_members tm
          JOIN students s ON tm.student_id = s.student_id
          LEFT JOIN departments d ON s.department_id = d.id
-         WHERE tm.team_id IN (?, ?)`,
-        [match.team_a_id, match.team_b_id]
+         WHERE tm.team_id IN (?, ?) AND (? IS NULL OR s.department_id = ?)`,
+        [match.team_a_id, match.team_b_id, departmentId, departmentId]
     );
 
     if (players.length === 0) throw new Error('No players rostered in either team for this match.');

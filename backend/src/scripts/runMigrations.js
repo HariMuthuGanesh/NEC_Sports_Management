@@ -2,34 +2,26 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
 import mysql from 'mysql2/promise';
-import dotenv from 'dotenv';
+import { getDatabaseConfig } from '../config/databaseConfig.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const envMode = process.env.NODE_ENV || 'development';
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const connectionConfig = { ...getDatabaseConfig(), multipleStatements: true };
 
-// Load same env logic as db.js
-dotenv.config({ path: path.resolve(process.cwd(), `.env.${envMode}`) });
-dotenv.config();
+const BASELINE_MIGRATION = '000_schema_baseline.sql';
 
-const dbUri = process.env.DATABASE_URL || process.env.MYSQL_URL || process.env.MYSQL_URI;
-const sslConfig = (process.env.MYSQL_SSL === 'true' || process.env.MYSQL_SSL === '1')
-    ? { rejectUnauthorized: false }
-    : undefined;
+async function applyBaselineSchema(connection) {
+    const [tableRows] = await connection.query("SHOW TABLES LIKE 'users'");
+    if (tableRows.length > 0) return;
 
-// Create a direct connection instead of pool, turning ON multipleStatements 
-// which is required to execute .sql files containing multiple queries separated by semicolons.
-const connectionConfig = dbUri
-    ? { uri: dbUri, multipleStatements: true, ...(sslConfig ? { ssl: sslConfig } : {}) }
-    : {
-        host: process.env.MYSQL_HOST || 'localhost',
-        user: process.env.MYSQL_USER || 'root',
-        password: (process.env.MYSQL_PASSWORD || '').trim(),
-        database: process.env.MYSQL_DATABASE || 'nec_sports_db',
-        port: parseInt(process.env.MYSQL_PORT || '3306', 10),
-        multipleStatements: true,
-        ...(sslConfig ? { ssl: sslConfig } : {})
-    };
+    const schemaPath = path.resolve(__dirname, '../data/schema.sql');
+    const schemaSql = fs.readFileSync(schemaPath, 'utf8');
+    await connection.query(schemaSql);
+    await connection.query(
+        'INSERT IGNORE INTO schema_migrations (migration_name) VALUES (?)',
+        [BASELINE_MIGRATION]
+    );
+    console.log('Applied canonical baseline schema.');
+}
 
 async function runMigrations() {
     let connection;
@@ -45,6 +37,8 @@ async function runMigrations() {
                 executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         `);
+
+        await applyBaselineSchema(connection);
 
         // 2. Read migration files
         const migrationsDir = path.resolve(__dirname, '../data/migrations');
@@ -73,7 +67,7 @@ async function runMigrations() {
                 } catch (err) {
                     console.error(`❌ Failed to execute migration: ${file}`);
                     console.error(err.message);
-                    process.exit(1); // Stop execution immediately on failure to prevent partial state
+                    throw err;
                 }
             }
         }
@@ -86,12 +80,11 @@ async function runMigrations() {
 
     } catch (error) {
         console.error('Migration failed:', error.message);
-        process.exit(1);
+        process.exitCode = 1;
     } finally {
         if (connection) {
             await connection.end();
         }
-        process.exit(0);
     }
 }
 

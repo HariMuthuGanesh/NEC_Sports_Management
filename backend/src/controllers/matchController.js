@@ -1,5 +1,6 @@
 import { createMatch as createMatchSql, deleteMatch as deleteMatchSql, updateMatchScore, getAllMatches } from '../models/sql/matchSqlModel.js';
 import pool from '../config/db.js';
+import { assertTeamAccess } from '../services/accessScope.js';
 import { resolveTeamCaptainUserId, sendSystemNotification, notifyDepartmentCoordinator, notifyTeamMembers } from '../services/emailService.js';
 
 /**
@@ -52,7 +53,7 @@ export const createMatch = async (req, res, next) => {
             return res.status(400).json({ success: false, error: { code: 'TEAM_IDS_REQUIRED', message: 'Team A and Team B must be selected.' } });
         }
         const [teamRows] = await pool.execute(
-            'SELECT team_id, sport_id, status, name FROM teams WHERE team_id IN (?, ?)',
+            'SELECT team_id, sport_id, tournament_id, status, name FROM teams WHERE team_id IN (?, ?)',
             [idA, idB]
         );
         if (teamRows.length !== 2) {
@@ -60,6 +61,7 @@ export const createMatch = async (req, res, next) => {
         }
         const sportIdNum = Number(sport_id) || null;
         for (const t of teamRows) {
+            if (tournament_id && Number(t.tournament_id)!==Number(tournament_id)) return res.status(400).json({success:false,error:{message:'Both teams must be registered in this tournament.'}});
             if (t.status !== 'Approved') {
                 return res.status(400).json({ success: false, error: { code: 'TEAM_NOT_APPROVED', message: `Team "${t.name}" is not approved yet.` } });
             }
@@ -68,9 +70,16 @@ export const createMatch = async (req, res, next) => {
             }
         }
 
+        if (req.user.role === 'Coordinator') {
+            await assertTeamAccess(req.user, idA);
+            await assertTeamAccess(req.user, idB);
+        }
+        const [[sportFormat]] = await pool.execute('SELECT sport_type FROM sports WHERE sport_id=?', [sportIdNum || teamRows[0].sport_id]);
+        if (sportFormat?.sport_type === 'Individual') return res.status(400).json({ success: false, error: { message: 'Use event competitions for individual sports.' } });
+        if (Number(teamRows[0].sport_id) !== Number(teamRows[1].sport_id)) return res.status(400).json({ success: false, error: { message: 'Both teams must play the same sport.' } });
         const matchId = await createMatchSql({
             tournament_id: tournament_id || null,
-            sport_id: sport_id || null,
+            sport_id: sportIdNum || teamRows[0].sport_id,
             sport_name: sport_name || sport || null,
             team_a_id: team_a_id || null,
             team_b_id: team_b_id || null,
@@ -79,6 +88,8 @@ export const createMatch = async (req, res, next) => {
             venue_id: venue_id || null,
             venue_name: venue_name || venue || null,
             scheduled_time,
+            duration_minutes: Number(req.body.duration_minutes || req.body.durationMinutes) || 60,
+            pool: req.body.pool || 'Pool A',
             round: round || 'League'
         });
 
@@ -158,12 +169,14 @@ export const updateScore = async (req, res, next) => {
 
         // Fetch the current match to get team IDs
         const [[match]] = await pool.execute(
-            'SELECT match_id, team_a_id, team_b_id FROM matches WHERE match_id = ?',
+            'SELECT match_id, team_a_id, team_b_id, status FROM matches WHERE match_id = ?',
             [matchId]
         );
         if (!match) {
             return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: `Match ${matchId} not found.` } });
         }
+
+        if (req.user.role === 'Score Updater' && match.status !== 'Ongoing') return res.status(409).json({ success: false, error: { message: 'Scores can only be updated for ongoing matches.' } });
 
         // Server-side winner resolution - frontend never decides this
         let winnerTeamId = null;

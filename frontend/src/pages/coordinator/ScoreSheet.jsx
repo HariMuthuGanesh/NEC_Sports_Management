@@ -1,3 +1,4 @@
+import { useAuth } from "../../context/AuthContext";
 import React, { useState, useEffect, useCallback } from "react";
 import { matchesApi } from "../../services/api/apiServices";
 import { useToast } from "../../context/ToastContext";
@@ -8,7 +9,8 @@ import Button from "../../components/common/Button";
 import ErrorState from "../../components/common/ErrorState";
 import EmptyState from "../../components/common/EmptyState";
 import SkeletonLoader from "../../components/common/SkeletonLoader";
-import { getScoreboardComponent } from "../../components/scoring/sportRegistry";
+import GenericScoreboard from "../../components/scoring/GenericScoreboard";
+import SPORT_REGISTRY from "../../components/scoring/sportRegistry";
 import "../../components/scoring/Scoreboard.css";
 import "./CoordinatorPortal.css";
 import { ArrowLeft, RefreshCw, Activity, MapPin, Calendar, Trophy, ChevronDown, Play, CheckCircle } from "lucide-react";
@@ -18,6 +20,7 @@ const ACTIVE_STATUSES = ["Ongoing", "Scheduled"];
 
 export default function ScoreSheet({ onNavigate }) {
   const toast = useToast();
+  const { currentUser } = useAuth();
 
   const [matchId, setMatchId] = useState(() => {
     return sessionStorage.getItem("nec_sports_selected_match_id") || null;
@@ -210,7 +213,7 @@ export default function ScoreSheet({ onNavigate }) {
     );
   }
 
-  const ScoreboardComponent = getScoreboardComponent(currentMatch.sport);
+  const ScoreboardComponent = SPORT_REGISTRY[currentMatch.sport] || GenericScoreboard;
   const isScheduled = currentMatch.status === "Scheduled";
   const isOngoing = currentMatch.status === "Ongoing";
 
@@ -277,7 +280,7 @@ export default function ScoreSheet({ onNavigate }) {
         </div>
 
         <div className="nec-score-sheet-control-right">
-          {isScheduled && (
+          {isScheduled && currentUser.role === "Admin" && (
             <Button
               variant="primary"
               size="sm"
@@ -290,7 +293,7 @@ export default function ScoreSheet({ onNavigate }) {
           )}
 
           <Badge status={isOngoing ? "live" : "warning"}>
-            {isOngoing ? "Live Match" : currentMatch.status}
+            {currentMatch.awaitingFinalScore ? "Awaiting Final Score" : isOngoing ? "Live Match" : currentMatch.status}
           </Badge>
           <Button variant="outline" size="sm" icon={RefreshCw} onClick={refetch}>
             Refresh
@@ -305,7 +308,7 @@ export default function ScoreSheet({ onNavigate }) {
       </div>
 
       {/* ── Scheduled Notice Banner ────────────────────────────────────── */}
-      {isScheduled && (
+      {isScheduled && currentUser.role === "Admin" && (
         <div
           style={{
             display: "flex",
@@ -410,12 +413,12 @@ export default function ScoreSheet({ onNavigate }) {
           title={`${currentMatch.sport} Score Sheet`}
           className="nec-score-sheet-card"
         >
-          <ScoreboardComponent
+          {(isOngoing || currentUser.role === "Admin") && <ScoreboardComponent
             match={currentMatch}
             onSubmit={handleSubmitScore}
             submitting={submitting}
             onScoreChange={handleScoreChange}
-          />
+          />}
         </Card>
       </div>
     </div>

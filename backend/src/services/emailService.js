@@ -31,6 +31,15 @@ const createTransporter = () => {
     return null;
 };
 
+export const isPasswordEmailConfigured = () => createTransporter() !== null;
+
+const escapeHtml = (input) => String(input || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
 /**
  * Send password reset email directly to the user's email address.
  * 
@@ -44,6 +53,10 @@ export const sendPasswordResetEmail = async ({ to, username, tempPassword, reset
     const transporter = createTransporter();
     const fromAddress = process.env.EMAIL_FROM || '"NEC Sports Directorate" <no-reply@nec.edu.in>';
     const loginUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/login`;
+    const safeUsername = escapeHtml(username || 'User');
+    const safeResetBy = escapeHtml(resetBy);
+    const safeTemporaryPassword = escapeHtml(tempPassword);
+    const safeLoginUrl = escapeHtml(loginUrl);
 
     const htmlContent = `
     <!DOCTYPE html>
@@ -73,19 +86,19 @@ export const sendPasswordResetEmail = async ({ to, username, tempPassword, reset
           <div style="font-size: 13px; opacity: 0.8; margin-top: 4px;">Sports Management Portal</div>
         </div>
         <div class="content">
-          <div class="greeting">Hello ${username || 'User'},</div>
+          <div class="greeting">Hello ${safeUsername},</div>
           <p class="text">
-            Your account password has been reset by <strong>${resetBy}</strong>. You have been issued a temporary password to log into the portal.
+            Your account password has been reset by <strong>${safeResetBy}</strong>. You have been issued a temporary password to log into the portal.
           </p>
           <div class="pw-box">
             <div class="pw-label">Temporary Password</div>
-            <div class="pw-code">${tempPassword}</div>
+            <div class="pw-code">${safeTemporaryPassword}</div>
           </div>
           <p class="text" style="color: #b45309; background: #fef3c7; padding: 10px 14px; border-radius: 6px; font-size: 13px;">
             ⚠️ <strong>Important:</strong> For security reasons, you will be required to change this password immediately after logging in.
           </p>
           <div class="cta-wrap">
-            <a href="${loginUrl}" class="cta-btn" target="_blank">Login to Sports Portal</a>
+            <a href="${safeLoginUrl}" class="cta-btn" target="_blank">Login to Sports Portal</a>
           </div>
           <div class="notice">
             If you did not request this change or believe this was done in error, please immediately contact your Department Sports Coordinator or the Sports Office.
@@ -111,16 +124,10 @@ export const sendPasswordResetEmail = async ({ to, username, tempPassword, reset
             console.error(`[EMAIL ERROR] Failed to send email to ${to}:`, err.message);
             return { success: false, error: err.message, mode: 'smtp' };
         }
-    } else {
-        console.log(`\n======================================================`);
-        console.log(`[EMAIL DELIVERY SIMULATOR] Direct Email to User:`);
-        console.log(`To: ${to} (${username})`);
-        console.log(`Subject: Your Temporary Password — NEC Sports Portal`);
-        console.log(`Temporary Password: ${tempPassword}`);
-        console.log(`Note: Configure SMTP_HOST, SMTP_USER, SMTP_PASS in .env for live mail server delivery.`);
-        console.log(`======================================================\n`);
-        return { success: true, mode: 'simulated' };
     }
+
+    console.error('[EMAIL ERROR] Password reset email was not sent because SMTP is not configured.');
+    return { success: false, error: 'EMAIL_NOT_CONFIGURED', mode: 'unavailable' };
 };
 
 /**

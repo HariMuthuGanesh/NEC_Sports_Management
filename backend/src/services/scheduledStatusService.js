@@ -30,24 +30,11 @@ export const syncScheduledStatuses = async () => {
             WHERE status = 'Scheduled'
               AND manual_status_override = 0
               AND scheduled_time <= NOW()
-              AND (scheduled_end_time IS NULL OR scheduled_end_time > NOW())
         `);
         summary.activatedMatches = activatedMatchesResult.affectedRows || 0;
 
-        // 2. Matches: Transition Ongoing -> Completed when scheduled end time arrives
-        // Target: Ongoing matches where end time has elapsed, without manual override
-        const [completedMatchesResult] = await connection.execute(`
-            UPDATE matches 
-            SET status = 'Completed',
-                status_updated_at = NOW()
-            WHERE status = 'Ongoing'
-              AND manual_status_override = 0
-              AND (
-                  (scheduled_end_time IS NOT NULL AND scheduled_end_time <= NOW())
-                  OR (scheduled_time IS NOT NULL AND DATE_ADD(scheduled_time, INTERVAL COALESCE(duration_minutes, 60) MINUTE) <= NOW())
-              )
-        `);
-        summary.completedMatches = completedMatchesResult.affectedRows || 0;
+        // Match completion requires an explicit final score from authorized staff.
+        // Overdue matches remain Ongoing so score entry stays available.
 
         // 3. Events: Close registrations when registration deadline passes
         // Target: Events where registration_status = 'Open' and reg_deadline <= NOW(), without manual override

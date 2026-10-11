@@ -6,6 +6,7 @@ import { Trash2 } from "lucide-react";
 import "../coordinator/CoordinatorPortal.css";
 
 export default function MyRoster() {
+  const [sportId, setSportId] = useState("");
   const [squad, setSquad] = useState(null);
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -22,7 +23,7 @@ export default function MyRoster() {
     setLoading(true);
     setError(null);
     try {
-      const res = await squadApi.getMySquad();
+      const res = await squadApi.getMySquad(sportId);
       if (res) {
         setSquad(res);
         setPlayers(res.players || []);
@@ -40,7 +41,7 @@ export default function MyRoster() {
 
   useEffect(() => {
     loadMyRoster();
-  }, []);
+  }, [sportId]);
 
   const handleSearchStudent = async () => {
     if (!searchQuery.trim()) return;
@@ -63,7 +64,7 @@ export default function MyRoster() {
     setAdding(true);
     setError(null);
     try {
-      await squadApi.addSquadMember(Number(newStudentId));
+      await squadApi.addSquadMember(Number(newStudentId), squad.sport_id);
       setNewStudentId("");
       setSearchQuery("");
       setSearchResults([]);
@@ -79,7 +80,7 @@ export default function MyRoster() {
   const handleRemovePlayer = async (studentId) => {
     setError(null);
     try {
-      await squadApi.removeSquadMember(studentId);
+      await squadApi.removeSquadMember(studentId, squad.sport_id);
       await loadMyRoster();
     } catch (err) {
       console.error(err);
@@ -133,6 +134,7 @@ export default function MyRoster() {
         </div>
       </div>
 
+      {squad.assignments?.length > 1 && <label>Sport<select className="nec-input" value={sportId || squad.sport_id} onChange={e => setSportId(e.target.value)}>{squad.assignments.map(a=><option key={a.sport_id} value={a.sport_id}>{a.sport_name}</option>)}</select></label>}
       {error && (
         <div style={{ color: "#d9534f", backgroundColor: "#fdf7f7", padding: "12px", borderRadius: "6px", marginBottom: "16px", border: "1px solid #d9534f" }}>
           {error}

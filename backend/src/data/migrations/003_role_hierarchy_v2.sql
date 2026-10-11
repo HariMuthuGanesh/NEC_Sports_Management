@@ -1,7 +1,9 @@
-ALTER TABLE users MODIFY role ENUM('Admin','Coordinator','TeamCaptain','Player') NOT NULL;
-ALTER TABLE users ADD COLUMN sport_id INT NULL, ADD FOREIGN KEY (sport_id) REFERENCES sports(sport_id);
-
-CREATE TABLE department_teams (
+-- Preserve all supported roles and existing data.
+ALTER TABLE users MODIFY role VARCHAR(100) NOT NULL DEFAULT 'Player';
+SET @exists = (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'sport_id');
+SET @sql = IF(@exists = 0, "ALTER TABLE users ADD COLUMN sport_id INT NULL, ADD FOREIGN KEY (sport_id) REFERENCES sports(sport_id)", 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+CREATE TABLE IF NOT EXISTS department_teams (
   id INT PRIMARY KEY AUTO_INCREMENT,
   department_id INT NOT NULL,
   sport_id INT NOT NULL,
@@ -13,7 +15,7 @@ CREATE TABLE department_teams (
   UNIQUE KEY unique_dept_sport (department_id, sport_id)
 );
 
-CREATE TABLE department_team_members (
+CREATE TABLE IF NOT EXISTS department_team_members (
   id INT PRIMARY KEY AUTO_INCREMENT,
   department_team_id INT NOT NULL,
   player_user_id INT NOT NULL,
@@ -25,7 +27,7 @@ CREATE TABLE department_team_members (
   FOREIGN KEY (added_by) REFERENCES users(id)
 );
 
-CREATE TABLE college_teams (
+CREATE TABLE IF NOT EXISTS college_teams (
   id INT PRIMARY KEY AUTO_INCREMENT,
   sport_id INT NOT NULL,
   season_year INT NOT NULL,
@@ -33,7 +35,7 @@ CREATE TABLE college_teams (
   UNIQUE KEY unique_sport_season (sport_id, season_year)
 );
 
-CREATE TABLE college_team_members (
+CREATE TABLE IF NOT EXISTS college_team_members (
   id INT PRIMARY KEY AUTO_INCREMENT,
   college_team_id INT NOT NULL,
   player_user_id INT NOT NULL,

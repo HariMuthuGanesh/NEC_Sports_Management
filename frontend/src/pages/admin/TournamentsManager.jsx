@@ -1,3 +1,4 @@
+import CompetitionWorkspace from "./CompetitionWorkspace";
 import React, { useEffect, useState, useMemo } from "react";
 import { 
   tournamentsApi, 
@@ -95,11 +96,11 @@ export default function TournamentsManager() {
   const [levelsError, setLevelsError] = useState("");
   const [newTournament, setNewTournament] = useState({
     title: "",
-    academicYear: "2025-2026",
+    academicYear: `${new Date().getFullYear()}-${new Date().getFullYear()+1}`,
     levelId: "",
     description: "",
     startDate: new Date().toISOString().split("T")[0],
-    endDate: "2026-09-30"
+    endDate: new Date().toISOString().split("T")[0]
   });
 
   // New Match Fixture Form
@@ -155,7 +156,8 @@ export default function TournamentsManager() {
       ]);
       setVenues(vData || []);
       setSports(sData || []);
-      if (sData[0]) setNewMatch(prev => ({ ...prev, sportId: sData[0].sport_id || sData[0].id }));
+      const firstTeamSport = sData.find(sp => sp.sport_type !== "Individual");
+      if (firstTeamSport) setNewMatch(prev => ({ ...prev, sportId: firstTeamSport.sport_id || firstTeamSport.id }));
       if (vData[0]) setNewMatch(prev => ({ ...prev, venueId: vData[0].venue_id || vData[0].id }));
     } catch (err) {
       console.error(err);
@@ -203,11 +205,11 @@ export default function TournamentsManager() {
       setIsCreateModalOpen(false);
       setNewTournament({
         title: "",
-        academicYear: "2025-2026",
+        academicYear: `${new Date().getFullYear()}-${new Date().getFullYear()+1}`,
         levelId: "",
         description: "",
         startDate: new Date().toISOString().split("T")[0],
-        endDate: "2026-09-30"
+        endDate: new Date().toISOString().split("T")[0]
       });
       setSuccessMsg("Tournament created successfully!");
       setTimeout(() => setSuccessMsg(null), 4000);
@@ -518,6 +520,7 @@ export default function TournamentsManager() {
 
     return (
       <div className="nec-portal-page nec-tournaments-container">
+        <CompetitionWorkspace tournamentId={selectedTournament?.tournament_id || selectedTournament?.id} />
         {/* Back Button */}
         <div>
           <button onClick={() => setSelectedTournament(null)} className="nec-back-btn">
@@ -660,7 +663,7 @@ export default function TournamentsManager() {
                   className="nec-form-select"
                 >
                   <option value="">-- Select sport --</option>
-                  {sports.map(s => (
+                  {sports.filter(sp => sp.sport_type !== "Individual").map(s => (
                     <option key={s.sport_id || s.id} value={s.sport_id || s.id}>
                       {s.name}
                     </option>
