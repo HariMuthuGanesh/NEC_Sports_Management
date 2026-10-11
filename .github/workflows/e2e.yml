@@ -100,7 +100,6 @@ jobs:
         run: npx playwright test --project=chromium
         env:
           CI: true
-          E2E_PLAYER_PASSWORD: testing_student_password_123
 
       - name: 📊 Upload Playwright HTML Test Report
         uses: actions/upload-artifact@v4
