@@ -7,7 +7,7 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "start": "cross-env NODE_ENV=production node src/index.js",
+    "start": "node src/index.js",
     "dev": "cross-env NODE_ENV=development nodemon src/index.js",
     "migrate": "node src/scripts/runMigrations.js",
     "seed": "npm run migrate && node src/data/seedData.js",
@@ -24,6 +24,7 @@
     "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
+    "cross-env": "^10.1.0",
     "csrf-csrf": "^4.0.3",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
@@ -36,7 +37,6 @@
     "openid-client": "^5.6.5"
   },
   "devDependencies": {
-    "cross-env": "^10.1.0",
     "nodemon": "^3.1.9"
   },
   "overrides": {
