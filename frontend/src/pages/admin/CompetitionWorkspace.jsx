@@ -14,12 +14,12 @@ import {
   Calendar,
   Clock,
   Activity,
-  Layers,
   Medal,
   AlertCircle,
   Users,
-  Timer,
-  Award
+  Award,
+  Edit2,
+  Trash2
 } from 'lucide-react';
 import './CompetitionWorkspace.css';
 
@@ -34,6 +34,9 @@ export default function CompetitionWorkspace({ tournamentId }) {
   const [selected, setSelected] = useState(null);
   const [details, setDetails] = useState(null);
   const [creating, setCreating] = useState(false);
+  const [editingComp, setEditingComp] = useState(null);
+  const [editCategories, setEditCategories] = useState([]);
+  const [deletingComp, setDeletingComp] = useState(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [statusFilter, setStatusFilter] = useState('All');
@@ -47,6 +50,17 @@ export default function CompetitionWorkspace({ tournamentId }) {
     scoring: 'Time',
     unit: 'seconds',
     scheduledTime: ''
+  });
+
+  const [editForm, setEditForm] = useState({
+    id: '',
+    name: '',
+    round: 'Final',
+    entrySize: 1,
+    scoring: 'Time',
+    unit: 'seconds',
+    scheduledTime: '',
+    categoryId: ''
   });
 
   const [entry, setEntry] = useState({ name: '', registers: '' });
@@ -107,6 +121,7 @@ export default function CompetitionWorkspace({ tournamentId }) {
   };
 
   const field = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
+  const editField = (key, value) => setEditForm((prev) => ({ ...prev, [key]: value }));
 
   const selectEvent = async (id) => {
     setForm((prev) => ({ ...prev, eventId: id, categoryId: '' }));
@@ -115,9 +130,45 @@ export default function CompetitionWorkspace({ tournamentId }) {
     if (event) {
       try {
         const cats = await apiFetch(`/sports/${event.sport_id || event.sportId}/categories`);
-        setCategories(Array.isArray(cats) ? cats : []);
+        if (Array.isArray(cats) && cats.length > 0) {
+          setCategories(cats);
+        } else {
+          setCategories([{ category_id: 1, name: 'Open' }]);
+        }
       } catch (e) {
         setError(e.message);
+      }
+    }
+  };
+
+  const openEditModal = async (comp) => {
+    let formattedTime = '';
+    if (comp.scheduled_time) {
+      try {
+        const d = new Date(comp.scheduled_time);
+        formattedTime = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+      } catch {
+        formattedTime = '';
+      }
+    }
+    setEditForm({
+      id: comp.competition_id,
+      name: comp.name || '',
+      round: comp.round || 'Final',
+      entrySize: comp.entry_size || 1,
+      scoring: comp.scoring || 'Time',
+      unit: comp.unit || 'seconds',
+      scheduledTime: formattedTime,
+      categoryId: String(comp.category_id || '')
+    });
+    setEditingComp(comp);
+
+    if (comp.sport_id) {
+      try {
+        const cats = await apiFetch(`/sports/${comp.sport_id}/categories`);
+        setEditCategories(Array.isArray(cats) && cats.length > 0 ? cats : [{ category_id: 1, name: 'Open' }]);
+      } catch {
+        setEditCategories([{ category_id: 1, name: 'Open' }]);
       }
     }
   };
@@ -140,6 +191,38 @@ export default function CompetitionWorkspace({ tournamentId }) {
     });
   };
 
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    await run(async () => {
+      await apiFetch(`/competitions/${editForm.id}`, 'PATCH', {
+        name: editForm.name,
+        round: editForm.round,
+        entrySize: Number(editForm.entrySize),
+        scoring: editForm.scoring,
+        unit: editForm.unit,
+        scheduledTime: editForm.scheduledTime,
+        categoryId: editForm.categoryId ? Number(editForm.categoryId) : undefined
+      });
+      setEditingComp(null);
+    });
+  };
+
+  const openDeleteConfirm = (comp) => {
+    setDeletingComp(comp);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deletingComp) return;
+    await run(async () => {
+      await apiFetch(`/competitions/${deletingComp.competition_id}`, 'DELETE');
+      if (selected === deletingComp.competition_id) {
+        setSelected(null);
+        setDetails(null);
+      }
+      setDeletingComp(null);
+    });
+  };
+
   // KPI Calculations
   const counts = useMemo(() => {
     const list = Array.isArray(competitions) ? competitions : [];
@@ -158,7 +241,7 @@ export default function CompetitionWorkspace({ tournamentId }) {
   }, [competitions, statusFilter]);
 
   const formatDateTime = (val) => {
-    if (!val) return '—';
+    if (!val) return '-';
     try {
       const d = new Date(val);
       return d.toLocaleDateString('en-IN', {
@@ -250,13 +333,21 @@ export default function CompetitionWorkspace({ tournamentId }) {
           {manager && row.status === 'Scheduled' && (
             <Button
               size="sm"
+              variant="secondary"
+              icon={Edit2}
+              title="Edit"
+              onClick={() => openEditModal(row)}
+            >
+              Edit
+            </Button>
+          )}
+          {manager && row.status === 'Scheduled' && (
+            <Button
+              size="sm"
               variant="danger"
+              icon={Trash2}
               title="Delete"
-              onClick={() => {
-                if (window.confirm(`Delete ${row.name}?`)) {
-                  run(() => apiFetch(`/competitions/${id}`, 'DELETE'));
-                }
-              }}
+              onClick={() => openDeleteConfirm(row)}
             >
               Delete
             </Button>
@@ -447,22 +538,57 @@ export default function CompetitionWorkspace({ tournamentId }) {
                 </div>
               </div>
 
-              {manager && details.status !== 'Completed' && (
-                <Button
-                  variant={details.status === 'Scheduled' ? 'primary' : 'success'}
-                  icon={details.status === 'Scheduled' ? Play : Check}
-                  loading={busy}
-                  onClick={() =>
-                    run(() =>
-                      apiFetch(`/competitions/${selected}`, 'PATCH', {
-                        status: details.status === 'Scheduled' ? 'Ongoing' : 'Completed'
-                      })
-                    )
-                  }
-                >
-                  {details.status === 'Scheduled' ? 'Start Competition' : 'Finalize & Complete'}
-                </Button>
-              )}
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                {manager && details.status === 'Scheduled' && (
+                  <>
+                    <Button
+                      variant="secondary"
+                      icon={Edit2}
+                      onClick={() => openEditModal(details)}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      variant="danger"
+                      icon={Trash2}
+                      onClick={() => openDeleteConfirm(details)}
+                    >
+                      Delete
+                    </Button>
+                    <Button
+                      variant="primary"
+                      icon={Play}
+                      loading={busy}
+                      onClick={() =>
+                        run(() =>
+                          apiFetch(`/competitions/${selected}`, 'PATCH', {
+                            status: 'Ongoing'
+                          })
+                        )
+                      }
+                    >
+                      Start Competition
+                    </Button>
+                  </>
+                )}
+
+                {manager && details.status === 'Ongoing' && (
+                  <Button
+                    variant="success"
+                    icon={Check}
+                    loading={busy}
+                    onClick={() =>
+                      run(() =>
+                        apiFetch(`/competitions/${selected}`, 'PATCH', {
+                          status: 'Completed'
+                        })
+                      )
+                    }
+                  >
+                    Finalize & Complete
+                  </Button>
+                )}
+              </div>
             </div>
 
             {/* Metrics Row */}
@@ -589,7 +715,7 @@ export default function CompetitionWorkspace({ tournamentId }) {
                         </span>
                       );
                     }
-                    return v ? `#${v}` : '—';
+                    return v ? `#${v}` : '-';
                   }
                 },
                 {
@@ -610,7 +736,7 @@ export default function CompetitionWorkspace({ tournamentId }) {
                   key: 'athletes',
                   label: 'Athletes',
                   render: (v) => (
-                    <span style={{ fontSize: '0.85rem' }}>{v || '—'}</span>
+                    <span style={{ fontSize: '0.85rem' }}>{v || '-'}</span>
                   )
                 },
                 {
@@ -637,7 +763,7 @@ export default function CompetitionWorkspace({ tournamentId }) {
                         }
                       />
                     ) : (
-                      <strong>{v ? `${v} ${details.unit}` : '—'}</strong>
+                      <strong>{v ? `${v} ${details.unit}` : '-'}</strong>
                     )
                 },
                 {
@@ -923,6 +1049,194 @@ export default function CompetitionWorkspace({ tournamentId }) {
             </Button>
           </div>
         </form>
+      </Modal>
+
+      {/* ── Edit Competition Modal ────────────────────────────── */}
+      <Modal
+        isOpen={Boolean(editingComp)}
+        onClose={() => setEditingComp(null)}
+        title="Edit Competition"
+        maxWidth="720px"
+      >
+        <form onSubmit={handleEditSubmit}>
+          <div className="nec-comp-form-grid">
+            {/* Category Dropdown */}
+            {editCategories.length > 0 && (
+              <div className="nec-comp-field full-span">
+                <label htmlFor="edit-comp-category">Category</label>
+                <select
+                  id="edit-comp-category"
+                  className="nec-comp-select"
+                  value={editForm.categoryId}
+                  onChange={(e) => editField('categoryId', e.target.value)}
+                >
+                  {editCategories.map((c) => (
+                    <option key={c.category_id} value={c.category_id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Competition Name */}
+            <div className="nec-comp-field full-span">
+              <label htmlFor="edit-comp-name">
+                Name <span className="required-star">*</span>
+              </label>
+              <input
+                id="edit-comp-name"
+                className="nec-comp-input"
+                required
+                maxLength={120}
+                value={editForm.name}
+                onChange={(e) => editField('name', e.target.value)}
+              />
+            </div>
+
+            {/* Round */}
+            <div className="nec-comp-field">
+              <label htmlFor="edit-comp-round">Round</label>
+              <select
+                id="edit-comp-round"
+                className="nec-comp-select"
+                value={editForm.round}
+                onChange={(e) => editField('round', e.target.value)}
+              >
+                {['Heat', 'Qualifier', 'Semi-Final', 'Final'].map((v) => (
+                  <option key={v} value={v}>
+                    {v}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Athletes per entry */}
+            <div className="nec-comp-field">
+              <label htmlFor="edit-comp-entry-size">Athletes per entry</label>
+              <input
+                id="edit-comp-entry-size"
+                className="nec-comp-input"
+                type="number"
+                required
+                min="1"
+                max="30"
+                value={editForm.entrySize}
+                onChange={(e) => editField('entrySize', Number(e.target.value))}
+              />
+            </div>
+
+            {/* Scoring Type */}
+            <div className="nec-comp-field">
+              <label htmlFor="edit-comp-scoring">Scoring Type</label>
+              <select
+                id="edit-comp-scoring"
+                className="nec-comp-select"
+                value={editForm.scoring}
+                onChange={(e) =>
+                  setEditForm((prev) => ({
+                    ...prev,
+                    scoring: e.target.value,
+                    unit:
+                      e.target.value === 'Time'
+                        ? 'seconds'
+                        : e.target.value === 'Distance'
+                        ? 'metres'
+                        : 'points'
+                  }))
+                }
+              >
+                {['Time', 'Distance', 'Points'].map((v) => (
+                  <option key={v} value={v}>
+                    {v}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Unit */}
+            <div className="nec-comp-field">
+              <label htmlFor="edit-comp-unit">Unit</label>
+              <input
+                id="edit-comp-unit"
+                className="nec-comp-input"
+                required
+                maxLength={20}
+                value={editForm.unit}
+                onChange={(e) => editField('unit', e.target.value)}
+              />
+            </div>
+
+            {/* Scheduled Date/Time */}
+            <div className="nec-comp-field full-span">
+              <label htmlFor="edit-comp-scheduled">Scheduled Date and Time</label>
+              <input
+                id="edit-comp-scheduled"
+                className="nec-comp-input"
+                type="datetime-local"
+                required
+                value={editForm.scheduledTime}
+                onChange={(e) => editField('scheduledTime', e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="nec-comp-modal-actions">
+            <Button
+              type="button"
+              variant="ghost"
+              title="Cancel"
+              onClick={() => setEditingComp(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              title="Save Changes"
+              loading={busy}
+            >
+              Save Changes
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* ── Delete Confirmation Modal ─────────────────────────── */}
+      <Modal
+        isOpen={Boolean(deletingComp)}
+        onClose={() => setDeletingComp(null)}
+        title="Confirm Deletion"
+        size="sm"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <p style={{ margin: 0, fontSize: '0.94rem', color: 'var(--nec-text-primary)' }}>
+            Are you sure you want to delete <strong>{deletingComp?.name}</strong>?
+          </p>
+          <span style={{ fontSize: '0.82rem', color: 'var(--nec-text-muted)' }}>
+            This action will permanently remove the competition and any registered participant entries.
+          </span>
+          <div className="nec-comp-modal-actions">
+            <Button
+              type="button"
+              variant="ghost"
+              title="Cancel"
+              onClick={() => setDeletingComp(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="danger"
+              icon={Trash2}
+              title="Delete Competition"
+              loading={busy}
+              onClick={handleDeleteConfirm}
+            >
+              Delete Competition
+            </Button>
+          </div>
+        </div>
       </Modal>
     </section>
   );

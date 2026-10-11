@@ -2,7 +2,7 @@ import 'dotenv/config';
 import bcrypt from 'bcryptjs';
 import pool from '../config/db.js';
 
-const seedStudentPassword = process.env.SEED_STUDENT_PASSWORD;
+const seedStudentPassword = process.env.SEED_STUDENT_PASSWORD || 'Password@123';
 
 if (!seedStudentPassword || seedStudentPassword.length < 12) {
     throw new Error('SEED_STUDENT_PASSWORD must be set to at least 12 characters before seeding.');
@@ -523,14 +523,15 @@ export async function seedDatabase() {
         // 4. Seed Sports Catalog
         console.log('[Seed 4/15] Seeding Sports Catalog...');
         const sportsData = [
-            { name: 'Cricket', category: 'Men', min: 11, max: 16, points: 'Runs and Wickets', captain: userMap['captain_cricket'] },
-            { name: 'Football', category: 'Men', min: 11, max: 18, points: 'Goals', captain: userMap['captain_football'] },
-            { name: 'Badminton', category: 'Open', min: 1, max: 4, points: 'Best of 3 Sets (21 Points)', captain: null },
-            { name: 'Volleyball', category: 'Men', min: 6, max: 12, points: 'Best of 5 Sets (25 Points)', captain: null },
-            { name: 'Kabaddi', category: 'Men', min: 7, max: 12, points: 'Points', captain: null },
-            { name: 'Chess', category: 'Open', min: 1, max: 4, points: 'Board Points', captain: null },
-            { name: 'Table Tennis', category: 'Open', min: 1, max: 4, points: 'Best of 5 Sets (11 Points)', captain: null },
-            { name: 'Basketball', category: 'Men', min: 5, max: 12, points: 'Basket Points', captain: null }
+            { name: 'Cricket', category: 'Men', min: 11, max: 16, points: 'Runs and Wickets', captain: userMap['captain_cricket'], sport_type: 'Team' },
+            { name: 'Football', category: 'Men', min: 11, max: 18, points: 'Goals', captain: userMap['captain_football'], sport_type: 'Team' },
+            { name: 'Badminton', category: 'Open', min: 1, max: 4, points: 'Best of 3 Sets (21 Points)', captain: null, sport_type: 'Individual' },
+            { name: 'Volleyball', category: 'Men', min: 6, max: 12, points: 'Best of 5 Sets (25 Points)', captain: null, sport_type: 'Team' },
+            { name: 'Kabaddi', category: 'Men', min: 7, max: 12, points: 'Points', captain: null, sport_type: 'Team' },
+            { name: 'Chess', category: 'Open', min: 1, max: 4, points: 'Board Points', captain: null, sport_type: 'Individual' },
+            { name: 'Table Tennis', category: 'Open', min: 1, max: 4, points: 'Best of 5 Sets (11 Points)', captain: null, sport_type: 'Individual' },
+            { name: 'Basketball', category: 'Men', min: 5, max: 12, points: 'Basket Points', captain: null, sport_type: 'Team' },
+            { name: 'Athletics', category: 'Open', min: 1, max: 8, points: 'Track & Field Timings / Distances', captain: null, sport_type: 'Individual' }
         ];
 
         const sportMap = {};
@@ -540,17 +541,71 @@ export async function seedDatabase() {
             if (spExists.length) {
                 spId = spExists[0].sport_id;
                 await conn.execute(
-                    'UPDATE sports SET category = ?, min_players = ?, max_players = ?, points_rule = ?, captain_user_id = ? WHERE sport_id = ?',
-                    [sp.category, sp.min, sp.max, sp.points, sp.captain || null, spId]
+                    'UPDATE sports SET category = ?, min_players = ?, max_players = ?, points_rule = ?, captain_user_id = ?, sport_type = ? WHERE sport_id = ?',
+                    [sp.category, sp.min, sp.max, sp.points, sp.captain || null, sp.sport_type || 'Team', spId]
                 );
             } else {
                 const [res] = await conn.execute(
-                    'INSERT INTO sports (name, category, min_players, max_players, points_rule, captain_user_id) VALUES (?, ?, ?, ?, ?, ?)',
-                    [sp.name, sp.category, sp.min, sp.max, sp.points, sp.captain || null]
+                    'INSERT INTO sports (name, category, min_players, max_players, points_rule, captain_user_id, sport_type) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                    [sp.name, sp.category, sp.min, sp.max, sp.points, sp.captain || null, sp.sport_type || 'Team']
                 );
                 spId = res.insertId;
             }
             sportMap[sp.name] = spId;
+        }
+
+        // 4b. Seed Sport Categories (sub-events / disciplines)
+        console.log('[Seed 4b/15] Seeding Sport Categories...');
+        const sportCategoriesData = [
+            { sport: 'Athletics', name: '100m Sprint', sortOrder: 1 },
+            { sport: 'Athletics', name: '200m Sprint', sortOrder: 2 },
+            { sport: 'Athletics', name: '400m Run', sortOrder: 3 },
+            { sport: 'Athletics', name: '4x100m Relay', sortOrder: 4 },
+            { sport: 'Athletics', name: 'Shot Put', sortOrder: 5 },
+            { sport: 'Athletics', name: 'Long Jump', sortOrder: 6 },
+            { sport: 'Basketball', name: '5v5 Varsity Championship', sortOrder: 1 },
+            { sport: 'Basketball', name: '3x3 Half-Court Shootout', sortOrder: 2 },
+            { sport: 'Basketball', name: 'Free Throw Contest', sortOrder: 3 },
+            { sport: 'Badminton', name: 'Men Singles', sortOrder: 1 },
+            { sport: 'Badminton', name: 'Women Singles', sortOrder: 2 },
+            { sport: 'Badminton', name: 'Men Doubles', sortOrder: 3 },
+            { sport: 'Badminton', name: 'Mixed Doubles', sortOrder: 4 },
+            { sport: 'Cricket', name: 'T20 League Championship', sortOrder: 1 },
+            { sport: 'Cricket', name: 'Box Cricket Tournament', sortOrder: 2 },
+            { sport: 'Football', name: '11v11 College League', sortOrder: 1 },
+            { sport: 'Football', name: '7v7 Futsal Cup', sortOrder: 2 },
+            { sport: 'Volleyball', name: 'Standard 6v6 Men', sortOrder: 1 },
+            { sport: 'Volleyball', name: 'Beach Volleyball 2v2', sortOrder: 2 },
+            { sport: 'Kabaddi', name: 'Pro Kabaddi Style 7v7', sortOrder: 1 },
+            { sport: 'Chess', name: 'Rapid 15+10 Championship', sortOrder: 1 },
+            { sport: 'Chess', name: 'Blitz 5+3 Knockout', sortOrder: 2 },
+            { sport: 'Table Tennis', name: 'Singles Tournament', sortOrder: 1 },
+            { sport: 'Table Tennis', name: 'Doubles Championship', sortOrder: 2 }
+        ];
+
+        const categoryMap = {};
+        for (const cat of sportCategoriesData) {
+            const spId = sportMap[cat.sport];
+            if (!spId) continue;
+            const [catExists] = await conn.execute(
+                'SELECT category_id FROM sport_categories WHERE sport_id = ? AND name = ?',
+                [spId, cat.name]
+            );
+            let catId;
+            if (catExists.length) {
+                catId = catExists[0].category_id;
+                await conn.execute(
+                    'UPDATE sport_categories SET sort_order = ? WHERE category_id = ?',
+                    [cat.sortOrder, catId]
+                );
+            } else {
+                const [res] = await conn.execute(
+                    'INSERT INTO sport_categories (sport_id, name, sort_order) VALUES (?, ?, ?)',
+                    [spId, cat.name, cat.sortOrder]
+                );
+                catId = res.insertId;
+            }
+            categoryMap[`${cat.sport}:${cat.name}`] = catId;
         }
 
         // 5. Seed Venues
@@ -584,6 +639,7 @@ export async function seedDatabase() {
         console.log('[Seed 6/15] Seeding Tournaments...');
         const tournamentsData = [
             { name: 'NEC Intramural Sports Meet 2026', academicYear: '2025-2026', tier: 'Intramural', startDate: '2026-09-01', endDate: '2026-09-30', status: 'Ongoing' },
+            { name: 'Founders Memorial Sports Trophy 2026', academicYear: '2025-2026', tier: 'Inter-Collegiate', startDate: '2026-09-10', endDate: '2026-10-30', status: 'Ongoing' },
             { name: 'Anna University Zonal Tournament 2026', academicYear: '2025-2026', tier: 'Zonal', startDate: '2026-10-15', endDate: '2026-10-28', status: 'Upcoming' },
             { name: 'Inter-Collegiate State Trophy 2026', academicYear: '2025-2026', tier: 'Inter-Collegiate', startDate: '2026-11-05', endDate: '2026-11-20', status: 'Upcoming' }
         ];
@@ -611,6 +667,8 @@ export async function seedDatabase() {
         // 7. Seed Events
         console.log('[Seed 7/15] Seeding Tournament Events & Competitions...');
         const eventsData = [
+            { name: 'Annual Athletics Track & Field', sport: 'Athletics', category: 'Open', tour: 'Founders Memorial Sports Trophy 2026', status: 'Open' },
+            { name: 'Founders Memorial Basketball Open', sport: 'Basketball', category: 'Men', tour: 'Founders Memorial Sports Trophy 2026', status: 'Open' },
             { name: 'Inter-Dept T20 Cricket Trophy', sport: 'Cricket', category: 'Men', tour: 'NEC Intramural Sports Meet 2026', status: 'Open' },
             { name: 'Inter-Dept Football Championship', sport: 'Football', category: 'Men', tour: 'NEC Intramural Sports Meet 2026', status: 'Open' },
             { name: 'Men Singles & Doubles Badminton', sport: 'Badminton', category: 'Men', tour: 'NEC Intramural Sports Meet 2026', status: 'Open' },
@@ -637,6 +695,204 @@ export async function seedDatabase() {
                 evId = res.insertId;
             }
             eventMap[ev.name] = evId;
+        }
+
+        // 7b. Seed Event Competitions & Ranked Entries
+        console.log('[Seed 7b/15] Seeding Event Competitions & Ranked Entries...');
+        const competitionsData = [
+            {
+                event: 'Annual Athletics Track & Field',
+                sport: 'Athletics',
+                category: '100m Sprint',
+                name: 'Men 100m Sprint Final',
+                round: 'Final',
+                entrySize: 1,
+                scoring: 'Time',
+                unit: 'seconds',
+                scheduledTime: '2026-09-12 10:00:00',
+                status: 'Completed',
+                entries: [
+                    { dept: 'CSE', name: 'Arun Kumar M', resultStatus: 'Finished', resultValue: 10.82, athletes: ['2114002'] },
+                    { dept: 'MECH', name: 'Vignesh S', resultStatus: 'Finished', resultValue: 11.05, athletes: ['2114003'] },
+                    { dept: 'ECE', name: 'Karthik Raja P', resultStatus: 'Finished', resultValue: 11.24, athletes: ['2114004'] },
+                    { dept: 'IT', name: 'Praveen M', resultStatus: 'Finished', resultValue: 11.48, athletes: ['2114005'] },
+                    { dept: 'CIVIL', name: 'Sanjay K', resultStatus: 'Finished', resultValue: 11.80, athletes: ['2114006'] }
+                ]
+            },
+            {
+                event: 'Annual Athletics Track & Field',
+                sport: 'Athletics',
+                category: '200m Sprint',
+                name: 'Men 200m Sprint Heat 1',
+                round: 'Heat',
+                entrySize: 1,
+                scoring: 'Time',
+                unit: 'seconds',
+                scheduledTime: '2026-09-14 09:30:00',
+                status: 'Completed',
+                entries: [
+                    { dept: 'CSE', name: 'Arun Kumar M', resultStatus: 'Finished', resultValue: 22.40, athletes: ['2114002'] },
+                    { dept: 'ECE', name: 'Karthik Raja P', resultStatus: 'Finished', resultValue: 22.85, athletes: ['2114004'] },
+                    { dept: 'EEE', name: 'Dinesh Kumar T', resultStatus: 'Finished', resultValue: 23.30, athletes: ['2114007'] }
+                ]
+            },
+            {
+                event: 'Annual Athletics Track & Field',
+                sport: 'Athletics',
+                category: 'Shot Put',
+                name: 'Shot Put Championship Final',
+                round: 'Final',
+                entrySize: 1,
+                scoring: 'Distance',
+                unit: 'metres',
+                scheduledTime: '2026-09-15 14:00:00',
+                status: 'Completed',
+                entries: [
+                    { dept: 'MECH', name: 'Vignesh S', resultStatus: 'Finished', resultValue: 13.45, athletes: ['2114003'] },
+                    { dept: 'CIVIL', name: 'Sanjay K', resultStatus: 'Finished', resultValue: 12.80, athletes: ['2114006'] },
+                    { dept: 'EEE', name: 'Dinesh Kumar T', resultStatus: 'Finished', resultValue: 12.10, athletes: ['2114007'] }
+                ]
+            },
+            {
+                event: 'Annual Athletics Track & Field',
+                sport: 'Athletics',
+                category: 'Long Jump',
+                name: 'Long Jump Finals',
+                round: 'Final',
+                entrySize: 1,
+                scoring: 'Distance',
+                unit: 'metres',
+                scheduledTime: '2026-09-16 11:00:00',
+                status: 'Ongoing',
+                entries: [
+                    { dept: 'CSE', name: 'Arun Kumar M', resultStatus: 'Finished', resultValue: 6.85, athletes: ['2114002'] },
+                    { dept: 'IT', name: 'Praveen M', resultStatus: 'Finished', resultValue: 6.60, athletes: ['2114005'] },
+                    { dept: 'AI-DS', name: 'Ram Prasath V', resultStatus: 'Pending', resultValue: null, athletes: ['2114008'] }
+                ]
+            },
+            {
+                event: 'Founders Memorial Basketball Open',
+                sport: 'Basketball',
+                category: '3x3 Half-Court Shootout',
+                name: 'Founders Memorial 3x3 Shootout',
+                round: 'Semi-Final',
+                entrySize: 1,
+                scoring: 'Points',
+                unit: 'points',
+                scheduledTime: '2026-09-20 15:30:00',
+                status: 'Ongoing',
+                entries: [
+                    { dept: 'CSE', name: 'Arun Kumar M', resultStatus: 'Finished', resultValue: 21, athletes: ['2114002'] },
+                    { dept: 'MECH', name: 'Vignesh S', resultStatus: 'Finished', resultValue: 18, athletes: ['2114003'] },
+                    { dept: 'ECE', name: 'Karthik Raja P', resultStatus: 'Pending', resultValue: null, athletes: ['2114004'] }
+                ]
+            },
+            {
+                event: 'Founders Memorial Basketball Open',
+                sport: 'Basketball',
+                category: '5v5 Varsity Championship',
+                name: 'Varsity Basketball 5v5 Championship Final',
+                round: 'Final',
+                entrySize: 1,
+                scoring: 'Points',
+                unit: 'points',
+                scheduledTime: '2026-10-25 17:00:00',
+                status: 'Scheduled',
+                entries: [
+                    { dept: 'CSE', name: 'Arun Kumar M', resultStatus: 'Pending', resultValue: null, athletes: ['2114002'] },
+                    { dept: 'MECH', name: 'Vignesh S', resultStatus: 'Pending', resultValue: null, athletes: ['2114003'] }
+                ]
+            },
+            {
+                event: 'Men Singles & Doubles Badminton',
+                sport: 'Badminton',
+                category: 'Men Singles',
+                name: 'Men Badminton Singles Semi-Final A',
+                round: 'Semi-Final',
+                entrySize: 1,
+                scoring: 'Points',
+                unit: 'points',
+                scheduledTime: '2026-10-28 10:30:00',
+                status: 'Scheduled',
+                entries: [
+                    { dept: 'IT', name: 'Praveen M', resultStatus: 'Pending', resultValue: null, athletes: ['2114005'] },
+                    { dept: 'ECE', name: 'Karthik Raja P', resultStatus: 'Pending', resultValue: null, athletes: ['2114004'] }
+                ]
+            },
+            {
+                event: 'Open Campus Chess Championship',
+                sport: 'Chess',
+                category: 'Rapid 15+10 Championship',
+                name: 'Open Campus Rapid Chess Qualifier',
+                round: 'Qualifier',
+                entrySize: 1,
+                scoring: 'Points',
+                unit: 'points',
+                scheduledTime: '2026-11-02 09:00:00',
+                status: 'Scheduled',
+                entries: [
+                    { dept: 'AI-DS', name: 'Ram Prasath V', resultStatus: 'Pending', resultValue: null, athletes: ['2114008'] }
+                ]
+            }
+        ];
+
+        for (const comp of competitionsData) {
+            const evId = eventMap[comp.event];
+            const catId = categoryMap[`${comp.sport}:${comp.category}`];
+            if (!evId || !catId) continue;
+
+            const [compExists] = await conn.execute(
+                'SELECT competition_id FROM sport_competitions WHERE event_id = ? AND name = ?',
+                [evId, comp.name]
+            );
+            let compId;
+            if (compExists.length) {
+                compId = compExists[0].competition_id;
+                await conn.execute(
+                    'UPDATE sport_competitions SET category_id = ?, round = ?, entry_size = ?, scoring = ?, unit = ?, scheduled_time = ?, status = ? WHERE competition_id = ?',
+                    [catId, comp.round, comp.entrySize, comp.scoring, comp.unit, comp.scheduledTime, comp.status, compId]
+                );
+            } else {
+                const [res] = await conn.execute(
+                    'INSERT INTO sport_competitions (event_id, category_id, name, round, entry_size, scoring, unit, scheduled_time, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                    [evId, catId, comp.name, comp.round, comp.entrySize, comp.scoring, comp.unit, comp.scheduledTime, comp.status]
+                );
+                compId = res.insertId;
+            }
+
+            // Seed entries
+            for (const en of comp.entries) {
+                const deptId = deptMap[en.dept] || deptMap['CSE'];
+                const [entryExists] = await conn.execute(
+                    'SELECT entry_id FROM competition_entries WHERE competition_id = ? AND name = ?',
+                    [compId, en.name]
+                );
+                let entryId;
+                if (entryExists.length) {
+                    entryId = entryExists[0].entry_id;
+                    await conn.execute(
+                        'UPDATE competition_entries SET department_id = ?, result_status = ?, result_value = ? WHERE entry_id = ?',
+                        [deptId, en.resultStatus, en.resultValue, entryId]
+                    );
+                } else {
+                    const [res] = await conn.execute(
+                        'INSERT INTO competition_entries (competition_id, department_id, name, result_status, result_value) VALUES (?, ?, ?, ?, ?)',
+                        [compId, deptId, en.name, en.resultStatus, en.resultValue]
+                    );
+                    entryId = res.insertId;
+                }
+
+                // Seed entry members
+                for (const roll of en.athletes) {
+                    const studentId = studentMap[roll];
+                    if (studentId) {
+                        await conn.execute(
+                            'INSERT IGNORE INTO competition_entry_members (entry_id, competition_id, student_id) VALUES (?, ?, ?)',
+                            [entryId, compId, studentId]
+                        );
+                    }
+                }
+            }
         }
 
         // 8. Seed Teams

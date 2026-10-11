@@ -98,6 +98,34 @@ export const updateCompetition = async (req,res,next) => {
             const [[counts]] = await connection.execute("SELECT COUNT(*) total,SUM(result_status='Pending') pending FROM competition_entries WHERE competition_id=?",[req.params.id]);
             if (!counts.total || (req.body.status==='Completed' && Number(counts.pending)>0)) fail('Enter all results before completing the competition.',409);
             await connection.execute('UPDATE sport_competitions SET status=? WHERE competition_id=?',[req.body.status,req.params.id]);
+        } else if (req.body.name || req.body.round || req.body.scheduledTime || req.body.categoryId || req.body.unit || req.body.scoring || req.body.entrySize) {
+            if (!managers.includes(req.user.role)) fail('Only sports managers can update competition details.',403);
+            if (competition.status !== 'Scheduled') fail('Only scheduled competitions can be edited.',409);
+
+            const name = req.body.name !== undefined ? String(req.body.name).trim() : competition.name;
+            const round = req.body.round !== undefined ? String(req.body.round).trim() : competition.round;
+            const entrySize = req.body.entrySize !== undefined ? Number(req.body.entrySize) : competition.entry_size;
+            const scoring = req.body.scoring !== undefined ? req.body.scoring : competition.scoring;
+            const unit = req.body.unit !== undefined ? String(req.body.unit).trim() : competition.unit;
+            const scheduledTime = req.body.scheduledTime ? String(req.body.scheduledTime).replace('T', ' ') : competition.scheduled_time;
+            const categoryId = req.body.categoryId ? Number(req.body.categoryId) : competition.category_id;
+
+            if (!name || name.length > 120 || !['Time','Distance','Points'].includes(scoring) || !Number.isInteger(entrySize) || entrySize < 1 || entrySize > 30 || !unit || unit.length > 20 || !scheduledTime || Number.isNaN(Date.parse(scheduledTime)) || round.length > 60) {
+                fail('Enter valid competition details.');
+            }
+
+            if (req.body.categoryId) {
+                const [[catCheck]] = await connection.execute(
+                    'SELECT e.event_id FROM events e JOIN sport_categories sc ON sc.sport_id=e.sport_id WHERE e.event_id=? AND sc.category_id=?',
+                    [competition.event_id, categoryId]
+                );
+                if (!catCheck) fail('Select a category belonging to the event sport.');
+            }
+
+            await connection.execute(
+                'UPDATE sport_competitions SET name=?, round=?, entry_size=?, scoring=?, unit=?, scheduled_time=?, category_id=? WHERE competition_id=?',
+                [name, round, entrySize, scoring, unit, scheduledTime, categoryId, req.params.id]
+            );
         } else {
             if (competition.status!=='Ongoing') fail('Results can only be updated during an ongoing competition.',409);
             const { entryId,resultStatus,resultValue } = req.body;

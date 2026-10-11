@@ -1,5 +1,6 @@
-﻿import fs from 'fs';
+import fs from 'fs';
 import path from 'path';
+import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'url';
 import mysql from 'mysql2/promise';
 import { getDatabaseConfig } from '../config/databaseConfig.js';
@@ -76,6 +77,26 @@ async function runMigrations() {
             console.log('✅ Database is already up to date. No new migrations to run.');
         } else {
             console.log('🎉 All migrations completed successfully.');
+        }
+
+        // 5. Ensure cloud/local database has canonical sports, categories & competitions
+        try {
+            if (process.env.NODE_ENV !== 'test') {
+                const [tables] = await connection.query("SHOW TABLES LIKE 'sport_categories'");
+                if (tables.length > 0) {
+                    const [countRows] = await connection.query("SELECT COUNT(*) count FROM sport_categories");
+                    if (countRows[0]?.count === 0 || process.env.AUTO_SEED === 'true') {
+                        console.log('⚡ Initializing canonical seed data for database...');
+                        const seedScript = path.resolve(__dirname, '../data/seedData.js');
+                        const res = spawnSync(process.execPath, [seedScript], { env: process.env, stdio: 'inherit' });
+                        if (res.status === 0) {
+                            console.log('✅ Canonical database seed completed.');
+                        }
+                    }
+                }
+            }
+        } catch (seedErr) {
+            console.warn('⚠️ Canonical seed check notice:', seedErr.message);
         }
 
     } catch (error) {

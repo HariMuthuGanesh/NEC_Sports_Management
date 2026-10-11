@@ -121,10 +121,27 @@ export const deleteSport = async (sportId) => {
 
 // ---- Per-sport categories (sub-events such as Athletics: 100m, 200m) ----
 export const getSportCategories = async (sportId) => {
-    const [rows] = await pool.execute(
+    let [rows] = await pool.execute(
         'SELECT category_id, sport_id, name, sort_order FROM sport_categories WHERE sport_id = ? ORDER BY sort_order ASC, name ASC',
         [sportId]
     );
+    if (!rows.length) {
+        const [[sport]] = await pool.execute('SELECT sport_id FROM sports WHERE sport_id = ?', [sportId]);
+        if (sport) {
+            try {
+                await pool.execute(
+                    'INSERT IGNORE INTO sport_categories (sport_id, name, sort_order) VALUES (?, ?, ?)',
+                    [sportId, 'Open', 1]
+                );
+                [rows] = await pool.execute(
+                    'SELECT category_id, sport_id, name, sort_order FROM sport_categories WHERE sport_id = ? ORDER BY sort_order ASC, name ASC',
+                    [sportId]
+                );
+            } catch {
+                // Ignore duplicate error if parallel request inserted
+            }
+        }
+    }
     return rows;
 };
 
