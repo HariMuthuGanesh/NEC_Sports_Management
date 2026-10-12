@@ -88,6 +88,7 @@
   gap: 8px;
   margin-bottom: 6px;
   min-height: 28px;
+  flex-shrink: 0;
 }
 
 .nec-sidebar-head-spacer {
@@ -150,7 +151,6 @@
 .nec-sidebar-icon-btn:focus-visible,
 .nec-nav-item:focus-visible,
 .nec-nav-group-btn:focus-visible,
-.nec-flyout-item:focus-visible,
 .nec-theme-option:focus-visible {
   outline: 2px solid var(--nec-accent);
   outline-offset: 2px;
@@ -180,7 +180,7 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  overflow-x: visible;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
   gap: 3px;
@@ -189,6 +189,7 @@
 }
 
 .nec-nav-list {
+  flex-shrink: 0;
   list-style: none;
   margin: 0;
   padding: 0;
@@ -209,6 +210,7 @@
 }
 
 .nec-nav-group {
+  flex-shrink: 0;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -303,7 +305,15 @@
   min-width: 0;
 }
 
-/* Icon rail: centre icons, hide labels, tooltips on hover */
+/* Give the rail its full width, including room for a vertical scrollbar. */
+.nec-sidebar.is-rail .nec-sidebar-nav {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 2px 4px;
+  scrollbar-gutter: stable both-edges;
+}
+
+/* Icon rail: every destination remains directly accessible. */
 .nec-sidebar.is-rail .nec-nav-item,
 .nec-sidebar.is-rail .nec-nav-group-btn {
   justify-content: center;
@@ -353,62 +363,9 @@
   transform: translate(0, -50%);
 }
 
-/* Flyout for groups in rail mode */
-.nec-flyout {
-  position: absolute;
-  left: calc(100% + 10px);
-  top: -4px;
-  min-width: 210px;
-  background: var(--nec-surface);
-  border: 1px solid var(--nec-border);
-  border-radius: 12px;
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.16);
-  padding: 8px;
-  z-index: 70;
-  animation: nec-flyout-in 200ms var(--nec-sb-ease);
-}
-
-@keyframes nec-flyout-in {
-  from { opacity: 0; transform: translateX(-6px); }
-  to { opacity: 1; transform: translateX(0); }
-}
-
-.nec-flyout-title {
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--nec-text-light);
-  padding: 6px 10px 8px;
-}
-
-.nec-flyout-item {
-  display: block;
-  width: 100%;
-  padding: 9px 10px;
-  border: none;
-  background: transparent;
-  border-radius: 8px;
-  color: var(--nec-text-muted);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-  transition: background-color 200ms, color 200ms;
-}
-
-.nec-flyout-item:hover {
-  background: var(--nec-surface-raised);
-  color: var(--nec-text-main);
-}
-
-.nec-flyout-item.active {
-  background: var(--nec-surface-hover);
-  color: var(--nec-text-main);
-  font-weight: 600;
-}
-
 /* ---------- Footer ---------- */
 .nec-sidebar-footer {
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   gap: 6px;

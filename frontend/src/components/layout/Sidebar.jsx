@@ -9,9 +9,9 @@ import { useToast } from "../../context/ToastContext";
 import "./Sidebar.css";
 
 // Sidebar modes:
-//  - "docked": persistent column on desktop. Expanded, or collapsed to an icon rail with flyouts.
+//  - "docked": persistent column on desktop. Expanded, or collapsed to an icon rail.
 //  - "drawer": full-height overlay on small screens, opened from the header toggle.
-// Multi-item categories become collapsible groups. In rail mode each group opens a flyout.
+// Expanded categories collapse independently. The rail keeps every destination accessible.
 
 function NavButton({ item, active, showLabel, onActivate }) {
   const Icon = item.icon;
@@ -21,11 +21,11 @@ function NavButton({ item, active, showLabel, onActivate }) {
       className={`nec-nav-item ${active ? "active" : ""}`}
       aria-current={active ? "page" : undefined}
       aria-label={showLabel ? undefined : item.label}
+      title={showLabel ? undefined : item.label}
       onClick={() => onActivate(item.id)}
     >
       <Icon className="nec-nav-icon" size={18} aria-hidden="true" />
       {showLabel && <span className="nec-nav-label">{item.label}</span>}
-      {!showLabel && <span className="nec-rail-tooltip" aria-hidden="true">{item.label}</span>}
     </button>
   );
 }
@@ -287,7 +287,6 @@ export default function Sidebar({
   const profileSub = currentUser?.dept || currentUser?.role || "";
   const isPublic = currentUser?.role === ROLES.PUBLIC;
   const [openGroups, setOpenGroups] = useState({});
-  const [flyoutKey, setFlyoutKey] = useState(null);
 
   // Group is open unless the user closed it. The group holding the active page always opens.
   const isGroupOpen = (key) => openGroups[key] !== false;
@@ -298,12 +297,9 @@ export default function Sidebar({
     if (owner) setOpenGroups(prev => (prev[owner.category] === false ? { ...prev, [owner.category]: true } : prev));
   }, [activeNav]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => { setFlyoutKey(null); }, [collapsed, variant]);
-
   const activate = (id) => {
     onSelectNav(id);
     if (isDrawer) onCloseDrawer?.();
-    setFlyoutKey(null);
   };
 
   const showLabel = !isRail;
@@ -324,7 +320,7 @@ export default function Sidebar({
         style={isDrawer ? undefined : { width: isRail ? RAIL_W : width, minWidth: isRail ? RAIL_W : width }}
         aria-label="Main navigation"
         aria-hidden={isHidden ? "true" : undefined}
-        {...(isHidden ? { inert: "" } : {})}
+        inert={isHidden}
       >
         <div className="nec-sidebar-inner">
           <div className="nec-sidebar-head nec-sidebar-head--blank">
@@ -350,88 +346,42 @@ export default function Sidebar({
 
           <nav id="nec-sidebar-nav" className="nec-sidebar-nav" aria-label="Sections">
             {navGroups.map((group) => {
-              const single = group.items.length === 1;
-              if (single) {
-                const item = group.items[0];
+              if (isRail || group.items.length === 1) {
                 return (
-                  <ul key={group.category} className="nec-nav-list">
-                    <li className="nec-nav-li">
-                      <NavButton item={item} active={activeNav === item.id} showLabel={showLabel} onActivate={activate} />
-                    </li>
+                  <ul key={group.category} className="nec-nav-list" aria-label={group.category}>
+                    {group.items.map(item => (
+                      <li key={item.id} className="nec-nav-li">
+                        <NavButton item={item} active={activeNav === item.id} showLabel={showLabel} onActivate={activate} />
+                      </li>
+                    ))}
                   </ul>
                 );
               }
               const open = isGroupOpen(group.category);
-              const GroupIcon = group.items.find(i => i.id === activeNav)?.icon || group.items[0].icon;
               const hasActive = group.items.some(i => i.id === activeNav);
-              const flyoutOpen = isRail && flyoutKey === group.category;
               return (
-                <div
-                  key={group.category}
-                  className={`nec-nav-group ${hasActive ? "has-active" : ""}`}
-                  onMouseLeave={() => isRail && setFlyoutKey(k => (k === group.category ? null : k))}
-                  onKeyDown={(e) => { if (e.key === "Escape") setFlyoutKey(null); }}
-                  onBlur={(e) => {
-                    if (isRail && !e.currentTarget.contains(e.relatedTarget)) setFlyoutKey(k => (k === group.category ? null : k));
-                  }}
-                >
-                  {isRail ? (
-                    <>
-                      <button
-                        type="button"
-                        className={`nec-nav-item nec-nav-group-btn ${hasActive ? "active" : ""}`}
-                        aria-haspopup="menu"
-                        aria-expanded={flyoutOpen}
-                        aria-label={group.category}
-                        onMouseEnter={() => setFlyoutKey(group.category)}
-                        onClick={() => setFlyoutKey(k => (k === group.category ? null : group.category))}
-                      >
-                        <GroupIcon className="nec-nav-icon" size={18} aria-hidden="true" />
-                        <span className="nec-rail-tooltip" aria-hidden="true">{group.category}</span>
-                      </button>
-                      {flyoutOpen && (
-                        <div className="nec-flyout" role="menu" aria-label={group.category}>
-                          <div className="nec-flyout-title">{group.category}</div>
-                          {group.items.map(item => (
-                            <button
-                              key={item.id}
-                              type="button"
-                              role="menuitem"
-                              className={`nec-flyout-item ${activeNav === item.id ? "active" : ""}`}
-                              aria-current={activeNav === item.id ? "page" : undefined}
-                              onClick={() => activate(item.id)}
-                            >
-                              {item.label}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      <button
-                        type="button"
-                        className="nec-nav-group-btn nec-nav-category"
-                        aria-expanded={open}
-                        aria-controls={`nec-group-${group.category.replace(/\W+/g, "-")}`}
-                        onClick={() => toggleGroup(group.category)}
-                      >
-                        <span>{group.category}</span>
-                        <ChevronDown size={14} className={`nec-group-chevron ${open ? "open" : ""}`} aria-hidden="true" />
-                      </button>
-                      <ul
-                        id={`nec-group-${group.category.replace(/\W+/g, "-")}`}
-                        className={`nec-nav-list nec-nav-sub ${open ? "open" : ""}`}
-                        hidden={!open}
-                      >
-                        {group.items.map(item => (
-                          <li key={item.id} className="nec-nav-li">
-                            <NavButton item={item} active={activeNav === item.id} showLabel onActivate={activate} />
-                          </li>
-                        ))}
-                      </ul>
-                    </>
-                  )}
+                <div key={group.category} className={`nec-nav-group ${hasActive ? "has-active" : ""}`}>
+                  <button
+                    type="button"
+                    className="nec-nav-group-btn nec-nav-category"
+                    aria-expanded={open}
+                    aria-controls={`nec-group-${group.category.replace(/\W+/g, "-")}`}
+                    onClick={() => toggleGroup(group.category)}
+                  >
+                    <span>{group.category}</span>
+                    <ChevronDown size={14} className={`nec-group-chevron ${open ? "open" : ""}`} aria-hidden="true" />
+                  </button>
+                  <ul
+                    id={`nec-group-${group.category.replace(/\W+/g, "-")}`}
+                    className={`nec-nav-list nec-nav-sub ${open ? "open" : ""}`}
+                    hidden={!open}
+                  >
+                    {group.items.map(item => (
+                      <li key={item.id} className="nec-nav-li">
+                        <NavButton item={item} active={activeNav === item.id} showLabel onActivate={activate} />
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               );
             })}

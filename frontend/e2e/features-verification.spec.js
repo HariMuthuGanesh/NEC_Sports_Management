@@ -33,10 +33,8 @@ test.describe('New Enhancements Verification', () => {
 
   test('2. Public Live Scores and player scorers modal', async ({ page }) => {
     await page.goto('/');
-    await page.evaluate(() => {
-      sessionStorage.setItem('nec_sports_active_nav', 'public_live_scores');
-    });
-    await page.reload();
+    await page.getByRole('navigation', { name: 'Sections' })
+      .getByRole('button', { name: 'Live Scores', exact: true }).click();
 
     await expect(page.locator('.nec-portal-page')).toBeVisible();
 
