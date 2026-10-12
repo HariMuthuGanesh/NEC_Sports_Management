@@ -141,7 +141,7 @@ export default function AdminDashboard({ onNavigate }) {
             <Card
               title={t.administrativeTasks || "Administrative Tasks"}
               subtitle={`${stats.pendingApprovals} pending team requests require PT Sir approval`}
-              action={
+              headerAction={
                 <Button variant="ghost" size="sm" icon={ArrowRight} onClick={() => onNavigate("admin_teams")}>
                   Review All
                 </Button>
