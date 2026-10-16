@@ -181,7 +181,7 @@ export default function Header({ onToggleSidebar, isSidebarOpen, onSelectNav, ac
         </button>
 
         {/* Guests get a sign-in button. Signed-in users see their profile and log out in the sidebar. */}
-        {currentUser.role === ROLES.PUBLIC && (
+        {currentUser.role === ROLES.PUBLIC && activeNav !== "public_home" && (
           <button
             className="nec-header-signin-btn"
             onClick={() => onSelectNav?.("login")}

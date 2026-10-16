@@ -7,7 +7,7 @@ import Button from "../../components/common/Button";
 import ErrorState from "../../components/common/ErrorState";
 import SkeletonLoader from "../../components/common/SkeletonLoader";
 import PublicInfoCard from "../../components/common/PublicInfoCard";
-import { Trophy, Users, Radio, Calendar, Megaphone, ArrowRight, LogIn, FileCheck } from "lucide-react";
+import { Trophy, Users, Radio, Calendar, Megaphone, ArrowRight, FileCheck } from "lucide-react";
 import { useAutoRefresh } from "../../hooks/useAutoRefresh";
 import "./PublicPortal.css";
 
@@ -72,11 +72,7 @@ export default function PublicHome({ onNavigate }) {
             <Button variant="white" icon={Calendar} onClick={() => onNavigate("public_fixtures")}>
               📅 View Tournament Schedules
             </Button>
-            {currentUser.role === ROLES.PUBLIC ? (
-              <Button variant="primary" icon={LogIn} onClick={() => onNavigate("login")}>
-                {t.login || "Portal Sign In"}
-              </Button>
-            ) : (
+            {currentUser.role !== ROLES.PUBLIC && (
               <Button variant="primary" onClick={() => onNavigate(currentUser.role === ROLES.ADMIN ? "admin_dash" : currentUser.role === ROLES.COORDINATOR ? "coord_dash" : "player_dash")}>
                 Go to Dashboard
               </Button>

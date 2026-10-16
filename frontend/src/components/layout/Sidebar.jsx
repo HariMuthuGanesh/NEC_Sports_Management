@@ -400,7 +400,7 @@ export default function Sidebar({
             </div>
 
             {/* User Profile / Admin card or Guest Sign-in — placed directly above Settings */}
-            {isPublic ? (
+            {isPublic ? (activeNav !== "public_home" && (
               <button
                 type="button"
                 className="nec-sidebar-profile nec-sidebar-signin"
@@ -416,7 +416,7 @@ export default function Sidebar({
                 )}
                 {!showLabel && <span className="nec-rail-tooltip" aria-hidden="true">Sign in</span>}
               </button>
-            ) : (
+            )) : (
               <div className="nec-sidebar-user-card" title={profileName}>
                 <div className="nec-sidebar-profile">
                   <span className="nec-sidebar-avatar" aria-hidden="true"><User size={16} /></span>
