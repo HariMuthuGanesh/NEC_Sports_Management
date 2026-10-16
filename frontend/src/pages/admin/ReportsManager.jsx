@@ -1,26 +1,14 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef } from "react";
 import { Card } from "../../components/common/Card";
 import Button from "../../components/common/Button";
-import Table from "../../components/common/Table";
-import { FileText, Printer, Download, Award, Trophy, RefreshCw } from "lucide-react";
+import { FileText, Download, Award, Trophy } from "lucide-react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
-import { reportsApi } from "../../services/api/apiServices";
-import ErrorState from "../../components/common/ErrorState";
+import ActivityReport from "./ActivityReport";
 import "./AdminPortal.css";
 
 export default function ReportsManager() {
   const [activeTab, setActiveTab] = useState("reports");
-  const [timeframe, setTimeframe] = useState("1month");
-  const [fromDate, setFromDate] = useState("");
-  const [toDate, setToDate] = useState("");
-  const [activities, setActivities] = useState([]);
-  const [events, setEvents] = useState([]);
-  const [reportData, setReportData] = useState([]);
-  const [summaryData, setSummaryData] = useState({});
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
   // Certificate State
   const [certName, setCertName] = useState("");
   const [certSport, setCertSport] = useState("Basketball");
@@ -28,66 +16,6 @@ export default function ReportsManager() {
   const [generating, setGenerating] = useState(false);
 
   const certRef = useRef(null);
-  const reportRef = useRef(null);
-
-  const loadReport = async () => {
-    if (timeframe === "custom" && (!fromDate || !toDate)) {
-      setError("Select both dates.");
-      setLoading(false);
-      return;
-    }
-    if (timeframe === "custom" && fromDate > toDate) {
-      setError("From date must be on or before the to date.");
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    try {
-      const params = timeframe === "custom" ? { from: fromDate, to: toDate } : { timeframe };
-      const report = await reportsApi.getPerformanceReport(params);
-      const rows = Array.isArray(report?.departments) ? report.departments : [];
-      const mapped = rows.map((r, i) => ({
-        rank: r.rank ?? i + 1,
-        dept: r.name,
-        code: r.code,
-        totalEvents: r.totalEvents,
-        wins: r.wins,
-        gold: r.gold,
-        silver: r.silver,
-        bronze: r.bronze,
-        points: r.points,
-        participation: r.participation ?? null
-      }));
-      setReportData(mapped);
-      setActivities(report.activities || []);
-      setEvents(report.events || []);
-      setSummaryData({
-        totalCompleted: report?.summary?.totalCompleted ?? null,
-        totalScheduled: report?.summary?.totalScheduled ?? null
-      });
-    } catch (err) {
-      console.error(err);
-      setError(err.message || "Failed to load performance report");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadReport();
-  }, [timeframe, fromDate, toDate]);
-
-  const columns = [
-    { key: "rank", label: "Rank", width: "70px", render: (val) => <strong>#{val}</strong> },
-    { key: "dept", label: "Department", render: (val, row) => <strong>{val} ({row.code})</strong> },
-    { key: "totalEvents", label: "Matches Completed", width: "130px" },
-    { key: "wins", label: "Victories", width: "90px" },
-    { key: "gold", label: "🥇 Gold", width: "90px" },
-    { key: "silver", label: "🥈 Silver", width: "90px" },
-    { key: "bronze", label: "🥉 Bronze", width: "90px" },
-    { key: "points", label: "Total Points", width: "110px", render: (val) => <strong>{val} pts</strong> },
-    { key: "participation", label: "Athlete Activity", width: "140px", render: (val) => val ?? "—" }
-  ];
 
   const generatePDF = async (elementRef, filename) => {
     if (!elementRef.current) return;
@@ -113,20 +41,6 @@ export default function ReportsManager() {
     }
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
-
-  const timeframeLabel = timeframe === "custom"
-    ? `${fromDate || "?"} to ${toDate || "?"}`
-    : timeframe === "weekly" ? "Past 7 Days" : timeframe === "1month"
-    ? "Monthly"
-    : timeframe === "6months"
-    ? "Past 6 Months (Semester)"
-    : timeframe === "12months"
-    ? "Past 12 Months (Annual Audit)"
-    : "All Time Cumulative";
-
   return (
     <div className="nec-portal-page">
       <div className="nec-page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
@@ -135,7 +49,7 @@ export default function ReportsManager() {
         </div>
         <div style={{ display: "flex", gap: "8px" }}>
           <Button variant={activeTab === "reports" ? "primary" : "outline"} icon={FileText} onClick={() => setActiveTab("reports")}>
-            Performance Reports
+            Activity Reports
           </Button>
           <Button variant={activeTab === "certificates" ? "primary" : "outline"} icon={Award} onClick={() => setActiveTab("certificates")}>
             Certificates
@@ -143,95 +57,7 @@ export default function ReportsManager() {
         </div>
       </div>
 
-      {activeTab === "reports" && (
-        <>
-          <div className="nec-card" style={{ padding: "14px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
-            <div style={{ display: "flex", gap: "16px", alignItems: "center", flexWrap: "wrap" }}>
-              <div>
-                <label style={{ fontWeight: 600, marginRight: "8px" }}>Audit Timeframe:</label>
-                <select
-                  className="nec-table-search-input"
-                  style={{ display: "inline-block", width: "auto" }}
-                  value={timeframe}
-                  onChange={(e) => setTimeframe(e.target.value)}
-                >
-                  <option value="weekly">Weekly</option>
-                  <option value="1month">Monthly</option>
-                  <option value="6months">Past 6 Months (Semester Audit)</option>
-                  <option value="12months">Past 12 Months (Annual Report)</option>
-                  <option value="all">All-Time Cumulative</option>
-                  <option value="custom">Custom date range</option>
-                </select>
-                {timeframe === "custom" && (
-                  <span style={{ display: "inline-flex", gap: "6px", alignItems: "center", marginLeft: "8px" }}>
-                    <input type="date" className="nec-table-search-input" style={{ width: "auto" }} value={fromDate} max={toDate || undefined} onChange={(e) => setFromDate(e.target.value)} aria-label="From date" />
-                    <span>to</span>
-                    <input type="date" className="nec-table-search-input" style={{ width: "auto" }} value={toDate} min={fromDate || undefined} onChange={(e) => setToDate(e.target.value)} aria-label="To date" />
-                  </span>
-                )}
-              </div>
-
-
-            </div>
-
-            <div style={{ display: "flex", gap: "8px" }}>
-              <Button variant="outline" icon={RefreshCw} onClick={loadReport} loading={loading}>Refresh</Button>
-              <Button variant="outline" icon={Printer} onClick={handlePrint}>Print</Button>
-              <Button variant="primary" icon={Download} onClick={() => generatePDF(reportRef, `NEC_Sports_Report_${timeframe}.pdf`)} loading={generating}>
-                Export PDF
-              </Button>
-            </div>
-          </div>
-
-          {error ? (
-            <div style={{ padding: "40px" }}>
-              <ErrorState onRetry={loadReport} />
-            </div>
-          ) : (
-            <Card title={`Official Audit Preview: ${timeframeLabel}`}>
-              <div ref={reportRef} style={{ padding: "24px", backgroundColor: "#fff", color: "#111" }}>
-                <div style={{ textAlign: "center", marginBottom: "20px" }}>
-                  <h2 style={{ margin: 0, color: "var(--nec-navy, #1e3a8a)", textTransform: "uppercase" }}>National Engineering College</h2>
-                  <p style={{ margin: "4px 0", color: "#444", fontSize: "0.9rem" }}>Kovilpatti — 628 503, Tamil Nadu | Department of Physical Education</p>
-                  <h4 style={{ margin: "12px 0 4px", borderBottom: "2px solid var(--nec-gold, #f59e0b)", display: "inline-block", paddingBottom: "4px" }}>
-                    Department Sports Performance & Medal Tally Report ({timeframeLabel})
-                  </h4>
-                  <div style={{ fontSize: "0.8rem", color: "#666", marginTop: "4px" }}>
-                    Completed Fixtures in Scope: <strong>{summaryData.totalCompleted ?? "—"}</strong> | Total Matches: <strong>{summaryData.totalScheduled ?? "—"}</strong>
-                  </div>
-                </div>
-
-                <Table
-                  pageSize={Math.max(reportData.length, 1)}
-                  columns={columns}
-                  data={reportData}
-                  searchable={false}
-                  loading={loading}
-                />
-
-                <h3>Sports Conducted and Participation</h3>
-                <Table searchable={false} pageSize={Math.max(activities.length,1)} data={activities} columns={[
-                  {key:'date',label:'Date',render:v=>v ? new Date(v).toLocaleDateString('en-IN') : '?'},
-                  {key:'sport',label:'Sport'}, {key:'category',label:'Category'}, {key:'tournament',label:'Tournament'},
-                  {key:'team_a',label:'Match / Event',render:(v,r)=>r.team_b ? `${v} vs ${r.team_b}` : v},
-                  {key:'round',label:'Round'}, {key:'status',label:'Status'}, {key:'participated',label:'Participated'},
-                  {key:'participants',label:'Athletes'}, {key:'winner',label:'Winner'}, {key:'runner',label:'Runner-up'}
-                ]} />
-                <h3>Events</h3>
-                <Table searchable={false} pageSize={Math.max(events.length,1)} data={events} columns={[
-                  {key:'name',label:'Event'}, {key:'sport',label:'Sport'}, {key:'registration_status',label:'Registration'},
-                  {key:'registered_teams',label:'Teams'}, {key:'individual_entries',label:'Individual entries'}
-                ]} />
-
-                <div style={{ marginTop: "40px", display: "flex", justifyContent: "space-between", color: "#555", fontSize: "0.85rem", borderTop: "1px solid #e2e8f0", paddingTop: "14px" }}>
-                  <p>Report Generated On: {new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })}</p>
-                  <p>Authorized Signatory: <strong>Director of Physical Education, NEC</strong></p>
-                </div>
-              </div>
-            </Card>
-          )}
-        </>
-      )}
+      {activeTab === "reports" && <ActivityReport />}
 
       {activeTab === "certificates" && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "24px" }}>

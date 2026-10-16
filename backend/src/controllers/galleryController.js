@@ -63,15 +63,19 @@ const upload = multer({
 
 export const uploadMiddleware = upload.single('media');
 
+async function resolveEventId(value) {
+    if (value === undefined || value === null || value === '') return null;
+    const id = Number(value);
+    if (!Number.isSafeInteger(id) || id < 1) {
+        throw Object.assign(new Error('Select a valid event.'), { statusCode: 400 });
+    }
+    const [events] = await db.execute('SELECT event_id FROM events WHERE event_id=?', [id]);
+    if (!events.length) throw Object.assign(new Error('Event not found.'), { statusCode: 400 });
+    return id;
+}
+
 // @desc    Get all gallery items
 // @route   GET /api/gallery
-const FALLBACK_GALLERY = [
-    { id: "g_1", title: "Inter-Dept Football Kickoff", sport: "Football", url: "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=800&q=80", date: "2026-08-10", created_at: "2026-08-10", type: "image", media_type: "image", is_public: true },
-    { id: "g_2", title: "NEC Indoor Badminton Finals", sport: "Badminton", url: "https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?auto=format&fit=crop&w=800&q=80", date: "2026-08-08", created_at: "2026-08-08", type: "image", media_type: "image", is_public: true },
-    { id: "g_3", title: "Monsoon Cricket T20 Action", sport: "Cricket", url: "https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?auto=format&fit=crop&w=800&q=80", date: "2026-08-05", created_at: "2026-08-05", type: "image", media_type: "image", is_public: true },
-    { id: "g_4", title: "Athletics 100m Heats", sport: "Athletics", url: "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?auto=format&fit=crop&w=800&q=80", date: "2026-08-02", created_at: "2026-08-02", type: "image", media_type: "image", is_public: true }
-];
-
 // @desc    Get all gallery items
 // @route   GET /api/gallery
 // @access  Public
@@ -79,14 +83,15 @@ export const getGallery = async (req, res) => {
     try {
         const [rows] = await db.execute(`
             SELECT g.gallery_id as id, g.media_url as url, g.title, g.caption, g.media_type, g.created_at as date,
-                   u.username as uploadedBy
+                   u.username as uploadedBy, g.event_id, e.name event_name
             FROM gallery g
             LEFT JOIN users u ON g.uploaded_by = u.id
+            LEFT JOIN events e ON e.event_id = g.event_id
             ORDER BY g.created_at DESC
         `);
 
         if (!rows || rows.length === 0) {
-            return res.json({ success: true, data: FALLBACK_GALLERY });
+            return res.json({ success: true, data: [] });
         }
 
         // Map to format expected by frontend
@@ -95,6 +100,8 @@ export const getGallery = async (req, res) => {
             url: item.url,
             title: item.title || ('Campus Sports ' + (item.media_type === 'Video' ? 'Video' : 'Photo')),
             caption: item.caption || '',
+            event_id: item.event_id,
+            event_name: item.event_name,
             sport: 'Campus Sports',
             date: item.date ? new Date(item.date).toLocaleDateString() : 'Recent',
             created_at: item.date,
@@ -127,10 +134,11 @@ export const uploadMedia = async (req, res) => {
         const title = (req.body?.title || '').trim() || (mediaType === 'Video' ? 'Campus Sports Video' : 'Campus Sports Photo');
         const caption = (req.body?.caption || '').trim() || null;
         const userId = req.user.id;
+        const eventId = await resolveEventId(req.body?.event_id);
 
         const [result] = await db.execute(
-            'INSERT INTO gallery (title, caption, media_type, media_url, uploaded_by) VALUES (?, ?, ?, ?, ?)',
-            [title, caption, mediaType, mediaUrl, userId]
+            'INSERT INTO gallery (title, caption, media_type, media_url, uploaded_by, event_id) VALUES (?, ?, ?, ?, ?, ?)',
+            [title, caption, mediaType, mediaUrl, userId, eventId]
         );
 
         res.status(201).json({
@@ -140,6 +148,7 @@ export const uploadMedia = async (req, res) => {
                 id: result.insertId,
                 title,
                 caption,
+                event_id: eventId,
                 url: mediaUrl,
                 type: mediaType.toLowerCase(),
                 media_type: mediaType.toLowerCase()
@@ -148,7 +157,7 @@ export const uploadMedia = async (req, res) => {
     } catch (error) {
         removeUploadedFile(req.file?.path);
         console.error('Error uploading media:', error);
-        res.status(500).json({ success: false, error: { message: 'Failed to upload media.' } });
+        res.status(error.statusCode || 500).json({ success: false, error: { message: error.statusCode === 400 ? error.message : 'Failed to upload media.' } });
     }
 };
 
@@ -165,6 +174,10 @@ export const updateMedia = async (req, res) => {
             return res.status(404).json({ success: false, error: { message: 'Media item not found.' } });
         }
 
+        if (Object.hasOwn(req.body || {}, 'event_id')) {
+            const eventId = await resolveEventId(req.body.event_id);
+            await db.execute('UPDATE gallery SET event_id=? WHERE gallery_id=?', [eventId, id]);
+        }
         await db.execute(
             'UPDATE gallery SET title = COALESCE(?, title), caption = COALESCE(?, caption) WHERE gallery_id = ?',
             [title || null, caption || null, id]
@@ -177,7 +190,7 @@ export const updateMedia = async (req, res) => {
         });
     } catch (error) {
         console.error('Error updating media:', error);
-        res.status(500).json({ success: false, error: { message: 'Failed to update media.' } });
+        res.status(error.statusCode || 500).json({ success: false, error: { message: error.statusCode === 400 ? error.message : 'Failed to update media.' } });
     }
 };
 

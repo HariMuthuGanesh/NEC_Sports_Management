@@ -1,0 +1,36 @@
+COLLEGE SPORTS ACTIVITY REPORTS
+
+Implemented workflow
+1. Select an inclusive From / To date range in Institutional Reports.
+2. Generate a report for events overlapping that period, plus all matches and
+   ranked competitions scheduled within it. Include parent events even when
+   their original dates fall outside the period.
+3. Show a factual overview followed by event sections: dates, sport, tournament,
+   registrations, activities, scores, ranked results, recorded athletes and photos.
+4. Mark completed, ongoing and scheduled/postponed activities separately.
+   Attendance and result records determine participation; registrations are
+   explicitly labelled as event-wide totals. Distinct athletes are deduplicated.
+5. Link new or existing gallery uploads using the Event selector. Reports attach
+   only images linked to included events, regardless of when they were uploaded.
+   Unassigned images are not guessed from captions; videos stay in the gallery.
+6. Export a paginated PDF or print the report. Photos are optional. Failed photo
+   downloads stop PDF export with an error rather than silently omitting evidence.
+7. Regenerate after changing dates or updating events, results or gallery links.
+
+Access
+Admin / Sports President: college-wide reports.
+Coordinator: relevant departmental events and activities, scoped athlete details
+and competition entries; placements retain their overall competition rank.
+
+Delivery
+Backend endpoint: GET /api/reports/activity?from=YYYY-MM-DD&to=YYYY-MM-DD
+Migration: backend/src/data/migrations/028_gallery_event_link.sql
+The migration is additive and preserves old uploads as unassigned. It has been
+applied locally. Deploy the backend with its normal migration startup before
+publishing the frontend. Link existing photos to events in Gallery Manager.
+No credentials are embedded and no production data is seeded by this feature.
+
+Validation
+node --test backend/scripts/activityReport.test.js
+cd frontend: npm run lint; npm run build
+cd frontend: npx playwright test e2e/activity-report.spec.js --project=chromium

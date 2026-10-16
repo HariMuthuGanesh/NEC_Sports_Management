@@ -351,6 +351,7 @@ export const matchesApi = {
 
 /* --- Reports API --- */
 export const reportsApi = {
+  getActivityReport: (params) => apiFetch(`/reports/activity?${new URLSearchParams(params)}`),
   // params: { timeframe } or { from, to } with YYYY-MM-DD dates (inclusive)
   getPerformanceReport: (params = { timeframe: '1month' }) => {
     const qs = new URLSearchParams(

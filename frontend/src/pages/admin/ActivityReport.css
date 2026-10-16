@@ -1,0 +1,41 @@
+.activity-report-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 1rem; padding: 1.25rem; }
+.activity-report-controls label { display: grid; gap: .4rem; font-weight: 600; }
+.activity-report-controls input[type="date"] { min-height: 2.5rem; padding: .5rem .75rem; border: 1px solid var(--nec-border); border-radius: .4rem; color: var(--nec-text-main); background: var(--nec-surface); font: inherit; }
+.activity-report-controls .activity-report-checkbox { display: flex; align-items: center; align-self: center; }
+.activity-report-error { color: var(--nec-danger, #b91c1c); }
+.activity-report-empty { padding: 2rem; margin-top: 1rem; color: var(--nec-text-muted); }
+.activity-report-document { --report-ink: #172b44; --report-paper: #fff; --report-line: #d7dee7; color: var(--report-ink); background: var(--report-paper); max-width: 1050px; margin: 1.5rem auto; padding: clamp(1rem, 4vw, 3rem); border: 1px solid var(--report-line); line-height: 1.6; overflow-wrap: anywhere; }
+.activity-report-document header { text-align: center; border-bottom: 2px solid var(--report-ink); padding-bottom: 1.5rem; }
+.activity-report-document h2, .activity-report-document h3, .activity-report-document h4 { color: var(--report-ink); }
+.activity-report-document h3 { margin: 1.5rem 0 .75rem; }
+.activity-report-document p { margin: .5rem 0; }
+.activity-report-kicker { font-size: .75rem; letter-spacing: .12em; }
+.activity-report-meta { font-size: .85rem; }
+.activity-report-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; border-block: 1px solid var(--report-line); padding: 1rem 0; }
+.activity-report-stats strong, .activity-report-stats span { display: block; }
+.activity-report-stats strong { font-size: 1.6rem; }
+.activity-report-stats span { font-size: .8rem; }
+.activity-report-event { border-top: 1px solid var(--report-line); margin-top: 2rem; }
+.activity-report-activity { border-left: 3px solid var(--report-line); padding-left: 1rem; margin: 1.5rem 0; }
+.activity-report-table-wrap { overflow-x: auto; }
+.activity-report-document table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+.activity-report-document th, .activity-report-document td { text-align: left; vertical-align: top; padding: .6rem; border-bottom: 1px solid var(--report-line); }
+.activity-report-document td small { display: block; }
+.activity-report-photos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.activity-report-photo { margin: 0; break-inside: avoid; }
+.activity-report-photo img { display: block; width: 100%; max-height: 300px; object-fit: contain; }
+.activity-report-photo figcaption { font-size: .8rem; padding: .5rem 0; }
+.activity-report-photo figcaption span { display: block; }
+.activity-report-document footer { display: flex; justify-content: space-between; gap: 1rem; border-top: 1px solid var(--report-line); margin-top: 2rem; padding-top: 1rem; font-size: .8rem; }
+@media (max-width: 600px) { .activity-report-stats { grid-template-columns: repeat(2, 1fr); } .activity-report-photos { grid-template-columns: 1fr; } }
+@media print {
+  @page { size: A4; margin: 15mm; }
+  body:has(.activity-report-document) * { visibility: hidden; }
+  body:has(.activity-report-document) .activity-report-document, body:has(.activity-report-document) .activity-report-document * { visibility: visible; }
+  body:has(.activity-report-document) *:has(.activity-report-document) { display: block !important; position: static !important; overflow: visible !important; height: auto !important; max-height: none !important; margin: 0 !important; padding: 0 !important; width: auto !important; }
+  body:has(.activity-report-document) .activity-report-document { position: absolute; inset: 0; width: 100%; max-width: none; margin: 0; padding: 0; border: 0; font-size: 10pt; }
+  .activity-report-document h3, .activity-report-document h4 { break-after: avoid; }
+  .activity-report-document tr, .activity-report-photo { break-inside: avoid; }
+  .activity-report-table-wrap { overflow: visible; }
+  .activity-report-document thead { display: table-header-group; }
+}

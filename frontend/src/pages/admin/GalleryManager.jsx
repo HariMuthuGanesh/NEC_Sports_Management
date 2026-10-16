@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { galleryApi } from "../../services/api/apiServices";
+import { galleryApi, eventsApi } from "../../services/api/apiServices";
 import { useToast } from "../../context/ToastContext";
 import { 
   Image as ImageIcon, 
@@ -38,6 +38,10 @@ export default function GalleryManager() {
   const [fileMediaType, setFileMediaType] = useState("image");
   const [title, setTitle] = useState("");
   const [caption, setCaption] = useState("");
+  const [events, setEvents] = useState([]);
+  const [eventId, setEventId] = useState('');
+  const [eventError, setEventError] = useState('');
+  const [savingEvent, setSavingEvent] = useState(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -59,7 +63,19 @@ export default function GalleryManager() {
 
   useEffect(() => {
     fetchGallery();
+    eventsApi.getEvents().then(data => setEvents(Array.isArray(data) ? data : []))
+      .catch(() => setEventError('Unable to load events. Reload to try again.'));
   }, []);
+
+  const linkEvent = async (item, value) => {
+    setSavingEvent(item.id);
+    try {
+      await galleryApi.updateMedia(item.id, { event_id: value || null });
+      setItems(previous => previous.map(row => row.id === item.id ? { ...row, event_id: value ? Number(value) : null } : row));
+      toast.success('Event updated.');
+    } catch (err) { toast.error(err.message || 'Unable to update event.'); }
+    finally { setSavingEvent(null); }
+  };
 
   // Handle file selection and live preview generation
   const handleSelectFile = (file) => {
@@ -115,6 +131,7 @@ export default function GalleryManager() {
     setPreviewUrl(null);
     setTitle("");
     setCaption("");
+    setEventId('');
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -132,6 +149,7 @@ export default function GalleryManager() {
     formData.append("media", selectedFile);
     if (title.trim()) formData.append("title", title.trim());
     if (caption.trim()) formData.append("caption", caption.trim());
+    if (eventId) formData.append('event_id', eventId);
 
     try {
       const response = await galleryApi.uploadMedia(formData);
@@ -317,6 +335,12 @@ export default function GalleryManager() {
                 />
               </div>
 
+              <label className="nec-form-label" htmlFor="gallery-event">Event</label>
+              <select id="gallery-event" className="nec-input" value={eventId} onChange={e => setEventId(e.target.value)} disabled={isUploading || Boolean(eventError)}>
+                <option value="">No event</option>
+                {events.map(event => <option key={event.event_id} value={event.event_id}>{event.name} — {event.tournament_name}</option>)}
+              </select>
+              <small>{eventError || 'Select an event to include this photo in its report.'}</small>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "4px" }}>
                 <div style={{ fontSize: "0.75rem", color: "var(--nec-text-muted)" }}>
                   <FileCheck size={14} style={{ display: "inline", verticalAlign: "middle", marginRight: "4px" }} />
@@ -434,6 +458,14 @@ export default function GalleryManager() {
                     </p>
                   )}
 
+                    <label className="nec-form-label">Event
+                      <select className="nec-input" aria-label={`Event for ${item.title}`} value={item.event_id || ''}
+                        disabled={savingEvent !== null || Boolean(eventError)} onChange={e => linkEvent(item, e.target.value)}>
+                        <option value="">No event</option>
+                        {events.map(event => <option key={event.event_id} value={event.event_id}>{event.name} — {event.tournament_name}</option>)}
+                      </select>
+                      {eventError && <small role="alert">{eventError}</small>}
+                    </label>
                   <div className="nec-admin-gallery-footer">
                     <div className="nec-admin-gallery-meta">
                       <span>{item.date || "Recent"}</span>

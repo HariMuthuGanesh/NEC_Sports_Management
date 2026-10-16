@@ -70,6 +70,7 @@ import {
     getMatchAttendanceController
 } from '../controllers/attendanceController.js';
 import { getPerformanceReportController, getPlayerPerformanceReportController } from '../controllers/reportsController.js';
+import { getActivityReport } from '../controllers/activityReportController.js';
 import { validateScoreInput, validateTeamRegistration } from '../middleware/validatorMiddleware.js';
 import { getAuditEntries, addAuditEntry } from '../services/auditStore.js';
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from '../controllers/notificationController.js';
@@ -311,6 +312,7 @@ router.get('/attendance/match/:matchId', protect, authorize('Admin', 'Coordinato
 
 // Dynamic Institutional Performance Reports (Admin & Coordinator)
 router.get('/reports/performance', protect, authorize('Admin', 'Sports President', 'Coordinator'), getPerformanceReportController);
+router.get('/reports/activity', protect, authorize('Admin', 'Sports President', 'Coordinator'), getActivityReport);
 
 // Student Athlete Performance Report (Digital Sports Portfolio)
 router.get('/players/me/performance-report', protect, authorize('Player', 'Student', 'Student Athlete', 'Admin'), getPlayerPerformanceReportController);
