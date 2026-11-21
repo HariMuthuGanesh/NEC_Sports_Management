@@ -86,8 +86,8 @@
 }
 
 .input-group input:focus {
-  border-color: #7f7fd5;
-  box-shadow: 0 0 8px rgba(127, 127, 213, 0.5);
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
 }
 
 .login-button {

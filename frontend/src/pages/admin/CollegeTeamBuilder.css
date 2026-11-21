@@ -1,0 +1,424 @@
+/* ── College Team Builder & Department Rosters Styles ───────────────── */
+
+.nec-ct-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── Top Stats Cards ─────────────────────────────────────────────── */
+.nec-ct-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 16px;
+  margin-bottom: 4px;
+}
+
+.nec-ct-stat-card {
+  background: var(--nec-surface, #ffffff);
+  border: 1px solid var(--nec-border, #e2e8f0);
+  border-radius: 12px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.nec-ct-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.nec-ct-stat-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.nec-ct-stat-icon.primary {
+  background: rgba(14, 116, 144, 0.12);
+  color: #0e7490;
+}
+
+.nec-ct-stat-icon.success {
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+}
+
+.nec-ct-stat-icon.indigo {
+  background: rgba(99, 102, 241, 0.12);
+  color: #4f46e5;
+}
+
+.nec-ct-stat-icon.amber {
+  background: rgba(245, 158, 11, 0.12);
+  color: #d97706;
+}
+
+.nec-ct-stat-val {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--nec-text-main, #0f172a);
+}
+
+.nec-ct-stat-label {
+  font-size: 0.82rem;
+  color: var(--nec-text-muted, #64748b);
+  margin-top: 4px;
+}
+
+/* ── Tab Switcher ─────────────────────────────────────────────────── */
+.nec-ct-tabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 2px solid var(--nec-border, #e2e8f0);
+  padding-bottom: 2px;
+  margin-bottom: 8px;
+}
+
+.nec-ct-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--nec-text-muted, #64748b);
+  cursor: pointer;
+  border-radius: 6px 6px 0 0;
+  transition: all 0.2s ease;
+}
+
+.nec-ct-tab-btn:hover {
+  color: var(--nec-primary, #0056b3);
+  background: rgba(0, 86, 179, 0.04);
+}
+
+.nec-ct-tab-btn.active {
+  color: var(--nec-primary, #0056b3);
+  border-bottom-color: var(--nec-primary, #0056b3);
+  background: rgba(0, 86, 179, 0.05);
+}
+
+.nec-ct-tab-badge {
+  display: inline-block;
+  padding: 2px 7px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: 10px;
+  background: rgba(0, 86, 179, 0.1);
+  color: var(--nec-primary, #0056b3);
+}
+
+.nec-ct-tab-btn.active .nec-ct-tab-badge {
+  background: var(--nec-primary, #0056b3);
+  color: #ffffff;
+}
+
+/* ── Filter & Search Toolbar ─────────────────────────────────────── */
+.nec-ct-toolbar-card {
+  background: var(--nec-surface, #ffffff);
+  border: 1px solid var(--nec-border, #e2e8f0);
+  border-radius: 12px;
+  padding: 18px 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.nec-ct-toolbar-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.nec-ct-search-box {
+  flex: 1 1 260px;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.nec-ct-search-icon {
+  position: absolute;
+  left: 12px;
+  color: var(--nec-text-muted, #64748b);
+  pointer-events: none;
+}
+
+.nec-ct-search-input {
+  width: 100%;
+  padding: 9px 12px 9px 38px;
+  font-size: 0.88rem;
+  border-radius: 8px;
+  border: 1px solid var(--nec-border, #cbd5e1);
+  background: var(--nec-input-bg, #ffffff);
+  color: var(--nec-text-main, #0f172a);
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.nec-ct-search-input:focus {
+  border-color: var(--nec-primary, #0056b3);
+  box-shadow: 0 0 0 3px rgba(0, 86, 179, 0.15);
+}
+
+.nec-ct-filter-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.nec-ct-select {
+  padding: 9px 30px 9px 12px;
+  font-size: 0.88rem;
+  border-radius: 8px;
+  border: 1px solid var(--nec-border, #cbd5e1);
+  background: var(--nec-input-bg, #ffffff);
+  color: var(--nec-text-main, #0f172a);
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 14px;
+  transition: border-color 0.2s ease;
+}
+
+.nec-ct-select:focus {
+  border-color: var(--nec-primary, #0056b3);
+  box-shadow: 0 0 0 3px rgba(0, 86, 179, 0.15);
+}
+
+.nec-ct-reset-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--nec-text-muted, #64748b);
+  background: rgba(100, 116, 139, 0.08);
+  border: 1px solid var(--nec-border, #e2e8f0);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.nec-ct-reset-btn:hover {
+  background: rgba(239, 68, 68, 0.08);
+  color: #dc2626;
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+/* Active Filter Chips Bar */
+.nec-ct-active-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--nec-border, #e2e8f0);
+}
+
+.nec-ct-chip-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--nec-text-muted, #64748b);
+}
+
+.nec-ct-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border-radius: 20px;
+  background: rgba(0, 86, 179, 0.08);
+  color: var(--nec-primary, #0056b3);
+  border: 1px solid rgba(0, 86, 179, 0.2);
+}
+
+.nec-ct-chip-remove {
+  background: transparent;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  line-height: 1;
+}
+
+/* ── Category Badges ─────────────────────────────────────────────── */
+.nec-category-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.nec-cat-outdoor {
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.nec-cat-indoor {
+  background: rgba(59, 130, 246, 0.12);
+  color: #1d4ed8;
+  border: 1px solid rgba(59, 130, 246, 0.25);
+}
+
+.nec-cat-men {
+  background: rgba(79, 70, 229, 0.12);
+  color: #4338ca;
+  border: 1px solid rgba(79, 70, 229, 0.25);
+}
+
+.nec-cat-women {
+  background: rgba(236, 72, 153, 0.12);
+  color: #be185d;
+  border: 1px solid rgba(236, 72, 153, 0.25);
+}
+
+.nec-cat-open {
+  background: rgba(245, 158, 11, 0.12);
+  color: #b45309;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.nec-cat-default {
+  background: rgba(100, 116, 139, 0.12);
+  color: #475569;
+  border: 1px solid rgba(100, 116, 139, 0.25);
+}
+
+.nec-dept-pill {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  background: rgba(14, 116, 144, 0.1);
+  color: #0e7490;
+  border: 1px solid rgba(14, 116, 144, 0.25);
+}
+
+/* ── Pagination Styling ──────────────────────────────────────────── */
+.nec-ct-pagination-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 18px;
+  background: var(--nec-surface, #ffffff);
+  border: 1px solid var(--nec-border, #e2e8f0);
+  border-radius: 10px;
+  margin-top: 14px;
+}
+
+.nec-ct-page-size-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--nec-text-muted, #64748b);
+}
+
+.nec-ct-page-size-select {
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--nec-border, #cbd5e1);
+  background: var(--nec-input-bg, #ffffff);
+  color: var(--nec-text-main, #0f172a);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.nec-ct-pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nec-ct-page-btn {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 6px;
+  border-radius: 6px;
+  border: 1px solid var(--nec-border, #e2e8f0);
+  background: var(--nec-surface, #ffffff);
+  color: var(--nec-text-main, #0f172a);
+  font-size: 0.85rem;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.nec-ct-page-btn:hover:not(:disabled) {
+  border-color: var(--nec-primary, #0056b3);
+  color: var(--nec-primary, #0056b3);
+  background: rgba(0, 86, 179, 0.05);
+}
+
+.nec-ct-page-btn.active {
+  background: var(--nec-primary, #0056b3);
+  border-color: var(--nec-primary, #0056b3);
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.nec-ct-page-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ── Roster Modal Styling ────────────────────────────────────────── */
+.nec-ct-roster-header {
+  background: var(--nec-bg-subtle, #f8fafc);
+  padding: 14px 18px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  border: 1px solid var(--nec-border, #e2e8f0);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.nec-ct-roster-team-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--nec-text-main, #0f172a);
+}
+
+.nec-ct-roster-tags {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}

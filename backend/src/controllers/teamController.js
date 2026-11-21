@@ -486,3 +486,96 @@ export const updateTeamDetailsController = async (req, res, next) => {
     }
 };
 
+/**
+ * PUT /api/teams/:id/captain
+ * Assign, change, or remove the captain for a team directly from its roster.
+ * Body: { student_id: Number | null }
+ */
+export const setTeamCaptainController = async (req, res, next) => {
+    let connection;
+    try {
+        const teamId = Number(req.params.id);
+        const studentId = req.body.student_id !== undefined ? (req.body.student_id === null ? null : Number(req.body.student_id)) : null;
+
+        if (!teamId) {
+            return res.status(400).json({ success: false, error: { message: 'Valid team ID is required.' } });
+        }
+
+        connection = await pool.getConnection();
+        await connection.beginTransaction();
+
+        const [[team]] = await connection.execute('SELECT team_id, name, department_id, sport_id FROM teams WHERE team_id = ? FOR UPDATE', [teamId]);
+        if (!team) {
+            await connection.rollback();
+            return res.status(404).json({ success: false, error: { message: 'Team not found.' } });
+        }
+
+        // Coordinator scope verification
+        if (req.user?.role === 'Coordinator' && req.user.dept_id) {
+            if (Number(team.department_id) !== Number(req.user.dept_id)) {
+                await connection.rollback();
+                return res.status(403).json({ success: false, error: { message: 'You are only authorized to assign captains to teams in your department.' } });
+            }
+        }
+
+        // Reset existing captain(s) on this team to 'Player'
+        await connection.execute("UPDATE team_members SET role = 'Player' WHERE team_id = ? AND role = 'Captain'", [teamId]);
+
+        if (studentId === null || studentId === 0) {
+            // Unassign captain
+            await connection.execute('UPDATE teams SET captain_id = NULL WHERE team_id = ?', [teamId]);
+            await connection.commit();
+            return res.json({ success: true, message: `Captain removed for team "${team.name}".` });
+        }
+
+        // Verify that this student is actually on the roster
+        const [[member]] = await connection.execute(
+            'SELECT tm.member_id, tm.student_id, s.user_id, s.student_name, s.register_number FROM team_members tm JOIN students s ON s.student_id = tm.student_id WHERE tm.team_id = ? AND (tm.student_id = ? OR tm.member_id = ?) LIMIT 1',
+            [teamId, studentId, studentId]
+        );
+
+        if (!member) {
+            await connection.rollback();
+            return res.status(400).json({ success: false, error: { message: 'The selected student is not registered on this team roster.' } });
+        }
+
+        // Set role = 'Captain'
+        await connection.execute("UPDATE team_members SET role = 'Captain' WHERE member_id = ?", [member.member_id]);
+
+        // Update teams.captain_id
+        if (member.user_id) {
+            await connection.execute('UPDATE teams SET captain_id = ? WHERE team_id = ?', [member.user_id, teamId]);
+            await connection.execute("UPDATE users SET role = 'Captain' WHERE id = ? AND role = 'Student'", [member.user_id]);
+        }
+
+        // Also record in department_sport_captains if applicable so department rosters stay synced
+        if (team.department_id && team.sport_id && member.user_id) {
+            try {
+                await connection.execute(`
+                    INSERT INTO department_sport_captains (department_id, sport_id, user_id, assigned_by_user_id, status, assigned_at)
+                    VALUES (?, ?, ?, ?, 'Active', NOW())
+                    ON DUPLICATE KEY UPDATE user_id = VALUES(user_id), status = 'Active', changed_at = NOW()
+                `, [team.department_id, team.sport_id, member.user_id, req.user?.id || 1]);
+            } catch (ignored) {
+                // Ignore if unique slot constraint or duplicate
+            }
+        }
+
+        await connection.commit();
+        return res.json({
+            success: true,
+            message: `${member.student_name} (${member.register_number}) is now designated as Captain for "${team.name}".`,
+            captain: {
+                student_id: member.student_id,
+                name: member.student_name,
+                register_number: member.register_number
+            }
+        });
+    } catch (err) {
+        if (connection) await connection.rollback();
+        next(err);
+    } finally {
+        connection?.release();
+    }
+};
+

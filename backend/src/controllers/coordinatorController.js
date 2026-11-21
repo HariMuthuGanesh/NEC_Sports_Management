@@ -21,7 +21,9 @@ const LIST_SQL = `
         d.name AS departmentName,
         d.code AS departmentCode,
         u.username,
-        u.is_active AS userActive
+        u.is_active AS userActive,
+        (SELECT COUNT(*) FROM teams t WHERE t.department_id = sp.department_id) AS teams_count,
+        (SELECT COUNT(DISTINCT tm.student_id) FROM team_members tm JOIN teams t ON tm.team_id = t.team_id WHERE t.department_id = sp.department_id AND tm.role = 'Captain') AS captains_count
     FROM staff_profiles sp
     LEFT JOIN users u ON u.id = sp.user_id
     LEFT JOIN departments d ON d.id = sp.department_id

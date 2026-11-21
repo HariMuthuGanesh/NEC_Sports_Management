@@ -65,7 +65,7 @@
 
   --nec-live: #dc2626;
   --nec-live-bg: #fef2f2;
-  --nec-live-pulse: rgba(220, 38, 38, 0.4);
+  --nec-live-pulse: transparent;
 
   /* Layout & Elevations */
   --nec-radius-xs: 4px;
@@ -196,7 +196,7 @@ button, input, select, textarea, a {
 /* Institutional Athletic Crest Utilities */
 .nec-crest-gold {
   color: var(--nec-gold);
-  filter: drop-shadow(0 2px 6px var(--nec-gold-glow));
+  filter: none;
 }
 
 .nec-badge-pill {

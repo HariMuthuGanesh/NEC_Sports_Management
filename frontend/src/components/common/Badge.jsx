@@ -7,8 +7,8 @@ export default function Badge({
   iconSymbol,
   className = ""
 }) {
-  // Only render a symbol if explicitly provided or for live indicators
-  const symbol = iconSymbol || (status === "live" ? "🔴" : null);
+  // Only render a symbol if explicitly provided
+  const symbol = iconSymbol || null;
 
   return (
     <span className={`nec-badge nec-badge-${status} ${className}`}>

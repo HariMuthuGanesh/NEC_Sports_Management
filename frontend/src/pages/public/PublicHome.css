@@ -147,7 +147,6 @@
 
 .nec-icon-live-spin {
   color: var(--nec-live);
-  animation: pulseLive 1.5s infinite;
 }
 
 .nec-live-cards-grid {

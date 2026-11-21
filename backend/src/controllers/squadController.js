@@ -286,14 +286,18 @@ export const getCollegeTeamSuggestionsV2 = async (req, res, next) => {
                 dsm.department_id AS source_department_id,
                 d.name AS source_department_name,
                 d.code AS source_department_code,
+                sp.name AS sport_name,
+                sp.category AS sport_category,
+                sp.sport_type,
                 COUNT(DISTINCT ma.attendance_id) AS attendance_count
             FROM department_squad_members dsm
             JOIN students s ON s.student_id = dsm.student_id
             JOIN departments d ON d.id = dsm.department_id
+            JOIN sports sp ON sp.sport_id = dsm.sport_id
             LEFT JOIN match_attendance ma ON ma.student_id = dsm.student_id AND ma.status = 'Present'
               AND ma.match_id IN (SELECT match_id FROM matches WHERE sport_id = ?)
             WHERE dsm.sport_id = ? AND dsm.status = 'Active'
-            GROUP BY dsm.student_id, s.student_name, s.register_number, dsm.department_id, d.name, d.code
+            GROUP BY dsm.student_id, s.student_name, s.register_number, dsm.department_id, d.name, d.code, sp.name, sp.category, sp.sport_type
             ORDER BY attendance_count DESC
         `;
 
@@ -314,6 +318,10 @@ export const confirmCollegeTeamV2 = async (req, res, next) => {
     try {
         const sportId = Number(req.params.sportId);
         const players = Array.isArray(req.body) ? req.body : req.body?.players;
+        const customName = typeof req.body?.team_name === 'string' && req.body.team_name.trim()
+            ? req.body.team_name.trim()
+            : (typeof req.body?.teamName === 'string' && req.body.teamName.trim() ? req.body.teamName.trim() : null);
+
         if (!Number.isInteger(sportId) || sportId <= 0 || !Array.isArray(players) || !players.length ||
             players.some(p => !Number.isInteger(Number(p.student_id)) || Number(p.student_id) <= 0) ||
             new Set(players.map(p => Number(p.student_id))).size !== players.length) {
@@ -328,19 +336,130 @@ export const confirmCollegeTeamV2 = async (req, res, next) => {
             return res.status(400).json({ success: false, error: { message: 'Selected students must belong to an active squad for this sport.' } });
         }
         const seasonYear = new Date().getFullYear();
-        await connection.execute('INSERT INTO college_teams (sport_id, season_year) VALUES (?, ?) ON DUPLICATE KEY UPDATE id = LAST_INSERT_ID(id)', [sportId, seasonYear]);
-        const [[team]] = await connection.execute('SELECT id FROM college_teams WHERE sport_id = ? AND season_year = ? FOR UPDATE', [sportId, seasonYear]);
-        await connection.execute('DELETE FROM college_team_members WHERE college_team_id = ?', [team.id]);
+        let teamName = customName;
+        if (!teamName) {
+            const [[sp]] = await connection.execute('SELECT name FROM sports WHERE sport_id = ?', [sportId]);
+            teamName = `NEC ${sp ? sp.name : 'College'} Varsity`;
+        }
+
+        // Always create a new college team entry so both newly added and older teams are preserved!
+        const [insertRes] = await connection.execute(
+            'INSERT INTO college_teams (sport_id, season_year, team_name, created_at) VALUES (?, ?, ?, NOW())',
+            [sportId, seasonYear, teamName]
+        );
+        const collegeTeamId = insertRes.insertId;
+
         for (const p of players) {
             await connection.execute(`INSERT INTO college_team_members (college_team_id, student_id, source_department_id, suggested_by_system, admin_confirmed, confirmed_by) VALUES (?, ?, ?, TRUE, TRUE, ?)`,
-                [team.id, Number(p.student_id), Number(p.source_department_id), req.user.id]);
+                [collegeTeamId, Number(p.student_id), Number(p.source_department_id), req.user.id]);
         }
         await connection.commit();
-        return res.status(201).json({ success: true, data: { college_team_id: team.id, count: players.length } });
+        return res.status(201).json({ success: true, data: { college_team_id: collegeTeamId, count: players.length, team_name: teamName } });
     } catch (err) {
         if (connection) await connection.rollback();
         next(err);
     } finally {
         connection?.release();
+    }
+};
+
+/**
+ * GET /api/college-teams
+ * Lists all confirmed college teams with sport, category, season year, and member count.
+ * Displays newest teams first so newly created teams immediately appear at the top.
+ */
+export const getCollegeTeamsListV2 = async (req, res, next) => {
+    try {
+        const sql = `
+            SELECT 
+                ct.id AS college_team_id,
+                ct.id,
+                ct.sport_id,
+                ct.season_year,
+                COALESCE(ct.team_name, CONCAT('NEC ', sp.name, ' Varsity')) AS team_name,
+                ct.created_at,
+                sp.name AS sport_name,
+                sp.category AS sport_category,
+                sp.sport_type,
+                COUNT(ctm.id) AS member_count
+            FROM college_teams ct
+            JOIN sports sp ON sp.sport_id = ct.sport_id
+            LEFT JOIN college_team_members ctm ON ctm.college_team_id = ct.id
+            GROUP BY ct.id, ct.sport_id, ct.season_year, ct.team_name, ct.created_at, sp.name, sp.category, sp.sport_type
+            ORDER BY ct.created_at DESC, ct.id DESC
+        `;
+        const [rows] = await pool.execute(sql);
+        return res.json({ success: true, data: rows });
+    } catch (err) {
+        next(err);
+    }
+};
+
+/**
+ * DELETE /api/college-teams/:id
+ * Role check: Admin, President.
+ * Removes a college team and all its member associations.
+ */
+export const deleteCollegeTeamV2 = async (req, res, next) => {
+    let connection;
+    try {
+        const teamId = Number(req.params.id);
+        if (!teamId) {
+            return res.status(400).json({ success: false, error: { message: 'Valid college team ID is required.' } });
+        }
+        connection = await pool.getConnection();
+        await connection.beginTransaction();
+
+        const [[team]] = await connection.execute('SELECT id, team_name FROM college_teams WHERE id = ? FOR UPDATE', [teamId]);
+        if (!team) {
+            await connection.rollback();
+            return res.status(404).json({ success: false, error: { message: 'College team not found.' } });
+        }
+
+        // Delete members first
+        await connection.execute('DELETE FROM college_team_members WHERE college_team_id = ?', [teamId]);
+        // Delete college team
+        await connection.execute('DELETE FROM college_teams WHERE id = ?', [teamId]);
+
+        await connection.commit();
+        return res.json({ success: true, message: `College team "${team.team_name || `#${teamId}`}" removed successfully.` });
+    } catch (err) {
+        if (connection) await connection.rollback();
+        next(err);
+    } finally {
+        connection?.release();
+    }
+};
+
+/**
+ * GET /api/college-teams/:id/members
+ * Lists all confirmed athletes for a specific college team.
+ */
+export const getCollegeTeamMembersV2 = async (req, res, next) => {
+    try {
+        const teamId = Number(req.params.id);
+        if (!teamId) {
+            return res.status(400).json({ success: false, error: { message: 'Invalid college team ID.' } });
+        }
+        const sql = `
+            SELECT 
+                ctm.id,
+                ctm.student_id,
+                s.student_name AS name,
+                s.register_number,
+                ctm.source_department_id,
+                d.name AS department_name,
+                d.code AS department_code,
+                ctm.added_at
+            FROM college_team_members ctm
+            JOIN students s ON s.student_id = ctm.student_id
+            JOIN departments d ON d.id = ctm.source_department_id
+            WHERE ctm.college_team_id = ?
+            ORDER BY d.code ASC, s.student_name ASC
+        `;
+        const [rows] = await pool.execute(sql, [teamId]);
+        return res.json({ success: true, data: rows });
+    } catch (err) {
+        next(err);
     }
 };

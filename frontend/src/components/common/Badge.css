@@ -58,21 +58,14 @@
 }
 
 .nec-badge-live {
-  background-color: var(--nec-live-bg);
-  color: var(--nec-live);
-  border: 1px solid var(--nec-live);
-  box-shadow: 0 0 10px var(--nec-live-pulse);
-  animation: pulseLive 1.5s infinite;
+  background-color: var(--nec-live-bg, #fef2f2);
+  color: var(--nec-live, #dc2626);
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  box-shadow: none;
 }
 
 .nec-badge-neutral {
   background-color: var(--nec-surface-hover);
   color: var(--nec-text-muted);
   border: 1px solid var(--nec-border);
-}
-
-@keyframes pulseLive {
-  0% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.7; transform: scale(0.98); }
-  100% { opacity: 1; transform: scale(1); }
 }

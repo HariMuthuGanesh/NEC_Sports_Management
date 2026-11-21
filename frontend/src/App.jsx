@@ -12,10 +12,6 @@ import TranslationLoadingBar from "./components/security/TranslationLoadingBar";
 // Settings Page
 import SettingsPage from "./pages/settings/SettingsPage";
 
-// Admin extra pages
-import VenuesManager from "./pages/admin/VenuesManager";
-import DepartmentsManager from "./pages/admin/DepartmentsManager";
-
 // Public Pages
 import PublicHome from "./pages/public/PublicHome";
 import PublicLiveScores from "./pages/public/PublicLiveScores";
@@ -253,8 +249,8 @@ function MainApp() {
         );
       case "admin_depts":
         return (
-          <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={redirectNav} routeId="admin_depts">
-            <DepartmentsManager />
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={redirectNav} routeId="admin_teams">
+            <TeamsManager />
           </ProtectedRoute>
         );
       case "admin_matches":
@@ -265,8 +261,8 @@ function MainApp() {
         );
       case "admin_venues":
         return (
-          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.PRESIDENT]} onRedirectPublic={redirectNav} routeId="admin_venues">
-            <VenuesManager />
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.PRESIDENT]} onRedirectPublic={redirectNav} routeId="admin_matches">
+            <MatchesManager />
           </ProtectedRoute>
         );
       case "admin_announcements":

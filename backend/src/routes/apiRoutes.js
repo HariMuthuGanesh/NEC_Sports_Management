@@ -64,7 +64,8 @@ import {
     updateTeamStatus,
     getTeamDetailsController,
     getCaptainTeamsController,
-    updateTeamDetailsController
+    updateTeamDetailsController,
+    setTeamCaptainController
 } from '../controllers/teamController.js';
 import {
     saveSquadAttendanceController,
@@ -111,7 +112,10 @@ import {
     addSquadMember,
     removeSquadMember,
     getCollegeTeamSuggestionsV2,
-    confirmCollegeTeamV2
+    confirmCollegeTeamV2,
+    getCollegeTeamsListV2,
+    getCollegeTeamMembersV2,
+    deleteCollegeTeamV2
 } from '../controllers/squadController.js';
 import {
     listSportCategoriesController,
@@ -255,6 +259,7 @@ router.get('/teams', optionalProtect, getTeams);
 router.get('/teams/:id', getTeamDetailsController);
 router.get('/teams/:id/players', protect, getTeamPlayers);
 router.post('/teams/:id/players', protect, authorize('Admin', 'Sports President', 'Coordinator', 'Captain'), addPlayerToTeam);
+router.put('/teams/:id/captain', protect, authorize('Admin', 'Sports President', 'Coordinator'), setTeamCaptainController);
 router.delete('/players/:id', protect, authorize('Admin', 'Sports President', 'Coordinator', 'Captain'), removePlayer);
 router.get('/captain/teams', protect, authorize('Admin', 'Captain'), getCaptainTeamsController);
 
@@ -377,6 +382,9 @@ router.post('/my-squad/members', protect, authorize('Captain'), addSquadMember);
 router.delete('/my-squad/members/:studentId', protect, authorize('Captain'), removeSquadMember);
 
 // ── College Team Builder Routes (Real match_attendance Data) ──────────────
+router.get('/college-teams', protect, authorize('Admin', 'President'), getCollegeTeamsListV2);
+router.get('/college-teams/:id/members', protect, authorize('Admin', 'President'), getCollegeTeamMembersV2);
+router.delete('/college-teams/:id', protect, authorize('Admin', 'President'), deleteCollegeTeamV2);
 router.get('/college-teams/:sportId/suggestions', protect, authorize('Admin', 'President'), getCollegeTeamSuggestionsV2);
 router.post('/college-teams/:sportId/confirm', protect, authorize('Admin', 'President'), confirmCollegeTeamV2);
 

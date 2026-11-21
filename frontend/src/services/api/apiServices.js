@@ -320,6 +320,7 @@ export const teamsApi = {
   registerTeam: (teamData) => apiFetch("/teams", "POST", teamData),
   updateTeam: (teamId, teamData) => apiFetch(`/teams/${teamId}`, "PUT", teamData),
   updateTeamStatus: (teamId, status) => apiFetch(`/teams/${teamId}/status`, "PUT", { status }),
+  setTeamCaptain: (teamId, studentId) => apiFetch(`/teams/${teamId}/captain`, "PUT", { student_id: studentId }),
   deleteTeam: (teamId) => apiFetch(`/teams/${teamId}`, "DELETE")
 };
 
@@ -522,8 +523,12 @@ export const squadApi = {
 
 /* --- College Team Builder API --- */
 export const collegeTeamsApi = {
+  getCollegeTeams: () => apiFetch('/college-teams'),
+  getCollegeTeamMembers: (teamId) => apiFetch(`/college-teams/${teamId}/members`),
+  deleteCollegeTeam: (teamId) => apiFetch(`/college-teams/${teamId}`, "DELETE"),
   getSuggestions: (sportId) => apiFetch(`/college-teams/${sportId}/suggestions`),
-  confirmTeam: (sportId, players) => apiFetch(`/college-teams/${sportId}/confirm`, "POST", players)
+  confirmTeam: (sportId, players, teamName = null) => 
+    apiFetch(`/college-teams/${sportId}/confirm`, "POST", { players, team_name: teamName })
 };
 
 /* --- Public Stats API --- */
