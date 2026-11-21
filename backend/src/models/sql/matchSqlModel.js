@@ -56,21 +56,33 @@ export const createMatch = async (data) => {
         if (venue) resolvedVenueId = venue.venue_id;
     }
 
+    // Resolve event_id and auto-fill tournament/sport if needed
+    let resolvedEventId = data.event_id || data.eventId || null;
+    let resolvedTournamentId = tournament_id;
+    if (resolvedEventId) {
+        const [[ev]] = await pool.execute('SELECT tournament_id, sport_id FROM events WHERE event_id = ? LIMIT 1', [resolvedEventId]);
+        if (ev) {
+            if (!resolvedTournamentId) resolvedTournamentId = ev.tournament_id;
+            if (!resolvedSportId) resolvedSportId = ev.sport_id;
+        }
+    }
+
     const durationNum = parseInt(duration_minutes, 10) || 60;
     const computedEndTime = scheduled_end_time || null;
 
     const sql = `
         INSERT INTO matches (
-            tournament_id, sport_id, team_a_id, team_b_id, venue_id, 
+            event_id, tournament_id, sport_id, team_a_id, team_b_id, venue_id, 
             scheduled_time, duration_minutes, scheduled_end_time, round, pool, status, manual_status_override
         )
         VALUES (
-            ?, ?, ?, ?, ?, 
+            ?, ?, ?, ?, ?, ?, 
             ?, ?, COALESCE(?, DATE_ADD(?, INTERVAL ? MINUTE)), ?, ?, ?, ?
         )
     `;
     const [result] = await pool.execute(sql, [
-        tournament_id,
+        resolvedEventId,
+        resolvedTournamentId,
         resolvedSportId,
         resolvedTeamAId,
         resolvedTeamBId,
@@ -93,11 +105,29 @@ export const deleteMatch = async (matchId) => {
     return result.affectedRows > 0;
 };
 
-export const getAllMatches = async () => {
+export const getAllMatches = async (filters = {}) => {
+    let whereClauses = [];
+    let params = [];
+    if (filters.eventId || filters.event_id) {
+        whereClauses.push('m.event_id = ?');
+        params.push(Number(filters.eventId || filters.event_id));
+    }
+    if (filters.tournamentId || filters.tournament_id) {
+        whereClauses.push('m.tournament_id = ?');
+        params.push(Number(filters.tournamentId || filters.tournament_id));
+    }
+    if (filters.sportId || filters.sport_id) {
+        whereClauses.push('m.sport_id = ?');
+        params.push(Number(filters.sportId || filters.sport_id));
+    }
+    const whereSql = whereClauses.length ? `WHERE ${whereClauses.join(' AND ')}` : '';
+
     const sql = `
         SELECT 
             m.match_id,
             m.match_id AS id,
+            m.event_id,
+            m.event_id AS eventId,
             m.tournament_id,
             m.tournament_id AS tournamentId,
             m.sport_id,
@@ -146,9 +176,10 @@ export const getAllMatches = async () => {
         LEFT JOIN departments d2 ON t2.department_id = d2.id
         LEFT JOIN sports s ON m.sport_id = s.sport_id
         LEFT JOIN venues v ON m.venue_id = v.venue_id
+        ${whereSql}
         ORDER BY m.scheduled_time DESC
     `;
-    const [rows] = await pool.execute(sql);
+    const [rows] = await pool.execute(sql, params);
     return rows;
 };
 

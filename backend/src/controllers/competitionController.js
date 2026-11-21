@@ -24,22 +24,65 @@ async function checkScope(user, departmentId, sportId, connection = pool) {
 
 export const listCompetitions = async (req,res,next) => {
     try {
-        const [rows] = await pool.execute(`SELECT c.*, e.name event_name,e.sport_id,e.tournament_id,s.name sport_name,sc.name category_name
-            FROM sport_competitions c JOIN events e ON e.event_id=c.event_id JOIN sports s ON s.sport_id=e.sport_id
-            JOIN sport_categories sc ON sc.category_id=c.category_id
-            WHERE (? IS NULL OR e.tournament_id=?) ORDER BY c.scheduled_time,c.competition_id`, [req.query.tournamentId || null, req.query.tournamentId || null]);
+        const tournamentId = req.query.tournamentId || req.params.tournamentId || null;
+        const eventId = req.query.eventId || req.params.id || null;
+        let whereClauses = [];
+        let params = [];
+
+        if (tournamentId) {
+            whereClauses.push('e.tournament_id = ?');
+            params.push(Number(tournamentId));
+        }
+        if (eventId) {
+            whereClauses.push('c.event_id = ?');
+            params.push(Number(eventId));
+        }
+        const whereSql = whereClauses.length ? `WHERE ${whereClauses.join(' AND ')}` : '';
+
+        const [rows] = await pool.execute(`
+            SELECT c.*, e.name AS event_name, e.sport_id, e.tournament_id, s.name AS sport_name, COALESCE(sc.name, 'Open') AS category_name
+            FROM sport_competitions c 
+            JOIN events e ON e.event_id=c.event_id 
+            JOIN sports s ON s.sport_id=e.sport_id
+            LEFT JOIN sport_categories sc ON sc.category_id=c.category_id
+            ${whereSql} 
+            ORDER BY c.scheduled_time, c.competition_id
+        `, params);
         res.json({ success:true, data:rows });
     } catch(err) { next(err); }
 };
 
 export const createCompetition = async (req,res,next) => {
     try {
-        const { eventId,categoryId,name,round='Final',entrySize=1,scoring,unit,scheduledTime } = req.body;
+        const { eventId, categoryId, name, round='Final', entrySize=1, scoring, unit, scheduledTime, venue, rules, competitionFormat } = req.body;
         if (!String(name || '').trim() || String(name).length>120 || !['Time','Distance','Points'].includes(scoring) || !Number.isInteger(Number(entrySize)) || Number(entrySize)<1 || Number(entrySize)>30 || !unit || String(unit).length>20 || !scheduledTime || Number.isNaN(Date.parse(scheduledTime)) || String(round).length>60) fail('Enter valid competition details.');
-        const [[event]] = await pool.execute(`SELECT e.event_id FROM events e JOIN sport_categories sc ON sc.sport_id=e.sport_id WHERE e.event_id=? AND sc.category_id=?`, [Number(eventId),Number(categoryId)]);
-        if (!event) fail('Select a category belonging to the event sport.');
-        const [result] = await pool.execute(`INSERT INTO sport_competitions (event_id,category_id,name,round,entry_size,scoring,unit,scheduled_time) VALUES (?,?,?,?,?,?,?,?)`, [Number(eventId),Number(categoryId),name.trim(),round,Number(entrySize),scoring,unit,String(scheduledTime).replace('T',' ')]);
-        res.status(201).json({ success:true,data:{ competition_id:result.insertId } });
+        
+        let catId = Number(categoryId);
+        if (!catId) {
+            const [[defaultCat]] = await pool.execute('SELECT sc.category_id FROM sport_categories sc JOIN events e ON e.sport_id = sc.sport_id WHERE e.event_id = ? ORDER BY sc.sort_order ASC LIMIT 1', [Number(eventId)]);
+            if (defaultCat) {
+                catId = defaultCat.category_id;
+            } else {
+                const [[evRow]] = await pool.execute('SELECT sport_id FROM events WHERE event_id = ?', [Number(eventId)]);
+                if (evRow) {
+                    const [catIns] = await pool.execute('INSERT INTO sport_categories (sport_id, name, sort_order) VALUES (?, "Open", 1)', [evRow.sport_id]);
+                    catId = catIns.insertId;
+                }
+            }
+        }
+        
+        const [[event]] = await pool.execute(`SELECT e.event_id FROM events e WHERE e.event_id=?`, [Number(eventId)]);
+        if (!event) fail('Parent event does not exist.', 404);
+
+        const format = competitionFormat || 'Standard';
+        const venueVal = venue ? String(venue).trim() : null;
+        const rulesVal = rules ? String(rules).trim() : null;
+
+        const [result] = await pool.execute(
+            `INSERT INTO sport_competitions (event_id, category_id, name, round, entry_size, scoring, unit, scheduled_time, competition_format, venue, rules) VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+            [Number(eventId), catId, name.trim(), round, Number(entrySize), scoring, unit, String(scheduledTime).replace('T',' '), format, venueVal, rulesVal]
+        );
+        res.status(201).json({ success:true, data:{ competition_id:result.insertId } });
     } catch(err) { next(err); }
 };
 

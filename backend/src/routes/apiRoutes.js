@@ -17,6 +17,9 @@ import {
     createTournamentController,
     updateTournamentController,
     deleteTournamentController,
+    getTournamentEventsController,
+    getTournamentRegistrationsController,
+    getTournamentScheduleController,
     getVenues,
     createVenueController,
     updateVenueController,
@@ -269,6 +272,9 @@ router.post('/tournaments', protect, authorize('Admin', 'Sports President'), cre
 router.get('/tournaments/:id', getTournamentByIdController);
 router.put('/tournaments/:id', protect, authorize('Admin', 'Sports President'), updateTournamentController);
 router.delete('/tournaments/:id', protect, authorize('Admin', 'Sports President'), deleteTournamentController);
+router.get('/tournaments/:id/events', getTournamentEventsController);
+router.get('/tournaments/:id/registrations', protect, authorize('Admin', 'Sports President'), getTournamentRegistrationsController);
+router.get('/tournaments/:id/schedule', getTournamentScheduleController);
 router.get('/tournaments/:id/matches', getTournamentMatchesController);
 router.post('/tournaments/:id/matches', protect, authorize('Admin', 'Sports President'), createTournamentMatchController);
 router.get('/tournaments/:id/teams', getTournamentTeamsController);
@@ -292,6 +298,7 @@ router.delete('/departments/:id', protect, authorize('Admin'), deleteDepartmentC
 
 // Events / Tournament Registration Control
 router.get('/events/:id', getEventByIdController);
+router.get('/events/:id/competitions', listCompetitions);
 router.get('/events/:id/teams', protect, authorize('Admin', 'Sports President', 'Coordinator'), getEventTeamsController);
 router.get('/events/:id/entries', protect, authorize('Admin', 'Sports President', 'Coordinator'), getEventEntriesController);
 router.post('/events/:id/entries', protect, authorize('Admin', 'Sports President', 'Coordinator'), addEventEntryController);

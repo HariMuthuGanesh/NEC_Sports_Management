@@ -14,7 +14,9 @@ import {
     createEventSql,
     updateEventSql,
     deleteEventSql,
-    updateEventStatusSql
+    updateEventStatusSql,
+    getTournamentRegistrationsSql,
+    getTournamentScheduleSql
 } from '../models/sql/eventSqlModel.js';
 import {
     getAllTournaments,
@@ -48,7 +50,7 @@ import {
 /* --- Sports --- */
 export const getSports = async (req, res, next) => {
     try {
-        const data = await getAllSports();
+        const data = await getAllSports(req.query);
         return res.json({ success: true, data });
     } catch (err) {
         next(err);
@@ -108,7 +110,37 @@ export const assignCaptainToSportController = async (req, res, next) => {
 /* --- Tournaments --- */
 export const getTournaments = async (req, res, next) => {
     try {
-        const data = await getAllTournaments();
+        const data = await getAllTournaments(req.query);
+        return res.json({ success: true, data });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const getTournamentEventsController = async (req, res, next) => {
+    try {
+        const tournamentId = req.params.id;
+        const data = await getAllEvents({ tournamentId, ...req.query });
+        return res.json({ success: true, data });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const getTournamentRegistrationsController = async (req, res, next) => {
+    try {
+        const tournamentId = req.params.id;
+        const data = await getTournamentRegistrationsSql(tournamentId);
+        return res.json({ success: true, data });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const getTournamentScheduleController = async (req, res, next) => {
+    try {
+        const tournamentId = req.params.id;
+        const data = await getTournamentScheduleSql(tournamentId);
         return res.json({ success: true, data });
     } catch (err) {
         next(err);
@@ -167,7 +199,7 @@ export const deleteTournamentController = async (req, res, next) => {
 /* --- Events --- */
 export const getEvents = async (req, res, next) => {
     try {
-        const data = await getAllEvents();
+        const data = await getAllEvents(req.query);
         return res.json({ success: true, data });
     } catch (err) {
         next(err);
@@ -310,7 +342,7 @@ export const deleteVenueController = async (req, res, next) => {
 /* --- Matches & Tournaments Matches --- */
 export const getMatches = async (req, res, next) => {
     try {
-        const data = await getAllMatches();
+        const data = await getAllMatches(req.query);
         return res.json({ success: true, data });
     } catch (err) {
         next(err);

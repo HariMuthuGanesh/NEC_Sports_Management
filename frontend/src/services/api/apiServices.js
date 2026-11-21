@@ -219,7 +219,11 @@ export const sportsApi = {
   getSportCategories: (sportId) => apiFetch(`/sports/${sportId}/categories`),
   createSportCategory: (sportId, body) => apiFetch(`/sports/${sportId}/categories`, "POST", body),
   deleteSportCategory: (categoryId) => apiFetch(`/sport-categories/${categoryId}`, "DELETE"),
-  getSports: () => apiFetch("/sports"),
+  getSports: (params = {}) => {
+    const qs = typeof params === 'object' && params !== null ? 
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== "" && v !== "ALL").map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('&') : '';
+    return apiFetch(`/sports${qs ? `?${qs}` : ''}`);
+  },
   addSport: (sportData) => apiFetch("/sports", "POST", sportData),
   updateSport: (sportId, sportData) => apiFetch(`/sports/${sportId}`, "PUT", sportData),
   assignCaptain: (sportId, captainUserId) => apiFetch(`/sports/${sportId}/captain`, "PUT", { captainUserId }),
@@ -234,8 +238,19 @@ export const sportsApi = {
 
 /* --- Tournaments API --- */
 export const tournamentsApi = {
-  getTournaments: () => apiFetch("/tournaments"),
+  getTournaments: (params = {}) => {
+    const qs = typeof params === 'object' && params !== null ? 
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== "" && v !== "ALL").map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('&') : '';
+    return apiFetch(`/tournaments${qs ? `?${qs}` : ''}`);
+  },
   getTournamentById: (id) => apiFetch(`/tournaments/${id}`),
+  getTournamentEvents: (tournamentId, params = {}) => {
+    const qs = typeof params === 'object' && params !== null ? 
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== "" && v !== "ALL").map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('&') : '';
+    return apiFetch(`/tournaments/${tournamentId}/events${qs ? `?${qs}` : ''}`);
+  },
+  getTournamentRegistrations: (tournamentId) => apiFetch(`/tournaments/${tournamentId}/registrations`),
+  getTournamentSchedule: (tournamentId) => apiFetch(`/tournaments/${tournamentId}/schedule`),
   createTournament: (data) => apiFetch("/tournaments", "POST", {
     ...data,
     name: sanitizeInput(data.name || data.title),
@@ -258,13 +273,21 @@ export const tournamentsApi = {
 
 /* --- Events API --- */
 export const eventsApi = {
-  getEvents: (tournamentId = null) => {
-    return apiFetch("/events").then(events => {
-      const evList = Array.isArray(events) ? events : [];
-      return tournamentId ? evList.filter(e => String(e.tournament_id || e.tournamentId) === String(tournamentId)) : evList;
-    });
+  getEvents: (params = null) => {
+    let queryParams = {};
+    if (typeof params === 'string' || typeof params === 'number') {
+      queryParams = { tournamentId: params };
+    } else if (typeof params === 'object' && params !== null) {
+      queryParams = params;
+    }
+    const qs = Object.entries(queryParams)
+      .filter(([, v]) => v !== undefined && v !== null && v !== "" && v !== "ALL")
+      .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+      .join('&');
+    return apiFetch(`/events${qs ? `?${qs}` : ''}`);
   },
   getEventById: (eventId) => apiFetch(`/events/${eventId}`),
+  getEventCompetitions: (eventId) => apiFetch(`/events/${eventId}/competitions`),
   createEvent: (data) => apiFetch("/events", "POST", {
     ...data,
     name: sanitizeInput(data.name || data.title),
@@ -328,7 +351,19 @@ export const playersApi = {
 
 /* --- Matches & Scheduling API --- */
 export const matchesApi = {
-  getMatches: () => apiFetch("/matches"),
+  getMatches: (params = null) => {
+    let queryParams = {};
+    if (typeof params === 'string' || typeof params === 'number') {
+      queryParams = { tournamentId: params };
+    } else if (typeof params === 'object' && params !== null) {
+      queryParams = params;
+    }
+    const qs = Object.entries(queryParams)
+      .filter(([, v]) => v !== undefined && v !== null && v !== "" && v !== "ALL")
+      .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+      .join('&');
+    return apiFetch(`/matches${qs ? `?${qs}` : ''}`);
+  },
   createMatch: (matchData) => apiFetch("/matches", "POST", matchData),
   scheduleMatch: (matchData) => apiFetch("/matches", "POST", matchData),
   updateMatchStatus: (matchId, status) => apiFetch(`/matches/${matchId}/status`, "PATCH", { status }),

@@ -90,9 +90,7 @@ export default function Sidebar({
             items: [
               { id: "admin_sports", label: t.sportsCatalog, icon: Trophy },
               { id: "admin_tournaments", label: t.tournaments, icon: Calendar },
-              { id: "admin_events", label: t.events, icon: Award },
-              { id: "event_competitions", label: "Event Competitions", icon: Trophy },
-              { id: "admin_levels", label: "Competition Levels", icon: Award }
+              { id: "admin_events", label: t.events, icon: Award }
             ]
           },
           {
