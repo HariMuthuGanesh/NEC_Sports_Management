@@ -1581,6 +1581,8 @@ export default function CompetitionWorkspace({ tournamentId, defaultEventId, onC
                   </label>
                   <select
                     id="comp-event"
+                    name="Event"
+                    aria-label="Event"
                     className="nec-comp-select"
                     required
                     value={form.eventId}
@@ -1603,6 +1605,8 @@ export default function CompetitionWorkspace({ tournamentId, defaultEventId, onC
                 </label>
                 <select
                   id="comp-category"
+                  name="Category"
+                  aria-label="Category"
                   className="nec-comp-select"
                   required
                   value={form.categoryId}
@@ -1624,6 +1628,8 @@ export default function CompetitionWorkspace({ tournamentId, defaultEventId, onC
                 </label>
                 <input
                   id="comp-name"
+                  name="Name"
+                  aria-label="Name"
                   className="nec-comp-input"
                   required
                   maxLength={120}
@@ -1640,6 +1646,8 @@ export default function CompetitionWorkspace({ tournamentId, defaultEventId, onC
                 </label>
                 <select
                   id="comp-round"
+                  name="Round"
+                  aria-label="Round"
                   className="nec-comp-select"
                   value={form.round}
                   onChange={(e) => field('round', e.target.value)}
@@ -1659,6 +1667,8 @@ export default function CompetitionWorkspace({ tournamentId, defaultEventId, onC
                 </label>
                 <input
                   id="comp-entry-size"
+                  name="Athletes per entry"
+                  aria-label="Athletes per entry"
                   className="nec-comp-input"
                   type="number"
                   required
@@ -1677,6 +1687,8 @@ export default function CompetitionWorkspace({ tournamentId, defaultEventId, onC
                 </label>
                 <select
                   id="comp-scoring"
+                  name="Result type"
+                  aria-label="Result type"
                   className="nec-comp-select"
                   value={form.scoring}
                   onChange={(e) =>
@@ -1707,6 +1719,8 @@ export default function CompetitionWorkspace({ tournamentId, defaultEventId, onC
                 </label>
                 <input
                   id="comp-unit"
+                  name="Unit"
+                  aria-label="Unit"
                   className="nec-comp-input"
                   required
                   maxLength={20}
@@ -1723,6 +1737,8 @@ export default function CompetitionWorkspace({ tournamentId, defaultEventId, onC
                 </label>
                 <input
                   id="comp-scheduled"
+                  name="Scheduled"
+                  aria-label="Scheduled"
                   className="nec-comp-input"
                   type="datetime-local"
                   required
@@ -1733,11 +1749,11 @@ export default function CompetitionWorkspace({ tournamentId, defaultEventId, onC
             </div>
 
             <div className="nec-comp-modal-actions">
-              <Button type="button" variant="ghost" onClick={() => setCreating(false)}>
+              <Button type="button" variant="ghost" title="Cancel" onClick={() => setCreating(false)}>
                 Cancel
               </Button>
-              <Button type="submit" variant="primary" loading={busy}>
-                Save Heat
+              <Button type="submit" variant="primary" title="Save" loading={busy}>
+                Save
               </Button>
             </div>
           </form>
