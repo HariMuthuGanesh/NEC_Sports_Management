@@ -72,6 +72,9 @@ export default function ActivityReport() {
       <Button type="submit" icon={FileText} loading={loading} disabled={exporting}>Generate report</Button>
       <Button variant="outline" icon={Printer} disabled={!report || stale || loading || exporting} onClick={() => window.print()}>Print report</Button>
       <Button icon={Download} disabled={!report || stale || loading} loading={exporting} onClick={download}>Export PDF</Button>
+      <Button variant="outline" icon={Download} disabled={!report || stale || loading} onClick={() => {
+        window.open(reportsApi.getActivityReportExcelUrl({ from, to }), '_blank');
+      }}>Export Excel (.xlsx)</Button>
     </form>
     {error && <p role="alert" className="activity-report-error">{error}</p>}
     {stale && <p role="status">Dates changed. Generate the report to update the preview.</p>}

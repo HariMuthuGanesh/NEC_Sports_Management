@@ -42,6 +42,8 @@ import {
     getMyStudentProfileController,
     createStudentController,
     createAnnouncementController,
+    updateAnnouncementController,
+    cancelAnnouncementController,
     deleteAnnouncementController,
     createSport,
     updateSport,
@@ -75,8 +77,16 @@ import {
 } from '../controllers/attendanceController.js';
 import { getPerformanceReportController, getPlayerPerformanceReportController } from '../controllers/reportsController.js';
 import { getActivityReport } from '../controllers/activityReportController.js';
+import {
+    getTournamentReportController,
+    exportTournamentReportController,
+    getEventReportController,
+    exportEventReportController,
+    exportActivityReportController
+} from '../controllers/institutionalReportsController.js';
 import { validateScoreInput, validateTeamRegistration } from '../middleware/validatorMiddleware.js';
 import { getAuditEntries, addAuditEntry } from '../services/auditStore.js';
+import ExcelJS from 'exceljs';
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from '../controllers/notificationController.js';
 import {
     createOdForMatchController,
@@ -188,8 +198,75 @@ router.patch('/users/:id/role', protect, authorize('Admin'), updateUserRoleContr
 
 router.get('/admin/audit-log', protect, authorize('Admin'), async (req, res, next) => {
     try {
-        const data = await getAuditEntries(req.query.limit);
+        const data = await getAuditEntries(req.query);
         return res.json({ success: true, data });
+    } catch (err) {
+        next(err);
+    }
+});
+
+router.get('/admin/audit-log/export', protect, authorize('Admin'), async (req, res, next) => {
+    try {
+        const format = (req.query.format || 'csv').toLowerCase();
+        const entries = await getAuditEntries({ ...req.query, limit: 1000 });
+
+        if (format === 'excel' || format === 'xlsx') {
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet('Security Audit Log');
+            worksheet.columns = [
+                { header: 'Log ID', key: 'id', width: 10 },
+                { header: 'Timestamp', key: 'timestamp', width: 24 },
+                { header: 'Event', key: 'event', width: 22 },
+                { header: 'Category', key: 'category', width: 20 },
+                { header: 'Module', key: 'module', width: 18 },
+                { header: 'Outcome', key: 'outcome', width: 12 },
+                { header: 'User', key: 'user', width: 18 },
+                { header: 'Role', key: 'role', width: 15 },
+                { header: 'Operation / Details', key: 'operation', width: 40 },
+                { header: 'IP Address', key: 'ipAddress', width: 16 },
+                { header: 'Route', key: 'route', width: 28 },
+                { header: 'Status Code', key: 'statusCode', width: 12 }
+            ];
+            worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+            worksheet.getRow(1).fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FF1E293B' }
+            };
+            entries.forEach(e => worksheet.addRow(e));
+            res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            res.setHeader('Content-Disposition', `attachment; filename=NEC_Security_Audit_${new Date().toISOString().slice(0, 10)}.xlsx`);
+            await workbook.xlsx.write(res);
+            return res.end();
+        }
+
+        // CSV export
+        const escapeCsv = (str) => {
+            const text = String(str ?? '');
+            const safe = /^[=+\-@]/.test(text) ? `'${text}` : text;
+            return `"${safe.replace(/"/g, '""')}"`;
+        };
+        const headers = ['Log ID', 'Timestamp', 'Event', 'Category', 'Module', 'Outcome', 'User', 'Role', 'Operation', 'IP Address', 'Route', 'Status Code'];
+        const csvLines = [
+            headers.join(','),
+            ...entries.map(e => [
+                escapeCsv(e.id),
+                escapeCsv(e.timestamp),
+                escapeCsv(e.event),
+                escapeCsv(e.category),
+                escapeCsv(e.module),
+                escapeCsv(e.outcome),
+                escapeCsv(e.user),
+                escapeCsv(e.role),
+                escapeCsv(e.operation),
+                escapeCsv(e.ipAddress),
+                escapeCsv(e.route),
+                escapeCsv(e.statusCode)
+            ].join(','))
+        ];
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', `attachment; filename=NEC_Security_Audit_${new Date().toISOString().slice(0, 10)}.csv`);
+        return res.send(csvLines.join('\r\n'));
     } catch (err) {
         next(err);
     }
@@ -296,6 +373,8 @@ router.post('/tournaments/:id/matches', protect, authorize('Admin', 'Sports Pres
 router.get('/tournaments/:id/teams', getTournamentTeamsController);
 
 router.post('/announcements', protect, authorize('Admin'), createAnnouncementController);
+router.put('/announcements/:id', protect, authorize('Admin'), updateAnnouncementController);
+router.patch('/announcements/:id/cancel', protect, authorize('Admin'), cancelAnnouncementController);
 router.delete('/announcements/:id', protect, authorize('Admin'), deleteAnnouncementController);
 
 router.post('/teams', protect, authorize('Admin', 'Sports President', 'Coordinator', 'Captain'), validateTeamRegistration, createTeam);
@@ -344,9 +423,14 @@ router.get('/teams/:id/attendance', protect, authorize('Admin', 'Sports Presiden
 router.get('/departments/:id/attendance', protect, authorize('Admin', 'Coordinator'), getDepartmentAttendanceController);
 router.get('/attendance/match/:matchId', protect, authorize('Admin', 'Coordinator'), getMatchAttendanceController);
 
-// Dynamic Institutional Performance Reports (Admin & Coordinator)
+// Dynamic Institutional Performance & Activity Reports (Admin & Coordinator)
 router.get('/reports/performance', protect, authorize('Admin', 'Sports President', 'Coordinator'), getPerformanceReportController);
 router.get('/reports/activity', protect, authorize('Admin', 'Sports President', 'Coordinator'), getActivityReport);
+router.get('/reports/activity/export', protect, authorize('Admin', 'Sports President', 'Coordinator'), exportActivityReportController);
+router.get('/reports/tournament/:id', protect, authorize('Admin', 'Sports President', 'Coordinator'), getTournamentReportController);
+router.get('/reports/tournament/:id/export', protect, authorize('Admin', 'Sports President', 'Coordinator'), exportTournamentReportController);
+router.get('/reports/event/:id', protect, authorize('Admin', 'Sports President', 'Coordinator'), getEventReportController);
+router.get('/reports/event/:id/export', protect, authorize('Admin', 'Sports President', 'Coordinator'), exportEventReportController);
 
 // Student Athlete Performance Report (Digital Sports Portfolio)
 router.get('/players/me/performance-report', protect, authorize('Player', 'Student', 'Student Athlete', 'Admin'), getPlayerPerformanceReportController);

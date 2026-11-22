@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { galleryApi, eventsApi } from "../../services/api/apiServices";
+import { galleryApi, eventsApi, tournamentsApi, sportsApi } from "../../services/api/apiServices";
 import { useToast } from "../../context/ToastContext";
 import { 
   Image as ImageIcon, 
@@ -7,20 +7,29 @@ import {
   Upload, 
   Trash2, 
   X, 
-  Plus, 
   Maximize2, 
   FileCheck, 
   Sparkles,
-  Film
+  Film,
+  Edit2,
+  Filter,
+  Search,
+  Calendar,
+  Trophy,
+  Building,
+  Activity
 } from "lucide-react";
 import SkeletonLoader from "../../components/common/SkeletonLoader";
 import Button from "../../components/common/Button";
+import Badge from "../../components/common/Badge";
+import { Card } from "../../components/common/Card";
+import { Modal } from "../../components/common/Modal";
 import "./AdminPortal.css";
 
 const getMediaUrl = (url) => {
   if (!url) return "https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?auto=format&fit=crop&w=1200&q=80";
   if (url.startsWith("http://") || url.startsWith("https://")) return url;
-  const backendUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+  const backendUrl = (import.meta.env.VITE_API_URL || "http://localhost:5000").replace(/\/api\/?$/, "");
   return `${backendUrl}${url.startsWith("/") ? "" : "/"}${url}`;
 };
 
@@ -29,7 +38,24 @@ export default function GalleryManager() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [filterType, setFilterType] = useState("all");
+
+  // Reference Catalogs
+  const [tournaments, setTournaments] = useState([]);
+  const [events, setEvents] = useState([]);
+  const [sports, setSports] = useState([]);
+  const [departments, setDepartments] = useState([]);
+
+  // Multi-Dimensional Filters
+  const [filterAcademicYear, setFilterAcademicYear] = useState("ALL");
+  const [filterTournament, setFilterTournament] = useState("ALL");
+  const [filterEvent, setFilterEvent] = useState("ALL");
+  const [filterSport, setFilterSport] = useState("ALL");
+  const [filterDept, setFilterDept] = useState("ALL");
+  const [filterType, setFilterType] = useState("ALL");
+  const [filterStatus, setFilterStatus] = useState("ALL");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [search, setSearch] = useState("");
 
   // Upload Form State
   const [isUploading, setIsUploading] = useState(false);
@@ -38,21 +64,67 @@ export default function GalleryManager() {
   const [fileMediaType, setFileMediaType] = useState("image");
   const [title, setTitle] = useState("");
   const [caption, setCaption] = useState("");
-  const [events, setEvents] = useState([]);
-  const [eventId, setEventId] = useState('');
-  const [eventError, setEventError] = useState('');
-  const [savingEvent, setSavingEvent] = useState(null);
+  const [uploadYear, setUploadYear] = useState("2025-2026");
+  const [uploadTournamentId, setUploadTournamentId] = useState("");
+  const [uploadEventId, setUploadEventId] = useState("");
+  const [uploadSportId, setUploadSportId] = useState("");
+  const [uploadDeptId, setUploadDeptId] = useState("");
+  const [uploadCapturedAt, setUploadCapturedAt] = useState("");
+  const [uploadStatus, setUploadStatus] = useState("Published");
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef(null);
 
+  // Edit Metadata State
+  const [editingItem, setEditingItem] = useState(null);
+  const [editForm, setEditForm] = useState({
+    title: "",
+    caption: "",
+    academic_year: "",
+    tournament_id: "",
+    event_id: "",
+    sport_id: "",
+    department_id: "",
+    captured_at: "",
+    publication_status: "Published"
+  });
+  const [savingEdit, setSavingEdit] = useState(false);
+
   // Lightbox Modal State
   const [activeLightboxItem, setActiveLightboxItem] = useState(null);
+
+  // Initial Catalogs Fetch
+  useEffect(() => {
+    Promise.all([
+      tournamentsApi.getTournaments ? tournamentsApi.getTournaments().catch(() => []) : Promise.resolve([]),
+      eventsApi.getEvents ? eventsApi.getEvents().catch(() => []) : Promise.resolve([]),
+      sportsApi.getSports ? sportsApi.getSports().catch(() => []) : Promise.resolve([]),
+      sportsApi.getDepartments ? sportsApi.getDepartments().catch(() => []) : Promise.resolve([])
+    ]).then(([tData, eData, sData, dData]) => {
+      setTournaments(Array.isArray(tData) ? tData : []);
+      setEvents(Array.isArray(eData) ? eData : []);
+      setSports(Array.isArray(sData) ? sData : []);
+      setDepartments(Array.isArray(dData) ? dData : []);
+    }).catch(err => {
+      console.warn("Catalog fetch error:", err);
+    });
+  }, []);
 
   const fetchGallery = async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await galleryApi.getGallery();
+      const data = await galleryApi.getGallery({
+        tournamentId: filterTournament !== "ALL" ? filterTournament : undefined,
+        eventId: filterEvent !== "ALL" ? filterEvent : undefined,
+        sportId: filterSport !== "ALL" ? filterSport : undefined,
+        departmentId: filterDept !== "ALL" ? filterDept : undefined,
+        academicYear: filterAcademicYear !== "ALL" ? filterAcademicYear : undefined,
+        mediaType: filterType !== "ALL" ? filterType : undefined,
+        status: filterStatus !== "ALL" ? filterStatus : undefined,
+        from: fromDate || undefined,
+        to: toDate || undefined,
+        search: search.trim() || undefined
+      });
       setItems(Array.isArray(data) ? data : []);
     } catch (err) {
       setError(err.message || "Failed to load gallery items.");
@@ -63,18 +135,38 @@ export default function GalleryManager() {
 
   useEffect(() => {
     fetchGallery();
-    eventsApi.getEvents().then(data => setEvents(Array.isArray(data) ? data : []))
-      .catch(() => setEventError('Unable to load events. Reload to try again.'));
-  }, []);
+  }, [
+    filterTournament,
+    filterEvent,
+    filterSport,
+    filterDept,
+    filterAcademicYear,
+    filterType,
+    filterStatus,
+    fromDate,
+    toDate
+  ]);
 
-  const linkEvent = async (item, value) => {
-    setSavingEvent(item.id);
-    try {
-      await galleryApi.updateMedia(item.id, { event_id: value || null });
-      setItems(previous => previous.map(row => row.id === item.id ? { ...row, event_id: value ? Number(value) : null } : row));
-      toast.success('Event updated.');
-    } catch (err) { toast.error(err.message || 'Unable to update event.'); }
-    finally { setSavingEvent(null); }
+  // Handle Cascading in Filters: Filter events based on selected tournament
+  const filteredEventsForFilter = filterTournament !== "ALL"
+    ? events.filter(e => Number(e.tournament_id) === Number(filterTournament))
+    : events;
+
+  // Handle Cascading in Upload form: Filter events based on selected tournament
+  const filteredEventsForUpload = uploadTournamentId
+    ? events.filter(e => Number(e.tournament_id) === Number(uploadTournamentId))
+    : events;
+
+  // When upload event changes, auto-derive tournament and sport
+  const handleUploadEventChange = (eId) => {
+    setUploadEventId(eId);
+    if (eId) {
+      const ev = events.find(e => Number(e.event_id) === Number(eId));
+      if (ev) {
+        if (ev.tournament_id && !uploadTournamentId) setUploadTournamentId(String(ev.tournament_id));
+        if (ev.sport_id) setUploadSportId(String(ev.sport_id));
+      }
+    }
   };
 
   // Handle file selection and live preview generation
@@ -131,7 +223,12 @@ export default function GalleryManager() {
     setPreviewUrl(null);
     setTitle("");
     setCaption("");
-    setEventId('');
+    setUploadTournamentId("");
+    setUploadEventId("");
+    setUploadSportId("");
+    setUploadDeptId("");
+    setUploadCapturedAt("");
+    setUploadStatus("Published");
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -149,17 +246,64 @@ export default function GalleryManager() {
     formData.append("media", selectedFile);
     if (title.trim()) formData.append("title", title.trim());
     if (caption.trim()) formData.append("caption", caption.trim());
-    if (eventId) formData.append('event_id', eventId);
+    if (uploadYear) formData.append("academic_year", uploadYear);
+    if (uploadTournamentId) formData.append("tournament_id", uploadTournamentId);
+    if (uploadEventId) formData.append("event_id", uploadEventId);
+    if (uploadSportId) formData.append("sport_id", uploadSportId);
+    if (uploadDeptId) formData.append("department_id", uploadDeptId);
+    if (uploadCapturedAt) formData.append("captured_at", uploadCapturedAt);
+    if (uploadStatus) formData.append("publication_status", uploadStatus);
 
     try {
-      const response = await galleryApi.uploadMedia(formData);
-      toast.success("Media uploaded and published to gallery successfully!");
+      await galleryApi.uploadMedia(formData);
+      toast.success("Institutional media uploaded and saved successfully!");
       handleClearSelection();
       fetchGallery();
     } catch (err) {
       toast.error(err.message || "Failed to upload media. Please try again.");
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handleOpenEdit = (item) => {
+    setEditingItem(item);
+    setEditForm({
+      title: item.title || "",
+      caption: item.caption || "",
+      academic_year: item.academic_year || "",
+      tournament_id: item.tournament_id ? String(item.tournament_id) : "",
+      event_id: item.event_id ? String(item.event_id) : "",
+      sport_id: item.sport_id ? String(item.sport_id) : "",
+      department_id: item.department_id ? String(item.department_id) : "",
+      captured_at: item.captured_at ? item.captured_at.slice(0, 10) : "",
+      publication_status: item.publication_status || "Published"
+    });
+  };
+
+  const handleSaveEdit = async (e) => {
+    e.preventDefault();
+    if (!editingItem) return;
+    setSavingEdit(true);
+    try {
+      await galleryApi.updateMedia(editingItem.id, {
+        title: editForm.title.trim(),
+        caption: editForm.caption.trim(),
+        academic_year: editForm.academic_year || null,
+        tournament_id: editForm.tournament_id ? Number(editForm.tournament_id) : null,
+        event_id: editForm.event_id ? Number(editForm.event_id) : null,
+        sport_id: editForm.sport_id ? Number(editForm.sport_id) : null,
+        department_id: editForm.department_id ? Number(editForm.department_id) : null,
+        captured_at: editForm.captured_at || null,
+        publication_status: editForm.publication_status
+      });
+      toast.success("Media metadata updated successfully.");
+      setEditingItem(null);
+      fetchGallery();
+    } catch (err) {
+      toast.error(err.message || "Failed to update media metadata.");
+    } finally {
+      setSavingEdit(false);
     }
   };
 
@@ -178,40 +322,49 @@ export default function GalleryManager() {
   };
 
   const filteredItems = items.filter((item) => {
-    if (filterType === "images") return item.media_type === "image" || item.type === "image";
-    if (filterType === "videos") return item.media_type === "video" || item.type === "video";
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      const match = (item.title || "").toLowerCase().includes(q) ||
+                    (item.caption || "").toLowerCase().includes(q) ||
+                    (item.tournament_name || "").toLowerCase().includes(q) ||
+                    (item.event_name || "").toLowerCase().includes(q) ||
+                    (item.sport || "").toLowerCase().includes(q);
+      if (!match) return false;
+    }
     return true;
   });
 
   return (
     <div className="nec-admin-page">
       {/* Header */}
-      <div className="nec-page-header">
+      <div className="nec-page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "10px" }}>
         <div>
-          <h2 className="nec-page-title">Event Photos Manager</h2>
-          <p className="nec-page-desc">Upload, organize, and publish campus sports event photos and video moments.</p>
+          <h2 className="nec-page-title">Institutional Sports Media & Gallery Manager</h2>
+          <p className="nec-page-desc">
+            Organize, tag, and publish official campus sports photography and videography linked to tournaments and events.
+          </p>
         </div>
         <div style={{ display: "flex", gap: "8px" }}>
           <button
             type="button"
-            className={`nec-btn ${filterType === "all" ? "nec-btn-primary" : "nec-btn-secondary"}`}
-            onClick={() => setFilterType("all")}
+            className={`nec-btn ${filterType === "ALL" ? "nec-btn-primary" : "nec-btn-secondary"}`}
+            onClick={() => setFilterType("ALL")}
             style={{ fontSize: "0.85rem", padding: "6px 12px" }}
           >
             All Media ({items.length})
           </button>
           <button
             type="button"
-            className={`nec-btn ${filterType === "images" ? "nec-btn-primary" : "nec-btn-secondary"}`}
-            onClick={() => setFilterType("images")}
+            className={`nec-btn ${filterType === "Image" ? "nec-btn-primary" : "nec-btn-secondary"}`}
+            onClick={() => setFilterType("Image")}
             style={{ fontSize: "0.85rem", padding: "6px 12px" }}
           >
             Photos ({items.filter((i) => (i.media_type || i.type) === "image").length})
           </button>
           <button
             type="button"
-            className={`nec-btn ${filterType === "videos" ? "nec-btn-primary" : "nec-btn-secondary"}`}
-            onClick={() => setFilterType("videos")}
+            className={`nec-btn ${filterType === "Video" ? "nec-btn-primary" : "nec-btn-secondary"}`}
+            onClick={() => setFilterType("Video")}
             style={{ fontSize: "0.85rem", padding: "6px 12px" }}
           >
             Videos ({items.filter((i) => (i.media_type || i.type) === "video").length})
@@ -220,11 +373,13 @@ export default function GalleryManager() {
       </div>
 
       {/* Upload New Media Card */}
-      <div className="nec-gallery-upload-card">
+      <div className="nec-gallery-upload-card" style={{ marginBottom: "20px" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <Sparkles size={18} style={{ color: "var(--nec-primary, #0284c7)" }} />
-            <h3 style={{ margin: 0, fontSize: "1.05rem", fontWeight: 700 }}>Upload New Event Photos</h3>
+            <Sparkles size={18} style={{ color: "var(--nec-gold)" }} />
+            <h3 style={{ margin: 0, fontSize: "1.05rem", fontWeight: 700, color: "var(--nec-navy)" }}>
+              Upload Institutional Media
+            </h3>
           </div>
           {selectedFile && (
             <button
@@ -262,17 +417,17 @@ export default function GalleryManager() {
                   width: "52px",
                   height: "52px",
                   borderRadius: "50%",
-                  background: "rgba(2, 132, 199, 0.1)",
+                  background: "rgba(0, 43, 73, 0.08)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  color: "var(--nec-primary, #0284c7)"
+                  color: "var(--nec-navy)"
                 }}
               >
                 <Upload size={24} />
               </div>
               <div>
-                <span style={{ fontWeight: 600, color: "var(--nec-primary, #0284c7)" }}>Click to browse</span> or drag and drop photos / videos
+                <span style={{ fontWeight: 600, color: "var(--nec-navy)" }}>Click to browse</span> or drag and drop institutional photos / videos
               </div>
               <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--nec-text-muted)" }}>
                 Supports JPG, PNG, WEBP, and MP4/WEBM up to 50MB
@@ -290,87 +445,309 @@ export default function GalleryManager() {
               )}
             </div>
 
-            {/* Form Fields */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            {/* Structured Form Fields */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
               <div>
                 <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 600, marginBottom: "4px" }}>
-                  Title <span style={{ color: "var(--nec-danger, #ef4444)" }}>*</span>
+                  Media Title <span style={{ color: "var(--nec-danger, #ef4444)" }}>*</span>
                 </label>
                 <input
                   type="text"
+                  className="nec-input"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g. NEC Annual Athletics Meet 2026 100m Sprint"
+                  placeholder="e.g. Annual Sports Meet 2026 - Basketball Championship"
                   required
-                  style={{
-                    width: "100%",
-                    padding: "8px 12px",
-                    borderRadius: "6px",
-                    border: "1px solid var(--nec-border)",
-                    background: "var(--nec-surface)",
-                    color: "var(--nec-text-main)",
-                    fontSize: "0.88rem"
-                  }}
                 />
               </div>
 
               <div>
                 <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 600, marginBottom: "4px" }}>
-                  Caption / Description (Optional)
+                  Description / Caption (Optional)
                 </label>
                 <input
                   type="text"
+                  className="nec-input"
                   value={caption}
                   onChange={(e) => setCaption(e.target.value)}
-                  placeholder="e.g. CSE Strikers clinches gold at K.R. Indoor Stadium."
-                  style={{
-                    width: "100%",
-                    padding: "8px 12px",
-                    borderRadius: "6px",
-                    border: "1px solid var(--nec-border)",
-                    background: "var(--nec-surface)",
-                    color: "var(--nec-text-main)",
-                    fontSize: "0.88rem"
-                  }}
+                  placeholder="e.g. Mech Warriors receiving trophy at Indoor Court."
                 />
               </div>
 
-              <label className="nec-form-label" htmlFor="gallery-event">Event</label>
-              <select id="gallery-event" className="nec-input" value={eventId} onChange={e => setEventId(e.target.value)} disabled={isUploading || Boolean(eventError)}>
-                <option value="">No event</option>
-                {events.map(event => <option key={event.event_id} value={event.event_id}>{event.name} — {event.tournament_name}</option>)}
-              </select>
-              <small>{eventError || 'Select an event to include this photo in its report.'}</small>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "4px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                <div>
+                  <label className="nec-form-label">Academic Year</label>
+                  <select
+                    className="nec-input"
+                    value={uploadYear}
+                    onChange={e => setUploadYear(e.target.value)}
+                  >
+                    <option value="2025-2026">2025-2026</option>
+                    <option value="2024-2025">2024-2025</option>
+                    <option value="2023-2024">2023-2024</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="nec-form-label">Tournament (Optional)</label>
+                  <select
+                    className="nec-input"
+                    value={uploadTournamentId}
+                    onChange={e => {
+                      setUploadTournamentId(e.target.value);
+                      setUploadEventId("");
+                    }}
+                  >
+                    <option value="">General Institutional Media</option>
+                    {tournaments.map(t => (
+                      <option key={t.tournament_id} value={t.tournament_id}>
+                        {t.name} ({t.academic_year || 'Current'})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                <div>
+                  <label className="nec-form-label">Event (Optional)</label>
+                  <select
+                    className="nec-input"
+                    value={uploadEventId}
+                    onChange={e => handleUploadEventChange(e.target.value)}
+                  >
+                    <option value="">No specific event</option>
+                    {filteredEventsForUpload.map(ev => (
+                      <option key={ev.event_id} value={ev.event_id}>
+                        {ev.name} {ev.sport_name ? `(${ev.sport_name})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="nec-form-label">Sport (Derived or Selectable)</label>
+                  <select
+                    className="nec-input"
+                    value={uploadSportId}
+                    onChange={e => setUploadSportId(e.target.value)}
+                  >
+                    <option value="">General Sports</option>
+                    {sports.map(s => (
+                      <option key={s.sport_id} value={s.sport_id}>{s.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px" }}>
+                <div>
+                  <label className="nec-form-label">Department Association</label>
+                  <select
+                    className="nec-input"
+                    value={uploadDeptId}
+                    onChange={e => setUploadDeptId(e.target.value)}
+                  >
+                    <option value="">All Departments</option>
+                    {departments.map(d => (
+                      <option key={d.id} value={d.id}>{d.name} ({d.code})</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="nec-form-label">Media Capture Date</label>
+                  <input
+                    type="date"
+                    className="nec-input"
+                    value={uploadCapturedAt}
+                    onChange={e => setUploadCapturedAt(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="nec-form-label">Publication Status</label>
+                  <select
+                    className="nec-input"
+                    value={uploadStatus}
+                    onChange={e => setUploadStatus(e.target.value)}
+                  >
+                    <option value="Published">Published (Public)</option>
+                    <option value="Draft">Draft (Internal)</option>
+                    <option value="Archived">Archived</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "6px" }}>
                 <div style={{ fontSize: "0.75rem", color: "var(--nec-text-muted)" }}>
                   <FileCheck size={14} style={{ display: "inline", verticalAlign: "middle", marginRight: "4px" }} />
                   {selectedFile.name} ({(selectedFile.size / (1024 * 1024)).toFixed(2)} MB)
                 </div>
 
                 <div style={{ display: "flex", gap: "8px" }}>
-                  <button
-                    type="button"
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={handleClearSelection}
                     disabled={isUploading}
-                    className="nec-btn nec-btn-secondary"
-                    style={{ fontSize: "0.85rem", padding: "6px 14px" }}
                   >
                     Cancel
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    variant="primary"
+                    size="sm"
                     type="submit"
-                    disabled={isUploading || !title.trim()}
-                    className="nec-btn nec-btn-primary"
-                    style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.85rem", padding: "6px 16px" }}
+                    loading={isUploading}
+                    disabled={!title.trim()}
+                    icon={Upload}
                   >
-                    {isUploading ? "Uploading..." : <><Upload size={16} /> Publish to Gallery</>}
-                  </button>
+                    Publish to Gallery
+                  </Button>
                 </div>
               </div>
             </div>
           </form>
         )}
       </div>
+
+      {/* Multi-Dimensional Filter Bar */}
+      <Card className="nec-card" style={{ marginBottom: "20px", padding: "14px 16px" }}>
+        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <Filter size={15} color="var(--nec-navy)" />
+            <span style={{ fontSize: "0.82rem", fontWeight: 700 }}>Filter Media:</span>
+          </div>
+
+          <select
+            className="nec-input"
+            value={filterAcademicYear}
+            onChange={e => setFilterAcademicYear(e.target.value)}
+            style={{ fontSize: "0.82rem", padding: "5px 10px" }}
+          >
+            <option value="ALL">All Academic Years</option>
+            <option value="2025-2026">2025-2026</option>
+            <option value="2024-2025">2024-2025</option>
+            <option value="2023-2024">2023-2024</option>
+          </select>
+
+          <select
+            className="nec-input"
+            value={filterTournament}
+            onChange={e => {
+              setFilterTournament(e.target.value);
+              setFilterEvent("ALL");
+            }}
+            style={{ fontSize: "0.82rem", padding: "5px 10px", minWidth: "160px" }}
+          >
+            <option value="ALL">All Tournaments</option>
+            {tournaments.map(t => (
+              <option key={t.tournament_id} value={t.tournament_id}>{t.name}</option>
+            ))}
+          </select>
+
+          <select
+            className="nec-input"
+            value={filterEvent}
+            onChange={e => setFilterEvent(e.target.value)}
+            style={{ fontSize: "0.82rem", padding: "5px 10px", minWidth: "140px" }}
+          >
+            <option value="ALL">All Events</option>
+            {filteredEventsForFilter.map(e => (
+              <option key={e.event_id} value={e.event_id}>{e.name}</option>
+            ))}
+          </select>
+
+          <select
+            className="nec-input"
+            value={filterSport}
+            onChange={e => setFilterSport(e.target.value)}
+            style={{ fontSize: "0.82rem", padding: "5px 10px" }}
+          >
+            <option value="ALL">All Sports</option>
+            {sports.map(s => (
+              <option key={s.sport_id} value={s.sport_id}>{s.name}</option>
+            ))}
+          </select>
+
+          <select
+            className="nec-input"
+            value={filterDept}
+            onChange={e => setFilterDept(e.target.value)}
+            style={{ fontSize: "0.82rem", padding: "5px 10px" }}
+          >
+            <option value="ALL">All Departments</option>
+            {departments.map(d => (
+              <option key={d.id} value={d.id}>{d.code}</option>
+            ))}
+          </select>
+
+          <select
+            className="nec-input"
+            value={filterStatus}
+            onChange={e => setFilterStatus(e.target.value)}
+            style={{ fontSize: "0.82rem", padding: "5px 10px" }}
+          >
+            <option value="ALL">All Statuses</option>
+            <option value="Published">Published</option>
+            <option value="Draft">Draft</option>
+            <option value="Archived">Archived</option>
+          </select>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <Calendar size={14} color="var(--nec-text-muted)" />
+            <input
+              type="date"
+              className="nec-input"
+              value={fromDate}
+              onChange={e => setFromDate(e.target.value)}
+              placeholder="From"
+              style={{ fontSize: "0.82rem", padding: "5px 8px" }}
+            />
+            <span style={{ fontSize: "0.8rem", color: "var(--nec-text-muted)" }}>to</span>
+            <input
+              type="date"
+              className="nec-input"
+              value={toDate}
+              onChange={e => setToDate(e.target.value)}
+              placeholder="To"
+              style={{ fontSize: "0.82rem", padding: "5px 8px" }}
+            />
+          </div>
+
+          <div style={{ flex: 1, minWidth: "160px", display: "flex", alignItems: "center", gap: "6px" }}>
+            <Search size={14} color="var(--nec-text-muted)" />
+            <input
+              type="text"
+              className="nec-input"
+              placeholder="Search title, event, caption..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              style={{ fontSize: "0.82rem", padding: "5px 10px", width: "100%" }}
+            />
+          </div>
+
+          {(filterTournament !== "ALL" || filterEvent !== "ALL" || filterSport !== "ALL" || filterDept !== "ALL" || filterAcademicYear !== "ALL" || filterStatus !== "ALL" || fromDate || toDate || search) && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setFilterTournament("ALL");
+                setFilterEvent("ALL");
+                setFilterSport("ALL");
+                setFilterDept("ALL");
+                setFilterAcademicYear("ALL");
+                setFilterStatus("ALL");
+                setFromDate("");
+                setToDate("");
+                setSearch("");
+              }}
+            >
+              Reset
+            </Button>
+          )}
+        </div>
+      </Card>
 
       {/* Media Grid Section */}
       {error ? (
@@ -391,10 +768,10 @@ export default function GalleryManager() {
             background: "var(--nec-surface)"
           }}
         >
-          <ImageIcon size={48} style={{ opacity: 0.35, marginBottom: "16px", color: "var(--nec-primary)" }} />
+          <ImageIcon size={48} style={{ opacity: 0.35, marginBottom: "16px", color: "var(--nec-navy)" }} />
           <h3 style={{ margin: "0 0 8px 0" }}>No Media Found</h3>
           <p style={{ margin: 0, color: "var(--nec-text-muted)", fontSize: "0.9rem" }}>
-            Upload photos or videos using the panel above to showcase campus sports achievements.
+            No media matching current tournament, event, sport, or date range filters.
           </p>
         </div>
       ) : (
@@ -441,6 +818,13 @@ export default function GalleryManager() {
                     {isVideo ? <><VideoIcon size={12} /> Video</> : <><ImageIcon size={12} /> Photo</>}
                   </div>
 
+                  {/* Status Badge */}
+                  <div style={{ position: "absolute", top: "10px", right: "10px", zIndex: 2 }}>
+                    <Badge status={item.publication_status === 'Published' ? 'success' : item.publication_status === 'Draft' ? 'neutral' : 'warning'}>
+                      {item.publication_status || 'Published'}
+                    </Badge>
+                  </div>
+
                   {/* Zoom Hint */}
                   <div className="nec-admin-gallery-zoom-hint">
                     <Maximize2 size={24} />
@@ -458,33 +842,210 @@ export default function GalleryManager() {
                     </p>
                   )}
 
-                    <label className="nec-form-label">Event
-                      <select className="nec-input" aria-label={`Event for ${item.title}`} value={item.event_id || ''}
-                        disabled={savingEvent !== null || Boolean(eventError)} onChange={e => linkEvent(item, e.target.value)}>
-                        <option value="">No event</option>
-                        {events.map(event => <option key={event.event_id} value={event.event_id}>{event.name} — {event.tournament_name}</option>)}
-                      </select>
-                      {eventError && <small role="alert">{eventError}</small>}
-                    </label>
+                  {/* Institutional Tags */}
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", margin: "6px 0" }}>
+                    {item.tournament_name && (
+                      <span className="nec-dept-pill" style={{ background: "rgba(0,43,73,0.06)", color: "var(--nec-navy)", fontSize: "0.72rem" }}>
+                        <Trophy size={11} style={{ marginRight: "3px" }} /> {item.tournament_name}
+                      </span>
+                    )}
+                    {item.event_name && (
+                      <span className="nec-dept-pill" style={{ background: "rgba(217,119,6,0.08)", color: "#b45309", fontSize: "0.72rem" }}>
+                        <Activity size={11} style={{ marginRight: "3px" }} /> {item.event_name}
+                      </span>
+                    )}
+                    {item.sport && item.sport !== 'Campus Sports' && (
+                      <span className="nec-dept-pill" style={{ fontSize: "0.72rem" }}>
+                        {item.sport}
+                      </span>
+                    )}
+                    {item.department_name && (
+                      <span className="nec-dept-pill" style={{ background: "rgba(34,197,94,0.08)", color: "#166534", fontSize: "0.72rem" }}>
+                        <Building size={11} style={{ marginRight: "3px" }} /> {item.department_code || item.department_name}
+                      </span>
+                    )}
+                  </div>
+
                   <div className="nec-admin-gallery-footer">
                     <div className="nec-admin-gallery-meta">
                       <span>{item.date || "Recent"}</span>
                       {item.uploadedBy && <span> • {item.uploadedBy}</span>}
                     </div>
 
-                    <Button
-                      variant="danger"
-                      size="sm"
-                      icon={Trash2}
-                      onClick={() => handleDelete(item.id, item.title)}
-                      title="Delete media item"
-                    />
+                    <div style={{ display: "flex", gap: "6px" }}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        icon={Edit2}
+                        onClick={() => handleOpenEdit(item)}
+                        title="Edit metadata"
+                      />
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        icon={Trash2}
+                        onClick={() => handleDelete(item.id, item.title)}
+                        title="Delete media item"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
             );
           })}
         </div>
+      )}
+
+      {/* Edit Metadata Modal */}
+      {editingItem && (
+        <Modal
+          isOpen={true}
+          onClose={() => setEditingItem(null)}
+          title="Edit Media Metadata"
+        >
+          <form onSubmit={handleSaveEdit}>
+            <div className="nec-form-group">
+              <label className="nec-form-label">Media Title *</label>
+              <input
+                type="text"
+                className="nec-input"
+                value={editForm.title}
+                onChange={e => setEditForm(prev => ({ ...prev, title: e.target.value }))}
+                required
+              />
+            </div>
+
+            <div className="nec-form-group">
+              <label className="nec-form-label">Caption / Description</label>
+              <input
+                type="text"
+                className="nec-input"
+                value={editForm.caption}
+                onChange={e => setEditForm(prev => ({ ...prev, caption: e.target.value }))}
+              />
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+              <div className="nec-form-group">
+                <label className="nec-form-label">Academic Year</label>
+                <select
+                  className="nec-input"
+                  value={editForm.academic_year}
+                  onChange={e => setEditForm(prev => ({ ...prev, academic_year: e.target.value }))}
+                >
+                  <option value="">Select Year</option>
+                  <option value="2025-2026">2025-2026</option>
+                  <option value="2024-2025">2024-2025</option>
+                  <option value="2023-2024">2023-2024</option>
+                </select>
+              </div>
+
+              <div className="nec-form-group">
+                <label className="nec-form-label">Tournament</label>
+                <select
+                  className="nec-input"
+                  value={editForm.tournament_id}
+                  onChange={e => setEditForm(prev => ({ ...prev, tournament_id: e.target.value, event_id: "" }))}
+                >
+                  <option value="">General Institutional Media</option>
+                  {tournaments.map(t => (
+                    <option key={t.tournament_id} value={t.tournament_id}>{t.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+              <div className="nec-form-group">
+                <label className="nec-form-label">Event</label>
+                <select
+                  className="nec-input"
+                  value={editForm.event_id}
+                  onChange={e => {
+                    const eId = e.target.value;
+                    const ev = events.find(item => Number(item.event_id) === Number(eId));
+                    setEditForm(prev => ({
+                      ...prev,
+                      event_id: eId,
+                      sport_id: ev?.sport_id ? String(ev.sport_id) : prev.sport_id,
+                      tournament_id: ev?.tournament_id && !prev.tournament_id ? String(ev.tournament_id) : prev.tournament_id
+                    }));
+                  }}
+                >
+                  <option value="">No specific event</option>
+                  {(editForm.tournament_id
+                    ? events.filter(e => Number(e.tournament_id) === Number(editForm.tournament_id))
+                    : events
+                  ).map(ev => (
+                    <option key={ev.event_id} value={ev.event_id}>{ev.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="nec-form-group">
+                <label className="nec-form-label">Sport</label>
+                <select
+                  className="nec-input"
+                  value={editForm.sport_id}
+                  onChange={e => setEditForm(prev => ({ ...prev, sport_id: e.target.value }))}
+                >
+                  <option value="">Campus Sports</option>
+                  {sports.map(s => (
+                    <option key={s.sport_id} value={s.sport_id}>{s.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+              <div className="nec-form-group">
+                <label className="nec-form-label">Department Association</label>
+                <select
+                  className="nec-input"
+                  value={editForm.department_id}
+                  onChange={e => setEditForm(prev => ({ ...prev, department_id: e.target.value }))}
+                >
+                  <option value="">All Departments</option>
+                  {departments.map(d => (
+                    <option key={d.id} value={d.id}>{d.name} ({d.code})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="nec-form-group">
+                <label className="nec-form-label">Capture Date</label>
+                <input
+                  type="date"
+                  className="nec-input"
+                  value={editForm.captured_at}
+                  onChange={e => setEditForm(prev => ({ ...prev, captured_at: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            <div className="nec-form-group">
+              <label className="nec-form-label">Publication Status</label>
+              <select
+                className="nec-input"
+                value={editForm.publication_status}
+                onChange={e => setEditForm(prev => ({ ...prev, publication_status: e.target.value }))}
+              >
+                <option value="Published">Published (Public)</option>
+                <option value="Draft">Draft (Internal)</option>
+                <option value="Archived">Archived</option>
+              </select>
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "20px" }}>
+              <Button variant="outline" onClick={() => setEditingItem(null)}>
+                Cancel
+              </Button>
+              <Button variant="primary" type="submit" loading={savingEdit}>
+                Save Changes
+              </Button>
+            </div>
+          </form>
+        </Modal>
       )}
 
       {/* Lightbox Modal */}
@@ -498,9 +1059,14 @@ export default function GalleryManager() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="nec-gallery-lightbox-header">
-              <span className="nec-gallery-lightbox-type">
-                {(activeLightboxItem.media_type || activeLightboxItem.type) === "video" ? "Video Player" : "Photo Viewer"}
-              </span>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <span className="nec-gallery-lightbox-type">
+                  {(activeLightboxItem.media_type || activeLightboxItem.type) === "video" ? "Video Player" : "Photo Viewer"}
+                </span>
+                <Badge status={activeLightboxItem.publication_status === 'Published' ? 'success' : 'neutral'}>
+                  {activeLightboxItem.publication_status || 'Published'}
+                </Badge>
+              </div>
               <button
                 type="button"
                 className="nec-gallery-lightbox-close"
@@ -541,12 +1107,37 @@ export default function GalleryManager() {
                     {activeLightboxItem.caption}
                   </p>
                 )}
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", margin: "6px 0" }}>
+                  {activeLightboxItem.tournament_name && (
+                    <Badge status="info">Tournament: {activeLightboxItem.tournament_name}</Badge>
+                  )}
+                  {activeLightboxItem.event_name && (
+                    <Badge status="warning">Event: {activeLightboxItem.event_name}</Badge>
+                  )}
+                  {activeLightboxItem.sport && (
+                    <Badge status="neutral">Sport: {activeLightboxItem.sport}</Badge>
+                  )}
+                  {activeLightboxItem.department_name && (
+                    <Badge status="success">Dept: {activeLightboxItem.department_name}</Badge>
+                  )}
+                </div>
                 <span style={{ fontSize: "0.75rem", color: "var(--nec-text-muted)", marginTop: "4px", display: "inline-block" }}>
                   {activeLightboxItem.date} {activeLightboxItem.uploadedBy ? `• Uploaded by ${activeLightboxItem.uploadedBy}` : ""}
                 </span>
               </div>
 
               <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  icon={Edit2}
+                  onClick={() => {
+                    handleOpenEdit(activeLightboxItem);
+                    setActiveLightboxItem(null);
+                  }}
+                >
+                  Edit Metadata
+                </Button>
                 <Button
                   variant="danger"
                   size="sm"

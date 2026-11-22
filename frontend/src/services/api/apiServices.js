@@ -390,7 +390,25 @@ export const matchesApi = {
 
 /* --- Reports API --- */
 export const reportsApi = {
-  getActivityReport: (params) => apiFetch(`/reports/activity?${new URLSearchParams(params)}`),
+  getActivityReport: (params) => {
+    const qs = new URLSearchParams(params).toString();
+    return apiFetch(`/reports/activity${qs ? `?${qs}` : ''}`);
+  },
+  getActivityReportExcelUrl: (params) => {
+    const base = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/+$/, '') + '/api';
+    const qs = new URLSearchParams(params).toString();
+    return `${base}/reports/activity/export${qs ? `?${qs}` : ''}`;
+  },
+  getTournamentReport: (id) => apiFetch(`/reports/tournament/${id}`),
+  getTournamentReportExcelUrl: (id) => {
+    const base = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/+$/, '') + '/api';
+    return `${base}/reports/tournament/${id}/export`;
+  },
+  getEventReport: (id) => apiFetch(`/reports/event/${id}`),
+  getEventReportExcelUrl: (id) => {
+    const base = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/+$/, '') + '/api';
+    return `${base}/reports/event/${id}/export`;
+  },
   // params: { timeframe } or { from, to } with YYYY-MM-DD dates (inclusive)
   getPerformanceReport: (params = { timeframe: '1month' }) => {
     const qs = new URLSearchParams(
@@ -409,18 +427,31 @@ export const leaderboardApi = {
 
 /* --- Announcements API --- */
 export const announcementsApi = {
-  getAnnouncements: () => apiFetch("/announcements"),
-  getAll: () => apiFetch("/announcements"),
+  getAnnouncements: (params = {}) => {
+    const qs = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '' && v !== 'ALL')
+    ).toString();
+    return apiFetch(`/announcements${qs ? `?${qs}` : ''}`);
+  },
+  getAll: (params = {}) => announcementsApi.getAnnouncements(params),
   addAnnouncement: (data) => apiFetch("/announcements", "POST", data),
   createAnnouncement: (data) => apiFetch("/announcements", "POST", data),
+  updateAnnouncement: (id, data) => apiFetch(`/announcements/${id}`, "PUT", data),
+  cancelAnnouncement: (id) => apiFetch(`/announcements/${id}/cancel`, "PATCH"),
   deleteAnnouncement: (id) => apiFetch(`/announcements/${id}`, "DELETE")
 };
 
 /* --- Event Photos (formerly Media Gallery) API --- */
 export const eventPhotosApi = {
-  getPhotos: () => apiFetch("/event-photos").catch(() => apiFetch("/gallery")),
-  getGallery: () => apiFetch("/event-photos").catch(() => apiFetch("/gallery")),
-  getAll: () => apiFetch("/event-photos").catch(() => apiFetch("/gallery")),
+  getPhotos: (params = {}) => {
+    const qs = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '' && v !== 'ALL' && v !== 'all')
+    ).toString();
+    const query = qs ? `?${qs}` : '';
+    return apiFetch(`/event-photos${query}`).catch(() => apiFetch(`/gallery${query}`));
+  },
+  getGallery: (params = {}) => eventPhotosApi.getPhotos(params),
+  getAll: (params = {}) => eventPhotosApi.getPhotos(params),
   uploadPhoto: (formData) => apiFetch("/event-photos/upload", "POST", formData),
   uploadMedia: (formData) => apiFetch("/event-photos/upload", "POST", formData),
   updatePhoto: (id, data) => apiFetch(`/event-photos/${id}`, "PUT", data),
@@ -455,7 +486,20 @@ export const notificationsApi = {
 
 /* --- Audit Log API --- */
 export const auditApi = {
-  getEntries: (limit = 100) => apiFetch(`/admin/audit-log?limit=${limit}`)
+  getEntries: (params = {}) => {
+    const queryObj = typeof params === 'number' || typeof params === 'string' ? { limit: params } : (params || {});
+    const qs = new URLSearchParams(
+      Object.entries(queryObj).filter(([, v]) => v !== undefined && v !== null && v !== '' && v !== 'ALL')
+    ).toString();
+    return apiFetch(`/admin/audit-log${qs ? `?${qs}` : ''}`);
+  },
+  getExportUrl: (params = {}) => {
+    const base = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/+$/, '') + '/api';
+    const qs = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '' && v !== 'ALL')
+    ).toString();
+    return `${base}/admin/audit-log/export${qs ? `?${qs}` : ''}`;
+  }
 };
 
 /* --- OD (On Duty) API --- */

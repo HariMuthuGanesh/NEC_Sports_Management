@@ -1,14 +1,16 @@
 import React, { useState, useRef } from "react";
 import { Card } from "../../components/common/Card";
 import Button from "../../components/common/Button";
-import { FileText, Download, Award, Trophy } from "lucide-react";
+import { FileText, Download, Award, Trophy, Activity, Calendar } from "lucide-react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import ActivityReport from "./ActivityReport";
+import TournamentReport from "./TournamentReport";
+import EventReport from "./EventReport";
 import "./AdminPortal.css";
 
 export default function ReportsManager() {
-  const [activeTab, setActiveTab] = useState("reports");
+  const [activeTab, setActiveTab] = useState("activity");
   // Certificate State
   const [certName, setCertName] = useState("");
   const [certSport, setCertSport] = useState("Basketball");
@@ -45,19 +47,46 @@ export default function ReportsManager() {
     <div className="nec-portal-page">
       <div className="nec-page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
         <div>
-          <h2 className="nec-page-title">Sports Reports</h2>
+          <h2 className="nec-page-title">Institutional Sports Reports & Analytics</h2>
+          <p className="nec-page-desc">
+            Official institutional performance records, tournament summaries, event breakdowns, and merit credentials.
+          </p>
         </div>
-        <div style={{ display: "flex", gap: "8px" }}>
-          <Button variant={activeTab === "reports" ? "primary" : "outline"} icon={FileText} onClick={() => setActiveTab("reports")}>
-            Activity Reports
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+          <Button
+            variant={activeTab === "activity" ? "primary" : "outline"}
+            icon={Calendar}
+            onClick={() => setActiveTab("activity")}
+          >
+            Activity Period
           </Button>
-          <Button variant={activeTab === "certificates" ? "primary" : "outline"} icon={Award} onClick={() => setActiveTab("certificates")}>
+          <Button
+            variant={activeTab === "tournament" ? "primary" : "outline"}
+            icon={Trophy}
+            onClick={() => setActiveTab("tournament")}
+          >
+            Tournament Report
+          </Button>
+          <Button
+            variant={activeTab === "event" ? "primary" : "outline"}
+            icon={Activity}
+            onClick={() => setActiveTab("event")}
+          >
+            Event Report
+          </Button>
+          <Button
+            variant={activeTab === "certificates" ? "primary" : "outline"}
+            icon={Award}
+            onClick={() => setActiveTab("certificates")}
+          >
             Certificates
           </Button>
         </div>
       </div>
 
-      {activeTab === "reports" && <ActivityReport />}
+      {activeTab === "activity" && <ActivityReport />}
+      {activeTab === "tournament" && <TournamentReport />}
+      {activeTab === "event" && <EventReport />}
 
       {activeTab === "certificates" && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "24px" }}>

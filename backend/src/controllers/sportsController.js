@@ -36,7 +36,13 @@ import {
     countDepartmentStudents,
     getAvailableCoordinators
 } from '../models/sql/departmentSqlModel.js';
-import { getAllAnnouncements, createAnnouncement as createAnnouncementSql, deleteAnnouncement as deleteAnnouncementSql } from '../models/sql/announcementSqlModel.js';
+import {
+    getAllAnnouncements,
+    createAnnouncement as createAnnouncementSql,
+    updateAnnouncement as updateAnnouncementSql,
+    cancelAnnouncement as cancelAnnouncementSql,
+    deleteAnnouncement as deleteAnnouncementSql
+} from '../models/sql/announcementSqlModel.js';
 import { ensureStudentAndUserExists } from '../services/studentProvisionService.js';
 import {
     searchStudents as searchStudentsSql
@@ -480,7 +486,11 @@ export const getCoordinatorsListController = async (req, res, next) => {
 /* --- Announcements --- */
 export const getAnnouncements = async (req, res, next) => {
     try {
-        const data = await getAllAnnouncements();
+        const filters = {
+            ...req.query,
+            userRole: req.user?.role || 'Public'
+        };
+        const data = await getAllAnnouncements(filters);
         return res.json({ success: true, data });
     } catch (err) {
         next(err);
@@ -496,8 +506,9 @@ export const createAnnouncementController = async (req, res, next) => {
             const title = req.body.title || 'New Announcement';
             const message = req.body.content || 'A high-priority announcement has been posted.';
             
-            if (req.body.department_id) {
-                await notifyDepartmentStudents(req.body.department_id, {
+            if (req.body.target_department_id || req.body.department_id) {
+                const targetDept = req.body.target_department_id || req.body.department_id;
+                await notifyDepartmentStudents(targetDept, {
                     title: `[Urgent] ${title}`,
                     message,
                     type: 'ANNOUNCEMENT'
@@ -520,9 +531,33 @@ export const createAnnouncementController = async (req, res, next) => {
     }
 };
 
+export const updateAnnouncementController = async (req, res, next) => {
+    try {
+        const success = await updateAnnouncementSql(req.params.id, req.body);
+        if (!success) {
+            return res.status(404).json({ success: false, error: { message: "Announcement not found" } });
+        }
+        return res.json({ success: true, data: { message: "Announcement updated successfully" } });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const cancelAnnouncementController = async (req, res, next) => {
+    try {
+        const success = await cancelAnnouncementSql(req.params.id, req.user?.id);
+        if (!success) {
+            return res.status(400).json({ success: false, error: { message: "Only scheduled announcements can be cancelled." } });
+        }
+        return res.json({ success: true, data: { message: "Scheduled announcement cancelled." } });
+    } catch (err) {
+        next(err);
+    }
+};
+
 export const deleteAnnouncementController = async (req, res, next) => {
     try {
-        const success = await deleteAnnouncementSql(req.params.id);
+        const success = await deleteAnnouncementSql(req.params.id, req.user?.id);
         if (!success) {
             return res.status(404).json({ success: false, error: { message: "Announcement not found" } });
         }

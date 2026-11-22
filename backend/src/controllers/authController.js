@@ -14,6 +14,7 @@ import {
 import { getStudentByUserId } from '../models/sql/studentSqlModel.js';
 import { isPasswordEmailConfigured, notifyAdmins, sendPasswordResetEmail } from '../services/emailService.js';
 import { getOAuthProviders, getProviderConfig } from '../services/oauthProviders.js';
+import { addAuditEntry } from '../services/auditStore.js';
 
 const generateToken = (id, role, dept = 'All', tokenVersion = 0, deptId = null) => {
     return jwt.sign({ id, role, dept, dept_id: deptId, token_version: tokenVersion }, JWT_SECRET, {
@@ -85,6 +86,21 @@ export const loginUser = async (req, res, next) => {
 
             const token = generateToken(user.id, user.role, deptCode || 'Sports Office', tokenVersion, deptId);
 
+            addAuditEntry({
+                event_category: 'AUTHENTICATION',
+                eventType: 'LOGIN_SUCCESS',
+                event: 'LOGIN_SUCCESS',
+                module: 'Authentication',
+                operation: `User '${user.username}' logged in successfully`,
+                userId: user.id,
+                role: user.role,
+                outcome: 'SUCCESS',
+                ipAddress: req.ip,
+                route: req.originalUrl,
+                method: req.method,
+                statusCode: 200
+            });
+
             res.cookie('token', token, AUTH_COOKIE_OPTIONS);
             return res.json({
                 success: true,
@@ -106,6 +122,21 @@ export const loginUser = async (req, res, next) => {
             });
         }
 
+        addAuditEntry({
+            event_category: 'AUTHENTICATION',
+            eventType: 'LOGIN_FAILED',
+            event: 'LOGIN_FAILED',
+            module: 'Authentication',
+            operation: `Failed login attempt for identifier '${identifier}'`,
+            userId: user?.id || null,
+            role: user?.role || 'Public',
+            outcome: 'FAILURE',
+            ipAddress: req.ip,
+            route: req.originalUrl,
+            method: req.method,
+            statusCode: 401
+        });
+
         return res.status(401).json({
             success: false,
             error: { code: 'INVALID_CREDENTIALS', message: 'Invalid credentials provided.' }
@@ -123,6 +154,20 @@ export const logoutUser = async (req, res, next) => {
     try {
         if (req.user?.id) {
             await pool.execute('UPDATE users SET token_version = token_version + 1 WHERE id = ?', [req.user.id]);
+            addAuditEntry({
+                event_category: 'AUTHENTICATION',
+                eventType: 'LOGOUT',
+                event: 'LOGOUT',
+                module: 'Authentication',
+                operation: `User '${req.user.username || req.user.id}' logged out`,
+                userId: req.user.id,
+                role: req.user.role,
+                outcome: 'SUCCESS',
+                ipAddress: req.ip,
+                route: req.originalUrl,
+                method: req.method,
+                statusCode: 200
+            });
         }
         res.clearCookie('token', AUTH_COOKIE_OPTIONS);
         return res.json({

@@ -5,7 +5,21 @@ import Table from "../../components/common/Table";
 import Badge from "../../components/common/Badge";
 import Button from "../../components/common/Button";
 import { Card } from "../../components/common/Card";
-import { Shield, Download, RefreshCw, AlertTriangle, CheckCircle2, XCircle, LogOut, UserCog } from "lucide-react";
+import {
+  Shield,
+  Download,
+  RefreshCw,
+  AlertTriangle,
+  CheckCircle2,
+  XCircle,
+  LogOut,
+  UserCog,
+  FileSpreadsheet,
+  Calendar,
+  Filter,
+  Search,
+  Settings
+} from "lucide-react";
 import "./AdminPortal.css";
 
 const EVENT_META = {
@@ -16,9 +30,37 @@ const EVENT_META = {
   UNAUTHORIZED_ACCESS: { label: "Unauthorized Access", status: "warning", icon: AlertTriangle },
   SESSION_EXPIRED: { label: "Session Expired", status: "warning", icon: AlertTriangle },
   IDLE_TIMEOUT: { label: "Idle Timeout", status: "neutral", icon: AlertTriangle },
+  AUTHENTICATION_FAILURE: { label: "Auth Failure", status: "danger", icon: XCircle },
+  GALLERY_UPLOAD: { label: "Gallery Upload", status: "success", icon: CheckCircle2 },
+  GALLERY_UPDATE: { label: "Gallery Update", status: "info", icon: Settings },
+  GALLERY_DELETE: { label: "Gallery Delete", status: "danger", icon: XCircle },
+  ANNOUNCEMENT_CREATE: { label: "Announcement Posted", status: "success", icon: CheckCircle2 },
+  ANNOUNCEMENT_UPDATE: { label: "Announcement Updated", status: "info", icon: Settings },
+  ANNOUNCEMENT_CANCEL: { label: "Announcement Cancelled", status: "warning", icon: AlertTriangle },
+  ANNOUNCEMENT_DELETE: { label: "Announcement Deleted", status: "danger", icon: XCircle }
 };
 
-const SUMMARY_EVENTS = ["LOGIN_FAILED", "UNAUTHORIZED_ACCESS"];
+const CATEGORIES = [
+  "ALL",
+  "AUTHENTICATION",
+  "ADMINISTRATIVE_MUTATION",
+  "SECURITY_EVENT",
+  "ACCESS_CONTROL",
+  "SYSTEM"
+];
+
+const MODULES = [
+  "ALL",
+  "Authentication",
+  "Tournaments",
+  "Events",
+  "Teams",
+  "Appointments",
+  "Gallery",
+  "Announcements",
+  "Matches",
+  "System"
+];
 
 const escapeCsvCell = (cell) => {
   const text = String(cell ?? "");
@@ -28,52 +70,111 @@ const escapeCsvCell = (cell) => {
 
 export default function AuditLog() {
   const [log, setLog] = useState([]);
-  const [filter, setFilter] = useState("ALL");
+  const [loading, setLoading] = useState(true);
+  const [filterCategory, setFilterCategory] = useState("ALL");
+  const [filterModule, setFilterModule] = useState("ALL");
+  const [filterOutcome, setFilterOutcome] = useState("ALL");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [search, setSearch] = useState("");
 
   const load = async () => {
+    setLoading(true);
     const localEntries = SecurityLogger.getLog();
     try {
-      const serverEntries = await auditApi.getEntries();
-      setLog([...localEntries, ...serverEntries]);
+      const serverEntries = await auditApi.getEntries({
+        category: filterCategory !== "ALL" ? filterCategory : undefined,
+        module: filterModule !== "ALL" ? filterModule : undefined,
+        outcome: filterOutcome !== "ALL" ? filterOutcome : undefined,
+        from: fromDate || undefined,
+        to: toDate || undefined,
+        search: search.trim() || undefined,
+        limit: 500
+      });
+
+      // Merge unique entries prioritizing server
+      const combined = [...(Array.isArray(serverEntries) ? serverEntries : [])];
+      localEntries.forEach(loc => {
+        if (!combined.some(c => c.timestamp === loc.timestamp && c.event === loc.event)) {
+          combined.push(loc);
+        }
+      });
+      combined.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      setLog(combined);
     } catch {
       setLog(localEntries);
+    } finally {
+      setLoading(false);
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, [filterCategory, filterModule, filterOutcome, fromDate, toDate]);
 
-  const handleExport = () => {
-    const rows = filtered.map(entry => ({
+  const handleExportCsv = () => {
+    const rows = filteredLog.map(entry => ({
+      LogID: entry.id || "",
       Timestamp: entry.timestamp || "",
-      EventType: entry.eventType || EVENT_META[entry.event]?.label || entry.event || "HTTP Request",
-      Operation: entry.operation || `${entry.method || ""} ${entry.route || ""}`.trim(),
-      User: entry.user || entry.userId || "—",
+      Event: entry.event || entry.eventType || "REQUEST",
+      Category: entry.category || "SYSTEM",
+      Module: entry.module || "System",
+      Outcome: entry.outcome || (entry.statusCode >= 400 ? "FAILURE" : "SUCCESS"),
+      User: entry.user || entry.username || entry.userId || "—",
       Role: entry.role || "—",
+      Operation: entry.operation || `${entry.method || ""} ${entry.route || ""}`.trim(),
       IPAddress: entry.ipAddress || "—",
-      ForwardedFor: entry.forwardedFor || "—",
-      UserAgent: entry.userAgent || "—",
-      StatusCode: entry.statusCode || "—",
-      DurationMs: entry.durationMs || "—",
-      Details: entry.reason || entry.route || entry.dept || "—",
+      Route: entry.route || "—",
+      StatusCode: entry.statusCode || "—"
     }));
+
     const columns = Object.keys(rows[0] || {});
     const csvLines = [
       columns.map(escapeCsvCell).join(","),
-      ...rows.map(row => columns.map(column => escapeCsvCell(row[column])).join(",")),
+      ...rows.map(row => columns.map(column => escapeCsvCell(row[column])).join(","))
     ];
+
     const downloadUrl = URL.createObjectURL(new Blob([csvLines.join("\r\n")], { type: "text/csv;charset=utf-8" }));
     const downloadLink = document.createElement("a");
     downloadLink.href = downloadUrl;
-    downloadLink.download = `nec-security-audit-${new Date().toISOString().slice(0, 10)}.csv`;
+    downloadLink.download = `NEC_Security_Audit_${new Date().toISOString().slice(0, 10)}.csv`;
     downloadLink.click();
     URL.revokeObjectURL(downloadUrl);
   };
 
-  const filtered = filter === "ALL" ? log : log.filter(e => e.event === filter);
+  const handleExportExcel = () => {
+    const url = auditApi.getExportUrl({
+      format: "excel",
+      category: filterCategory !== "ALL" ? filterCategory : undefined,
+      module: filterModule !== "ALL" ? filterModule : undefined,
+      outcome: filterOutcome !== "ALL" ? filterOutcome : undefined,
+      from: fromDate || undefined,
+      to: toDate || undefined,
+      search: search.trim() || undefined
+    });
+    window.open(url, "_blank");
+  };
 
-  const criticalCount = log.filter(e => SUMMARY_EVENTS.includes(e.event)).length;
-  const loginCount = log.filter(e => e.event === "LOGIN_SUCCESS").length;
-  const failedCount = log.filter(e => e.event === "LOGIN_FAILED").length;
+  const filteredLog = log.filter(e => {
+    if (filterCategory !== "ALL" && e.category !== filterCategory) return false;
+    if (filterModule !== "ALL" && e.module?.toLowerCase() !== filterModule.toLowerCase()) return false;
+    if (filterOutcome !== "ALL" && e.outcome !== filterOutcome) return false;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      const match = (e.operation || "").toLowerCase().includes(q) ||
+                    (e.event || "").toLowerCase().includes(q) ||
+                    (e.user || "").toLowerCase().includes(q) ||
+                    (e.username || "").toLowerCase().includes(q) ||
+                    (e.route || "").toLowerCase().includes(q);
+      if (!match) return false;
+    }
+    return true;
+  });
+
+  const totalCount = log.length;
+  const loginCount = log.filter(e => e.event === "LOGIN_SUCCESS" || e.eventType === "LOGIN_SUCCESS").length;
+  const failedCount = log.filter(e => e.event === "LOGIN_FAILED" || e.eventType === "LOGIN_FAILED" || e.eventType === "AUTHENTICATION_FAILURE").length;
+  const mutationCount = log.filter(e => e.category === "ADMINISTRATIVE_MUTATION" || e.event?.includes("CREATE") || e.event?.includes("UPDATE") || e.event?.includes("DELETE")).length;
 
   const columns = [
     {
@@ -91,107 +192,120 @@ export default function AuditLog() {
     },
     {
       key: "event",
-      label: "Event Type",
-      width: "190px",
-      render: (val) => {
-        const meta = EVENT_META[val] || { label: val, status: "neutral" };
+      label: "Event & Module",
+      width: "220px",
+      render: (val, row) => {
+        const eventName = val || row.eventType || "REQUEST";
+        const meta = EVENT_META[eventName] || { label: eventName, status: "neutral" };
         const Icon = meta.icon || Shield;
         return (
-          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <Icon size={13} />
-            <Badge status={meta.status}>{meta.label}</Badge>
+          <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <Icon size={13} />
+              <Badge status={meta.status}>{meta.label}</Badge>
+            </div>
+            {row.module && row.module !== "System" && (
+              <span style={{ fontSize: "0.72rem", color: "var(--nec-text-muted)" }}>
+                Module: {row.module}
+              </span>
+            )}
           </div>
         );
       }
     },
     {
-      key: "eventType",
-      label: "Event Type",
-      width: "190px",
-      render: (val, row) => <Badge status={val?.includes("FAILURE") || val === "RATE_LIMITED" ? "danger" : "info"}>{val || row.event || "—"}</Badge>
+      key: "outcome",
+      label: "Outcome",
+      width: "100px",
+      render: (val, row) => {
+        const isSuccess = val === "SUCCESS" || (row.statusCode && row.statusCode < 400);
+        return (
+          <Badge status={isSuccess ? "success" : "danger"}>
+            {isSuccess ? "SUCCESS" : "FAILURE"}
+          </Badge>
+        );
+      }
     },
     {
       key: "operation",
-      label: "Operation",
-      width: "260px",
-      render: (val, row) => <span style={{ fontFamily: "monospace", fontSize: "0.78rem" }}>{val || `${row.method || ""} ${row.route || ""}`.trim() || "—"}</span>
-    },
-    {
-      key: "user",
-      label: "User / ID",
+      label: "Operation / Action",
       render: (val, row) => (
         <div>
-          <span style={{ fontWeight: 600 }}>{val || row.userId || "—"}</span>
-          {row.userId && val && <span style={{ color: "var(--nec-text-muted)", fontSize: "0.8rem" }}> ({row.userId})</span>}
+          <div style={{ fontSize: "0.82rem", fontWeight: 500 }}>
+            {val || `${row.method || ""} ${row.route || ""}`.trim() || "—"}
+          </div>
+          {row.route && row.route !== val && (
+            <div style={{ fontFamily: "monospace", fontSize: "0.74rem", color: "var(--nec-text-muted)" }}>
+              {row.method} {row.route}
+            </div>
+          )}
         </div>
       )
     },
     {
-      key: "role",
-      label: "Role",
-      width: "200px",
-      render: (val, row) => {
-        if (row.event === "ROLE_SWITCH") {
-          return (
-            <span style={{ fontSize: "0.82rem" }}>
-              <span style={{ color: "var(--nec-text-muted)" }}>{row.from?.split(" ")[0]}</span>
-              {" → "}
-              <span style={{ fontWeight: 600, color: "var(--nec-navy)" }}>{row.to?.split(" ")[0]}</span>
-            </span>
-          );
-        }
-        return <span style={{ fontSize: "0.82rem" }}>{val || row.role || "—"}</span>;
-      }
-    },
-    {
-      key: "reason",
-      label: "Details",
+      key: "user",
+      label: "User & Role",
+      width: "180px",
       render: (val, row) => (
-        <span style={{ fontSize: "0.82rem", color: "var(--nec-text-muted)" }}>
-          {val || row.route || row.dept || "—"}
-        </span>
+        <div>
+          <span style={{ fontWeight: 600, fontSize: "0.82rem" }}>
+            {val || row.username || row.userId || "System / Guest"}
+          </span>
+          <div style={{ fontSize: "0.74rem", color: "var(--nec-text-muted)" }}>
+            Role: {row.role || "Public"}
+          </div>
+        </div>
       )
     },
     {
       key: "ipAddress",
       label: "IP Address",
-      width: "150px",
-      render: (val) => <span style={{ fontFamily: "monospace", fontSize: "0.78rem" }}>{val || "—"}</span>
-    },
+      width: "130px",
+      render: (val) => (
+        <span style={{ fontFamily: "monospace", fontSize: "0.78rem", color: "var(--nec-text-muted)" }}>
+          {val || "—"}
+        </span>
+      )
+    }
   ];
-
-  const EVENT_FILTERS = ["ALL", ...Object.keys(EVENT_META)];
 
   return (
     <div className="nec-portal-page">
-      <div className="nec-page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+      <div className="nec-page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "12px" }}>
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
             <Shield size={20} color="var(--nec-navy)" />
             <span style={{ fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.12em", color: "var(--nec-gold)", textTransform: "uppercase" }}>
-              Security Centre
+              Institutional Security Centre
             </span>
           </div>
-          <h2 className="nec-page-title">Security Audit Log</h2>
+          <h2 className="nec-page-title">Institutional Security Audit Log</h2>
           <p className="nec-page-desc">
-            Complete audit trail of authentication events, role switches, unauthorized access attempts, and session activity.
+            Complete tamper-evident audit trail of institutional logins, administrative mutations, access control checks, and operational changes.
           </p>
         </div>
-        <div style={{ display: "flex", gap: "8px" }}>
-          <Button variant="outline" size="sm" icon={RefreshCw} onClick={load}>Refresh</Button>
-          <Button variant="primary" size="sm" icon={Download} onClick={handleExport}>Export CSV</Button>
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+          <Button variant="outline" size="sm" icon={RefreshCw} loading={loading} onClick={load}>
+            Refresh
+          </Button>
+          <Button variant="outline" size="sm" icon={Download} onClick={handleExportCsv}>
+            Export CSV
+          </Button>
+          <Button variant="primary" size="sm" icon={FileSpreadsheet} onClick={handleExportExcel}>
+            Export Excel (.xlsx)
+          </Button>
         </div>
       </div>
 
-      {/* ── Summary Cards ── */}
+      {/* ── Summary Stat Cards ── */}
       <div className="nec-stats-grid" style={{ marginBottom: "20px" }}>
         <div className="nec-stat-card">
           <div className="nec-stat-card-top">
-            <span className="nec-stat-title">Total Events</span>
+            <span className="nec-stat-title">Total Audit Records</span>
             <Shield size={18} style={{ color: "var(--nec-navy)" }} />
           </div>
-          <div className="nec-stat-value">{log.length}</div>
-          <div className="nec-stat-subtext">Recorded security events</div>
+          <div className="nec-stat-value">{totalCount}</div>
+          <div className="nec-stat-subtext">Events logged in audit store</div>
         </div>
         <div className="nec-stat-card">
           <div className="nec-stat-card-top">
@@ -199,78 +313,145 @@ export default function AuditLog() {
             <CheckCircle2 size={18} style={{ color: "#22c55e" }} />
           </div>
           <div className="nec-stat-value" style={{ color: "#22c55e" }}>{loginCount}</div>
-          <div className="nec-stat-subtext">Authenticated sessions</div>
+          <div className="nec-stat-subtext">Sports admin & user sessions</div>
         </div>
         <div className="nec-stat-card">
           <div className="nec-stat-card-top">
-            <span className="nec-stat-title">Failed Attempts</span>
+            <span className="nec-stat-title">Failed Logins</span>
             <XCircle size={18} style={{ color: "#ef4444" }} />
           </div>
-          <div className="nec-stat-value" style={{ color: "#ef4444" }}>{failedCount}</div>
-          <div className="nec-stat-subtext">Potential threats</div>
+          <div className="nec-stat-value" style={{ color: failedCount > 0 ? "#ef4444" : "var(--nec-text-main)" }}>
+            {failedCount}
+          </div>
+          <div className="nec-stat-subtext">Authentication failures</div>
         </div>
         <div className="nec-stat-card">
           <div className="nec-stat-card-top">
-            <span className="nec-stat-title">Security Alerts</span>
-            <AlertTriangle size={18} style={{ color: "#f59e0b" }} />
+            <span className="nec-stat-title">Admin Mutations</span>
+            <Settings size={18} style={{ color: "var(--nec-gold)" }} />
           </div>
-          <div className="nec-stat-value" style={{ color: criticalCount > 0 ? "#f59e0b" : "var(--nec-text-main)" }}>
-            {criticalCount}
-          </div>
-          <div className="nec-stat-subtext">Failed + unauthorized</div>
+          <div className="nec-stat-value" style={{ color: "var(--nec-gold)" }}>{mutationCount}</div>
+          <div className="nec-stat-subtext">Tournaments, events, appointments</div>
         </div>
       </div>
 
-      {/* ── Event Type Filter ── */}
-      <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "16px" }}>
-        {EVENT_FILTERS.map(ev => (
-          <button
-            key={ev}
-            onClick={() => setFilter(ev)}
-            style={{
-              padding: "5px 12px",
-              borderRadius: "20px",
-              border: `1.5px solid ${filter === ev ? "var(--nec-navy)" : "var(--nec-border-light)"}`,
-              background: filter === ev ? "var(--nec-navy)" : "transparent",
-              color: filter === ev ? "#fff" : "var(--nec-text-muted)",
-              fontSize: "0.78rem",
-              fontWeight: 600,
-              cursor: "pointer",
-              transition: "all 0.2s",
-            }}
-          >
-            {ev === "ALL" ? "All Events" : (EVENT_META[ev]?.label || ev)}
-            {ev !== "ALL" && (
-              <span style={{
-                marginLeft: "6px",
-                background: filter === ev ? "rgba(255,255,255,0.2)" : "var(--nec-bg-alt)",
-                borderRadius: "10px",
-                padding: "0 6px",
-                fontSize: "0.72rem",
-              }}>
-                {log.filter(e => e.event === ev).length}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
+      {/* ── Multi-Dimensional Filters Bar ── */}
+      <Card className="nec-card" style={{ marginBottom: "16px", padding: "14px 16px" }}>
+        <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <Filter size={15} color="var(--nec-navy)" />
+            <span style={{ fontSize: "0.82rem", fontWeight: 700 }}>Filters:</span>
+          </div>
+
+          <div>
+            <select
+              className="nec-input"
+              value={filterCategory}
+              onChange={e => setFilterCategory(e.target.value)}
+              style={{ fontSize: "0.82rem", padding: "5px 10px", minWidth: "160px" }}
+            >
+              <option value="ALL">All Categories</option>
+              {CATEGORIES.filter(c => c !== "ALL").map(cat => (
+                <option key={cat} value={cat}>{cat.replace(/_/g, ' ')}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <select
+              className="nec-input"
+              value={filterModule}
+              onChange={e => setFilterModule(e.target.value)}
+              style={{ fontSize: "0.82rem", padding: "5px 10px", minWidth: "140px" }}
+            >
+              <option value="ALL">All Modules</option>
+              {MODULES.filter(m => m !== "ALL").map(mod => (
+                <option key={mod} value={mod}>{mod}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <select
+              className="nec-input"
+              value={filterOutcome}
+              onChange={e => setFilterOutcome(e.target.value)}
+              style={{ fontSize: "0.82rem", padding: "5px 10px", minWidth: "120px" }}
+            >
+              <option value="ALL">All Outcomes</option>
+              <option value="SUCCESS">Success Only</option>
+              <option value="FAILURE">Failure Only</option>
+            </select>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <Calendar size={14} color="var(--nec-text-muted)" />
+            <input
+              type="date"
+              className="nec-input"
+              value={fromDate}
+              onChange={e => setFromDate(e.target.value)}
+              placeholder="From Date"
+              style={{ fontSize: "0.82rem", padding: "5px 8px" }}
+            />
+            <span style={{ fontSize: "0.8rem", color: "var(--nec-text-muted)" }}>to</span>
+            <input
+              type="date"
+              className="nec-input"
+              value={toDate}
+              onChange={e => setToDate(e.target.value)}
+              placeholder="To Date"
+              style={{ fontSize: "0.82rem", padding: "5px 8px" }}
+            />
+          </div>
+
+          <div style={{ flex: 1, minWidth: "180px", display: "flex", alignItems: "center", gap: "6px" }}>
+            <Search size={14} color="var(--nec-text-muted)" />
+            <input
+              type="text"
+              className="nec-input"
+              placeholder="Search user, route, action..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              style={{ fontSize: "0.82rem", padding: "5px 10px", width: "100%" }}
+            />
+          </div>
+
+          {(filterCategory !== "ALL" || filterModule !== "ALL" || filterOutcome !== "ALL" || fromDate || toDate || search) && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setFilterCategory("ALL");
+                setFilterModule("ALL");
+                setFilterOutcome("ALL");
+                setFromDate("");
+                setToDate("");
+                setSearch("");
+              }}
+            >
+              Reset Filters
+            </Button>
+          )}
+        </div>
+      </Card>
 
       {/* ── Audit Table ── */}
-      {filtered.length === 0 ? (
+      {filteredLog.length === 0 ? (
         <Card>
           <div style={{ textAlign: "center", padding: "40px 20px", color: "var(--nec-text-muted)" }}>
             <Shield size={36} style={{ marginBottom: "12px", opacity: 0.3 }} />
-            <div style={{ fontWeight: 600 }}>No audit events recorded yet.</div>
+            <div style={{ fontWeight: 600 }}>No audit records match the current filters.</div>
             <div style={{ fontSize: "0.85rem", marginTop: "4px" }}>
-              Events are logged automatically on login, logout, role changes, and access violations.
+              Try adjusting your category, module, outcome, or date range filters.
             </div>
           </div>
         </Card>
       ) : (
         <Table
           columns={columns}
-          data={filtered}
-          loading={false}
+          data={filteredLog}
+          loading={loading}
           searchable={false}
           rowKey="id"
         />
