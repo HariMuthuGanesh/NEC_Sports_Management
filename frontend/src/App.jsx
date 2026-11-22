@@ -34,6 +34,7 @@ import ReportsManager from "./pages/admin/ReportsManager";
 import AnnouncementsManager from "./pages/admin/AnnouncementsManager";
 import AuditLog from "./pages/admin/AuditLog";
 import StudentManager from "./pages/admin/StudentManager";
+import AppointmentsManager from "./pages/admin/AppointmentsManager";
 import GalleryManager from "./pages/admin/GalleryManager";
 import ODManager from "./pages/admin/ODManager";
 
@@ -245,6 +246,13 @@ function MainApp() {
         return (
           <ProtectedRoute allowedRoles={[ROLES.ADMIN]} onRedirectPublic={redirectNav} routeId="admin_students">
             <StudentManager />
+          </ProtectedRoute>
+        );
+
+      case "admin_appointments":
+        return (
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.PRESIDENT]} onRedirectPublic={redirectNav} routeId="admin_appointments">
+            <AppointmentsManager />
           </ProtectedRoute>
         );
       case "admin_depts":

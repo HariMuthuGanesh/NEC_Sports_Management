@@ -1,0 +1,302 @@
+/* ============================================================
+   NEC Sports Management — Appointments Module Styles
+   ============================================================ */
+
+.nec-app-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 8px 4px 40px;
+}
+
+/* Metric Stats Cards Grid */
+.nec-app-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.nec-app-stat-card {
+  background: var(--nec-card-bg, #ffffff);
+  border: 1px solid var(--nec-border, #e2e8f0);
+  border-radius: 12px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.nec-app-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+}
+
+.nec-app-stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.nec-app-stat-icon.primary {
+  background: rgba(0, 86, 179, 0.12);
+  color: #0056b3;
+}
+
+.nec-app-stat-icon.amber {
+  background: rgba(245, 158, 11, 0.14);
+  color: #d97706;
+}
+
+.nec-app-stat-icon.success {
+  background: rgba(16, 185, 129, 0.14);
+  color: #059669;
+}
+
+.nec-app-stat-icon.indigo {
+  background: rgba(99, 102, 241, 0.14);
+  color: #4f46e5;
+}
+
+.nec-app-stat-val {
+  font-size: 1.6rem;
+  font-weight: 800;
+  line-height: 1.1;
+  color: var(--nec-text-main, #0f172a);
+}
+
+.nec-app-stat-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--nec-text-muted, #64748b);
+  margin-top: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* Tabs */
+.nec-app-tabs {
+  display: flex;
+  gap: 10px;
+  border-bottom: 2px solid var(--nec-border, #e2e8f0);
+  padding-bottom: 2px;
+}
+
+.nec-app-tab-btn {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -4px;
+  padding: 8px 16px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--nec-text-muted, #64748b);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.nec-app-tab-btn:hover {
+  color: var(--nec-primary, #0056b3);
+}
+
+.nec-app-tab-btn.active {
+  color: var(--nec-primary, #0056b3);
+  border-bottom-color: var(--nec-primary, #0056b3);
+}
+
+/* Filter Card */
+.nec-app-filter-card {
+  background: var(--nec-card-bg, #ffffff);
+  border: 1px solid var(--nec-border, #e2e8f0);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.nec-app-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.nec-app-search-box {
+  position: relative;
+  flex: 1 1 260px;
+}
+
+.nec-app-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.nec-app-search-input {
+  width: 100%;
+  height: 38px;
+  padding: 0 12px 0 36px;
+  border: 1px solid var(--nec-border, #cbd5e1);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: #ffffff;
+  color: var(--nec-text-main, #0f172a);
+}
+
+.nec-app-search-input:focus {
+  outline: none;
+  border-color: var(--nec-primary, #0056b3);
+  box-shadow: 0 0 0 3px rgba(0, 86, 179, 0.12);
+}
+
+.nec-app-select {
+  height: 38px;
+  padding: 0 10px;
+  border: 1px solid var(--nec-border, #cbd5e1);
+  border-radius: 8px;
+  font-size: 0.88rem;
+  background: #ffffff;
+  color: var(--nec-text-main, #0f172a);
+  cursor: pointer;
+}
+
+.nec-app-select:focus {
+  outline: none;
+  border-color: var(--nec-primary, #0056b3);
+}
+
+/* Student Picker Dropdown in Form */
+.nec-student-picker-results {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid var(--nec-border, #cbd5e1);
+  border-radius: 8px;
+  background: #ffffff;
+  margin-top: 4px;
+}
+
+.nec-student-picker-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #f1f5f9;
+  transition: background 0.15s ease;
+}
+
+.nec-student-picker-item:hover {
+  background: #f8fafc;
+}
+
+.nec-student-picker-item.selected {
+  background: rgba(0, 86, 179, 0.08);
+}
+
+/* Status Badges */
+.nec-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.nec-status-pill.active {
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.nec-status-pill.revoked {
+  background: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.nec-status-pill.completed {
+  background: rgba(100, 116, 139, 0.12);
+  color: #475569;
+  border: 1px solid rgba(100, 116, 139, 0.3);
+}
+
+.nec-scope-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.nec-scope-pill.college {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.nec-scope-pill.department {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+/* Modal Form Grid */
+.nec-app-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.nec-app-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nec-app-form-group.full-width {
+  grid-column: 1 / -1;
+}
+
+.nec-app-form-label {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--nec-text-main, #0f172a);
+}
+
+.nec-app-form-input,
+.nec-app-form-textarea {
+  padding: 8px 12px;
+  border: 1px solid var(--nec-border, #cbd5e1);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: #ffffff;
+  color: var(--nec-text-main, #0f172a);
+}
+
+.nec-app-form-input:disabled {
+  background: #f1f5f9;
+  color: #64748b;
+  cursor: not-allowed;
+}
+
+.nec-app-form-input:focus,
+.nec-app-form-textarea:focus {
+  outline: none;
+  border-color: var(--nec-primary, #0056b3);
+  box-shadow: 0 0 0 3px rgba(0, 86, 179, 0.1);
+}

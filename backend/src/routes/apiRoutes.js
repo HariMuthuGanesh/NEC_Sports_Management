@@ -99,6 +99,14 @@ import {
     getPublicOfficialOdFilterOptionsController,
     viewOfficialOdPdfController
 } from '../controllers/officialOdDocController.js';
+import {
+    listAppointmentsController,
+    getAppointmentDetailsController,
+    createAppointmentController,
+    updateAppointmentController,
+    revokeAppointmentController,
+    getAppointmentsMetadataController
+} from '../controllers/appointmentController.js';
 // NOTE: departmentTeamController.js (department_teams / department_team_members
 // V1 endpoints) is intentionally NOT imported here. Those tables are marked
 // deprecated in schema.sql; the live implementation is the V2
@@ -306,6 +314,14 @@ router.delete('/coordinators/assignments/:id', protect, authorize('Admin', 'Spor
 router.post('/departments', protect, authorize('Admin'), createDepartmentController);
 router.put('/departments/:id', protect, authorize('Admin'), updateDepartmentController);
 router.delete('/departments/:id', protect, authorize('Admin'), deleteDepartmentController);
+
+// Student Leadership Appointments (Admin & Sports President)
+router.get('/appointments/meta', protect, authorize('Admin', 'Sports President'), getAppointmentsMetadataController);
+router.get('/appointments', protect, authorize('Admin', 'Sports President'), listAppointmentsController);
+router.get('/appointments/:id', protect, authorize('Admin', 'Sports President'), getAppointmentDetailsController);
+router.post('/appointments', protect, authorize('Admin'), createAppointmentController);
+router.put('/appointments/:id', protect, authorize('Admin'), updateAppointmentController);
+router.patch('/appointments/:id/revoke', protect, authorize('Admin'), revokeAppointmentController);
 
 // Events / Tournament Registration Control
 router.get('/events/:id', getEventByIdController);

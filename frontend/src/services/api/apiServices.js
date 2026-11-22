@@ -565,3 +565,20 @@ export const systemApi = {
   syncScheduledStatuses: () => apiFetch("/system/sync-scheduled-statuses", "POST")
 };
 
+/* --- Leadership Appointments API --- */
+export const appointmentsApi = {
+  getAppointments: (params = {}) => {
+    const qs = typeof params === 'object' && params !== null ? 
+      Object.entries(params)
+        .filter(([, v]) => v !== undefined && v !== null && v !== "" && v !== "ALL")
+        .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+        .join('&') : '';
+    return apiFetch(`/appointments${qs ? `?${qs}` : ''}`);
+  },
+  getAppointmentById: (id) => apiFetch(`/appointments/${id}`),
+  createAppointment: (data) => apiFetch('/appointments', 'POST', data),
+  updateAppointment: (id, data) => apiFetch(`/appointments/${id}`, 'PUT', data),
+  revokeAppointment: (id, reason) => apiFetch(`/appointments/${id}/revoke`, 'PATCH', { reason }),
+  getAppointmentsMetadata: () => apiFetch('/appointments/meta')
+};
+
