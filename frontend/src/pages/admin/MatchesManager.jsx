@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { matchesApi, sportsApi, teamsApi, tournamentsApi } from "../../services/api/apiServices";
+import { matchesApi, sportsApi, teamsApi, tournamentsApi, eventsApi } from "../../services/api/apiServices";
 import Table from "../../components/common/Table";
 import Badge from "../../components/common/Badge";
 import Button from "../../components/common/Button";
@@ -23,10 +23,16 @@ export default function MatchesManager() {
 
   // Tab & Filters
   const [activeTab, setActiveTab] = useState("matches"); // "matches" | "venues"
+  const [filterTournament, setFilterTournament] = useState("ALL");
+  const [filterEvent, setFilterEvent] = useState("ALL");
   const [filterSport, setFilterSport] = useState("ALL");
   const [filterCategory, setFilterCategory] = useState("ALL");
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [filterVenue, setFilterVenue] = useState("ALL");
+
+  // Events & Modal Form
+  const [events, setEvents] = useState([]);
+  const [modalEventId, setModalEventId] = useState("");
 
   // Venue View States
   const [venueStatusFilter, setVenueStatusFilter] = useState("ALL"); // "ALL" | "Available" | "Booked"
@@ -80,17 +86,20 @@ export default function MatchesManager() {
       sportsApi.getVenues().catch(err => { console.warn("[MatchesManager] Failed to fetch venues:", err); return []; }),
       teamsApi.getTeams().catch(err => { console.warn("[MatchesManager] Failed to fetch teams:", err); return []; }),
       tournamentsApi.getTournaments().catch(err => { console.warn("[MatchesManager] Failed to fetch tournaments:", err); return []; }),
-      sportsApi.getSports().catch(err => { console.warn("[MatchesManager] Failed to fetch sports:", err); return []; })
-    ]).then(([mList = [], vList = [], tList = [], tourList = [], spList = []]) => {
+      sportsApi.getSports().catch(err => { console.warn("[MatchesManager] Failed to fetch sports:", err); return []; }),
+      eventsApi.getEvents().catch(err => { console.warn("[MatchesManager] Failed to fetch events:", err); return []; })
+    ]).then(([mList = [], vList = [], tList = [], tourList = [], spList = [], evList = []]) => {
       const safeMatches = Array.isArray(mList) ? mList : [];
       const safeVenues = Array.isArray(vList) ? vList : [];
       const safeTeams = Array.isArray(tList) ? tList : [];
       const safeTournaments = Array.isArray(tourList) ? tourList : [];
+      const safeEvents = Array.isArray(evList) ? evList : [];
 
       setMatches(safeMatches);
       setVenues(safeVenues);
       setTeams(safeTeams);
       setTournaments(safeTournaments);
+      setEvents(safeEvents);
       const safeSports = (Array.isArray(spList) ? spList : []).filter(sp => (sp.sport_type || "Team") === "Team");
       setSports(safeSports);
       if (!isBackground) {
@@ -139,6 +148,7 @@ export default function MatchesManager() {
 
     matchesApi.scheduleMatch({
       sport_id: Number(sportId),
+      event_id: modalEventId ? Number(modalEventId) : null,
       team_a_id: Number(teamA),
       team_b_id: Number(teamB),
       venue_id: Number(venue),
@@ -211,6 +221,17 @@ export default function MatchesManager() {
   };
 
   const columns = [
+    {
+      key: "tournamentName",
+      label: "Tournament & Event",
+      width: "180px",
+      render: (_, row) => (
+        <div>
+          <strong style={{ fontSize: "0.85rem", color: "var(--nec-navy)" }}>{row.tournamentName || row.tournament_name || "Tournament"}</strong>
+          <div style={{ fontSize: "0.75rem", color: "var(--nec-text-muted)" }}>{row.eventName || row.event_name || row.round || "Fixture"}</div>
+        </div>
+      )
+    },
     { key: "sport", label: "Sport", width: "120px", render: (val) => <strong>{val || "-"}</strong> },
     { key: "eventCategory", label: "Category", width: "120px", render: (val) => <Badge status={val === "Inter-College" ? "danger" : "info"}>{val || "Intramural"}</Badge> },
     { key: "matchup", label: "Match Teams", render: (_, row) => <span>{row.teamA || "Team A"} ({row.deptA || "-"}) vs {row.teamB || "Team B"} ({row.deptB || "-"})</span> },
@@ -284,16 +305,22 @@ export default function MatchesManager() {
   ];
 
   // ── Match Filtering Logic ──
+  const distinctTournaments = Array.from(new Set(matches.map(m => m.tournamentName || m.tournament_name).filter(Boolean)));
+  const distinctEvents = Array.from(new Set(matches.map(m => m.eventName || m.event_name).filter(Boolean)));
   const distinctSports = Array.from(new Set(matches.map(m => m.sport || m.sport_name).filter(Boolean)));
   const distinctCategories = Array.from(new Set(matches.map(m => m.eventCategory || m.category || (m.is_external ? "Inter-College" : "Intramural")).filter(Boolean)));
   const distinctVenues = Array.from(new Set(venues.map(v => v.name).filter(Boolean)));
 
   const filteredMatches = matches.filter(m => {
+    const tour = m.tournamentName || m.tournament_name || "";
+    const ev = m.eventName || m.event_name || "";
     const sport = m.sport || m.sport_name || "";
     const cat = m.eventCategory || m.category || (m.is_external ? "Inter-College" : "Intramural");
     const st = m.status || "Scheduled";
     const v = m.venue || m.venue_name || "";
 
+    if (filterTournament !== "ALL" && tour !== filterTournament) return false;
+    if (filterEvent !== "ALL" && ev !== filterEvent) return false;
     if (filterSport !== "ALL" && sport !== filterSport) return false;
     if (filterCategory !== "ALL" && cat !== filterCategory) return false;
     if (filterStatus !== "ALL" && st !== filterStatus) return false;
@@ -301,9 +328,17 @@ export default function MatchesManager() {
     return true;
   });
 
-  const isAnyFilterActive = filterSport !== "ALL" || filterCategory !== "ALL" || filterStatus !== "ALL" || filterVenue !== "ALL";
+  const isAnyFilterActive =
+    filterTournament !== "ALL" ||
+    filterEvent !== "ALL" ||
+    filterSport !== "ALL" ||
+    filterCategory !== "ALL" ||
+    filterStatus !== "ALL" ||
+    filterVenue !== "ALL";
 
   const handleResetFilters = () => {
+    setFilterTournament("ALL");
+    setFilterEvent("ALL");
     setFilterSport("ALL");
     setFilterCategory("ALL");
     setFilterStatus("ALL");
@@ -455,6 +490,42 @@ export default function MatchesManager() {
               gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
               gap: "12px"
             }}>
+              {/* Tournament Dropdown */}
+              <div>
+                <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 600, color: "var(--nec-text-muted, #64748b)", marginBottom: "4px" }}>
+                  Tournament
+                </label>
+                <select
+                  value={filterTournament}
+                  onChange={(e) => setFilterTournament(e.target.value)}
+                  className="nec-form-input"
+                  style={{ width: "100%", padding: "7px 10px", fontSize: "0.825rem", borderRadius: "6px" }}
+                >
+                  <option value="ALL">All Tournaments ({distinctTournaments.length})</option>
+                  {distinctTournaments.map(t => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Event Dropdown */}
+              <div>
+                <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 600, color: "var(--nec-text-muted, #64748b)", marginBottom: "4px" }}>
+                  Event
+                </label>
+                <select
+                  value={filterEvent}
+                  onChange={(e) => setFilterEvent(e.target.value)}
+                  className="nec-form-input"
+                  style={{ width: "100%", padding: "7px 10px", fontSize: "0.825rem", borderRadius: "6px" }}
+                >
+                  <option value="ALL">All Events ({distinctEvents.length})</option>
+                  {distinctEvents.map(ev => (
+                    <option key={ev} value={ev}>{ev}</option>
+                  ))}
+                </select>
+              </div>
+
               {/* Sport Dropdown */}
               <div>
                 <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 600, color: "var(--nec-text-muted, #64748b)", marginBottom: "4px" }}>
@@ -1103,6 +1174,35 @@ export default function MatchesManager() {
               searchPlaceholder="Search tournament..."
               required
             />
+          </div>
+
+          {/* Event selection */}
+          <div>
+            <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: "4px" }}>Event</label>
+            <select
+              className="nec-form-input"
+              style={{ width: "100%", padding: "8px 10px", fontSize: "0.85rem", borderRadius: "6px" }}
+              value={modalEventId}
+              onChange={(e) => {
+                const evId = e.target.value;
+                setModalEventId(evId);
+                if (evId) {
+                  const ev = events.find(x => String(x.event_id || x.id) === String(evId));
+                  if (ev && ev.sport_id) {
+                    setSportId(String(ev.sport_id));
+                  }
+                }
+              }}
+            >
+              <option value="">-- Direct Sport Match / Select Event --</option>
+              {events
+                .filter(ev => !tournamentId || String(ev.tournament_id) === String(tournamentId))
+                .map(ev => (
+                  <option key={ev.event_id || ev.id} value={ev.event_id || ev.id}>
+                    {ev.name || ev.title} ({ev.sport_name || ev.sport || "Sport"})
+                  </option>
+                ))}
+            </select>
           </div>
 
           {/* Sport */}

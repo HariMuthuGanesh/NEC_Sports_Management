@@ -23,7 +23,8 @@ const LIST_SQL = `
         u.username,
         u.is_active AS userActive,
         (SELECT COUNT(*) FROM teams t WHERE t.department_id = sp.department_id) AS teams_count,
-        (SELECT COUNT(DISTINCT tm.student_id) FROM team_members tm JOIN teams t ON tm.team_id = t.team_id WHERE t.department_id = sp.department_id AND tm.role = 'Captain') AS captains_count
+        (SELECT COUNT(DISTINCT tm.student_id) FROM team_members tm JOIN teams t ON tm.team_id = t.team_id WHERE t.department_id = sp.department_id AND tm.role = 'Captain') AS captains_count,
+        (SELECT COUNT(*) FROM event_staff_assignments esa WHERE esa.staff_id = sp.user_id) AS events_count
     FROM staff_profiles sp
     LEFT JOIN users u ON u.id = sp.user_id
     LEFT JOIN departments d ON d.id = sp.department_id
@@ -182,5 +183,78 @@ export const setCoordinatorStatusController = async (req, res, next) => {
         next(err);
     } finally {
         conn.release();
+    }
+};
+
+// GET /api/coordinators/assignments
+export const listEventStaffAssignmentsController = async (req, res, next) => {
+    try {
+        const sql = `
+            SELECT 
+                esa.id,
+                esa.event_id,
+                ev.name AS event_name,
+                ev.tournament_id,
+                t.name AS tournament_name,
+                s.name AS sport_name,
+                esa.staff_id,
+                sp.full_name AS staff_name,
+                sp.email AS staff_email,
+                d.name AS department_name,
+                d.code AS department_code,
+                esa.role,
+                esa.assigned_at
+            FROM event_staff_assignments esa
+            JOIN events ev ON esa.event_id = ev.event_id
+            JOIN tournaments t ON ev.tournament_id = t.tournament_id
+            JOIN sports s ON ev.sport_id = s.sport_id
+            JOIN users u ON esa.staff_id = u.id
+            LEFT JOIN staff_profiles sp ON sp.user_id = u.id
+            LEFT JOIN departments d ON sp.department_id = d.id
+            ORDER BY esa.assigned_at DESC
+        `;
+        const [rows] = await pool.execute(sql);
+        return res.json({ success: true, data: rows });
+    } catch (err) {
+        next(err);
+    }
+};
+
+// POST /api/coordinators/assignments
+export const assignStaffToEventController = async (req, res, next) => {
+    try {
+        const eventId = Number(req.body.event_id || req.body.eventId);
+        const staffId = Number(req.body.staff_id || req.body.staffId);
+        const role = String(req.body.role || 'Coordinator').trim();
+
+        if (!eventId || !staffId) {
+            return res.status(400).json({ success: false, error: { message: 'Event ID and Staff ID are required.' } });
+        }
+
+        const [insert] = await pool.execute(
+            'INSERT INTO event_staff_assignments (event_id, staff_id, role) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE role = VALUES(role)',
+            [eventId, staffId, role]
+        );
+
+        return res.status(201).json({
+            success: true,
+            data: { id: insert.insertId || null, event_id: eventId, staff_id: staffId, role }
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+// DELETE /api/coordinators/assignments/:id
+export const removeStaffFromEventController = async (req, res, next) => {
+    try {
+        const assignmentId = Number(req.params.id);
+        if (!assignmentId) {
+            return res.status(400).json({ success: false, error: { message: 'Valid assignment ID required.' } });
+        }
+        await pool.execute('DELETE FROM event_staff_assignments WHERE id = ?', [assignmentId]);
+        return res.json({ success: true, message: 'Assignment removed.' });
+    } catch (err) {
+        next(err);
     }
 };

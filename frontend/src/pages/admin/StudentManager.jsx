@@ -62,13 +62,13 @@ function SourceChip({ source }) {
   return (
     <span style={{
       display: "inline-flex", alignItems: "center", gap: "3px",
-      background: isIms ? "#eff6ff" : "#f8fafc",
-      color: isIms ? "#3b82f6" : "#64748b",
-      border: `1px solid ${isIms ? "#bfdbfe" : "#e2e8f0"}`,
+      background: "#f8fafc",
+      color: "#475569",
+      border: "1px solid #cbd5e1",
       padding: "1px 6px", borderRadius: "999px", fontSize: "0.72rem", fontWeight: 600
     }}>
       <Database size={9} />
-      {isIms ? "IMS" : "Sports DB"}
+      {isIms ? "Institutional Master" : "Local Records"}
     </span>
   );
 }
@@ -300,15 +300,13 @@ export default function StudentManager() {
       {/* ── Header ──────────────────────────────────────────────────────────── */}
       <div className="nec-page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "12px" }}>
         <div>
-          <h1 className="nec-page-title" style={{ fontSize: "1.75rem" }}>Student Directory</h1>
+          <h1 className="nec-page-title" style={{ fontSize: "1.75rem" }}>Student Athlete Registry</h1>
           <p className="nec-page-desc">
-            Manage enrolled student athletes across all departments — IMS-integrated profiles with live attendance and sports eligibility.
-            {dataSource === "ims" && (
-              <span style={{ marginLeft: "8px", background: "#eff6ff", color: "#3b82f6", padding: "1px 8px", borderRadius: "999px", fontSize: "0.78rem", fontWeight: 600 }}>
-                <Database size={11} style={{ verticalAlign: "middle", marginRight: "3px" }} />
-                Live from IMS
-              </span>
-            )}
+            Institutional directory of student athletes across all departments — verified local profiles with attendance and sports eligibility.
+            <span style={{ marginLeft: "8px", background: "#f0fdf4", color: "#16a34a", border: "1px solid #bbf7d0", padding: "1px 8px", borderRadius: "999px", fontSize: "0.78rem", fontWeight: 600 }}>
+              <Database size={11} style={{ verticalAlign: "middle", marginRight: "3px" }} />
+              Local Database Master (IMS-Ready)
+            </span>
           </p>
         </div>
         <div style={{ display: "flex", gap: "10px", alignItems: "center", position: "relative" }}>

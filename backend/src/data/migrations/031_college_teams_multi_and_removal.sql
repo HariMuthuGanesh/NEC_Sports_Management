@@ -1,6 +1,15 @@
 -- Migration 031: Support multiple college teams per sport/season and removal capability
-ALTER TABLE college_teams ADD COLUMN IF NOT EXISTS team_name VARCHAR(150) NULL AFTER sport_id;
-ALTER TABLE college_teams ADD COLUMN IF NOT EXISTS created_at DATETIME DEFAULT CURRENT_TIMESTAMP;
+SET @col_name = (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='college_teams' AND COLUMN_NAME='team_name');
+SET @pre_name = IF(@col_name = 0, 'ALTER TABLE college_teams ADD COLUMN team_name VARCHAR(150) NULL AFTER sport_id', 'SELECT 1');
+PREPARE stmt_name FROM @pre_name;
+EXECUTE stmt_name;
+DEALLOCATE PREPARE stmt_name;
+
+SET @col_created = (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='college_teams' AND COLUMN_NAME='created_at');
+SET @pre_created = IF(@col_created = 0, 'ALTER TABLE college_teams ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP', 'SELECT 1');
+PREPARE stmt_created FROM @pre_created;
+EXECUTE stmt_created;
+DEALLOCATE PREPARE stmt_created;
 
 -- Ensure dedicated index on sport_id exists before dropping compound unique key
 SET @idx_sport = (SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_NAME='college_teams' AND INDEX_NAME='idx_sport_id' AND TABLE_SCHEMA=DATABASE());

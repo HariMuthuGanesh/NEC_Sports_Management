@@ -130,7 +130,10 @@ import {
     listCoordinatorsController,
     createCoordinatorController,
     updateCoordinatorController,
-    setCoordinatorStatusController
+    setCoordinatorStatusController,
+    listEventStaffAssignmentsController,
+    assignStaffToEventController,
+    removeStaffFromEventController
 } from '../controllers/coordinatorController.js';
 import { doubleCsrfProtection, ensureCsrfSession } from '../middleware/csrfMiddleware.js';
 import { listUsersController, updateUserRoleController, searchUsersController } from '../controllers/userController.js';
@@ -293,10 +296,13 @@ router.put('/teams/:id/status', protect, authorize('Admin', 'Sports President', 
 router.delete('/teams/:id', protect, authorize('Admin', 'Sports President', 'Coordinator'), deleteTeam);
 
 // Department CRUD & Coordinators (Admin)
-router.get('/coordinators', protect, authorize('Admin'), listCoordinatorsController);
+router.get('/coordinators', protect, authorize('Admin', 'Sports President'), listCoordinatorsController);
 router.post('/coordinators', protect, authorize('Admin'), createCoordinatorController);
 router.put('/coordinators/:id', protect, authorize('Admin'), updateCoordinatorController);
 router.patch('/coordinators/:id/status', protect, authorize('Admin'), setCoordinatorStatusController);
+router.get('/coordinators/assignments', protect, authorize('Admin', 'Sports President', 'Coordinator'), listEventStaffAssignmentsController);
+router.post('/coordinators/assignments', protect, authorize('Admin', 'Sports President'), assignStaffToEventController);
+router.delete('/coordinators/assignments/:id', protect, authorize('Admin', 'Sports President'), removeStaffFromEventController);
 router.post('/departments', protect, authorize('Admin'), createDepartmentController);
 router.put('/departments/:id', protect, authorize('Admin'), updateDepartmentController);
 router.delete('/departments/:id', protect, authorize('Admin'), deleteDepartmentController);

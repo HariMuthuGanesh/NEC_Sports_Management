@@ -450,6 +450,14 @@ export const deleteDepartmentController = async (req, res, next) => {
                 error: { code: 'DEPARTMENT_HAS_STUDENTS', message: `Cannot delete a department with ${studentCount} student(s). Move or remove them first.` }
             });
         }
+        const [teamRows] = await pool.execute('SELECT COUNT(*) as cnt FROM teams WHERE department_id = ?', [req.params.id]);
+        const teamCount = teamRows[0]?.cnt || 0;
+        if (teamCount > 0) {
+            return res.status(409).json({
+                success: false,
+                error: { code: 'DEPARTMENT_HAS_TEAMS', message: `Cannot delete a department with ${teamCount} registered team(s). Reassign or remove them first.` }
+            });
+        }
         const success = await deleteDepartmentSql(req.params.id);
         if (!success) {
             return res.status(404).json({ success: false, error: { message: 'Department not found.' } });

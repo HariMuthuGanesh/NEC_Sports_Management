@@ -205,7 +205,9 @@ export const createTeam = async (req, res, next) => {
             captain_id: resolvedCaptainId,
             coach_name: coach_name || coachName || null,
             jersey_color: jersey_color || jerseyColor || null,
-            status: ['Admin','Sports President'].includes(req.user?.role) ? (status || 'Approved') : 'Pending'
+            status: 'Pending',
+            team_type: req.body.team_type || req.body.teamType || 'Inter-Department',
+            gender_category: req.body.gender_category || req.body.genderCategory || null
         });
 
         const captainRoll = req.body.captainRoll;
@@ -252,10 +254,11 @@ export const createTeam = async (req, res, next) => {
 export const updateTeamStatus = async (req, res, next) => {
     try {
         await assertTeamAccess(req.user, Number(req.params.id));
-        const teamId = req.params.id;
+        const teamId = Number(req.params.id);
         const newStatus = req.body.status;
-        if (!['Pending', 'Approved', 'Disqualified'].includes(newStatus)) {
-            return res.status(400).json({ success: false, error: { code: 'INVALID_STATUS', message: 'Status must be Pending, Approved or Disqualified.' } });
+        const reason = req.body.rejection_reason || req.body.rejectionReason || null;
+        if (!['Pending', 'Approved', 'Disqualified', 'Rejected'].includes(newStatus)) {
+            return res.status(400).json({ success: false, error: { code: 'INVALID_STATUS', message: 'Status must be Pending, Approved, Rejected, or Disqualified.' } });
         }
         if (req.user?.role === 'Coordinator') {
             const [own] = await pool.execute('SELECT department_id FROM teams WHERE team_id = ? LIMIT 1', [teamId]);
@@ -266,7 +269,42 @@ export const updateTeamStatus = async (req, res, next) => {
                 return res.status(403).json({ success: false, error: { message: 'You are only authorized to manage teams in your assigned department.' } });
             }
         }
-        const success = await updateTeamStatusSql(teamId, newStatus);
+
+        // Prevent approving a team with 0 registered players or below minimum
+        if (newStatus === 'Approved') {
+            const [players] = await pool.execute('SELECT COUNT(*) as count FROM team_members WHERE team_id = ?', [teamId]);
+            const count = players[0]?.count || 0;
+            if (count === 0) {
+                return res.status(400).json({
+                    success: false,
+                    error: { code: 'EMPTY_ROSTER', message: 'Cannot approve a team with 0 registered players. Add players first.' }
+                });
+            }
+
+            const [teamRow] = await pool.execute(
+                `SELECT t.event_id, ev.min_team_size, s.min_players 
+                 FROM teams t 
+                 LEFT JOIN events ev ON t.event_id = ev.event_id 
+                 LEFT JOIN sports s ON t.sport_id = s.sport_id 
+                 WHERE t.team_id = ?`, [teamId]
+            );
+            const minReq = teamRow[0]?.min_team_size || teamRow[0]?.min_players || 1;
+            if (count < minReq) {
+                return res.status(400).json({
+                    success: false,
+                    error: { code: 'ROSTER_BELOW_MINIMUM', message: `Team has ${count} players, but minimum required is ${minReq}. Add more players before approving.` }
+                });
+            }
+        }
+
+        const approvedBy = newStatus === 'Approved' ? (req.user?.id || null) : null;
+        const approvedAt = newStatus === 'Approved' ? new Date() : null;
+
+        const success = await updateTeamStatusSql(teamId, newStatus, {
+            rejectionReason: reason,
+            approvedBy,
+            approvedAt
+        });
         if (!success) {
             return res.status(404).json({ success: false, error: { message: "Team not found" } });
         }

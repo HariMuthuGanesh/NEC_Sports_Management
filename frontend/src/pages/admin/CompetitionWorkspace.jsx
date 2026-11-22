@@ -771,7 +771,8 @@ export default function CompetitionWorkspace({ tournamentId, defaultEventId, onC
             <Button
               variant="primary"
               icon={Plus}
-              title={isEventScoped ? 'Create Fixture' : 'Create Competition'}
+              title={isEventScoped ? 'Create Fixture' : 'Create'}
+              ariaLabel={isEventScoped ? 'Create Fixture' : 'Create'}
               onClick={() => {
                 setError('');
                 if (isEventScoped) {

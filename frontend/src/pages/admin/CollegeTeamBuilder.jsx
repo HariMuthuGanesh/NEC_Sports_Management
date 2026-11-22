@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { sportsApi, collegeTeamsApi, teamsApi, playersApi } from "../../services/api/apiServices";
+import { sportsApi, collegeTeamsApi, teamsApi, playersApi, tournamentsApi, eventsApi } from "../../services/api/apiServices";
 import Badge from "../../components/common/Badge";
 import Button from "../../components/common/Button";
 import { Modal } from "../../components/common/Modal";
@@ -35,6 +35,8 @@ export default function CollegeTeamBuilder() {
   const [departments, setDepartments] = useState([]);
   const [allTeams, setAllTeams] = useState([]);
   const [collegeTeams, setCollegeTeams] = useState([]);
+  const [tournaments, setTournaments] = useState([]);
+  const [events, setEvents] = useState([]);
   const [loadingInitial, setLoadingInitial] = useState(true);
   const [globalError, setGlobalError] = useState(null);
 
@@ -43,6 +45,9 @@ export default function CollegeTeamBuilder() {
 
   // ── Department-Wise Teams Filter & Search State ──────────────────────────
   const [teamSearch, setTeamSearch] = useState("");
+  const [filterTournament, setFilterTournament] = useState("ALL");
+  const [filterEvent, setFilterEvent] = useState("ALL");
+  const [filterScope, setFilterScope] = useState("ALL");
   const [filterDept, setFilterDept] = useState("ALL");
   const [filterCategory, setFilterCategory] = useState("ALL");
   const [filterSport, setFilterSport] = useState("ALL");
@@ -51,6 +56,10 @@ export default function CollegeTeamBuilder() {
   const [teamPageSize, setTeamPageSize] = useState(8);
 
   // ── College Team Builder State ───────────────────────────────────────────
+  const [builderTournamentId, setBuilderTournamentId] = useState("");
+  const [builderEventId, setBuilderEventId] = useState("");
+  const [builderScope, setBuilderScope] = useState("College"); // "College" | "Department"
+  const [builderDeptId, setBuilderDeptId] = useState("");
   const [selectedSportId, setSelectedSportId] = useState("");
   const [customTeamName, setCustomTeamName] = useState("");
   const [suggestions, setSuggestions] = useState([]);
@@ -83,17 +92,21 @@ export default function CollegeTeamBuilder() {
     setLoadingInitial(true);
     setGlobalError(null);
     try {
-      const [sportsData, deptsData, teamsData, collegeData] = await Promise.all([
+      const [sportsData, deptsData, teamsData, collegeData, toursData, evsData] = await Promise.all([
         sportsApi.getSports ? sportsApi.getSports() : Promise.resolve([]),
         sportsApi.getDepartments ? sportsApi.getDepartments() : Promise.resolve([]),
         teamsApi.getTeams ? teamsApi.getTeams() : Promise.resolve([]),
-        collegeTeamsApi.getCollegeTeams ? collegeTeamsApi.getCollegeTeams() : Promise.resolve([])
+        collegeTeamsApi.getCollegeTeams ? collegeTeamsApi.getCollegeTeams() : Promise.resolve([]),
+        tournamentsApi.getTournaments ? tournamentsApi.getTournaments().catch(() => []) : Promise.resolve([]),
+        eventsApi.getEvents ? eventsApi.getEvents().catch(() => []) : Promise.resolve([])
       ]);
 
       setSports(Array.isArray(sportsData) ? sportsData : []);
       setDepartments(Array.isArray(deptsData) ? deptsData : []);
       setAllTeams(Array.isArray(teamsData) ? teamsData : []);
       setCollegeTeams(Array.isArray(collegeData?.data || collegeData) ? (collegeData?.data || collegeData) : []);
+      setTournaments(Array.isArray(toursData) ? toursData : []);
+      setEvents(Array.isArray(evsData) ? evsData : []);
     } catch (err) {
       console.error(err);
       setGlobalError(err.message || "Failed to load team and department records.");
@@ -127,6 +140,18 @@ export default function CollegeTeamBuilder() {
   // ── Department-Wise Teams Filtering & Pagination ─────────────────────────
   const filteredTeams = useMemo(() => {
     return allTeams.filter((t) => {
+      // 0. Tournament & Event Filters
+      if (filterTournament !== "ALL") {
+        if (String(t.tournamentId || t.tournament_id) !== String(filterTournament) && t.tournamentName !== filterTournament) return false;
+      }
+      if (filterEvent !== "ALL") {
+        if (String(t.eventId || t.event_id) !== String(filterEvent) && t.eventName !== filterEvent) return false;
+      }
+      if (filterScope !== "ALL") {
+        const scope = t.team_type || t.teamType || (t.department_id ? "Inter-Department" : "Outer-College");
+        if (scope !== filterScope) return false;
+      }
+
       // 1. Department Filter
       if (filterDept !== "ALL") {
         const teamDept = String(t.deptCode || t.deptName || t.department || "").toUpperCase();
@@ -165,7 +190,7 @@ export default function CollegeTeamBuilder() {
 
       return true;
     });
-  }, [allTeams, filterDept, filterSport, filterCategory, filterStatus, teamSearch, sportsMap]);
+  }, [allTeams, filterTournament, filterEvent, filterScope, filterDept, filterSport, filterCategory, filterStatus, teamSearch, sportsMap]);
 
   const totalTeamPages = Math.ceil(filteredTeams.length / teamPageSize) || 1;
   const paginatedTeams = useMemo(() => {
@@ -175,6 +200,9 @@ export default function CollegeTeamBuilder() {
 
   const resetTeamFilters = () => {
     setTeamSearch("");
+    setFilterTournament("ALL");
+    setFilterEvent("ALL");
+    setFilterScope("ALL");
     setFilterDept("ALL");
     setFilterCategory("ALL");
     setFilterSport("ALL");
@@ -337,6 +365,11 @@ export default function CollegeTeamBuilder() {
   const handleConfirmTeam = async () => {
     if (!selectedSportId) return;
 
+    if (builderScope === "Department" && !builderDeptId) {
+      setBuilderError("Please select a Department for the Department Team.");
+      return;
+    }
+
     const selectedPlayers = suggestions
       .filter((p) => selectedPlayersMap[p.student_id])
       .map((p) => ({
@@ -345,7 +378,7 @@ export default function CollegeTeamBuilder() {
       }));
 
     if (selectedPlayers.length === 0) {
-      setBuilderError("Please select at least one candidate athlete to confirm the college team.");
+      setBuilderError("Please select at least one candidate athlete to confirm the team.");
       return;
     }
 
@@ -354,29 +387,51 @@ export default function CollegeTeamBuilder() {
     setBuilderSuccess(null);
 
     try {
-      const res = await collegeTeamsApi.confirmTeam(
-        Number(selectedSportId),
-        selectedPlayers,
-        customTeamName.trim() || null
-      );
-      
-      const newTeamId = res?.college_team_id || res?.data?.college_team_id;
-      setJustAddedTeamId(newTeamId);
+      if (builderScope === "Department") {
+        const dObj = departments.find((d) => String(d.id || d.department_id) === String(builderDeptId));
+        const finalName = customTeamName.trim() || `${dObj?.code || "Dept"} ${sportsMap[selectedSportId]?.name || "Squad"}`;
+        await teamsApi.registerTeam({
+          name: finalName,
+          tournament_id: builderTournamentId ? Number(builderTournamentId) : null,
+          event_id: builderEventId ? Number(builderEventId) : null,
+          sport_id: Number(selectedSportId),
+          department_id: Number(builderDeptId),
+          status: "Pending",
+          team_type: "Department",
+          player_ids: selectedPlayers.map((p) => p.student_id)
+        });
 
-      // Reload college teams list so newly added team is immediately present
-      const collegeData = await collegeTeamsApi.getCollegeTeams();
-      const list = Array.isArray(collegeData?.data || collegeData) ? (collegeData?.data || collegeData) : [];
-      setCollegeTeams(list);
+        const teamsData = await teamsApi.getTeams();
+        setAllTeams(Array.isArray(teamsData) ? teamsData : []);
+        setBuilderSuccess(`Department team "${finalName}" registered and submitted for approval with ${selectedPlayers.length} athletes!`);
+        setTimeout(() => {
+          setActiveTab("dept-teams");
+        }, 700);
+      } else {
+        const res = await collegeTeamsApi.confirmTeam(
+          Number(selectedSportId),
+          selectedPlayers,
+          customTeamName.trim() || null
+        );
+        
+        const newTeamId = res?.college_team_id || res?.data?.college_team_id;
+        setJustAddedTeamId(newTeamId);
 
-      setBuilderSuccess(`College team "${res?.team_name || res?.data?.team_name || customTeamName || 'Varsity'}" confirmed and added with ${selectedPlayers.length} athletes!`);
-      
-      // Auto-switch to "Selected College Teams" tab so user immediately sees their newly added team alongside the older ones!
-      setTimeout(() => {
-        setActiveTab("college-squads");
-      }, 700);
+        // Reload college teams list so newly added team is immediately present
+        const collegeData = await collegeTeamsApi.getCollegeTeams();
+        const list = Array.isArray(collegeData?.data || collegeData) ? (collegeData?.data || collegeData) : [];
+        setCollegeTeams(list);
+
+        setBuilderSuccess(`College team "${res?.team_name || res?.data?.team_name || customTeamName || 'Varsity'}" confirmed and added with ${selectedPlayers.length} athletes!`);
+        
+        // Auto-switch to "Selected College Teams" tab so user immediately sees their newly added team alongside the older ones!
+        setTimeout(() => {
+          setActiveTab("college-squads");
+        }, 700);
+      }
     } catch (err) {
       console.error(err);
-      setBuilderError(err.message || "Failed to confirm college team selection.");
+      setBuilderError(err.message || "Failed to confirm team selection.");
     } finally {
       setSubmittingTeam(false);
     }
@@ -797,6 +852,56 @@ export default function CollegeTeamBuilder() {
                 <div className="nec-ct-filter-group">
                   <select
                     className="nec-ct-select"
+                    value={filterTournament}
+                    onChange={(e) => {
+                      setFilterTournament(e.target.value);
+                      setTeamCurrentPage(1);
+                    }}
+                    title="Filter by Tournament"
+                  >
+                    <option value="ALL">All Tournaments</option>
+                    {tournaments.map((t) => (
+                      <option key={t.id || t.tournament_id} value={t.id || t.tournament_id}>
+                        {t.name}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    className="nec-ct-select"
+                    value={filterEvent}
+                    onChange={(e) => {
+                      setFilterEvent(e.target.value);
+                      setTeamCurrentPage(1);
+                    }}
+                    title="Filter by Event"
+                  >
+                    <option value="ALL">All Events</option>
+                    {events
+                      .filter(ev => filterTournament === "ALL" || String(ev.tournament_id) === String(filterTournament))
+                      .map((ev) => (
+                        <option key={ev.event_id || ev.id} value={ev.event_id || ev.id}>
+                          {ev.name || ev.title}
+                        </option>
+                      ))}
+                  </select>
+
+                  <select
+                    className="nec-ct-select"
+                    value={filterScope}
+                    onChange={(e) => {
+                      setFilterScope(e.target.value);
+                      setTeamCurrentPage(1);
+                    }}
+                    title="Filter by Team Scope"
+                  >
+                    <option value="ALL">All Team Scopes</option>
+                    <option value="Inter-Department">Department Teams</option>
+                    <option value="Outer-College">College Teams (Varsity)</option>
+                  </select>
+
+                  <select
+                    className="nec-ct-select"
                     value={filterDept}
                     onChange={(e) => {
                       setFilterDept(e.target.value);
@@ -1147,8 +1252,130 @@ export default function CollegeTeamBuilder() {
             {/* Sport & Team Name Setup Card */}
             <div className="nec-card" style={{ padding: "20px 24px" }}>
               <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                {/* 1. Tournament and Event Selection */}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "14px" }}>
+                  <div>
+                    <label style={{ display: "block", fontWeight: 600, fontSize: "0.88rem", marginBottom: "6px", color: "var(--nec-text-main, #0f172a)" }}>
+                      Tournament Context:
+                    </label>
+                    <select
+                      className="nec-ct-select"
+                      style={{ width: "100%" }}
+                      value={builderTournamentId}
+                      onChange={(e) => {
+                        setBuilderTournamentId(e.target.value);
+                        setBuilderEventId("");
+                      }}
+                    >
+                      <option value="">-- Institutional / General Varsity --</option>
+                      {tournaments.map((t) => (
+                        <option key={t.tournament_id || t.id} value={t.tournament_id || t.id}>
+                          {t.name || t.tournament_name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ display: "block", fontWeight: 600, fontSize: "0.88rem", marginBottom: "6px", color: "var(--nec-text-main, #0f172a)" }}>
+                      Specific Event:
+                    </label>
+                    <select
+                      className="nec-ct-select"
+                      style={{ width: "100%" }}
+                      value={builderEventId}
+                      onChange={(e) => {
+                        const evId = e.target.value;
+                        setBuilderEventId(evId);
+                        const ev = events.find((x) => String(x.event_id || x.id) === String(evId));
+                        if (ev && (ev.sport_id || ev.sportId)) {
+                          handleSportSelect(String(ev.sport_id || ev.sportId));
+                        }
+                      }}
+                    >
+                      <option value="">-- Direct Discipline Selection --</option>
+                      {events
+                        .filter((ev) => !builderTournamentId || String(ev.tournament_id || ev.tournamentId) === String(builderTournamentId))
+                        .map((ev) => (
+                          <option key={ev.event_id || ev.id} value={ev.event_id || ev.id}>
+                            {ev.name || ev.event_name} ({ev.gender_category || ev.category || "Open"})
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* 2. Team Scope Selector */}
+                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "14px", paddingTop: "4px" }}>
+                  <label style={{ fontWeight: 600, fontSize: "0.92rem", minWidth: "180px", color: "var(--nec-text-main, #0f172a)" }}>
+                    Team Scope:
+                  </label>
+                  <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
+                    <label style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "pointer", fontSize: "0.88rem" }}>
+                      <input
+                        type="radio"
+                        name="builderScope"
+                        value="College"
+                        checked={builderScope === "College"}
+                        onChange={() => {
+                          setBuilderScope("College");
+                          if (selectedSportId && sportsMap[selectedSportId]) {
+                            setCustomTeamName(`NEC ${sportsMap[selectedSportId].name} Varsity`);
+                          }
+                        }}
+                      />
+                      <span><strong>Selected College Team</strong> (Multi-dept external varsity)</span>
+                    </label>
+                    <label style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "pointer", fontSize: "0.88rem" }}>
+                      <input
+                        type="radio"
+                        name="builderScope"
+                        value="Department"
+                        checked={builderScope === "Department"}
+                        onChange={() => {
+                          setBuilderScope("Department");
+                          if (selectedSportId && sportsMap[selectedSportId]) {
+                            setCustomTeamName(`${sportsMap[selectedSportId].name} Squad`);
+                          }
+                        }}
+                      />
+                      <span><strong>Department Team</strong> (Intramural squad)</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* 3. Department (if Department Scope) */}
+                {builderScope === "Department" && (
+                  <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "14px" }}>
+                    <label style={{ fontWeight: 600, fontSize: "0.92rem", minWidth: "180px", color: "var(--nec-text-main, #0f172a)" }}>
+                      Department <span style={{ color: "#ef4444" }}>*</span>:
+                    </label>
+                    <select
+                      className="nec-ct-select"
+                      style={{ minWidth: "320px", flex: "1 1 280px" }}
+                      value={builderDeptId}
+                      onChange={(e) => {
+                        const dId = e.target.value;
+                        setBuilderDeptId(dId);
+                        const dObj = departments.find((d) => String(d.id || d.department_id) === String(dId));
+                        if (dObj && selectedSportId && sportsMap[selectedSportId]) {
+                          setCustomTeamName(`${dObj.code} ${sportsMap[selectedSportId].name} Squad`);
+                        }
+                      }}
+                    >
+                      <option value="">-- Choose Department --</option>
+                      {departments.map((d) => (
+                        <option key={d.id || d.department_id} value={d.id || d.department_id}>
+                          {d.code} - {d.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* 4. Sport Discipline Selection */}
                 <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "14px" }}>
-                  <label style={{ fontWeight: 600, fontSize: "0.95rem", minWidth: "180px", color: "var(--nec-text-main, #0f172a)" }}>
+                  <label style={{ fontWeight: 600, fontSize: "0.92rem", minWidth: "180px", color: "var(--nec-text-main, #0f172a)" }}>
                     Select Sport Discipline:
                   </label>
                   <select
@@ -1173,21 +1400,22 @@ export default function CollegeTeamBuilder() {
                   )}
                 </div>
 
+                {/* 5. Team Name */}
                 {selectedSportId && (
                   <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "14px" }}>
-                    <label style={{ fontWeight: 600, fontSize: "0.95rem", minWidth: "180px", color: "var(--nec-text-main, #0f172a)" }}>
-                      College Team Name:
+                    <label style={{ fontWeight: 600, fontSize: "0.92rem", minWidth: "180px", color: "var(--nec-text-main, #0f172a)" }}>
+                      {builderScope === "Department" ? "Department Team Name:" : "College Team Name:"}
                     </label>
                     <input
                       type="text"
                       className="nec-ct-search-input"
                       style={{ paddingLeft: "14px", flex: "1 1 320px" }}
-                      placeholder="e.g. NEC Cricket Varsity Team A"
+                      placeholder={builderScope === "Department" ? "e.g. CSE Basketball Squad" : "e.g. NEC Cricket Varsity Team A"}
                       value={customTeamName}
                       onChange={(e) => setCustomTeamName(e.target.value)}
                     />
                     <span style={{ fontSize: "0.8rem", color: "var(--nec-text-muted, #64748b)" }}>
-                      (You can create multiple squads or customize the title)
+                      {builderScope === "Department" ? "(Intramural team linked to department and event)" : "(Cross-department varsity representation)"}
                     </span>
                   </div>
                 )}

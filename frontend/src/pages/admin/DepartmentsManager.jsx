@@ -127,7 +127,8 @@ export default function DepartmentsManager() {
         <span style={{ color: "var(--nec-text-muted)", fontStyle: "italic" }}>Not Assigned</span>
       ) 
     },
-    { key: "students", label: "Athletes", width: "90px", render: (val) => <span>{val || 0} enrolled</span> },
+    { key: "students", label: "Enrolled Students", width: "130px", render: (val) => <span>{val || 0} students</span> },
+    { key: "teams_count", label: "Teams", width: "90px", render: (val) => <span style={{ fontWeight: 600 }}>{val || 0} teams</span> },
     {
       key: "actions", label: "Actions", width: "140px",
       render: (_, row) => (
@@ -167,24 +168,14 @@ export default function DepartmentsManager() {
             {[
               { label: "Total Departments", value: depts.length },
               { label: "Assigned Coordinators", value: depts.filter(d => d.coordinator_user_id).length },
+              { label: "Total Registered Teams", value: depts.reduce((acc, d) => acc + (Number(d.teams_count) || 0), 0) },
+              { label: "Total Enrolled Students", value: depts.reduce((acc, d) => acc + (Number(d.students) || 0), 0) }
             ].map(({ label, value }) => (
               <div key={label} className="nec-stat-card">
                 <div className="nec-stat-card-top"><span className="nec-stat-title">{label}</span></div>
                 <div className="nec-stat-value">{value}</div>
               </div>
             ))}
-
-            {/* Department color pills */}
-            <div className="nec-stat-card" style={{ gridColumn: "span 2" }}>
-              <div className="nec-stat-title" style={{ marginBottom: "10px" }}>Active Departments Overview</div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                {depts.map(d => (
-                  <span key={d.id} style={{ padding: "4px 12px", borderRadius: "20px", background: (d.color_code || d.color || "#3b82f6") + "18", color: d.color_code || d.color || "#3b82f6", fontWeight: 700, fontSize: "0.8rem", border: `1.5px solid ${d.color_code || d.color || "#3b82f6"}44` }}>
-                    {unescapeEntity(d.code)} • {d.coordinator_name || "Unassigned"}
-                  </span>
-                ))}
-              </div>
-            </div>
           </div>
 
           <Table columns={columns} data={depts} loading={loading} rowKey="id" searchKey="name" emptyMessage="No departments configured yet." />

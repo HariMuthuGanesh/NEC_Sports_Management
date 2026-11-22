@@ -7,6 +7,14 @@ export const getAllTeams = async () => {
             t.team_id AS id,
             t.name, 
             t.status, 
+            t.team_type,
+            t.team_type AS teamType,
+            t.gender_category,
+            t.gender_category AS genderCategory,
+            t.rejection_reason,
+            t.rejection_reason AS rejectionReason,
+            t.approved_by AS approvedBy,
+            t.approved_at AS approvedAt,
             t.department_id AS dept_id,
             t.department_id AS deptId,
             d.code AS deptCode, 
@@ -17,6 +25,11 @@ export const getAllTeams = async () => {
             s.sport_type AS sportType,
             t.tournament_id AS tournamentId,
             tour.name AS tournamentName,
+            t.event_id AS eventId,
+            t.event_id,
+            ev.name AS eventName,
+            ev.min_team_size AS minTeamSize,
+            ev.max_team_size AS maxTeamSize,
             t.created_at,
             (SELECT COUNT(*) FROM team_members tm WHERE tm.team_id = t.team_id) AS memberCount,
             (SELECT st.student_name FROM team_members tm JOIN students st ON tm.student_id = st.student_id WHERE tm.team_id = t.team_id AND tm.role = 'Captain' LIMIT 1) AS captainName,
@@ -25,6 +38,7 @@ export const getAllTeams = async () => {
         LEFT JOIN departments d ON t.department_id = d.id
         LEFT JOIN sports s ON t.sport_id = s.sport_id
         LEFT JOIN tournaments tour ON t.tournament_id = tour.tournament_id
+        LEFT JOIN events ev ON t.event_id = ev.event_id
         ORDER BY t.created_at DESC
     `;
     const [rows] = await pool.execute(sql);
@@ -38,6 +52,12 @@ export const getTeamsByTournament = async (tournamentId) => {
             t.team_id AS id,
             t.name, 
             t.status, 
+            t.team_type,
+            t.team_type AS teamType,
+            t.gender_category,
+            t.gender_category AS genderCategory,
+            t.rejection_reason,
+            t.rejection_reason AS rejectionReason,
             t.department_id AS dept_id,
             t.department_id AS deptId,
             d.code AS deptCode, 
@@ -47,6 +67,11 @@ export const getTeamsByTournament = async (tournamentId) => {
             s.category AS sportCategory,
             s.sport_type AS sportType,
             t.tournament_id AS tournamentId,
+            t.event_id AS eventId,
+            t.event_id,
+            ev.name AS eventName,
+            ev.min_team_size AS minTeamSize,
+            ev.max_team_size AS maxTeamSize,
             t.created_at,
             (SELECT COUNT(*) FROM team_members tm WHERE tm.team_id = t.team_id) AS memberCount,
             (SELECT st.student_name FROM team_members tm JOIN students st ON tm.student_id = st.student_id WHERE tm.team_id = t.team_id AND tm.role = 'Captain' LIMIT 1) AS captainName,
@@ -54,6 +79,7 @@ export const getTeamsByTournament = async (tournamentId) => {
         FROM teams t
         LEFT JOIN departments d ON t.department_id = d.id
         LEFT JOIN sports s ON t.sport_id = s.sport_id
+        LEFT JOIN events ev ON t.event_id = ev.event_id
         WHERE t.tournament_id = ?
         ORDER BY t.status = 'Approved' DESC, t.name ASC
     `;
@@ -211,19 +237,21 @@ export const getPlayersByTeam = async (teamId) => {
 
 export const createTeam = async (teamData) => {
     const sql = `
-        INSERT INTO teams (name, department_id, sport_id, tournament_id, event_id, captain_id, coach_name, jersey_color, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO teams (name, department_id, sport_id, tournament_id, event_id, captain_id, coach_name, jersey_color, status, team_type, gender_category)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const [result] = await pool.execute(sql, [
         teamData.name,
-        teamData.department_id,
+        teamData.department_id || null,
         teamData.sport_id,
         teamData.tournament_id,
         teamData.event_id || null,
         teamData.captain_id || null,
         teamData.coach_name || null,
         teamData.jersey_color || null,
-        teamData.status || 'Pending'
+        teamData.status || 'Pending',
+        teamData.team_type || teamData.teamType || 'Inter-Department',
+        teamData.gender_category || teamData.genderCategory || null
     ]);
     return result.insertId;
 };
@@ -253,13 +281,23 @@ export const removePlayerFromTeam = async (memberId) => {
     return deleted.affectedRows > 0;
 };
 
-export const updateTeamStatus = async (teamId, status) => {
+export const updateTeamStatus = async (teamId, status, meta = {}) => {
+    const { rejectionReason = null, approvedBy = null, approvedAt = null } = meta;
     const sql = `
         UPDATE teams
-        SET status = ?
+        SET status = ?,
+            rejection_reason = ?,
+            approved_by = ?,
+            approved_at = ?
         WHERE team_id = ?
     `;
-    const [result] = await pool.execute(sql, [status, teamId]);
+    const [result] = await pool.execute(sql, [
+        status,
+        rejectionReason,
+        approvedBy,
+        approvedAt,
+        teamId
+    ]);
     return result.affectedRows > 0;
 };
 

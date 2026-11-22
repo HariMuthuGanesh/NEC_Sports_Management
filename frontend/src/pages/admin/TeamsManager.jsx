@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { teamsApi, playersApi, sportsApi } from "../../services/api/apiServices";
+import { teamsApi, playersApi, sportsApi, tournamentsApi, eventsApi } from "../../services/api/apiServices";
 import Table from "../../components/common/Table";
 import Badge from "../../components/common/Badge";
 import Button from "../../components/common/Button";
@@ -14,11 +14,21 @@ export default function TeamsManager() {
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [departments, setDepartments] = useState([]);
   const [sports, setSports] = useState([]);
+  const [tournaments, setTournaments] = useState([]);
+  const [events, setEvents] = useState([]);
   const [coordinators, setCoordinators] = useState([]);
   const [selectedCoordinator, setSelectedCoordinator] = useState(null);
   const [coordinatorModalOpen, setCoordinatorModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Tournament and Event Filters
+  const [selectedTournamentFilter, setSelectedTournamentFilter] = useState("ALL");
+  const [selectedEventFilter, setSelectedEventFilter] = useState("ALL");
+
+  // Rejection Modal
+  const [rejectingTeamId, setRejectingTeamId] = useState(null);
+  const [rejectionReasonText, setRejectionReasonText] = useState("");
 
   // Roster Modal
   const [selectedTeam, setSelectedTeam] = useState(null);
@@ -42,9 +52,12 @@ export default function TeamsManager() {
     name: "",
     department: "",
     sport_id: "",
+    tournament_id: "",
+    event_id: "",
+    team_type: "Inter-Department",
     coachName: "",
     jerseyColor: "",
-    status: "Approved"
+    status: "Pending"
   };
   const [formData, setFormData] = useState(initialFormState);
 
@@ -55,19 +68,24 @@ export default function TeamsManager() {
       teamsApi.getTeams ? teamsApi.getTeams() : Promise.resolve([]),
       sportsApi.getDepartments ? sportsApi.getDepartments() : Promise.resolve([]),
       sportsApi.getSports ? sportsApi.getSports() : Promise.resolve([]),
-      sportsApi.getCoordinators ? sportsApi.getCoordinators() : Promise.resolve([])
+      sportsApi.getCoordinators ? sportsApi.getCoordinators() : Promise.resolve([]),
+      tournamentsApi.getTournaments ? tournamentsApi.getTournaments().catch(() => []) : Promise.resolve([]),
+      eventsApi.getEvents ? eventsApi.getEvents().catch(() => []) : Promise.resolve([])
     ])
-      .then(([teamsData, deptsData, sportsData, coordsData]) => {
+      .then(([teamsData, deptsData, sportsData, coordsData, toursData, eventsData]) => {
         setTeams(Array.isArray(teamsData) ? teamsData : []);
         setDepartments(Array.isArray(deptsData) ? deptsData : []);
         setSports(Array.isArray(sportsData) ? sportsData : []);
         setCoordinators(Array.isArray(coordsData?.data || coordsData) ? (coordsData?.data || coordsData) : []);
+        setTournaments(Array.isArray(toursData) ? toursData : []);
+        setEvents(Array.isArray(eventsData) ? eventsData : []);
 
         if (Array.isArray(deptsData) && deptsData.length > 0 && !formData.department) {
           setFormData(prev => ({
             ...prev,
             department: deptsData[0].code || "CSE",
-            sport_id: sportsData[0]?.sport_id || ""
+            sport_id: sportsData[0]?.sport_id || "",
+            tournament_id: toursData[0]?.id || toursData[0]?.tournament_id || ""
           }));
         }
         setLoading(false);
@@ -126,9 +144,12 @@ export default function TeamsManager() {
         department: formData.department || "CSE",
         deptCode: formData.department || "CSE",
         sport_id: formData.sport_id || sports[0]?.sport_id,
+        tournament_id: formData.tournament_id ? Number(formData.tournament_id) : null,
+        event_id: formData.event_id ? Number(formData.event_id) : null,
+        team_type: formData.team_type || "Inter-Department",
         coach_name: formData.coachName.trim() || null,
         jersey_color: formData.jerseyColor.trim() || null,
-        status: formData.status
+        status: "Pending"
       });
 
       setFormSuccess("Team registered successfully.");
@@ -205,9 +226,11 @@ export default function TeamsManager() {
     }
   };
 
-  const handleUpdateStatus = (teamId, status) => {
-    teamsApi.updateTeamStatus(teamId, status).then(() => {
+  const handleUpdateStatus = (teamId, status, rejectionReason = null) => {
+    teamsApi.updateTeamStatus(teamId, status, rejectionReason).then(() => {
       loadTeams();
+      setRejectingTeamId(null);
+      setRejectionReasonText("");
     }).catch(err => {
       alert("Failed to update status: " + err.message);
     });
@@ -217,7 +240,13 @@ export default function TeamsManager() {
   const displayedTeams = teams
     .filter(t => statusFilter === "ALL" || t.status === statusFilter)
     .filter(t => selectedDeptFilter === "ALL"
-      || (t.deptCode || t.deptName || "").toUpperCase() === selectedDeptFilter.toUpperCase());
+      || (t.deptCode || t.deptName || "").toUpperCase() === selectedDeptFilter.toUpperCase())
+    .filter(t => selectedTournamentFilter === "ALL"
+      || String(t.tournamentId || t.tournament_id) === String(selectedTournamentFilter)
+      || (t.tournamentName && t.tournamentName === selectedTournamentFilter))
+    .filter(t => selectedEventFilter === "ALL"
+      || String(t.eventId || t.event_id) === String(selectedEventFilter)
+      || (t.eventName && t.eventName === selectedEventFilter));
 
   const columns = [
     {
@@ -239,9 +268,20 @@ export default function TeamsManager() {
           </div>
           <div>
             <strong style={{ fontSize: "0.95rem" }}>{val || row.team_name}</strong>
+            {(row.tournamentName || row.eventName) && (
+              <div style={{ fontSize: "0.75rem", color: "var(--nec-navy, #1e3a8a)", fontWeight: 600 }}>
+                {row.tournamentName ? `${row.tournamentName} ` : ""}
+                {row.eventName ? `• ${row.eventName}` : ""}
+              </div>
+            )}
             <div style={{ fontSize: "0.75rem", color: "var(--nec-text-muted)" }}>
-              {row.deptCode || row.deptName} • {row.sportName || "Sport"}
+              {row.deptCode || row.deptName || "College Team"} • {row.sportName || "Sport"} {row.genderCategory ? `(${row.genderCategory})` : ""}
             </div>
+            {row.rejectionReason && (
+              <div style={{ fontSize: "0.72rem", color: "#dc2626", marginTop: "2px" }}>
+                Reason: {row.rejectionReason}
+              </div>
+            )}
           </div>
         </div>
       )
@@ -265,38 +305,72 @@ export default function TeamsManager() {
       label: "Status",
       width: "120px",
       render: (val) => (
-        <Badge status={val === "Approved" ? "success" : val === "Disqualified" ? "danger" : "warning"}>
-          {val === "Approved" ? "Approved" : val === "Disqualified" ? "Disqualified" : "Pending"}
+        <Badge status={val === "Approved" ? "success" : val === "Disqualified" || val === "Rejected" ? "danger" : "warning"}>
+          {val === "Approved" ? "Approved" : val === "Disqualified" ? "Disqualified" : val === "Rejected" ? "Rejected" : "Pending"}
         </Badge>
       )
     },
     {
       key: "memberCount",
       label: "Team Size",
-      width: "135px",
+      width: "145px",
       render: (val, row) => {
         const count = Number(val ?? row.memberCount ?? 0);
+        const minReq = row.minTeamSize || 1;
+        const belowMin = count < minReq;
         return (
           <div
             style={{ cursor: "pointer" }}
             onClick={() => handleViewRoster(row)}
             title="Click to view team roster"
           >
-            <span style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              padding: "4px 10px",
-              borderRadius: "12px",
-              fontSize: "0.825rem",
-              fontWeight: 700,
-              background: count > 0 ? "rgba(30, 58, 138, 0.08)" : "rgba(100, 116, 139, 0.08)",
-              color: count > 0 ? "var(--nec-navy, #1e3a8a)" : "var(--nec-text-muted, #64748b)",
-              border: `1px solid ${count > 0 ? "rgba(30, 58, 138, 0.15)" : "rgba(100, 116, 139, 0.15)"}`
-            }}>
-              <Users size={13} />
-              {count} {count === 1 ? "Player" : "Players"}
-            </span>
+            {count === 0 ? (
+              <span style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "4px",
+                padding: "3px 8px",
+                borderRadius: "12px",
+                fontSize: "0.78rem",
+                fontWeight: 700,
+                background: "#fee2e2",
+                color: "#dc2626",
+                border: "1px solid #fecaca"
+              }}>
+                <AlertCircle size={12} /> 0 Players
+              </span>
+            ) : belowMin ? (
+              <span style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "4px",
+                padding: "3px 8px",
+                borderRadius: "12px",
+                fontSize: "0.78rem",
+                fontWeight: 700,
+                background: "#fef3c7",
+                color: "#d97706",
+                border: "1px solid #fde68a"
+              }}>
+                <Users size={12} /> {count} / {minReq} Min
+              </span>
+            ) : (
+              <span style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                padding: "4px 10px",
+                borderRadius: "12px",
+                fontSize: "0.825rem",
+                fontWeight: 700,
+                background: "rgba(30, 58, 138, 0.08)",
+                color: "var(--nec-navy, #1e3a8a)",
+                border: "1px solid rgba(30, 58, 138, 0.15)"
+              }}>
+                <Users size={13} />
+                {count} {count === 1 ? "Player" : "Players"}
+              </span>
+            )}
           </div>
         );
       }
@@ -304,30 +378,61 @@ export default function TeamsManager() {
     {
       key: "actions",
       label: "Actions",
-      width: "210px",
+      width: "220px",
       sortable: false,
-      render: (_, row) => (
-        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-          {row.status !== "Approved" && (
-            <Button variant="outline" size="sm" icon={CheckCircle2} aria-label="Approve team" title="Approve team" onClick={() => handleUpdateStatus(row.team_id || row.id, "Approved")} />
-          )}
-          {row.status !== "Disqualified" && (
-            <Button variant="ghost" size="sm" icon={Ban} onClick={() => handleUpdateStatus(row.team_id || row.id, "Disqualified")} aria-label="Disqualify team" title="Disqualify team" />
-          )}
-          <Button variant="ghost" size="sm" icon={Eye} onClick={() => handleViewRoster(row)}>
-            Roster
-          </Button>
-          <Button
-            variant="danger"
-            size="sm"
-            icon={Trash2}
-            onClick={() => handleDeleteTeam(row.team_id || row.id)}
-            title="Delete Team"
-          >
-            Delete
-          </Button>
-        </div>
-      )
+      render: (_, row) => {
+        const count = Number(row.memberCount ?? 0);
+        const minReq = row.minTeamSize || 1;
+        const canApprove = count >= minReq && count > 0;
+        return (
+          <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+            {row.status !== "Approved" && (
+              <Button
+                variant="outline"
+                size="sm"
+                icon={CheckCircle2}
+                aria-label="Approve team"
+                title={
+                  count === 0
+                    ? "Cannot approve: 0 players registered"
+                    : count < minReq
+                    ? `Cannot approve: only ${count} of min ${minReq} players registered`
+                    : "Approve team registration"
+                }
+                disabled={!canApprove}
+                onClick={() => handleUpdateStatus(row.team_id || row.id, "Approved")}
+              >
+                Approve
+              </Button>
+            )}
+            {row.status !== "Rejected" && row.status !== "Disqualified" && (
+              <Button
+                variant="ghost"
+                size="sm"
+                icon={Ban}
+                onClick={() => {
+                  setRejectingTeamId(row.team_id || row.id);
+                  setRejectionReasonText("");
+                }}
+                aria-label="Reject team"
+                title="Reject team"
+              >
+                Reject
+              </Button>
+            )}
+            <Button variant="ghost" size="sm" icon={Eye} onClick={() => handleViewRoster(row)}>
+              Roster
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
+              icon={Trash2}
+              onClick={() => handleDeleteTeam(row.team_id || row.id)}
+              title="Delete Team"
+            />
+          </div>
+        );
+      }
     }
   ];
 
@@ -509,7 +614,39 @@ export default function TeamsManager() {
         <div>
           <h1 className="nec-page-title" style={{ fontSize: "1.75rem" }}>Team Approvals &amp; Catalog</h1>
         </div>
-        <div style={{ display: "flex", gap: "10px", alignItems: "center", position: "relative" }}>
+        <div style={{ display: "flex", gap: "10px", alignItems: "center", position: "relative", flexWrap: "wrap" }}>
+          {/* Tournament Filter */}
+          <select
+            className="nec-form-input"
+            style={{ padding: "6px 10px", fontSize: "0.85rem", borderRadius: "6px", maxWidth: "160px" }}
+            value={selectedTournamentFilter}
+            onChange={(e) => setSelectedTournamentFilter(e.target.value)}
+          >
+            <option value="ALL">All Tournaments</option>
+            {tournaments.map(t => (
+              <option key={t.id || t.tournament_id} value={t.id || t.tournament_id}>
+                {t.name}
+              </option>
+            ))}
+          </select>
+
+          {/* Event Filter */}
+          <select
+            className="nec-form-input"
+            style={{ padding: "6px 10px", fontSize: "0.85rem", borderRadius: "6px", maxWidth: "160px" }}
+            value={selectedEventFilter}
+            onChange={(e) => setSelectedEventFilter(e.target.value)}
+          >
+            <option value="ALL">All Events</option>
+            {events
+              .filter(ev => selectedTournamentFilter === "ALL" || String(ev.tournament_id) === String(selectedTournamentFilter))
+              .map(ev => (
+                <option key={ev.event_id || ev.id} value={ev.event_id || ev.id}>
+                  {ev.name || ev.title}
+                </option>
+              ))}
+          </select>
+
           {/* Department Filter Toggle */}
           <div style={{ position: "relative" }}>
             <Button
@@ -589,6 +726,7 @@ export default function TeamsManager() {
           { id: "ALL", label: `All (${teams.length})` },
           { id: "Pending", label: `Pending (${teams.filter(t => t.status === "Pending").length})` },
           { id: "Approved", label: `Approved (${teams.filter(t => t.status === "Approved").length})` },
+          { id: "Rejected", label: `Rejected (${teams.filter(t => t.status === "Rejected").length})` },
           { id: "Disqualified", label: `Disqualified (${teams.filter(t => t.status === "Disqualified").length})` },
           { id: "Coordinators", label: `Coordinators (${coordinators.length})` }
         ].map(tab => (
@@ -698,6 +836,52 @@ export default function TeamsManager() {
               value={formData.name}
               onChange={(e) => handleInputChange("name", e.target.value)}
             />
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+            <div>
+              <label style={{ display: "block", fontSize: "0.825rem", fontWeight: "600", marginBottom: "4px" }}>
+                Tournament
+              </label>
+              <select
+                className="nec-form-control"
+                value={formData.tournament_id}
+                onChange={(e) => handleInputChange("tournament_id", e.target.value)}
+              >
+                <option value="">-- General / No Tournament --</option>
+                {tournaments.map(t => (
+                  <option key={t.id || t.tournament_id} value={t.id || t.tournament_id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label style={{ display: "block", fontSize: "0.825rem", fontWeight: "600", marginBottom: "4px" }}>
+                Event (Optional)
+              </label>
+              <select
+                className="nec-form-control"
+                value={formData.event_id}
+                onChange={(e) => {
+                  const evId = e.target.value;
+                  handleInputChange("event_id", evId);
+                  if (evId) {
+                    const ev = events.find(x => String(x.event_id || x.id) === String(evId));
+                    if (ev && ev.sport_id) handleInputChange("sport_id", ev.sport_id);
+                  }
+                }}
+              >
+                <option value="">-- Direct Sport / Event --</option>
+                {events
+                  .filter(ev => !formData.tournament_id || String(ev.tournament_id) === String(formData.tournament_id))
+                  .map(ev => (
+                    <option key={ev.event_id || ev.id} value={ev.event_id || ev.id}>
+                      {ev.name || ev.title} ({ev.sport_name || ev.sport || "Sport"})
+                    </option>
+                  ))}
+              </select>
+            </div>
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
@@ -1294,6 +1478,45 @@ export default function TeamsManager() {
           })()}
         </Modal>
       )}
+
+      {/* ── Reject Team Modal ── */}
+      <Modal
+        isOpen={Boolean(rejectingTeamId)}
+        onClose={() => {
+          setRejectingTeamId(null);
+          setRejectionReasonText("");
+        }}
+        title="Reject Team Registration"
+        size="sm"
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+          <p style={{ fontSize: "0.85rem", color: "var(--nec-text-muted)", margin: 0 }}>
+            Specify the operational reason for rejecting this team registration:
+          </p>
+          <div className="nec-form-group">
+            <label className="nec-form-label">Rejection Reason *</label>
+            <textarea
+              className="nec-table-search-input"
+              style={{ width: "100%", minHeight: "80px", resize: "vertical", boxSizing: "border-box" }}
+              placeholder="e.g. Incomplete roster, ineligible department students, or medical clearance missing..."
+              value={rejectionReasonText}
+              onChange={(e) => setRejectionReasonText(e.target.value)}
+              required
+            />
+          </div>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
+            <Button variant="outline" type="button" onClick={() => setRejectingTeamId(null)}>Cancel</Button>
+            <Button
+              variant="danger"
+              type="button"
+              disabled={!rejectionReasonText.trim()}
+              onClick={() => handleUpdateStatus(rejectingTeamId, "Rejected", rejectionReasonText.trim())}
+            >
+              Confirm Rejection
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

@@ -12,6 +12,8 @@ export const getAllDepartments = async () => {
             d.color_code, 
             d.color_code AS color, 
             (SELECT COUNT(*) FROM students s WHERE s.department_id = d.id) AS students,
+            (SELECT COUNT(*) FROM teams t WHERE t.department_id = d.id) AS teams_count,
+            (SELECT COUNT(DISTINCT tm.student_id) FROM team_members tm JOIN teams t ON tm.team_id = t.team_id WHERE t.department_id = d.id) AS athletes_count,
             d.created_at
         FROM departments d
         LEFT JOIN users u ON d.coordinator_user_id = u.id

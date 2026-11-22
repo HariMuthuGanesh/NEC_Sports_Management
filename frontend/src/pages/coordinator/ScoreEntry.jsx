@@ -38,6 +38,8 @@ export default function ScoreEntry({ onNavigate }) {
   const [activeTab, setActiveTab] = useState("scoreboard"); // "scoreboard" | "results" | "fixtures"
 
   // ── Dropdown Filter States ───────────────────────────────────────────────
+  const [filterTournament, setFilterTournament] = useState("ALL");
+  const [filterEvent, setFilterEvent] = useState("ALL");
   const [filterSport, setFilterSport] = useState("ALL");
   const [filterVenue, setFilterVenue] = useState("ALL");
   const [filterStatus, setFilterStatus] = useState("ALL");
@@ -60,6 +62,14 @@ export default function ScoreEntry({ onNavigate }) {
   const safeMatches = useMemo(() => (Array.isArray(allMatches) ? allMatches : []), [allMatches]);
 
   // Distinct lists for dropdown filters
+  const allTournamentsList = useMemo(() => {
+    return [...new Set(safeMatches.map((m) => m.tournamentName || m.tournament_name).filter(Boolean))].sort();
+  }, [safeMatches]);
+
+  const allEventsList = useMemo(() => {
+    return [...new Set(safeMatches.map((m) => m.eventName || m.event_name).filter(Boolean))].sort();
+  }, [safeMatches]);
+
   const allSportsList = useMemo(() => {
     return [...new Set(safeMatches.map((m) => m.sport || m.sport_name).filter(Boolean))].sort();
   }, [safeMatches]);
@@ -126,11 +136,15 @@ export default function ScoreEntry({ onNavigate }) {
   // Base filter logic matching sports, venues, rounds, and search query
   const matchesPassingFilters = useMemo(() => {
     return safeMatches.filter((m) => {
+      const tour = m.tournamentName || m.tournament_name || "";
+      const ev = m.eventName || m.event_name || "";
       const sp = m.sport || m.sport_name || "";
       const ven = m.venue || m.venue_name || "";
       const rnd = m.round || "";
       const st = m.status || "Scheduled";
 
+      if (filterTournament !== "ALL" && tour !== filterTournament) return false;
+      if (filterEvent !== "ALL" && ev !== filterEvent) return false;
       if (filterSport !== "ALL" && sp !== filterSport) return false;
       if (filterVenue !== "ALL" && ven !== filterVenue) return false;
       if (filterRound !== "ALL" && rnd !== filterRound) return false;
@@ -143,12 +157,14 @@ export default function ScoreEntry({ onNavigate }) {
         m.teamB?.toLowerCase().includes(q) ||
         m.deptA?.toLowerCase().includes(q) ||
         m.deptB?.toLowerCase().includes(q) ||
+        tour.toLowerCase().includes(q) ||
+        ev.toLowerCase().includes(q) ||
         ven.toLowerCase().includes(q) ||
         sp.toLowerCase().includes(q) ||
         rnd.toLowerCase().includes(q)
       );
     });
-  }, [safeMatches, filterSport, filterVenue, filterRound, filterStatus, searchQuery]);
+  }, [safeMatches, filterTournament, filterEvent, filterSport, filterVenue, filterRound, filterStatus, searchQuery]);
 
   // Scoreboard Tab Matches (Live & Scheduled)
   const scoreboardMatches = useMemo(() => {
@@ -196,6 +212,8 @@ export default function ScoreEntry({ onNavigate }) {
   }, [fixturesMatches]);
 
   const isAnyFilterActive =
+    filterTournament !== "ALL" ||
+    filterEvent !== "ALL" ||
     filterSport !== "ALL" ||
     filterVenue !== "ALL" ||
     filterStatus !== "ALL" ||
@@ -203,6 +221,8 @@ export default function ScoreEntry({ onNavigate }) {
     searchQuery.trim() !== "";
 
   const handleResetFilters = () => {
+    setFilterTournament("ALL");
+    setFilterEvent("ALL");
     setFilterSport("ALL");
     setFilterVenue("ALL");
     setFilterStatus("ALL");
@@ -368,6 +388,42 @@ export default function ScoreEntry({ onNavigate }) {
           gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
           gap: "10px"
         }}>
+          {/* Tournament Filter Dropdown */}
+          <div>
+            <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 600, color: "var(--nec-text-muted, #64748b)", marginBottom: "4px" }}>
+              🏆 Tournament
+            </label>
+            <select
+              value={filterTournament}
+              onChange={(e) => setFilterTournament(e.target.value)}
+              className="nec-form-input"
+              style={{ width: "100%", padding: "7px 10px", fontSize: "0.825rem", borderRadius: "6px" }}
+            >
+              <option value="ALL">All Tournaments ({allTournamentsList.length})</option>
+              {allTournamentsList.map((t) => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Event Filter Dropdown */}
+          <div>
+            <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 600, color: "var(--nec-text-muted, #64748b)", marginBottom: "4px" }}>
+              🎯 Event
+            </label>
+            <select
+              value={filterEvent}
+              onChange={(e) => setFilterEvent(e.target.value)}
+              className="nec-form-input"
+              style={{ width: "100%", padding: "7px 10px", fontSize: "0.825rem", borderRadius: "6px" }}
+            >
+              <option value="ALL">All Events ({allEventsList.length})</option>
+              {allEventsList.map((ev) => (
+                <option key={ev} value={ev}>{ev}</option>
+              ))}
+            </select>
+          </div>
+
           {/* Sport Filter Dropdown */}
           <div>
             <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 600, color: "var(--nec-text-muted, #64748b)", marginBottom: "4px" }}>
@@ -563,6 +619,12 @@ export default function ScoreEntry({ onNavigate }) {
                       {/* Card Header */}
                       <div className="nec-ssb-card-header">
                         <div className="nec-ssb-card-meta">
+                          {(m.tournamentName || m.tournament_name) && (
+                            <span style={{ fontSize: "0.72rem", background: "var(--nec-surface-raised, #f1f5f9)", padding: "2px 6px", borderRadius: "4px", color: "var(--nec-navy)", fontWeight: 700 }}>
+                              {m.tournamentName || m.tournament_name}
+                              {(m.eventName || m.event_name) ? ` • ${m.eventName || m.event_name}` : ""}
+                            </span>
+                          )}
                           <span className="nec-ssb-card-sport">{m.sport || m.sport_name}</span>
                           {m.round && <span className="nec-ssb-card-round">{m.round}</span>}
                         </div>

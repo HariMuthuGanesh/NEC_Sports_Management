@@ -5,6 +5,7 @@ test.describe('NEC Sports Management — Authentication & Security Journey', () 
     await page.goto('/');
     // Click header sign-in button to open login page
     const signinBtn = page.locator('.nec-header-signin-btn').first();
+    await signinBtn.waitFor({ state: 'visible', timeout: 7000 }).catch(() => {});
     if (await signinBtn.isVisible()) {
       await signinBtn.click();
     }

@@ -106,6 +106,22 @@ export const deleteMatch = async (matchId) => {
 };
 
 export const getAllMatches = async (filters = {}) => {
+    // Background auto-reconciliation: ensure matches whose end time passed 24h ago don't remain Ongoing
+    try {
+        await pool.execute(`
+            UPDATE matches
+            SET status = CASE 
+                WHEN score_a > 0 OR score_b > 0 THEN 'Completed'
+                ELSE 'Postponed'
+            END
+            WHERE status = 'Ongoing' 
+              AND scheduled_time < DATE_SUB(NOW(), INTERVAL 24 HOUR)
+              AND manual_status_override = 0
+        `);
+    } catch (_) {
+        // Non-blocking maintenance
+    }
+
     let whereClauses = [];
     let params = [];
     if (filters.eventId || filters.event_id) {
@@ -128,8 +144,12 @@ export const getAllMatches = async (filters = {}) => {
             m.match_id AS id,
             m.event_id,
             m.event_id AS eventId,
+            ev.name AS event_name,
+            ev.name AS eventName,
             m.tournament_id,
             m.tournament_id AS tournamentId,
+            tour.name AS tournament_name,
+            tour.name AS tournamentName,
             m.sport_id,
             m.sport_id AS sportId,
             m.team_a_id,
@@ -176,6 +196,8 @@ export const getAllMatches = async (filters = {}) => {
         LEFT JOIN departments d2 ON t2.department_id = d2.id
         LEFT JOIN sports s ON m.sport_id = s.sport_id
         LEFT JOIN venues v ON m.venue_id = v.venue_id
+        LEFT JOIN events ev ON m.event_id = ev.event_id
+        LEFT JOIN tournaments tour ON m.tournament_id = tour.tournament_id
         ${whereSql}
         ORDER BY m.scheduled_time DESC
     `;
