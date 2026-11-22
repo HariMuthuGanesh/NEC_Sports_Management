@@ -599,8 +599,7 @@ export default function CollegeTeamBuilder() {
                     <tbody>
                       {paginatedCollegeTeams.map((ct) => {
                         const targetId = ct.college_team_id || ct.id;
-                        const isRecentlyAdded = targetId === justAddedTeamId || 
-                          (ct.created_at && (Date.now() - new Date(ct.created_at).getTime()) < 3600000);
+                        const isRecentlyAdded = targetId === justAddedTeamId;
 
                         return (
                           <tr
