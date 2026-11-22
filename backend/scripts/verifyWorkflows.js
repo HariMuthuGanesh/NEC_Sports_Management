@@ -110,6 +110,7 @@ try {
     await captain.request('/teams/1/attendance','POST',{matchId:id,attendance:{1:false,2:true}},201);
     const mirroredAttendance = await coordinator.request('/teams/1/attendance?matchId='+id);
     assert.equal(mirroredAttendance.find(r=>r.student_id===1).status,'Absent');
+    await pool.query("INSERT INTO team_members (team_id,student_id,role) VALUES (2,1,'Player')");
     await president.request('/teams/2/status','PUT',{status:'Approved'});
     await president.request('/users','GET',undefined,403);
     await president.request('/audit-logs','GET',undefined,403);

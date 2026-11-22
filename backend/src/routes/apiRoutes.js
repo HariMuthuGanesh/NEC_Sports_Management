@@ -53,7 +53,9 @@ import {
     createTournamentMatchController,
     getTournamentTeamsController,
     getStudentAttendanceController,
-    getOverviewStats
+    getOverviewStats,
+    getPublicHomeSummary,
+    getPublicTournamentDetailsController
 } from '../controllers/sportsController.js';
 import { createMatch, deleteMatch, updateScore } from '../controllers/matchController.js';
 import {
@@ -281,6 +283,8 @@ router.delete('/competitions/:id/entries/:entryId', protect, authorize('Admin','
 router.patch('/competitions/:id', protect, authorize('Admin','Sports President','Score Updater'), updateCompetition);
 
 // Publicly accessible endpoints (MySQL-backed)
+router.get('/public/home-summary', getPublicHomeSummary);
+router.get('/tournaments/:id/public', getPublicTournamentDetailsController);
 router.get('/sports', getSports);
 router.get('/competition-levels', optionalProtect, listCompetitionLevelsController);
 router.get('/competition-levels/:id', optionalProtect, getCompetitionLevelController);

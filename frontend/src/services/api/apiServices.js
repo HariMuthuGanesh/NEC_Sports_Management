@@ -264,6 +264,7 @@ export const tournamentsApi = {
   getTournamentMatches: (tournamentId) => apiFetch(`/tournaments/${tournamentId}/matches`),
   createTournamentMatch: (tournamentId, matchData) => apiFetch(`/tournaments/${tournamentId}/matches`, "POST", matchData),
   getTournamentTeams: (tournamentId) => apiFetch(`/tournaments/${tournamentId}/teams`),
+  getPublicTournamentDetails: (id) => apiFetch(`/tournaments/${id}/public`),
   
   // Legacy aliases
   getEvents: (tournamentId = null) => eventsApi.getEvents(tournamentId),
@@ -421,8 +422,24 @@ export const reportsApi = {
 
 /* --- Leaderboard API --- */
 export const leaderboardApi = {
-  getLeaderboard: () => apiFetch("/leaderboard"),
+  getLeaderboard: (params = {}) => {
+    const qs = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '' && v !== 'ALL')
+    ).toString();
+    return apiFetch(`/leaderboard${qs ? `?${qs}` : ''}`);
+  },
   getDepartmentMatches: (deptId) => apiFetch(`/leaderboard/${deptId}/matches`)
+};
+
+/* --- Public Portal API --- */
+export const publicApi = {
+  getHomeSummary: (params = {}) => {
+    const qs = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '' && v !== 'ALL')
+    ).toString();
+    return apiFetch(`/public/home-summary${qs ? `?${qs}` : ''}`);
+  },
+  getTournamentDetails: (id) => apiFetch(`/tournaments/${id}/public`)
 };
 
 /* --- Announcements API --- */

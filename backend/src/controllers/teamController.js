@@ -282,13 +282,13 @@ export const updateTeamStatus = async (req, res, next) => {
             }
 
             const [teamRow] = await pool.execute(
-                `SELECT t.event_id, ev.min_team_size, s.min_players 
+                `SELECT t.event_id, ev.min_players, s.min_players AS sport_min_players 
                  FROM teams t 
                  LEFT JOIN events ev ON t.event_id = ev.event_id 
                  LEFT JOIN sports s ON t.sport_id = s.sport_id 
                  WHERE t.team_id = ?`, [teamId]
             );
-            const minReq = teamRow[0]?.min_team_size || teamRow[0]?.min_players || 1;
+            const minReq = teamRow[0]?.min_players || teamRow[0]?.sport_min_players || 1;
             if (count < minReq) {
                 return res.status(400).json({
                     success: false,

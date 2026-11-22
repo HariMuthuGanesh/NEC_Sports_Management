@@ -14,6 +14,7 @@ import SettingsPage from "./pages/settings/SettingsPage";
 
 // Public Pages
 import PublicHome from "./pages/public/PublicHome";
+import PublicTournaments from "./pages/public/PublicTournaments";
 import PublicLiveScores from "./pages/public/PublicLiveScores";
 import PublicFixtures from "./pages/public/PublicFixtures";
 import PublicLeaderboard from "./pages/public/PublicLeaderboard";
@@ -170,6 +171,8 @@ function MainApp() {
       // Public Portal Routes (Open Access)
       case "public_home":
         return <PublicHome onNavigate={(nav) => setActiveNav(nav)} />;
+      case "public_tournaments":
+        return <PublicTournaments onNavigate={(nav) => setActiveNav(nav)} />;
       case "public_live":
         return <PublicLiveScores onNavigate={(nav) => setActiveNav(nav)} />;
       case "public_fixtures":

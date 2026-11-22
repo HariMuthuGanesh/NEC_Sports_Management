@@ -136,6 +136,26 @@ export const getAllMatches = async (filters = {}) => {
         whereClauses.push('m.sport_id = ?');
         params.push(Number(filters.sportId || filters.sport_id));
     }
+    if (filters.scope && filters.scope !== 'ALL') {
+        whereClauses.push('(tour.scope = ? OR (? = "Intramural" AND tour.scope IS NULL))');
+        params.push(filters.scope, filters.scope);
+    }
+    if (filters.status && filters.status !== 'ALL') {
+        whereClauses.push('m.status = ?');
+        params.push(filters.status);
+    }
+    if (filters.academicYear && filters.academicYear !== 'ALL') {
+        whereClauses.push('tour.academic_year = ?');
+        params.push(filters.academicYear);
+    }
+    if (filters.round && filters.round !== 'ALL') {
+        whereClauses.push('m.round = ?');
+        params.push(filters.round);
+    }
+    if (filters.date) {
+        whereClauses.push('DATE(m.scheduled_time) = ?');
+        params.push(filters.date);
+    }
     const whereSql = whereClauses.length ? `WHERE ${whereClauses.join(' AND ')}` : '';
 
     const sql = `
@@ -150,6 +170,10 @@ export const getAllMatches = async (filters = {}) => {
             m.tournament_id AS tournamentId,
             tour.name AS tournament_name,
             tour.name AS tournamentName,
+            tour.academic_year,
+            COALESCE(tour.scope, 'Intramural') AS tournament_scope,
+            COALESCE(tour.scope, 'Intramural') AS scope,
+            tour.tier AS competition_level,
             m.sport_id,
             m.sport_id AS sportId,
             m.team_a_id,
@@ -174,12 +198,31 @@ export const getAllMatches = async (filters = {}) => {
             m.detail_score AS detailScore,
             m.scorers,
             m.winner_team_id,
+            tw.name AS winner_team_name,
+            CASE 
+                WHEN m.status = 'Completed' AND tw.name IS NOT NULL THEN tw.name
+                WHEN m.status = 'Completed' AND m.score_a IS NOT NULL AND m.score_b IS NOT NULL AND m.score_a > m.score_b THEN t1.name
+                WHEN m.status = 'Completed' AND m.score_a IS NOT NULL AND m.score_b IS NOT NULL AND m.score_b > m.score_a THEN t2.name
+                WHEN m.status = 'Completed' AND m.score_a IS NOT NULL AND m.score_b IS NOT NULL AND m.score_a = m.score_b THEN 'Match Drawn'
+                ELSE NULL
+            END AS winner_name,
+            CASE 
+                WHEN m.status = 'Completed' AND tw.name IS NOT NULL THEN tw.name
+                WHEN m.status = 'Completed' AND m.score_a IS NOT NULL AND m.score_b IS NOT NULL AND m.score_a > m.score_b THEN t1.name
+                WHEN m.status = 'Completed' AND m.score_a IS NOT NULL AND m.score_b IS NOT NULL AND m.score_b > m.score_a THEN t2.name
+                WHEN m.status = 'Completed' AND m.score_a IS NOT NULL AND m.score_b IS NOT NULL AND m.score_a = m.score_b THEN 'Match Drawn'
+                ELSE NULL
+            END AS winner,
             t1.name AS team_a_name,
             t1.name AS teamA,
+            t1.team_type AS team_a_type,
+            COALESCE(t1.institution_name, 'National Engineering College') AS team_a_institution,
             d1.code AS dept_a_code,
             d1.code AS deptA,
             t2.name AS team_b_name,
             t2.name AS teamB,
+            t2.team_type AS team_b_type,
+            COALESCE(t2.institution_name, 'National Engineering College') AS team_b_institution,
             d2.code AS dept_b_code,
             d2.code AS deptB,
             v.name AS venue_name,
@@ -194,6 +237,7 @@ export const getAllMatches = async (filters = {}) => {
         LEFT JOIN departments d1 ON t1.department_id = d1.id
         LEFT JOIN teams t2 ON m.team_b_id = t2.team_id
         LEFT JOIN departments d2 ON t2.department_id = d2.id
+        LEFT JOIN teams tw ON m.winner_team_id = tw.team_id
         LEFT JOIN sports s ON m.sport_id = s.sport_id
         LEFT JOIN venues v ON m.venue_id = v.venue_id
         LEFT JOIN events ev ON m.event_id = ev.event_id
@@ -212,6 +256,11 @@ export const getMatchesByTournament = async (tournamentId) => {
             m.match_id AS id,
             m.tournament_id,
             m.tournament_id AS tournamentId,
+            tour.name AS tournament_name,
+            tour.academic_year,
+            COALESCE(tour.scope, 'Intramural') AS tournament_scope,
+            COALESCE(tour.scope, 'Intramural') AS scope,
+            tour.tier AS competition_level,
             m.sport_id,
             m.sport_id AS sportId,
             m.team_a_id,
@@ -236,12 +285,31 @@ export const getMatchesByTournament = async (tournamentId) => {
             m.detail_score AS detailScore,
             m.scorers,
             m.winner_team_id,
+            tw.name AS winner_team_name,
+            CASE 
+                WHEN m.status = 'Completed' AND tw.name IS NOT NULL THEN tw.name
+                WHEN m.status = 'Completed' AND m.score_a IS NOT NULL AND m.score_b IS NOT NULL AND m.score_a > m.score_b THEN t1.name
+                WHEN m.status = 'Completed' AND m.score_a IS NOT NULL AND m.score_b IS NOT NULL AND m.score_b > m.score_a THEN t2.name
+                WHEN m.status = 'Completed' AND m.score_a IS NOT NULL AND m.score_b IS NOT NULL AND m.score_a = m.score_b THEN 'Match Drawn'
+                ELSE NULL
+            END AS winner_name,
+            CASE 
+                WHEN m.status = 'Completed' AND tw.name IS NOT NULL THEN tw.name
+                WHEN m.status = 'Completed' AND m.score_a IS NOT NULL AND m.score_b IS NOT NULL AND m.score_a > m.score_b THEN t1.name
+                WHEN m.status = 'Completed' AND m.score_a IS NOT NULL AND m.score_b IS NOT NULL AND m.score_b > m.score_a THEN t2.name
+                WHEN m.status = 'Completed' AND m.score_a IS NOT NULL AND m.score_b IS NOT NULL AND m.score_a = m.score_b THEN 'Match Drawn'
+                ELSE NULL
+            END AS winner,
             t1.name AS team_a_name,
             t1.name AS teamA,
+            t1.team_type AS team_a_type,
+            COALESCE(t1.institution_name, 'National Engineering College') AS team_a_institution,
             d1.code AS dept_a_code,
             d1.code AS deptA,
             t2.name AS team_b_name,
             t2.name AS teamB,
+            t2.team_type AS team_b_type,
+            COALESCE(t2.institution_name, 'National Engineering College') AS team_b_institution,
             d2.code AS dept_b_code,
             d2.code AS deptB,
             v.name AS venue_name,
@@ -256,8 +324,10 @@ export const getMatchesByTournament = async (tournamentId) => {
         LEFT JOIN departments d1 ON t1.department_id = d1.id
         LEFT JOIN teams t2 ON m.team_b_id = t2.team_id
         LEFT JOIN departments d2 ON t2.department_id = d2.id
+        LEFT JOIN teams tw ON m.winner_team_id = tw.team_id
         LEFT JOIN sports s ON m.sport_id = s.sport_id
         LEFT JOIN venues v ON m.venue_id = v.venue_id
+        LEFT JOIN tournaments tour ON m.tournament_id = tour.tournament_id
         WHERE m.tournament_id = ?
         ORDER BY m.pool ASC, m.scheduled_time ASC
     `;

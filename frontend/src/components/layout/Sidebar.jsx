@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
-  LayoutDashboard, Trophy, Calendar, Users, CheckSquare, MapPin, Building2, FileText,
+  LayoutDashboard, Trophy, Calendar, Users, CheckSquare, Building2, FileText,
   Megaphone, Radio, Image, Award, UserCheck, X, Edit3, BellRing, Home, Shield, Settings,
   LogIn, FileCheck, ChevronDown, ChevronLeft, ChevronRight, Sun, Moon, User, LogOut
 } from "lucide-react";
@@ -208,10 +208,11 @@ export default function Sidebar({
             category: t.navPublicPortal,
             items: [
               { id: "public_home", label: t.home, icon: Home },
+              { id: "public_tournaments", label: "Tournaments & Events", icon: Trophy },
               { id: "public_live", label: t.liveScores, icon: Radio },
               { id: "public_fixtures", label: t.fixtures, icon: Calendar },
-              { id: "public_leaderboard", label: t.leaderboard, icon: Trophy },
-              { id: "public_od_list", label: "OD List", icon: FileCheck },
+              { id: "public_leaderboard", label: t.leaderboard, icon: Award },
+              { id: "public_od_list", label: "OD Verification", icon: FileCheck },
               { id: "public_gallery", label: t.gallery, icon: Image },
               { id: "public_announcements", label: t.announcements, icon: Megaphone },
               { id: "login", label: t.login || "Portal Sign In", icon: LogIn }

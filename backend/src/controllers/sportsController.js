@@ -23,7 +23,8 @@ import {
     getTournamentById as getTournamentByIdSql,
     createTournament as createTournamentSql,
     updateTournament as updateTournamentSql,
-    deleteTournament as deleteTournamentSql
+    deleteTournament as deleteTournamentSql,
+    getPublicTournamentDetails
 } from '../models/sql/tournamentSqlModel.js';
 import { getAllVenues, createVenue as createVenueSql, updateVenue as updateVenueSql, deleteVenue as deleteVenueSql } from '../models/sql/venueSqlModel.js';
 import { getAllMatches, getMatchesByTournament, createMatch as createMatchSql } from '../models/sql/matchSqlModel.js';
@@ -570,6 +571,56 @@ export const deleteAnnouncementController = async (req, res, next) => {
 /* --- Leaderboard & Stats --- */
 export const getLeaderboard = async (req, res, next) => {
     try {
+        const scope = req.query.scope || 'Intramural';
+        const academicYear = req.query.academicYear || req.query.academic_year;
+
+        if (scope === 'Inter-Collegiate') {
+            let whereClause = "WHERE (tour.scope = 'Inter-Collegiate' OR tour.tier IN ('District', 'Divisional', 'Zonal', 'State', 'State Level', 'University', 'National', 'Inter-Collegiate'))";
+            let params = [];
+            if (academicYear && academicYear !== 'ALL') {
+                whereClause += " AND tour.academic_year = ?";
+                params.push(academicYear);
+            }
+
+            const sql = `
+                SELECT 
+                    COALESCE(t.institution_name, 'National Engineering College') AS institution,
+                    COALESCE(t.institution_name, 'National Engineering College') AS name,
+                    COUNT(DISTINCT t.team_id) AS total_teams,
+                    COUNT(CASE WHEN m.winner_team_id = t.team_id THEN 1 END) AS wins,
+                    COUNT(CASE WHEN m.winner_team_id = t.team_id AND m.round = 'Final' THEN 1 END) AS gold,
+                    COUNT(CASE WHEN m.winner_team_id != t.team_id AND m.winner_team_id IS NOT NULL AND m.round = 'Final' THEN 1 END) AS silver,
+                    COUNT(CASE WHEN m.winner_team_id = t.team_id AND m.round = 'Semi-Final' THEN 1 END) AS bronze,
+                    (
+                        COUNT(CASE WHEN m.winner_team_id = t.team_id AND m.round = 'Final' THEN 1 END) * 15 +
+                        COUNT(CASE WHEN m.winner_team_id != t.team_id AND m.winner_team_id IS NOT NULL AND m.round = 'Final' THEN 1 END) * 10 +
+                        COUNT(CASE WHEN m.winner_team_id = t.team_id AND m.round = 'Semi-Final' THEN 1 END) * 5 +
+                        COUNT(CASE WHEN m.winner_team_id = t.team_id THEN 1 END) * 5
+                    ) AS total_points
+                FROM teams t
+                JOIN matches m ON (t.team_id = m.team_a_id OR t.team_id = m.team_b_id) AND m.status = 'Completed'
+                JOIN tournaments tour ON m.tournament_id = tour.tournament_id
+                ${whereClause}
+                GROUP BY COALESCE(t.institution_name, 'National Engineering College')
+                ORDER BY total_points DESC, gold DESC, silver DESC, wins DESC
+            `;
+            const [rows] = await pool.execute(sql, params);
+            const ranked = rows.map((r, idx) => ({
+                ...r,
+                id: idx + 1,
+                rank: idx + 1
+            }));
+            return res.json({ success: true, data: ranked });
+        }
+
+        // Default: Intramural department standings
+        let yearFilter = '';
+        let params = [];
+        if (academicYear && academicYear !== 'ALL') {
+            yearFilter = 'AND (tour.academic_year = ? OR tour.academic_year IS NULL)';
+            params.push(academicYear);
+        }
+
         const sql = `
             SELECT 
                 d.id,
@@ -581,19 +632,252 @@ export const getLeaderboard = async (req, res, next) => {
                 COUNT(CASE WHEN m.winner_team_id = t.team_id AND m.round = 'Final' THEN 1 END) AS gold,
                 COUNT(CASE WHEN m.winner_team_id != t.team_id AND m.winner_team_id IS NOT NULL AND m.round = 'Final' THEN 1 END) AS silver,
                 COUNT(CASE WHEN m.winner_team_id = t.team_id AND m.round = 'Semi-Final' THEN 1 END) AS bronze,
-                (COUNT(CASE WHEN m.winner_team_id = t.team_id THEN 1 END) * 10 + 5) AS total_points
+                (
+                    COUNT(CASE WHEN m.winner_team_id = t.team_id AND m.round = 'Final' THEN 1 END) * 15 +
+                    COUNT(CASE WHEN m.winner_team_id != t.team_id AND m.winner_team_id IS NOT NULL AND m.round = 'Final' THEN 1 END) * 10 +
+                    COUNT(CASE WHEN m.winner_team_id = t.team_id AND m.round = 'Semi-Final' THEN 1 END) * 5 +
+                    COUNT(CASE WHEN m.winner_team_id = t.team_id THEN 1 END) * 5 + 5
+                ) AS total_points
             FROM departments d
             LEFT JOIN teams t ON d.id = t.department_id
             LEFT JOIN matches m ON (t.team_id = m.team_a_id OR t.team_id = m.team_b_id) AND m.status = 'Completed'
+            LEFT JOIN tournaments tour ON m.tournament_id = tour.tournament_id AND (tour.scope = 'Intramural' OR tour.scope IS NULL)
+            ${yearFilter ? `WHERE 1=1 ${yearFilter}` : ''}
             GROUP BY d.id, d.name, d.code, d.color_code
-            ORDER BY total_points DESC, gold DESC, d.name ASC
+            ORDER BY total_points DESC, gold DESC, wins DESC, d.name ASC
         `;
-        const [rows] = await pool.execute(sql);
+        const [rows] = await pool.execute(sql, params);
         const ranked = rows.map((r, idx) => ({
             ...r,
             rank: idx + 1
         }));
         return res.json({ success: true, data: ranked });
+    } catch (err) {
+        next(err);
+    }
+};
+
+/* --- Public Home Summary & Tournament Details --- */
+export const getPublicHomeSummary = async (req, res, next) => {
+    try {
+        const scope = req.query.scope || 'ALL'; // 'ALL', 'Intramural', 'Inter-Collegiate'
+        
+        // 1. High-level counts
+        const [[{ sportsCount }]] = await pool.execute('SELECT COUNT(*) AS sportsCount FROM sports');
+        const [[{ athletesCount }]] = await pool.execute('SELECT COUNT(*) AS athletesCount FROM students');
+        const [[{ tournamentsCount }]] = await pool.execute('SELECT COUNT(*) AS tournamentsCount FROM tournaments WHERE status != "Draft"');
+        const [[{ intramuralCount }]] = await pool.execute('SELECT COUNT(*) AS intramuralCount FROM tournaments WHERE scope = "Intramural" AND status != "Draft"');
+        const [[{ interCollegiateCount }]] = await pool.execute('SELECT COUNT(*) AS interCollegiateCount FROM tournaments WHERE scope = "Inter-Collegiate" AND status != "Draft"');
+        const [[{ liveMatchesCount }]] = await pool.execute('SELECT COUNT(*) AS liveMatchesCount FROM matches WHERE status = "Ongoing"');
+        const [[{ completedMatchesCount }]] = await pool.execute('SELECT COUNT(*) AS completedMatchesCount FROM matches WHERE status = "Completed"');
+
+        // 2. Featured & Active Tournaments
+        let tourScopeFilter = '';
+        let tourParams = [];
+        if (scope && scope !== 'ALL') {
+            tourScopeFilter = 'AND t.scope = ?';
+            tourParams.push(scope);
+        }
+        const [featuredTournaments] = await pool.execute(`
+            SELECT 
+                t.tournament_id,
+                t.name,
+                t.academic_year,
+                COALESCE(t.scope, 'Intramural') AS scope,
+                t.tier,
+                t.start_date,
+                t.end_date,
+                t.status,
+                t.venue,
+                t.organizer,
+                (SELECT COUNT(*) FROM events e WHERE e.tournament_id = t.tournament_id) AS total_events,
+                (SELECT COUNT(*) FROM matches m WHERE m.tournament_id = t.tournament_id) AS total_matches
+            FROM tournaments t
+            WHERE t.status != 'Draft' AND (t.is_public = 1 OR t.is_public IS NULL) ${tourScopeFilter}
+            ORDER BY t.is_featured DESC, (t.status = 'Ongoing') DESC, (t.status = 'Upcoming') DESC, t.start_date DESC
+            LIMIT 6
+        `, tourParams);
+
+        // 3. Live Matches
+        let matchScopeFilter = '';
+        let matchParams = [];
+        if (scope && scope !== 'ALL') {
+            matchScopeFilter = 'AND tour.scope = ?';
+            matchParams.push(scope);
+        }
+        const [liveMatches] = await pool.execute(`
+            SELECT 
+                m.match_id,
+                m.scheduled_time,
+                m.round,
+                m.score_a,
+                m.score_b,
+                m.status,
+                m.detail_score,
+                s.name AS sport_name,
+                tour.name AS tournament_name,
+                COALESCE(tour.scope, 'Intramural') AS scope,
+                tour.tier AS competition_level,
+                t1.name AS team_a_name,
+                COALESCE(t1.institution_name, 'National Engineering College') AS team_a_institution,
+                d1.code AS dept_a_code,
+                t2.name AS team_b_name,
+                COALESCE(t2.institution_name, 'National Engineering College') AS team_b_institution,
+                d2.code AS dept_b_code,
+                v.name AS venue_name
+            FROM matches m
+            JOIN sports s ON m.sport_id = s.sport_id
+            JOIN tournaments tour ON m.tournament_id = tour.tournament_id
+            LEFT JOIN teams t1 ON m.team_a_id = t1.team_id
+            LEFT JOIN departments d1 ON t1.department_id = d1.id
+            LEFT JOIN teams t2 ON m.team_b_id = t2.team_id
+            LEFT JOIN departments d2 ON t2.department_id = d2.id
+            LEFT JOIN venues v ON m.venue_id = v.venue_id
+            WHERE m.status = 'Ongoing' ${matchScopeFilter}
+            ORDER BY m.scheduled_time ASC
+        `, matchParams);
+
+        // 4. Upcoming Fixtures
+        const [upcomingMatches] = await pool.execute(`
+            SELECT 
+                m.match_id,
+                m.scheduled_time,
+                m.round,
+                m.status,
+                s.name AS sport_name,
+                tour.name AS tournament_name,
+                COALESCE(tour.scope, 'Intramural') AS scope,
+                tour.tier AS competition_level,
+                t1.name AS team_a_name,
+                COALESCE(t1.institution_name, 'National Engineering College') AS team_a_institution,
+                d1.code AS dept_a_code,
+                t2.name AS team_b_name,
+                COALESCE(t2.institution_name, 'National Engineering College') AS team_b_institution,
+                d2.code AS dept_b_code,
+                v.name AS venue_name
+            FROM matches m
+            JOIN sports s ON m.sport_id = s.sport_id
+            JOIN tournaments tour ON m.tournament_id = tour.tournament_id
+            LEFT JOIN teams t1 ON m.team_a_id = t1.team_id
+            LEFT JOIN departments d1 ON t1.department_id = d1.id
+            LEFT JOIN teams t2 ON m.team_b_id = t2.team_id
+            LEFT JOIN departments d2 ON t2.department_id = d2.id
+            LEFT JOIN venues v ON m.venue_id = v.venue_id
+            WHERE m.status = 'Scheduled' AND m.scheduled_time >= NOW() ${matchScopeFilter}
+            ORDER BY m.scheduled_time ASC
+            LIMIT 6
+        `, matchParams);
+
+        // 5. Recent Results with Resolved Winners (No "Winner: Completed")
+        const [recentResults] = await pool.execute(`
+            SELECT 
+                m.match_id,
+                m.scheduled_time,
+                m.round,
+                m.score_a,
+                m.score_b,
+                m.status,
+                s.name AS sport_name,
+                tour.name AS tournament_name,
+                COALESCE(tour.scope, 'Intramural') AS scope,
+                tour.tier AS competition_level,
+                t1.name AS team_a_name,
+                COALESCE(t1.institution_name, 'National Engineering College') AS team_a_institution,
+                d1.code AS dept_a_code,
+                t2.name AS team_b_name,
+                COALESCE(t2.institution_name, 'National Engineering College') AS team_b_institution,
+                d2.code AS dept_b_code,
+                tw.name AS winner_team_name,
+                CASE 
+                    WHEN tw.name IS NOT NULL THEN tw.name
+                    WHEN m.score_a > m.score_b THEN t1.name
+                    WHEN m.score_b > m.score_a THEN t2.name
+                    WHEN m.score_a = m.score_b THEN 'Match Drawn'
+                    ELSE 'Winner Decided'
+                END AS winner_name,
+                v.name AS venue_name
+            FROM matches m
+            JOIN sports s ON m.sport_id = s.sport_id
+            JOIN tournaments tour ON m.tournament_id = tour.tournament_id
+            LEFT JOIN teams t1 ON m.team_a_id = t1.team_id
+            LEFT JOIN departments d1 ON t1.department_id = d1.id
+            LEFT JOIN teams t2 ON m.team_b_id = t2.team_id
+            LEFT JOIN departments d2 ON t2.department_id = d2.id
+            LEFT JOIN teams tw ON m.winner_team_id = tw.team_id
+            LEFT JOIN venues v ON m.venue_id = v.venue_id
+            WHERE m.status = 'Completed' ${matchScopeFilter}
+            ORDER BY m.scheduled_time DESC
+            LIMIT 6
+        `, matchParams);
+
+        // 6. Recent Public Announcements
+        const [announcements] = await pool.execute(`
+            SELECT 
+                a.announcement_id,
+                a.title,
+                a.content,
+                a.priority,
+                a.category,
+                a.created_at,
+                a.published_at
+            FROM announcements a
+            WHERE (a.status = 'Published' OR a.status IS NULL)
+            ORDER BY a.created_at DESC
+            LIMIT 4
+        `);
+
+        // 7. Recent Public Gallery
+        const [recentPhotos] = await pool.execute(`
+            SELECT 
+                g.id,
+                g.title,
+                g.media_type,
+                g.url,
+                g.academic_year,
+                g.created_at
+            FROM gallery g
+            WHERE g.status = 'Published'
+            ORDER BY g.created_at DESC
+            LIMIT 6
+        `);
+
+        return res.json({
+            success: true,
+            data: {
+                scope,
+                stats: {
+                    sportsCount: sportsCount.toString(),
+                    athletesCount: athletesCount.toString(),
+                    tournamentsCount: tournamentsCount.toString(),
+                    intramuralCount: intramuralCount.toString(),
+                    interCollegiateCount: interCollegiateCount.toString(),
+                    liveMatchesCount: liveMatchesCount.toString(),
+                    completedMatchesCount: completedMatchesCount.toString()
+                },
+                featuredTournaments,
+                liveMatches,
+                upcomingMatches,
+                recentResults,
+                announcements,
+                recentPhotos
+            }
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const getPublicTournamentDetailsController = async (req, res, next) => {
+    try {
+        const id = Number(req.params.id);
+        if (!id) {
+            return res.status(400).json({ success: false, error: { message: "Invalid tournament ID" } });
+        }
+        const data = await getPublicTournamentDetails(id);
+        if (!data) {
+            return res.status(404).json({ success: false, error: { message: "Tournament not found" } });
+        }
+        return res.json({ success: true, data });
     } catch (err) {
         next(err);
     }

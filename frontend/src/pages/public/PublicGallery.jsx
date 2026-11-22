@@ -18,6 +18,7 @@ export default function PublicGallery({ onNavigate }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filterType, setFilterType] = useState("all");
+  const [scope, setScope] = useState("ALL");
   const [activeLightboxItem, setActiveLightboxItem] = useState(null);
   const videoRef = useRef(null);
 
@@ -66,42 +67,78 @@ export default function PublicGallery({ onNavigate }) {
 
   const filteredItems = items.filter((item) => {
     const isVid = (item.media_type || item.type) === "video";
-    if (filterType === "images") return !isVid;
-    if (filterType === "videos") return isVid;
+    if (filterType === "images" && isVid) return false;
+    if (filterType === "videos" && !isVid) return false;
+    if (scope !== "ALL") {
+      const isInter = (item.tournament_name && (item.tournament_name.toLowerCase().includes("inter") || item.tournament_name.toLowerCase().includes("zonal") || item.tournament_name.toLowerCase().includes("state")));
+      const itemScope = isInter ? "Inter-Collegiate" : "Intramural";
+      if (itemScope !== scope) return false;
+    }
     return true;
   });
 
   return (
     <div className="nec-portal-page">
-      <div className="nec-page-header">
+      <div className="nec-page-header" style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "12px" }}>
         <div>
-          <h2 className="nec-page-title">Event Photos</h2>
+          <h2 className="nec-page-title">Athletic Gallery & Media</h2>
+          <p className="nec-page-desc">Visual highlights from campus tournaments, championships, and state-level meets.</p>
         </div>
-        <div style={{ display: "flex", gap: "8px" }}>
-          <button
-            type="button"
-            className={`nec-btn ${filterType === "all" ? "nec-btn-primary" : "nec-btn-secondary"}`}
-            onClick={() => setFilterType("all")}
-            style={{ fontSize: "0.85rem", padding: "6px 12px" }}
-          >
-            All Media ({items.length})
-          </button>
-          <button
-            type="button"
-            className={`nec-btn ${filterType === "images" ? "nec-btn-primary" : "nec-btn-secondary"}`}
-            onClick={() => setFilterType("images")}
-            style={{ fontSize: "0.85rem", padding: "6px 12px" }}
-          >
-            Photos ({items.filter((i) => (i.media_type || i.type) !== "video").length})
-          </button>
-          <button
-            type="button"
-            className={`nec-btn ${filterType === "videos" ? "nec-btn-primary" : "nec-btn-secondary"}`}
-            onClick={() => setFilterType("videos")}
-            style={{ fontSize: "0.85rem", padding: "6px 12px" }}
-          >
-            Videos ({items.filter((i) => (i.media_type || i.type) === "video").length})
-          </button>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+          {/* Scope Selector */}
+          <div style={{ display: "flex", gap: "4px", background: "var(--nec-surface-raised)", padding: "3px", borderRadius: "8px", border: "1px solid var(--nec-border)" }}>
+            {[
+              { id: "ALL", label: "All Scope" },
+              { id: "Intramural", label: "Intramural" },
+              { id: "Inter-Collegiate", label: "Inter-Collegiate" }
+            ].map(tab => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setScope(tab.id)}
+                style={{
+                  padding: "4px 10px",
+                  borderRadius: "6px",
+                  border: "none",
+                  fontWeight: 700,
+                  fontSize: "0.78rem",
+                  cursor: "pointer",
+                  background: scope === tab.id ? "var(--nec-blue-accent, #0274be)" : "transparent",
+                  color: scope === tab.id ? "#fff" : "var(--nec-text-muted)"
+                }}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Media Type Selector */}
+          <div style={{ display: "flex", gap: "4px" }}>
+            <button
+              type="button"
+              className={`nec-btn ${filterType === "all" ? "nec-btn-primary" : "nec-btn-secondary"}`}
+              onClick={() => setFilterType("all")}
+              style={{ fontSize: "0.82rem", padding: "6px 10px" }}
+            >
+              All Media ({items.length})
+            </button>
+            <button
+              type="button"
+              className={`nec-btn ${filterType === "images" ? "nec-btn-primary" : "nec-btn-secondary"}`}
+              onClick={() => setFilterType("images")}
+              style={{ fontSize: "0.82rem", padding: "6px 10px" }}
+            >
+              Photos ({items.filter((i) => (i.media_type || i.type) !== "video").length})
+            </button>
+            <button
+              type="button"
+              className={`nec-btn ${filterType === "videos" ? "nec-btn-primary" : "nec-btn-secondary"}`}
+              onClick={() => setFilterType("videos")}
+              style={{ fontSize: "0.82rem", padding: "6px 10px" }}
+            >
+              Videos ({items.filter((i) => (i.media_type || i.type) === "video").length})
+            </button>
+          </div>
         </div>
       </div>
 

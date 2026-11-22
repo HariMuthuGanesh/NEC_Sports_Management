@@ -6,6 +6,7 @@ export const getAllTournaments = async (options = {}) => {
         academicYear = '',
         competitionLevelId = '',
         tier = '',
+        scope = '',
         status = '',
         sortBy = 'date_desc',
         page = null,
@@ -26,10 +27,15 @@ export const getAllTournaments = async (options = {}) => {
         params.push(academicYear);
     }
 
+    if (scope && scope !== 'ALL') {
+        whereClauses.push('t.scope = ?');
+        params.push(scope);
+    }
+
     const effectiveLevelId = competitionLevelId || (tier && tier !== 'ALL' && !isNaN(Number(tier)) ? tier : null);
     if (effectiveLevelId && effectiveLevelId !== 'ALL') {
-        whereClauses.push('(t.competition_level_id = ? OR t.level_id = ?)');
-        params.push(effectiveLevelId, effectiveLevelId);
+        whereClauses.push('t.competition_level_id = ?');
+        params.push(effectiveLevelId);
     } else if (tier && tier !== 'ALL') {
         whereClauses.push('(t.tier = ? OR cl.name = ?)');
         params.push(tier, tier);
@@ -55,7 +61,7 @@ export const getAllTournaments = async (options = {}) => {
         const countSql = `
             SELECT COUNT(*) AS total 
             FROM tournaments t
-            LEFT JOIN competition_levels cl ON (cl.id = t.competition_level_id OR cl.id = t.level_id)
+            LEFT JOIN competition_levels cl ON cl.id = t.competition_level_id
             ${whereSql}
         `;
         const [countRows] = await pool.execute(countSql, params);
@@ -76,6 +82,8 @@ export const getAllTournaments = async (options = {}) => {
             t.name AS title,
             t.academic_year,
             t.academic_year AS academicYear,
+            COALESCE(t.scope, 'Intramural') AS scope,
+            COALESCE(t.scope, 'Intramural') AS tournament_scope,
             t.tier,
             t.tier AS eventCategory,
             t.competition_level_id,
@@ -91,6 +99,8 @@ export const getAllTournaments = async (options = {}) => {
             t.venue,
             t.description,
             t.rules,
+            COALESCE(t.is_public, 1) AS is_public,
+            COALESCE(t.is_featured, 0) AS is_featured,
             t.created_at,
             (SELECT COUNT(*) FROM events e WHERE e.tournament_id = t.tournament_id) AS total_events,
             (
@@ -106,7 +116,7 @@ export const getAllTournaments = async (options = {}) => {
                 (SELECT COUNT(*) FROM sport_competitions sc JOIN events ev ON ev.event_id = sc.event_id WHERE ev.tournament_id = t.tournament_id AND sc.status = 'Completed')
             ) AS completed_competitions
         FROM tournaments t
-        LEFT JOIN competition_levels cl ON (cl.id = t.competition_level_id OR cl.id = t.level_id)
+        LEFT JOIN competition_levels cl ON cl.id = t.competition_level_id
         ${whereSql}
         ${orderSql}
         ${limitSql}
@@ -134,6 +144,8 @@ export const getTournamentById = async (id) => {
             t.name AS title,
             t.academic_year,
             t.academic_year AS academicYear,
+            COALESCE(t.scope, 'Intramural') AS scope,
+            COALESCE(t.scope, 'Intramural') AS tournament_scope,
             t.tier,
             t.tier AS eventCategory,
             t.competition_level_id,
@@ -149,6 +161,8 @@ export const getTournamentById = async (id) => {
             t.venue,
             t.description,
             t.rules,
+            COALESCE(t.is_public, 1) AS is_public,
+            COALESCE(t.is_featured, 0) AS is_featured,
             t.created_at,
             (SELECT COUNT(*) FROM events e WHERE e.tournament_id = t.tournament_id) AS total_events,
             (
@@ -164,7 +178,7 @@ export const getTournamentById = async (id) => {
                 (SELECT COUNT(*) FROM sport_competitions sc JOIN events ev ON ev.event_id = sc.event_id WHERE ev.tournament_id = t.tournament_id AND sc.status = 'Completed')
             ) AS completed_competitions
         FROM tournaments t
-        LEFT JOIN competition_levels cl ON (cl.id = t.competition_level_id OR cl.id = t.level_id)
+        LEFT JOIN competition_levels cl ON cl.id = t.competition_level_id
         WHERE t.tournament_id = ?
         LIMIT 1
     `;
@@ -214,19 +228,23 @@ export const createTournament = async (data) => {
     }
 
     const status = ['Draft', 'Upcoming', 'Ongoing', 'Completed', 'Cancelled'].includes(data.status) ? data.status : 'Upcoming';
+    const scope = data.scope && ['Intramural', 'Inter-Collegiate'].includes(data.scope) ? data.scope : (tier && ['District', 'Divisional', 'Zonal', 'State', 'State Level', 'University', 'National', 'Inter-Collegiate'].includes(tier) ? 'Inter-Collegiate' : 'Intramural');
+    const isPublic = data.is_public !== undefined ? (data.is_public ? 1 : 0) : 1;
+    const isFeatured = data.is_featured !== undefined ? (data.is_featured ? 1 : 0) : 0;
     const organizer = data.organizer ? String(data.organizer).trim() : 'Physical Education Department & Sports Directorate';
     const venue = data.venue ? String(data.venue).trim() : null;
     const description = data.description ? String(data.description).trim() : null;
     const rules = data.rules ? String(data.rules).trim() : null;
 
     const sql = `
-        INSERT INTO tournaments (name, academic_year, tier, competition_level_id, start_date, end_date, status, organizer, venue, description, rules)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO tournaments (name, academic_year, tier, scope, competition_level_id, start_date, end_date, status, organizer, venue, description, rules, is_public, is_featured)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const [result] = await pool.execute(sql, [
         title,
         academicYear,
         tier,
+        scope,
         levelId,
         startDate,
         endDate,
@@ -234,7 +252,9 @@ export const createTournament = async (data) => {
         organizer,
         venue,
         description,
-        rules
+        rules,
+        isPublic,
+        isFeatured
     ]);
     return result.insertId;
 };
@@ -287,6 +307,10 @@ export const updateTournament = async (id, data) => {
         }
     }
 
+    const scope = data.scope !== undefined ? data.scope : current.scope;
+    const isPublic = data.is_public !== undefined ? (data.is_public ? 1 : 0) : current.is_public;
+    const isFeatured = data.is_featured !== undefined ? (data.is_featured ? 1 : 0) : current.is_featured;
+
     const organizer = data.organizer !== undefined ? String(data.organizer).trim() : current.organizer;
     const venue = data.venue !== undefined ? String(data.venue).trim() : current.venue;
     const description = data.description !== undefined ? String(data.description).trim() : current.description;
@@ -294,14 +318,15 @@ export const updateTournament = async (id, data) => {
 
     const sql = `
         UPDATE tournaments
-        SET name = ?, academic_year = ?, tier = ?, competition_level_id = ?, start_date = ?, end_date = ?,
-            status = ?, organizer = ?, venue = ?, description = ?, rules = ?
+        SET name = ?, academic_year = ?, tier = ?, scope = ?, competition_level_id = ?, start_date = ?, end_date = ?,
+            status = ?, organizer = ?, venue = ?, description = ?, rules = ?, is_public = ?, is_featured = ?
         WHERE tournament_id = ?
     `;
     const [result] = await pool.execute(sql, [
         title,
         academicYear,
         tier,
+        scope,
         levelId,
         startDate,
         endDate,
@@ -310,6 +335,8 @@ export const updateTournament = async (id, data) => {
         venue,
         description,
         rules,
+        isPublic,
+        isFeatured,
         id
     ]);
     return result.affectedRows > 0;
@@ -346,4 +373,115 @@ export const deleteTournament = async (id) => {
 
     const [result] = await pool.execute('DELETE FROM tournaments WHERE tournament_id = ?', [id]);
     return result.affectedRows > 0;
+};
+
+/**
+ * Public Tournament Details View (Read-only, sanitized, no confidential data)
+ */
+export const getPublicTournamentDetails = async (tournamentId) => {
+    const [[tournament]] = await pool.execute(`
+        SELECT 
+            t.tournament_id,
+            t.tournament_id AS id,
+            t.name,
+            t.academic_year,
+            COALESCE(t.scope, 'Intramural') AS scope,
+            COALESCE(t.scope, 'Intramural') AS tournament_scope,
+            t.tier,
+            cl.name AS level_name,
+            t.start_date,
+            t.end_date,
+            t.status,
+            COALESCE(t.organizer, 'Physical Education Department & Sports Directorate') AS organizer,
+            t.venue,
+            t.description,
+            t.rules,
+            COALESCE(t.is_public, 1) AS is_public,
+            COALESCE(t.is_featured, 0) AS is_featured
+        FROM tournaments t
+        LEFT JOIN competition_levels cl ON cl.id = t.competition_level_id
+        WHERE t.tournament_id = ?
+        LIMIT 1
+    `, [tournamentId]);
+
+    if (!tournament) return null;
+
+    // Events under this tournament
+    const [events] = await pool.execute(`
+        SELECT 
+            e.event_id,
+            e.name,
+            e.category,
+            e.gender_category,
+            e.event_status,
+            s.name AS sport_name,
+            s.sport_id,
+            e.venue
+        FROM events e
+        JOIN sports s ON e.sport_id = s.sport_id
+        WHERE e.tournament_id = ?
+        ORDER BY e.name ASC
+    `, [tournamentId]);
+
+    // Participating teams & institutions
+    const [teams] = await pool.execute(`
+        SELECT 
+            tm.team_id,
+            tm.name,
+            tm.team_type,
+            COALESCE(tm.institution_name, 'National Engineering College') AS institution_name,
+            d.name AS department_name,
+            d.code AS department_code,
+            s.name AS sport_name
+        FROM teams tm
+        LEFT JOIN departments d ON tm.department_id = d.id
+        LEFT JOIN sports s ON tm.sport_id = s.sport_id
+        WHERE tm.tournament_id = ? OR tm.event_id IN (SELECT event_id FROM events WHERE tournament_id = ?)
+        ORDER BY tm.name ASC
+    `, [tournamentId, tournamentId]);
+
+    // Matches / Fixtures
+    const [matches] = await pool.execute(`
+        SELECT 
+            m.match_id,
+            m.scheduled_time,
+            m.round,
+            COALESCE(m.pool, 'Pool A') AS pool,
+            m.status,
+            m.score_a,
+            m.score_b,
+            t1.name AS team_a_name,
+            COALESCE(t1.institution_name, 'National Engineering College') AS team_a_institution,
+            d1.code AS dept_a_code,
+            t2.name AS team_b_name,
+            COALESCE(t2.institution_name, 'National Engineering College') AS team_b_institution,
+            d2.code AS dept_b_code,
+            tw.name AS winner_team_name,
+            CASE 
+                WHEN m.status = 'Completed' AND tw.name IS NOT NULL THEN tw.name
+                WHEN m.status = 'Completed' AND m.score_a IS NOT NULL AND m.score_b IS NOT NULL AND m.score_a > m.score_b THEN t1.name
+                WHEN m.status = 'Completed' AND m.score_a IS NOT NULL AND m.score_b IS NOT NULL AND m.score_b > m.score_a THEN t2.name
+                WHEN m.status = 'Completed' AND m.score_a IS NOT NULL AND m.score_b IS NOT NULL AND m.score_a = m.score_b THEN 'Match Drawn'
+                ELSE NULL
+            END AS winner,
+            v.name AS venue_name,
+            s.name AS sport_name
+        FROM matches m
+        LEFT JOIN teams t1 ON m.team_a_id = t1.team_id
+        LEFT JOIN departments d1 ON t1.department_id = d1.id
+        LEFT JOIN teams t2 ON m.team_b_id = t2.team_id
+        LEFT JOIN departments d2 ON t2.department_id = d2.id
+        LEFT JOIN teams tw ON m.winner_team_id = tw.team_id
+        LEFT JOIN venues v ON m.venue_id = v.venue_id
+        LEFT JOIN sports s ON m.sport_id = s.sport_id
+        WHERE m.tournament_id = ?
+        ORDER BY m.scheduled_time ASC
+    `, [tournamentId]);
+
+    return {
+        tournament,
+        events,
+        teams,
+        matches
+    };
 };

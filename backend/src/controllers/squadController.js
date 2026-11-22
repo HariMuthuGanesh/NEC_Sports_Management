@@ -342,12 +342,23 @@ export const confirmCollegeTeamV2 = async (req, res, next) => {
             teamName = `NEC ${sp ? sp.name : 'College'} Varsity`;
         }
 
-        // Always create a new college team entry so both newly added and older teams are preserved!
-        const [insertRes] = await connection.execute(
-            'INSERT INTO college_teams (sport_id, season_year, team_name, created_at) VALUES (?, ?, ?, NOW())',
+        // Reuse existing team for this sport, season, and team name if already created (e.g. re-confirmation), otherwise create new
+        const [[existingTeam]] = await connection.execute(
+            'SELECT id FROM college_teams WHERE sport_id = ? AND season_year = ? AND team_name = ? ORDER BY id DESC LIMIT 1',
             [sportId, seasonYear, teamName]
         );
-        const collegeTeamId = insertRes.insertId;
+
+        let collegeTeamId;
+        if (existingTeam) {
+            collegeTeamId = existingTeam.id;
+            await connection.execute('DELETE FROM college_team_members WHERE college_team_id = ?', [collegeTeamId]);
+        } else {
+            const [insertRes] = await connection.execute(
+                'INSERT INTO college_teams (sport_id, season_year, team_name, created_at) VALUES (?, ?, ?, NOW())',
+                [sportId, seasonYear, teamName]
+            );
+            collegeTeamId = insertRes.insertId;
+        }
 
         for (const p of players) {
             await connection.execute(`INSERT INTO college_team_members (college_team_id, student_id, source_department_id, suggested_by_system, admin_confirmed, confirmed_by) VALUES (?, ?, ?, TRUE, TRUE, ?)`,
