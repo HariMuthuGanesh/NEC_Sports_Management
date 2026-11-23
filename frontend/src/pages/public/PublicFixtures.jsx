@@ -504,7 +504,10 @@ export default function PublicFixtures({ departmentCode, onNavigate }) {
       {loading ? (
         <SkeletonLoader rows={6} />
       ) : viewMode === "bracket" ? (
-        <TournamentBracket matches={tabFilteredMatches} />
+        <TournamentBracket
+          matches={tabFilteredMatches}
+          selectedSportProp={selectedSport !== "ALL" ? selectedSport : null}
+        />
       ) : tabFilteredMatches.length === 0 ? (
         <Card style={{ padding: "48px 24px", textAlign: "center" }}>
           <Calendar size={48} style={{ color: "var(--nec-text-muted)", margin: "0 auto 16px" }} />

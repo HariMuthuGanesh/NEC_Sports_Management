@@ -180,6 +180,8 @@ CREATE TABLE IF NOT EXISTS matches (
   winner_team_id INT NULL,
   next_match_id INT NULL,
   next_match_slot ENUM('A', 'B') NULL,
+  loser_next_match_id INT NULL,
+  loser_next_match_slot ENUM('A', 'B') NULL,
   match_number INT NULL,
   placeholder_a VARCHAR(100) NULL,
   placeholder_b VARCHAR(100) NULL,
@@ -196,6 +198,7 @@ CREATE TABLE IF NOT EXISTS matches (
   FOREIGN KEY (venue_id) REFERENCES venues(venue_id) ON DELETE SET NULL,
   FOREIGN KEY (winner_team_id) REFERENCES teams(team_id) ON DELETE SET NULL,
   FOREIGN KEY (next_match_id) REFERENCES matches(match_id) ON DELETE SET NULL,
+  FOREIGN KEY (loser_next_match_id) REFERENCES matches(match_id) ON DELETE SET NULL,
   FOREIGN KEY (man_of_match_student_id) REFERENCES students(student_id) ON DELETE SET NULL,
   FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL
 );

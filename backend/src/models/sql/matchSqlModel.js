@@ -25,6 +25,8 @@ export const createMatch = async (data) => {
         manual_status_override = 0,
         next_match_id = null,
         next_match_slot = null,
+        loser_next_match_id = null,
+        loser_next_match_slot = null,
         match_number = null,
         placeholder_a = null,
         placeholder_b = null,
@@ -80,12 +82,12 @@ export const createMatch = async (data) => {
         INSERT INTO matches (
             event_id, tournament_id, sport_id, team_a_id, team_b_id, venue_id, 
             scheduled_time, duration_minutes, scheduled_end_time, round, pool, status, manual_status_override,
-            next_match_id, next_match_slot, match_number, placeholder_a, placeholder_b, bracket_round
+            next_match_id, next_match_slot, loser_next_match_id, loser_next_match_slot, match_number, placeholder_a, placeholder_b, bracket_round
         )
         VALUES (
             ?, ?, ?, ?, ?, ?, 
             ?, ?, COALESCE(?, DATE_ADD(?, INTERVAL ? MINUTE)), ?, ?, ?, ?,
-            ?, ?, ?, ?, ?, ?
+            ?, ?, ?, ?, ?, ?, ?, ?
         )
     `;
     const [result] = await pool.execute(sql, [
@@ -106,6 +108,8 @@ export const createMatch = async (data) => {
         manual_status_override ? 1 : 0,
         next_match_id || null,
         next_match_slot || null,
+        loser_next_match_id || null,
+        loser_next_match_slot || null,
         match_number || null,
         placeholder_a || null,
         placeholder_b || null,
@@ -215,6 +219,8 @@ export const getAllMatches = async (filters = {}) => {
             tw.name AS winner_team_name,
             m.next_match_id,
             m.next_match_slot,
+            m.loser_next_match_id,
+            m.loser_next_match_slot,
             m.match_number,
             m.placeholder_a,
             m.placeholder_b,
@@ -308,6 +314,8 @@ export const getMatchesByTournament = async (tournamentId) => {
             tw.name AS winner_team_name,
             m.next_match_id,
             m.next_match_slot,
+            m.loser_next_match_id,
+            m.loser_next_match_slot,
             m.match_number,
             m.placeholder_a,
             m.placeholder_b,

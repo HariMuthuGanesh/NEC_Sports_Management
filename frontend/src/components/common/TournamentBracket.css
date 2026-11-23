@@ -1,26 +1,95 @@
 /* ── Institutional Tournament Bracket Styles ────────────────────────── */
+.nec-bracket-wrapper {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ── Sport Filter Tabs at Top of Bracket ── */
+.nec-bracket-sport-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  background: var(--nec-surface-raised, #f8fafc);
+  border: 1px solid var(--nec-border, #e2e8f0);
+  border-radius: var(--nec-radius-lg, 10px);
+  padding: 10px 16px;
+}
+
+.nec-bracket-sport-tabs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.nec-bracket-sport-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid var(--nec-border, #cbd5e1);
+  background: #ffffff;
+  color: var(--nec-text-main, #334155);
+  transition: all 0.15s ease;
+}
+
+.nec-bracket-sport-btn:hover {
+  background: #f1f5f9;
+  border-color: var(--nec-blue, #0274be);
+}
+
+.nec-bracket-sport-btn.is-active {
+  background: var(--nec-navy, #0b2c5d);
+  border-color: var(--nec-navy, #0b2c5d);
+  color: #ffffff;
+}
+
+.nec-bracket-sport-badge {
+  font-size: 0.72rem;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: #e2e8f0;
+  color: #1e293b;
+  font-weight: 700;
+}
+
+.nec-bracket-sport-btn.is-active .nec-bracket-sport-badge {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+/* ── Bracket Tree View Container ── */
 .nec-bracket-container {
   width: 100%;
   overflow-x: auto;
-  padding: 16px 8px 24px 8px;
+  padding: 20px 16px;
   background: var(--nec-surface, #ffffff);
   border-radius: var(--nec-radius-lg, 10px);
   border: 1px solid var(--nec-border, #e2e8f0);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .nec-bracket-tree {
   display: flex;
   align-items: stretch;
-  gap: 32px;
+  gap: 36px;
   min-width: min-content;
-  padding: 8px 4px;
+  padding: 4px;
 }
 
 .nec-bracket-round-col {
   display: flex;
   flex-direction: column;
-  min-width: 290px;
-  max-width: 320px;
+  min-width: 300px;
+  max-width: 340px;
   flex: 1;
 }
 
@@ -30,18 +99,21 @@
   justify-content: space-between;
   padding: 10px 14px;
   background: var(--nec-surface-raised, #f8fafc);
-  border: 1px solid var(--nec-border, #e2e8f0);
+  border: 1px solid var(--nec-border, #cbd5e1);
   border-radius: 8px;
   margin-bottom: 20px;
 }
 
 .nec-bracket-round-title {
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   font-weight: 700;
   color: var(--nec-navy, #0b2c5d);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .nec-bracket-round-badge {
@@ -58,7 +130,7 @@
   flex-direction: column;
   justify-content: space-around;
   flex: 1;
-  gap: 24px;
+  gap: 20px;
 }
 
 /* ── Individual Match Bracket Card ── */
@@ -66,7 +138,7 @@
   background: #ffffff;
   border: 1px solid var(--nec-border, #cbd5e1);
   border-radius: 8px;
-  padding: 12px;
+  padding: 12px 14px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
   position: relative;
@@ -74,7 +146,7 @@
 
 .nec-bracket-card:hover {
   border-color: var(--nec-blue, #0274be);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .nec-bracket-card.is-live {
@@ -83,7 +155,7 @@
 }
 
 .nec-bracket-card.is-completed {
-  border-color: #94a3b8;
+  border-color: #cbd5e1;
 }
 
 .nec-bracket-meta-row {
@@ -94,14 +166,14 @@
   color: var(--nec-text-muted, #64748b);
   border-bottom: 1px solid var(--nec-border-light, #f1f5f9);
   padding-bottom: 6px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .nec-bracket-match-num {
   font-weight: 700;
   color: var(--nec-navy, #0b2c5d);
   background: #f1f5f9;
-  padding: 1px 6px;
+  padding: 2px 7px;
   border-radius: 4px;
 }
 
@@ -120,16 +192,16 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 8px;
+  padding: 7px 10px;
   border-radius: 6px;
-  margin-bottom: 4px;
+  margin-bottom: 5px;
   border: 1px solid transparent;
   transition: background 0.15s ease;
 }
 
 .nec-bracket-team-row.is-winner {
   background: #f0fdf4;
-  border-color: #bbf7d0;
+  border-color: #86efac;
   font-weight: 700;
 }
 
@@ -146,7 +218,7 @@
 }
 
 .nec-bracket-team-name {
-  font-size: 0.82rem;
+  font-size: 0.84rem;
   color: var(--nec-text-main, #1e293b);
   white-space: nowrap;
   overflow: hidden;
@@ -164,33 +236,72 @@
   background: #e2e8f0;
   color: #1e293b;
   border-radius: 4px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .nec-bracket-bye-pill {
   font-size: 0.68rem;
-  padding: 1px 5px;
+  padding: 1px 6px;
   background: #dbeafe;
   color: #1d4ed8;
   border-radius: 4px;
   font-weight: 700;
 }
 
+.nec-bracket-winner-tag {
+  font-size: 0.68rem;
+  padding: 1px 6px;
+  background: #bbf7d0;
+  color: #15803d;
+  border-radius: 4px;
+  font-weight: 800;
+}
+
+.nec-bracket-gold-pill {
+  font-size: 0.68rem;
+  padding: 1px 6px;
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+  border-radius: 4px;
+  font-weight: 800;
+}
+
+.nec-bracket-silver-pill {
+  font-size: 0.68rem;
+  padding: 1px 6px;
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  font-weight: 800;
+}
+
+.nec-bracket-bronze-pill {
+  font-size: 0.68rem;
+  padding: 1px 6px;
+  background: #ffedd5;
+  color: #9a3412;
+  border: 1px solid #fed7aa;
+  border-radius: 4px;
+  font-weight: 800;
+}
+
 .nec-bracket-score-badge {
-  font-size: 0.82rem;
+  font-size: 0.85rem;
   font-weight: 700;
   padding: 2px 8px;
   background: #f1f5f9;
   border: 1px solid #cbd5e1;
   border-radius: 4px;
   color: #0f172a;
-  min-width: 24px;
+  min-width: 28px;
   text-align: center;
 }
 
 .nec-bracket-team-row.is-winner .nec-bracket-score-badge {
-  background: #22c55e;
-  border-color: #16a34a;
+  background: #16a34a;
+  border-color: #15803d;
   color: #ffffff;
 }
 
@@ -211,21 +322,41 @@
   align-items: center;
   gap: 4px;
   color: #0369a1;
-  font-weight: 600;
+  font-weight: 700;
 }
 
-/* ── Connectors ── */
-.nec-bracket-connector {
-  position: relative;
+.nec-bracket-trophy-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #d97706;
+  font-weight: 700;
+}
+
+/* ── Dark Mode Support ── */
+[data-theme="dark"] .nec-bracket-sport-bar {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+[data-theme="dark"] .nec-bracket-sport-btn {
+  background: #0f172a;
+  border-color: #334155;
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .nec-bracket-sport-btn.is-active {
+  background: #0274be;
+  border-color: #0274be;
 }
 
 [data-theme="dark"] .nec-bracket-container {
-  background: var(--nec-surface, #1e293b);
-  border-color: var(--nec-border, #334155);
+  background: #0f172a;
+  border-color: #334155;
 }
 
 [data-theme="dark"] .nec-bracket-card {
-  background: #0f172a;
+  background: #1e293b;
   border-color: #334155;
 }
 

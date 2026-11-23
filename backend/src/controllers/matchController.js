@@ -191,7 +191,7 @@ export const updateScore = async (req, res, next) => {
 
         // Fetch the current match to get team IDs and bracket linkage
         const [[match]] = await pool.execute(
-            'SELECT match_id, team_a_id, team_b_id, status, next_match_id, next_match_slot FROM matches WHERE match_id = ?',
+            'SELECT match_id, team_a_id, team_b_id, status, next_match_id, next_match_slot, loser_next_match_id, loser_next_match_slot FROM matches WHERE match_id = ?',
             [matchId]
         );
         if (!match) {
@@ -200,19 +200,23 @@ export const updateScore = async (req, res, next) => {
 
         if (req.user.role === 'Score Updater' && match.status !== 'Ongoing') return res.status(409).json({ success: false, error: { message: 'Scores can only be updated for ongoing matches.' } });
 
-        // Server-side winner resolution - frontend never decides this
+        // Server-side winner & loser resolution - frontend never decides this
         let winnerTeamId = null;
+        let loserTeamId = null;
         let winnerLabel = null;
 
         if (isFinal) {
             if (a > b) {
                 winnerTeamId = match.team_a_id;
+                loserTeamId = match.team_b_id;
                 winnerLabel = 'Team A';
             } else if (b > a) {
                 winnerTeamId = match.team_b_id;
+                loserTeamId = match.team_a_id;
                 winnerLabel = 'Team B';
             } else {
                 winnerTeamId = null; // Draw - no winner FK, handled by winnerLabel
+                loserTeamId = null;
                 winnerLabel = 'Draw';
             }
         }
@@ -247,6 +251,19 @@ export const updateScore = async (req, res, next) => {
                     );
                 } catch (advErr) {
                     console.warn('[updateScore] Winner bracket advancement error:', advErr.message);
+                }
+            }
+
+            // Auto-advance loser in stepladder / double elimination bracket if loser_next_match_id is configured
+            if (loserTeamId && match.loser_next_match_id && match.loser_next_match_slot) {
+                try {
+                    const loserSlotCol = match.loser_next_match_slot.toUpperCase() === 'A' ? 'team_a_id' : 'team_b_id';
+                    await pool.execute(
+                        `UPDATE matches SET ${loserSlotCol} = ? WHERE match_id = ?`,
+                        [loserTeamId, match.loser_next_match_id]
+                    );
+                } catch (advErr) {
+                    console.warn('[updateScore] Loser bracket advancement error:', advErr.message);
                 }
             }
 
@@ -365,45 +382,77 @@ export const generateBracketFixtures = async (req, res, next) => {
 
         const createdMatches = [];
 
-        // ── 3 Teams Scenario (Semi-Final + Final with Bye) ──
+        // ── 3 Teams Scenario (Stepladder / Page-Playoff Format) ──
+        // Match 1: Qualifier 1 (Team 1 vs Team 2)
+        //          Winner -> Championship Final (Match 3, Slot A)
+        //          Loser  -> Qualifier 2 / Eliminator (Match 2, Slot A)
+        // Match 2: Qualifier 2 (Eliminator) (Loser Match 1 vs Team 3)
+        //          Winner -> Championship Final (Match 3, Slot B)
+        //          Loser  -> 3rd Place (Bronze)
+        // Match 3: Championship Final (Winner Match 1 vs Winner Match 2)
+        //          Winner -> 1st Place (Champion)
+        //          Loser  -> 2nd Place (Runner-up)
         if (numTeams === 3) {
             const [t1, t2, t3] = teamsToBracket;
 
-            // Match 1: Semi-Final (T1 vs T2)
+            // Match 1: Qualifier 1 (T1 vs T2)
             const m1Time = getMatchDateTime(0);
             const m1Id = await createMatchSql({
                 tournament_id, sport_id, event_id, venue_id,
-                team_a_id: t1.team_id, team_b_id: t2.team_id,
+                team_a_id: t1.team_id, placeholder_a: t1.name,
+                team_b_id: t2.team_id, placeholder_b: t2.name,
                 scheduled_time: m1Time, duration_minutes: dur,
-                round: 'Semi-Final', pool: 'Pool A',
+                round: 'Qualifier 1', pool: 'Playoffs',
                 match_number: 1, bracket_round: 1
             });
 
-            // Match 2: Final (Winner of Match 1 vs Team 3 Bye)
+            // Match 2: Qualifier 2 (Eliminator) (Loser M1 vs T3)
             const m2Time = getMatchDateTime(1);
             const m2Id = await createMatchSql({
                 tournament_id, sport_id, event_id, venue_id,
-                team_a_id: null, placeholder_a: 'Winner of Match #1',
-                team_b_id: t3.team_id, placeholder_b: `${t3.name} (Bye)`,
+                team_a_id: null, placeholder_a: 'Loser of Match #1',
+                team_b_id: t3.team_id, placeholder_b: t3.name,
                 scheduled_time: m2Time, duration_minutes: dur,
-                round: 'Final', pool: 'Championship',
+                round: 'Qualifier 2 (Eliminator)', pool: 'Playoffs',
                 match_number: 2, bracket_round: 2
             });
 
-            // Link Match 1 winner to Match 2 Slot A
+            // Match 3: Championship Final (Winner M1 vs Winner M2)
+            const m3Time = getMatchDateTime(2);
+            const m3Id = await createMatchSql({
+                tournament_id, sport_id, event_id, venue_id,
+                team_a_id: null, placeholder_a: 'Winner of Match #1',
+                team_b_id: null, placeholder_b: 'Winner of Match #2',
+                scheduled_time: m3Time, duration_minutes: dur,
+                round: 'Championship Final', pool: 'Championship',
+                match_number: 3, bracket_round: 3
+            });
+
+            // Link Match 1:
+            // Winner -> Match 3 Slot A
+            // Loser  -> Match 2 Slot A
             await pool.execute(
-                'UPDATE matches SET next_match_id = ?, next_match_slot = ? WHERE match_id = ?',
-                [m2Id, 'A', m1Id]
+                'UPDATE matches SET next_match_id = ?, next_match_slot = ?, loser_next_match_id = ?, loser_next_match_slot = ? WHERE match_id = ?',
+                [m3Id, 'A', m2Id, 'A', m1Id]
             );
 
-            createdMatches.push({ match_id: m1Id, match_number: 1, round: 'Semi-Final', teamA: t1.name, teamB: t2.name, scheduled_time: m1Time });
-            createdMatches.push({ match_id: m2Id, match_number: 2, round: 'Final', teamA: 'Winner of Match #1', teamB: `${t3.name} (Bye)`, scheduled_time: m2Time });
+            // Link Match 2:
+            // Winner -> Match 3 Slot B
+            // Loser  -> Out (Finishes in 3rd Place)
+            await pool.execute(
+                'UPDATE matches SET next_match_id = ?, next_match_slot = ? WHERE match_id = ?',
+                [m3Id, 'B', m2Id]
+            );
+
+            createdMatches.push({ match_id: m1Id, match_number: 1, round: 'Qualifier 1', teamA: t1.name, teamB: t2.name, scheduled_time: m1Time });
+            createdMatches.push({ match_id: m2Id, match_number: 2, round: 'Qualifier 2 (Eliminator)', teamA: 'Loser of Match #1', teamB: t3.name, scheduled_time: m2Time });
+            createdMatches.push({ match_id: m3Id, match_number: 3, round: 'Championship Final', teamA: 'Winner of Match #1', teamB: 'Winner of Match #2', scheduled_time: m3Time });
 
             return res.status(201).json({
                 success: true,
                 data: {
-                    message: 'Successfully generated 3-team knockout bracket (1 Semi-Final + 1 Final with Bye).',
-                    totalMatches: 2,
+                    message: 'Successfully generated 3-team Stepladder bracket (Match 1: Qualifier 1, Match 2: Qualifier 2 / Eliminator, Match 3: Championship Final).',
+                    totalMatches: 3,
                     matches: createdMatches
                 }
             });

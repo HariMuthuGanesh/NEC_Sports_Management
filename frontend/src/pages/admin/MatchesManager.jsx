@@ -6,9 +6,8 @@ import Button from "../../components/common/Button";
 import { Modal } from "../../components/common/Modal";
 import SearchableSelect from "../../components/common/SearchableSelect";
 import ErrorState from "../../components/common/ErrorState";
-import EmptyState from "../../components/common/EmptyState";
 import TournamentBracket from "../../components/common/TournamentBracket";
-import { Calendar, Plus, Trash2, AlertTriangle, Clock, MapPin, Building, Trophy, Filter, Eye, Users, CheckCircle2, AlertCircle, X, Search, Activity, Sparkles } from "lucide-react";
+import { Calendar, Plus, Trash2, AlertTriangle, Clock, MapPin, Trophy, Filter, Eye, CheckCircle2, AlertCircle, X, Search, Activity } from "lucide-react";
 import { useToast } from "../../context/ToastContext";
 import "./AdminPortal.css";
 
@@ -715,6 +714,7 @@ export default function MatchesManager() {
           {matchViewMode === "bracket" ? (
             <TournamentBracket
               matches={filteredMatches}
+              selectedSportProp={filterSport !== "ALL" ? filterSport : null}
               emptyMessage={isAnyFilterActive ? "No tournament bracket matches match the current filter." : "No knockout fixtures scheduled yet."}
             />
           ) : (
@@ -1643,7 +1643,7 @@ export default function MatchesManager() {
             {/* Explanation badge */}
             {bracketEligibleTeams.length === 3 && (
               <div style={{ fontSize: "0.75rem", background: "#eff6ff", color: "#1d4ed8", padding: "6px 10px", borderRadius: "6px", border: "1px solid #bfdbfe" }}>
-                <strong>3 Teams Format:</strong> Match 1 (Team 1 vs Team 2) &rarr; Championship Final (Winner of Match 1 vs Team 3 Bye).
+                <strong>3 Teams Stepladder Format:</strong> Match 1 (T1 vs T2 &rarr; Winner to Final, Loser to M2) &bull; Match 2 Eliminator (Loser M1 vs T3 &rarr; Loser takes 3rd, Winner to Final) &bull; Match 3 Championship Final (1st &amp; 2nd Decider).
               </div>
             )}
             {bracketEligibleTeams.length === 4 && (
