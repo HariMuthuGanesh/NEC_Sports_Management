@@ -189,7 +189,7 @@ export default function PublicLiveScores() {
             </h2>
           </div>
           <p className="nec-page-desc" style={{ margin: 0 }}>
-            Real-time score updates, live match tracking, and verified results across Intramural and Inter-Collegiate athletic meets.
+            Real-time score updates, live match tracking, and verified results across Intra College and Inter College athletic meets.
           </p>
         </div>
 
@@ -218,9 +218,9 @@ export default function PublicLiveScores() {
         {/* Scope Buttons */}
         <div style={{ display: "flex", gap: "6px" }}>
           {[
-            { id: "ALL", label: "All Competitions" },
-            { id: "Intramural", label: "🏛️ Intramural Meets" },
-            { id: "Inter-Collegiate", label: "🌐 Inter-Collegiate" }
+            { id: "ALL", label: "All" },
+            { id: "Intramural", label: "Intra College" },
+            { id: "Inter-Collegiate", label: "Inter College" }
           ].map(tab => (
             <button
               key={tab.id}

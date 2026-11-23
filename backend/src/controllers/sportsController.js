@@ -571,7 +571,9 @@ export const deleteAnnouncementController = async (req, res, next) => {
 /* --- Leaderboard & Stats --- */
 export const getLeaderboard = async (req, res, next) => {
     try {
-        const scope = req.query.scope || 'Intramural';
+        const rawScope = req.query.scope || 'Intramural';
+        const isInter = String(rawScope).toLowerCase().includes('inter');
+        const scope = isInter ? 'Inter-Collegiate' : 'Intramural';
         const academicYear = req.query.academicYear || req.query.academic_year;
 
         if (scope === 'Inter-Collegiate') {
@@ -660,7 +662,8 @@ export const getLeaderboard = async (req, res, next) => {
 /* --- Public Home Summary & Tournament Details --- */
 export const getPublicHomeSummary = async (req, res, next) => {
     try {
-        const scope = req.query.scope || 'ALL'; // 'ALL', 'Intramural', 'Inter-Collegiate'
+        const rawScope = req.query.scope || 'ALL';
+        const scope = rawScope === 'ALL' ? 'ALL' : (String(rawScope).toLowerCase().includes('inter') ? 'Inter-Collegiate' : 'Intramural');
         
         // 1. High-level counts
         const [[{ sportsCount }]] = await pool.execute('SELECT COUNT(*) AS sportsCount FROM sports');

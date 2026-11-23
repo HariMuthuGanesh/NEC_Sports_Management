@@ -155,8 +155,9 @@ export const getAllMatches = async (filters = {}) => {
         params.push(Number(filters.sportId || filters.sport_id));
     }
     if (filters.scope && filters.scope !== 'ALL') {
+        const normScope = String(filters.scope).toLowerCase().includes('inter') ? 'Inter-Collegiate' : 'Intramural';
         whereClauses.push('(tour.scope = ? OR (? = "Intramural" AND tour.scope IS NULL))');
-        params.push(filters.scope, filters.scope);
+        params.push(normScope, normScope);
     }
     if (filters.status && filters.status !== 'ALL') {
         whereClauses.push('m.status = ?');

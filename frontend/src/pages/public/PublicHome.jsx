@@ -125,7 +125,7 @@ export default function PublicHome({ onNavigate }) {
             color: "rgba(255,255,255,0.88)",
             margin: "0 0 24px"
           }}>
-            Experience collegiate sporting excellence. Live scores, comprehensive match fixtures, tournament brackets, and official standings across Intramural championships and Inter-Collegiate invitation meets.
+            Experience collegiate sporting excellence. Live scores, comprehensive match fixtures, tournament brackets, and official standings across Intra College championships and Inter College invitation meets.
           </p>
 
           {/* Scope Filter Switcher inside Hero */}
@@ -140,9 +140,9 @@ export default function PublicHome({ onNavigate }) {
             border: "1px solid rgba(255,255,255,0.15)"
           }}>
             {[
-              { id: "ALL", label: "All Competitions" },
-              { id: "Intramural", label: "🏛️ Intramural Meets" },
-              { id: "Inter-Collegiate", label: "🌐 Inter-Collegiate Tournaments" }
+              { id: "ALL", label: "All" },
+              { id: "Intramural", label: "Intra College" },
+              { id: "Inter-Collegiate", label: "Inter College" }
             ].map(tab => (
               <button
                 key={tab.id}
@@ -256,7 +256,7 @@ export default function PublicHome({ onNavigate }) {
           title="Athletic Meets"
           value={stats.tournamentsCount}
           icon={Calendar}
-          subtext={`${stats.intramuralCount} Intramural • ${stats.interCollegiateCount} Inter-Collegiate`}
+          subtext={`${stats.intramuralCount} Intra College • ${stats.interCollegiateCount} Inter College`}
           color="navy"
           onClick={() => onNavigate("public_tournaments")}
         />
@@ -415,7 +415,7 @@ export default function PublicHome({ onNavigate }) {
                         fontSize: "0.72rem",
                         fontWeight: 700
                       }}>
-                        {isInter ? "🌐 Inter-Collegiate" : "🏛️ Intramural"}
+                        {isInter ? "🌐 Inter College" : "🏛️ Intra College"}
                       </Badge>
                       <Badge variant={t.status === "Ongoing" ? "success" : "default"} style={{ fontSize: "0.72rem" }}>
                         {t.status}

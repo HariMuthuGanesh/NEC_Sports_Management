@@ -28,8 +28,9 @@ export const getAllTournaments = async (options = {}) => {
     }
 
     if (scope && scope !== 'ALL') {
-        whereClauses.push('t.scope = ?');
-        params.push(scope);
+        const normScope = String(scope).toLowerCase().includes('inter') ? 'Inter-Collegiate' : 'Intramural';
+        whereClauses.push('(t.scope = ? OR (? = "Intramural" AND t.scope IS NULL))');
+        params.push(normScope, normScope);
     }
 
     const effectiveLevelId = competitionLevelId || (tier && tier !== 'ALL' && !isNaN(Number(tier)) ? tier : null);

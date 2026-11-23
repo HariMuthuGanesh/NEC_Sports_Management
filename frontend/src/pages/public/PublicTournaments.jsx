@@ -147,7 +147,7 @@ export default function PublicTournaments() {
           Tournaments & Athletic Meets
         </h1>
         <p style={{ margin: 0, color: "rgba(255,255,255,0.85)", maxWidth: "780px", fontSize: "1rem", lineHeight: 1.5 }}>
-          Official institutional catalog of Intramural departmental championships and Inter-Collegiate state/national invitation tournaments hosted by and participated in by NEC athletes.
+          Official institutional catalog of Intra College departmental championships and Inter College state/national invitation tournaments hosted by and participated in by NEC athletes.
         </p>
 
         {/* Scope Selector Tabs */}
@@ -161,9 +161,9 @@ export default function PublicTournaments() {
           gap: "4px"
         }}>
           {[
-            { id: "ALL", label: "All Tournaments" },
-            { id: "Intramural", label: "Intramural (Inter-Departmental)" },
-            { id: "Inter-Collegiate", label: "Inter-Collegiate (State / National)" }
+            { id: "ALL", label: "All" },
+            { id: "Intramural", label: "Intra College" },
+            { id: "Inter-Collegiate", label: "Inter College" }
           ].map(tab => (
             <button
               key={tab.id}
@@ -312,7 +312,7 @@ export default function PublicTournaments() {
           <Trophy size={48} style={{ color: "var(--nec-gold)", margin: "0 auto 16px" }} />
           <h3 style={{ margin: "0 0 8px", color: "var(--nec-text-main)" }}>No Tournaments Found</h3>
           <p style={{ margin: 0, color: "var(--nec-text-muted)", maxWidth: "460px", marginInline: "auto" }}>
-            No tournaments match your current filter selection. Try switching between Intramural and Inter-Collegiate views or clearing the search terms.
+            No tournaments match your current filter selection. Try switching between Intra College and Inter College views or clearing the search terms.
           </p>
           <div style={{ marginTop: "20px" }}>
             <Button variant="secondary" onClick={() => { setScope("ALL"); setSearch(""); setSelectedStatus("ALL"); }}>
@@ -361,7 +361,7 @@ export default function PublicTournaments() {
                           letterSpacing: "0.5px"
                         }}
                       >
-                        {isInter ? "🌐 Inter-Collegiate" : "🏛️ Intramural"}
+                        {isInter ? "🌐 Inter College" : "🏛️ Intra College"}
                       </Badge>
                       {t.tier && (
                         <Badge variant="outline" style={{ fontSize: "0.75rem", fontWeight: 600 }}>

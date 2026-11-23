@@ -9,6 +9,7 @@ import ErrorState from "../../components/common/ErrorState";
 import TournamentBracket from "../../components/common/TournamentBracket";
 import { Calendar, Plus, Trash2, AlertTriangle, Clock, MapPin, Trophy, Filter, Eye, CheckCircle2, AlertCircle, X, Search, Activity } from "lucide-react";
 import { useToast } from "../../context/ToastContext";
+import { formatScope } from "../../utils/scopeLabels";
 import "./AdminPortal.css";
 
 export default function MatchesManager() {
@@ -295,7 +296,7 @@ export default function MatchesManager() {
       )
     },
     { key: "sport", label: "Sport", width: "120px", render: (val) => <strong>{val || "-"}</strong> },
-    { key: "eventCategory", label: "Category", width: "120px", render: (val) => <Badge status={val === "Inter-College" ? "danger" : "info"}>{val || "Intramural"}</Badge> },
+    { key: "eventCategory", label: "Category", width: "120px", render: (val) => <Badge status={formatScope(val) === "Inter College" ? "danger" : "info"}>{formatScope(val)}</Badge> },
     { key: "matchup", label: "Match Teams", render: (_, row) => <span>{row.teamA || "Team A"} ({row.deptA || "-"}) vs {row.teamB || "Team B"} ({row.deptB || "-"})</span> },
     { key: "schedule", label: "Date & Time", width: "190px", render: (_, row) => <span>📅 {formatDateTime(row.date, row.time)}</span> },
     { key: "venue", label: "Venue", width: "190px", render: (val) => <span>📍 {val || "TBD"}</span> },
@@ -370,14 +371,14 @@ export default function MatchesManager() {
   const distinctTournaments = Array.from(new Set(matches.map(m => m.tournamentName || m.tournament_name).filter(Boolean)));
   const distinctEvents = Array.from(new Set(matches.map(m => m.eventName || m.event_name).filter(Boolean)));
   const distinctSports = Array.from(new Set(matches.map(m => m.sport || m.sport_name).filter(Boolean)));
-  const distinctCategories = Array.from(new Set(matches.map(m => m.eventCategory || m.category || (m.is_external ? "Inter-College" : "Intramural")).filter(Boolean)));
+  const distinctCategories = Array.from(new Set(matches.map(m => formatScope(m.eventCategory || m.category || (m.is_external ? "Inter-Collegiate" : "Intramural"))).filter(Boolean)));
   const distinctVenues = Array.from(new Set(venues.map(v => v.name).filter(Boolean)));
 
   const filteredMatches = matches.filter(m => {
     const tour = m.tournamentName || m.tournament_name || "";
     const ev = m.eventName || m.event_name || "";
     const sport = m.sport || m.sport_name || "";
-    const cat = m.eventCategory || m.category || (m.is_external ? "Inter-College" : "Intramural");
+    const cat = formatScope(m.eventCategory || m.category || (m.is_external ? "Inter-Collegiate" : "Intramural"));
     const st = m.status || "Scheduled";
     const v = m.venue || m.venue_name || "";
 
@@ -1516,7 +1517,7 @@ export default function MatchesManager() {
               <option value="">-- Select Tournament --</option>
               {tournaments.map(t => (
                 <option key={t.id || t.tournament_id} value={String(t.id || t.tournament_id)}>
-                  {t.title || t.name} ({t.scope || "Intramural"})
+                  {t.title || t.name} ({formatScope(t.scope)})
                 </option>
               ))}
             </select>

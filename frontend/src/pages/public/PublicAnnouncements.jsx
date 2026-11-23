@@ -108,9 +108,9 @@ export default function PublicAnnouncements() {
           border: "1px solid var(--nec-border)"
         }}>
           {[
-            { id: "ALL", label: "All Bulletins" },
-            { id: "Intramural", label: "🏛️ Intramural" },
-            { id: "Inter-Collegiate", label: "🌐 Inter-Collegiate" }
+            { id: "ALL", label: "All" },
+            { id: "Intramural", label: "Intra College" },
+            { id: "Inter-Collegiate", label: "Inter College" }
           ].map(tab => (
             <button
               key={tab.id}

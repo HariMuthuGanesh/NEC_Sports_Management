@@ -282,7 +282,7 @@ export default function PublicLeaderboard() {
               color: scope === "Intramural" ? "#fff" : "var(--nec-text-muted)"
             }}
           >
-            🏛️ Intramural Department Championship
+            🏛️ Intra College Department Championship
           </button>
           <button
             type="button"
@@ -299,7 +299,7 @@ export default function PublicLeaderboard() {
               color: scope === "Inter-Collegiate" ? "#fff" : "var(--nec-text-muted)"
             }}
           >
-            🌐 Inter-Collegiate Institution Standings
+            🌐 Inter College Institution Standings
           </button>
         </div>
 
@@ -327,8 +327,8 @@ export default function PublicLeaderboard() {
           <h3 style={{ margin: "0 0 8px", color: "var(--nec-text-main)" }}>No Standings Recorded Yet</h3>
           <p style={{ margin: 0, color: "var(--nec-text-muted)", maxWidth: "460px", marginInline: "auto" }}>
             {scope === "Inter-Collegiate"
-              ? "No inter-collegiate match results have been recorded for this academic year yet."
-              : "Intramural departmental standings will appear here once competitions and matches conclude."}
+              ? "No Inter College match results have been recorded for this academic year yet."
+              : "Intra College departmental standings will appear here once competitions and matches conclude."}
           </p>
         </Card>
       ) : (

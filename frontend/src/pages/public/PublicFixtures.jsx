@@ -168,7 +168,7 @@ export default function PublicFixtures({ departmentCode, onNavigate }) {
                 fontSize: "0.68rem",
                 fontWeight: 700
               }}>
-                {isInter ? "Inter-Collegiate" : "Intramural"}
+                {isInter ? "Inter College" : "Intra College"}
               </Badge>
               {row.competition_level && (
                 <span style={{ fontSize: "0.72rem", color: "var(--nec-text-muted)" }}>
@@ -309,9 +309,9 @@ export default function PublicFixtures({ departmentCode, onNavigate }) {
           border: "1px solid var(--nec-border)"
         }}>
           {[
-            { id: "ALL", label: "All Competitions" },
-            { id: "Intramural", label: "🏛️ Intramural" },
-            { id: "Inter-Collegiate", label: "🌐 Inter-Collegiate" }
+            { id: "ALL", label: "All" },
+            { id: "Intramural", label: "Intra College" },
+            { id: "Inter-Collegiate", label: "Inter College" }
           ].map(tab => (
             <button
               key={tab.id}
@@ -517,7 +517,7 @@ export default function PublicFixtures({ departmentCode, onNavigate }) {
           <p style={{ margin: 0, color: "var(--nec-text-muted)", maxWidth: "520px", marginInline: "auto" }}>
             {statusTab === "UPCOMING"
               ? "All currently scheduled fixtures for this tournament or scope have concluded. You can inspect all past results or browse active tournaments."
-              : "No fixtures match your current filter criteria. Try resetting filters or switching between Intramural and Inter-Collegiate views."}
+              : "No fixtures match your current filter criteria. Try resetting filters or switching between Intra College and Inter College views."}
           </p>
           <div style={{ display: "flex", gap: "10px", justifyContent: "center", marginTop: "20px" }}>
             <Button variant="secondary" onClick={() => setStatusTab("ALL")}>

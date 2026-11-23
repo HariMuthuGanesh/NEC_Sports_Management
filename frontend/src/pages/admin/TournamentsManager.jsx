@@ -43,6 +43,7 @@ import {
 } from "lucide-react";
 import "./AdminPortal.css";
 import "./TournamentsManager.css";
+import { formatScope } from "../../utils/scopeLabels";
 
 const getInitialTournamentForm = () => {
   const now = new Date();
@@ -52,6 +53,7 @@ const getInitialTournamentForm = () => {
     academicYear: `${now.getFullYear()}-${now.getFullYear() + 1}`,
     levelId: "",
     tier: "Intramural",
+    scope: "Intramural",
     startDate: now.toISOString().split("T")[0],
     endDate: nextWeek.toISOString().split("T")[0],
     organizer: "Physical Education Department & Sports Directorate",
@@ -218,7 +220,8 @@ export default function TournamentsManager() {
     setTournamentForm({
       ...getInitialTournamentForm(),
       levelId: defaultLevel ? String(defaultLevel.id) : "",
-      tier: defaultLevel ? defaultLevel.name : "Intramural"
+      tier: defaultLevel ? defaultLevel.name : "Intra College",
+      scope: "Intramural"
     });
     setModalError("");
     setIsCreateModalOpen(true);
@@ -231,7 +234,8 @@ export default function TournamentsManager() {
       title: tour.title || tour.name || "",
       academicYear: tour.academicYear || tour.academic_year || "2026-2027",
       levelId: tour.competition_level_id || tour.levelId ? String(tour.competition_level_id || tour.levelId) : "",
-      tier: tour.tier || tour.eventCategory || "Intramural",
+      tier: tour.tier || tour.eventCategory || "Intra College",
+      scope: tour.scope || "Intramural",
       startDate: tour.startDate ? tour.startDate.split("T")[0] : (tour.start_date ? tour.start_date.split("T")[0] : ""),
       endDate: tour.endDate ? tour.endDate.split("T")[0] : (tour.end_date ? tour.end_date.split("T")[0] : ""),
       organizer: tour.organizer || "Physical Education Department & Sports Directorate",
@@ -268,6 +272,7 @@ export default function TournamentsManager() {
         academicYear: tournamentForm.academicYear.trim(),
         competition_level_id: tournamentForm.levelId ? Number(tournamentForm.levelId) : null,
         tier: tournamentForm.tier,
+        scope: tournamentForm.scope || "Intramural",
         start_date: tournamentForm.startDate,
         startDate: tournamentForm.startDate,
         end_date: tournamentForm.endDate || null,
@@ -661,7 +666,7 @@ export default function TournamentsManager() {
                   {selectedTournament.academicYear || selectedTournament.academic_year || "2026-2027"}
                 </span>
                 <Badge status="info">
-                  {selectedTournament.level_name || selectedTournament.tier || "Intramural"}
+                  {selectedTournament.level_name || formatScope(selectedTournament.scope || selectedTournament.tier)}
                 </Badge>
                 <Badge status={
                   selectedTournament.status === "Ongoing" ? "live" : 
@@ -1480,7 +1485,7 @@ export default function TournamentsManager() {
                       </span>
                       <div style={{ display: "flex", gap: "6px" }}>
                         <Badge status="info">
-                          {t.level_name || t.tier || "Intramural"}
+                          {t.level_name || formatScope(t.scope || t.tier)}
                         </Badge>
                         <Badge status={badgeStatus}>
                           {status}
@@ -1631,8 +1636,23 @@ export default function TournamentsManager() {
                   <option key={lvl.id} value={String(lvl.id)}>{lvl.name}</option>
                 ))}
                 {competitionLevels.length === 0 && (
-                  <option value="">Intramural</option>
+                  <option value="">Intra College</option>
                 )}
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: "4px" }}>
+                Competition Scope <span style={{ color: "#dc2626" }}>*</span>
+              </label>
+              <select
+                className="nec-table-search-input"
+                style={{ width: "100%", margin: 0 }}
+                value={tournamentForm.scope || "Intramural"}
+                onChange={(e) => setTournamentForm(prev => ({ ...prev, scope: e.target.value }))}
+              >
+                <option value="Intramural">Intra College (Within NEC)</option>
+                <option value="Inter-Collegiate">Inter College (Between Institutions)</option>
               </select>
             </div>
           </div>
