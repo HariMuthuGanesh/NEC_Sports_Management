@@ -29,6 +29,8 @@ app.use(helmet({
 // 2. Restricted CORS Configuration (Strict Origins with Credentials)
 const allowedOrigins = [
     'http://localhost:5173',
+    'http://localhost:5174',
+    'http://localhost:5175',
     'http://localhost:3000',
     'https://nec.edu.in',
     'https://customable-donald-bigwigged.ngrok-free.dev',
@@ -39,15 +41,14 @@ const allowedOrigins = [
 app.use(cors({
     origin: (origin, callback) => {
         // Allow non-browser/same-origin requests (no Origin header) and any
-        // explicitly allow-listed origin. Reject everything else — this was
-        // previously always returning `true`, which silently disabled the
-        // allow-list and permitted credentialed requests from ANY origin.
+        // explicitly allow-listed origin. In development, also allow any localhost port.
         if (
             !origin ||
             allowedOrigins.includes(origin) ||
             allowedOrigins.includes('*') ||
             origin.endsWith('.vercel.app') ||
-            origin.endsWith('.nec.edu.in')
+            origin.endsWith('.nec.edu.in') ||
+            (process.env.NODE_ENV !== 'production' && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin))
         ) {
             return callback(null, true);
         }
