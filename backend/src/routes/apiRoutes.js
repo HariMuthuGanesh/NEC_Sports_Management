@@ -57,7 +57,7 @@ import {
     getPublicHomeSummary,
     getPublicTournamentDetailsController
 } from '../controllers/sportsController.js';
-import { createMatch, deleteMatch, updateScore } from '../controllers/matchController.js';
+import { createMatch, deleteMatch, updateScore, generateBracketFixtures } from '../controllers/matchController.js';
 import {
     addPlayerToTeam,
     createTeam,
@@ -325,7 +325,8 @@ router.delete('/venues/:id', protect, authorize('Admin', 'Sports President'), de
 router.put('/matches/:id/score', protect, authorize('Admin', 'Score Updater'), validateScoreInput, updateScore);
 router.patch('/matches/:id/score', protect, authorize('Admin', 'Score Updater'), validateScoreInput, updateScore);
 
-// Match CRUD - schedule, cancel, update status
+// Match CRUD - schedule, cancel, update status, generate bracket
+router.post('/matches/generate-bracket', protect, authorize('Admin', 'Sports President'), generateBracketFixtures);
 router.post('/matches', protect, authorize('Admin', 'Sports President', 'Coordinator'), createMatch);
 router.delete('/matches/:id', protect, authorize('Admin', 'Sports President'), deleteMatch);
 router.patch('/matches/:id/status', protect, authorize('Admin', 'Sports President', 'Coordinator'), async (req, res, next) => {

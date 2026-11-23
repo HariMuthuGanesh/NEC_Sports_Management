@@ -371,6 +371,7 @@ export const matchesApi = {
   },
   createMatch: (matchData) => apiFetch("/matches", "POST", matchData),
   scheduleMatch: (matchData) => apiFetch("/matches", "POST", matchData),
+  generateBracket: (data) => apiFetch("/matches/generate-bracket", "POST", data),
   updateMatchStatus: (matchId, status) => apiFetch(`/matches/${matchId}/status`, "PATCH", { status }),
   deleteMatch: (matchId) => apiFetch(`/matches/${matchId}`, "DELETE"),
   updateScore: (matchId, scoreA, scoreB, detailScore = "", isFinal = false) => 

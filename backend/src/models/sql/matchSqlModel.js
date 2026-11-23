@@ -22,7 +22,13 @@ export const createMatch = async (data) => {
         round = 'League',
         pool: matchPool = 'Pool A',
         status = 'Scheduled',
-        manual_status_override = 0
+        manual_status_override = 0,
+        next_match_id = null,
+        next_match_slot = null,
+        match_number = null,
+        placeholder_a = null,
+        placeholder_b = null,
+        bracket_round = null
     } = data;
 
     // Resolve sport_id if only a name was provided
@@ -73,11 +79,13 @@ export const createMatch = async (data) => {
     const sql = `
         INSERT INTO matches (
             event_id, tournament_id, sport_id, team_a_id, team_b_id, venue_id, 
-            scheduled_time, duration_minutes, scheduled_end_time, round, pool, status, manual_status_override
+            scheduled_time, duration_minutes, scheduled_end_time, round, pool, status, manual_status_override,
+            next_match_id, next_match_slot, match_number, placeholder_a, placeholder_b, bracket_round
         )
         VALUES (
             ?, ?, ?, ?, ?, ?, 
-            ?, ?, COALESCE(?, DATE_ADD(?, INTERVAL ? MINUTE)), ?, ?, ?, ?
+            ?, ?, COALESCE(?, DATE_ADD(?, INTERVAL ? MINUTE)), ?, ?, ?, ?,
+            ?, ?, ?, ?, ?, ?
         )
     `;
     const [result] = await pool.execute(sql, [
@@ -95,7 +103,13 @@ export const createMatch = async (data) => {
         round,
         matchPool,
         status,
-        manual_status_override ? 1 : 0
+        manual_status_override ? 1 : 0,
+        next_match_id || null,
+        next_match_slot || null,
+        match_number || null,
+        placeholder_a || null,
+        placeholder_b || null,
+        bracket_round || null
     ]);
     return result.insertId;
 };
@@ -199,28 +213,34 @@ export const getAllMatches = async (filters = {}) => {
             m.scorers,
             m.winner_team_id,
             tw.name AS winner_team_name,
+            m.next_match_id,
+            m.next_match_slot,
+            m.match_number,
+            m.placeholder_a,
+            m.placeholder_b,
+            m.bracket_round,
             CASE 
                 WHEN m.status = 'Completed' AND tw.name IS NOT NULL THEN tw.name
-                WHEN m.status = 'Completed' AND m.score_a IS NOT NULL AND m.score_b IS NOT NULL AND m.score_a > m.score_b THEN t1.name
-                WHEN m.status = 'Completed' AND m.score_a IS NOT NULL AND m.score_b IS NOT NULL AND m.score_b > m.score_a THEN t2.name
+                WHEN m.status = 'Completed' AND m.score_a IS NOT NULL AND m.score_b IS NOT NULL AND m.score_a > m.score_b THEN COALESCE(t1.name, m.placeholder_a, 'Team A')
+                WHEN m.status = 'Completed' AND m.score_a IS NOT NULL AND m.score_b IS NOT NULL AND m.score_b > m.score_a THEN COALESCE(t2.name, m.placeholder_b, 'Team B')
                 WHEN m.status = 'Completed' AND m.score_a IS NOT NULL AND m.score_b IS NOT NULL AND m.score_a = m.score_b THEN 'Match Drawn'
                 ELSE NULL
             END AS winner_name,
             CASE 
                 WHEN m.status = 'Completed' AND tw.name IS NOT NULL THEN tw.name
-                WHEN m.status = 'Completed' AND m.score_a IS NOT NULL AND m.score_b IS NOT NULL AND m.score_a > m.score_b THEN t1.name
-                WHEN m.status = 'Completed' AND m.score_a IS NOT NULL AND m.score_b IS NOT NULL AND m.score_b > m.score_a THEN t2.name
+                WHEN m.status = 'Completed' AND m.score_a IS NOT NULL AND m.score_b IS NOT NULL AND m.score_a > m.score_b THEN COALESCE(t1.name, m.placeholder_a, 'Team A')
+                WHEN m.status = 'Completed' AND m.score_a IS NOT NULL AND m.score_b IS NOT NULL AND m.score_b > m.score_a THEN COALESCE(t2.name, m.placeholder_b, 'Team B')
                 WHEN m.status = 'Completed' AND m.score_a IS NOT NULL AND m.score_b IS NOT NULL AND m.score_a = m.score_b THEN 'Match Drawn'
                 ELSE NULL
             END AS winner,
-            t1.name AS team_a_name,
-            t1.name AS teamA,
+            COALESCE(t1.name, m.placeholder_a, 'TBD') AS team_a_name,
+            COALESCE(t1.name, m.placeholder_a, 'TBD') AS teamA,
             t1.team_type AS team_a_type,
             COALESCE(t1.institution_name, 'National Engineering College') AS team_a_institution,
             d1.code AS dept_a_code,
             d1.code AS deptA,
-            t2.name AS team_b_name,
-            t2.name AS teamB,
+            COALESCE(t2.name, m.placeholder_b, 'TBD') AS team_b_name,
+            COALESCE(t2.name, m.placeholder_b, 'TBD') AS teamB,
             t2.team_type AS team_b_type,
             COALESCE(t2.institution_name, 'National Engineering College') AS team_b_institution,
             d2.code AS dept_b_code,
@@ -286,28 +306,34 @@ export const getMatchesByTournament = async (tournamentId) => {
             m.scorers,
             m.winner_team_id,
             tw.name AS winner_team_name,
+            m.next_match_id,
+            m.next_match_slot,
+            m.match_number,
+            m.placeholder_a,
+            m.placeholder_b,
+            m.bracket_round,
             CASE 
                 WHEN m.status = 'Completed' AND tw.name IS NOT NULL THEN tw.name
-                WHEN m.status = 'Completed' AND m.score_a IS NOT NULL AND m.score_b IS NOT NULL AND m.score_a > m.score_b THEN t1.name
-                WHEN m.status = 'Completed' AND m.score_a IS NOT NULL AND m.score_b IS NOT NULL AND m.score_b > m.score_a THEN t2.name
+                WHEN m.status = 'Completed' AND m.score_a IS NOT NULL AND m.score_b IS NOT NULL AND m.score_a > m.score_b THEN COALESCE(t1.name, m.placeholder_a, 'Team A')
+                WHEN m.status = 'Completed' AND m.score_a IS NOT NULL AND m.score_b IS NOT NULL AND m.score_b > m.score_a THEN COALESCE(t2.name, m.placeholder_b, 'Team B')
                 WHEN m.status = 'Completed' AND m.score_a IS NOT NULL AND m.score_b IS NOT NULL AND m.score_a = m.score_b THEN 'Match Drawn'
                 ELSE NULL
             END AS winner_name,
             CASE 
                 WHEN m.status = 'Completed' AND tw.name IS NOT NULL THEN tw.name
-                WHEN m.status = 'Completed' AND m.score_a IS NOT NULL AND m.score_b IS NOT NULL AND m.score_a > m.score_b THEN t1.name
-                WHEN m.status = 'Completed' AND m.score_a IS NOT NULL AND m.score_b IS NOT NULL AND m.score_b > m.score_a THEN t2.name
+                WHEN m.status = 'Completed' AND m.score_a IS NOT NULL AND m.score_b IS NOT NULL AND m.score_a > m.score_b THEN COALESCE(t1.name, m.placeholder_a, 'Team A')
+                WHEN m.status = 'Completed' AND m.score_a IS NOT NULL AND m.score_b IS NOT NULL AND m.score_b > m.score_a THEN COALESCE(t2.name, m.placeholder_b, 'Team B')
                 WHEN m.status = 'Completed' AND m.score_a IS NOT NULL AND m.score_b IS NOT NULL AND m.score_a = m.score_b THEN 'Match Drawn'
                 ELSE NULL
             END AS winner,
-            t1.name AS team_a_name,
-            t1.name AS teamA,
+            COALESCE(t1.name, m.placeholder_a, 'TBD') AS team_a_name,
+            COALESCE(t1.name, m.placeholder_a, 'TBD') AS teamA,
             t1.team_type AS team_a_type,
             COALESCE(t1.institution_name, 'National Engineering College') AS team_a_institution,
             d1.code AS dept_a_code,
             d1.code AS deptA,
-            t2.name AS team_b_name,
-            t2.name AS teamB,
+            COALESCE(t2.name, m.placeholder_b, 'TBD') AS team_b_name,
+            COALESCE(t2.name, m.placeholder_b, 'TBD') AS teamB,
             t2.team_type AS team_b_type,
             COALESCE(t2.institution_name, 'National Engineering College') AS team_b_institution,
             d2.code AS dept_b_code,

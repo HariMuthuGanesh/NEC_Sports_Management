@@ -7,7 +7,8 @@ import { Modal } from "../../components/common/Modal";
 import SearchableSelect from "../../components/common/SearchableSelect";
 import ErrorState from "../../components/common/ErrorState";
 import EmptyState from "../../components/common/EmptyState";
-import { Calendar, Plus, Trash2, AlertTriangle, Clock, MapPin, Building, Trophy, Filter, Eye, Users, CheckCircle2, AlertCircle, X, Search, Activity } from "lucide-react";
+import TournamentBracket from "../../components/common/TournamentBracket";
+import { Calendar, Plus, Trash2, AlertTriangle, Clock, MapPin, Building, Trophy, Filter, Eye, Users, CheckCircle2, AlertCircle, X, Search, Activity, Sparkles } from "lucide-react";
 import { useToast } from "../../context/ToastContext";
 import "./AdminPortal.css";
 
@@ -29,6 +30,18 @@ export default function MatchesManager() {
   const [filterCategory, setFilterCategory] = useState("ALL");
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [filterVenue, setFilterVenue] = useState("ALL");
+
+  // Bracket View & Generator States
+  const [matchViewMode, setMatchViewMode] = useState("list"); // "list" | "bracket"
+  const [isBracketModalOpen, setIsBracketModalOpen] = useState(false);
+  const [bracketSportId, setBracketSportId] = useState("");
+  const [bracketTournamentId, setBracketTournamentId] = useState("");
+  const [bracketVenueId, setBracketVenueId] = useState("");
+  const [bracketDate, setBracketDate] = useState(new Date().toISOString().split("T")[0]);
+  const [bracketStartTime, setBracketStartTime] = useState("09:00");
+  const [bracketInterval, setBracketInterval] = useState(2);
+  const [bracketLoading, setBracketLoading] = useState(false);
+  const [bracketError, setBracketError] = useState("");
 
   // Events & Modal Form
   const [events, setEvents] = useState([]);
@@ -106,6 +119,9 @@ export default function MatchesManager() {
         if (safeSports.length > 0 && !sportId) setSportId(String(safeSports[0].sport_id || safeSports[0].id));
         if (safeVenues.length > 0) setVenue(String(safeVenues[0].venue_id || safeVenues[0].id));
         if (safeTournaments.length > 0) setTournamentId(String(safeTournaments[0].id || safeTournaments[0].tournament_id));
+        if (safeSports.length > 0 && !bracketSportId) setBracketSportId(String(safeSports[0].sport_id || safeSports[0].id));
+        if (safeTournaments.length > 0 && !bracketTournamentId) setBracketTournamentId(String(safeTournaments[0].id || safeTournaments[0].tournament_id));
+        if (safeVenues.length > 0 && !bracketVenueId) setBracketVenueId(String(safeVenues[0].venue_id || safeVenues[0].id));
       }
       setLoading(false);
     }).catch(err => {
@@ -117,6 +133,53 @@ export default function MatchesManager() {
 
   // Approved teams of the selected sport only; pending/disqualified teams cannot be scheduled.
   const eligibleTeams = teams.filter(t => String(t.sportId ?? t.sport_id) === String(sportId) && t.status === "Approved");
+
+  // Eligible teams for the auto-bracket generator
+  const bracketEligibleTeams = teams.filter(t => 
+    String(t.sportId ?? t.sport_id) === String(bracketSportId) && 
+    t.status === "Approved" &&
+    (!bracketTournamentId || !t.tournament_id || String(t.tournament_id) === String(bracketTournamentId))
+  );
+
+  const handleGenerateBracket = async (e) => {
+    e.preventDefault();
+    setBracketError("");
+    if (!bracketTournamentId || !bracketSportId || !bracketVenueId) {
+      setBracketError("Please select a Tournament, Sport, and Venue.");
+      return;
+    }
+    if (bracketEligibleTeams.length < 2) {
+      setBracketError(`At least 2 approved teams required. Found ${bracketEligibleTeams.length} approved team(s).`);
+      return;
+    }
+
+    setBracketLoading(true);
+    try {
+      const res = await matchesApi.generateBracket({
+        tournament_id: Number(bracketTournamentId),
+        sport_id: Number(bracketSportId),
+        venue_id: Number(bracketVenueId),
+        date: bracketDate,
+        start_time: bracketStartTime,
+        interval_hours: Number(bracketInterval) || 2,
+        team_ids: bracketEligibleTeams.map(t => Number(t.team_id || t.id))
+      });
+
+      if (toast?.success) {
+        toast.success(res?.data?.message || "Tournament bracket generated successfully!");
+      } else if (typeof toast === "function") {
+        toast({ type: "success", message: res?.data?.message || "Tournament bracket generated!" });
+      }
+
+      setIsBracketModalOpen(false);
+      setMatchViewMode("bracket");
+      loadData();
+    } catch (err) {
+      setBracketError(err.message || "Failed to generate knockout bracket.");
+    } finally {
+      setBracketLoading(false);
+    }
+  };
 
   // Keep team choices valid when the sport changes.
   // Runs when the sport changes or the modal opens, not on background refreshes,
@@ -417,9 +480,14 @@ export default function MatchesManager() {
         <div>
           <h2 className="nec-page-title">Match Scheduler &amp; Venue Management</h2>
         </div>
-        <Button variant="primary" icon={Plus} onClick={() => setIsModalOpen(true)}>
-          Schedule New Match
-        </Button>
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+          <Button variant="secondary" icon={Trophy} onClick={() => setIsBracketModalOpen(true)}>
+            Auto-Generate Knockout Bracket
+          </Button>
+          <Button variant="primary" icon={Plus} onClick={() => setIsModalOpen(true)}>
+            Schedule New Match
+          </Button>
+        </div>
       </div>
 
       {/* ── Main View Tabs ── */}
@@ -601,13 +669,63 @@ export default function MatchesManager() {
             </div>
           </div>
 
-          <Table
-            columns={columns}
-            data={filteredMatches}
-            loading={loading}
-            searchPlaceholder="Search by team, venue, sport..."
-            emptyMessage={isAnyFilterActive ? "No matches match the selected filter criteria." : "No matches scheduled yet."}
-          />
+          {/* View Mode Toggle: Table List vs Knockout Bracket */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px", flexWrap: "wrap", gap: "10px" }}>
+            <div style={{ display: "inline-flex", background: "var(--nec-surface-raised, #f8fafc)", padding: "3px", borderRadius: "8px", border: "1px solid var(--nec-border, #e2e8f0)", gap: "4px" }}>
+              <button
+                type="button"
+                onClick={() => setMatchViewMode("list")}
+                style={{
+                  padding: "5px 14px",
+                  border: "none",
+                  borderRadius: "6px",
+                  fontWeight: 700,
+                  fontSize: "0.82rem",
+                  cursor: "pointer",
+                  background: matchViewMode === "list" ? "var(--nec-blue, #0274be)" : "transparent",
+                  color: matchViewMode === "list" ? "#fff" : "var(--nec-text-muted, #64748b)"
+                }}
+              >
+                📋 Table List ({filteredMatches.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setMatchViewMode("bracket")}
+                style={{
+                  padding: "5px 14px",
+                  border: "none",
+                  borderRadius: "6px",
+                  fontWeight: 700,
+                  fontSize: "0.82rem",
+                  cursor: "pointer",
+                  background: matchViewMode === "bracket" ? "var(--nec-blue, #0274be)" : "transparent",
+                  color: matchViewMode === "bracket" ? "#fff" : "var(--nec-text-muted, #64748b)"
+                }}
+              >
+                🏆 Knockout Bracket View
+              </button>
+            </div>
+            {matchViewMode === "bracket" && (
+              <span style={{ fontSize: "0.78rem", color: "var(--nec-text-muted, #64748b)" }}>
+                Showing knockout elimination tree &amp; winner auto-advancement
+              </span>
+            )}
+          </div>
+
+          {matchViewMode === "bracket" ? (
+            <TournamentBracket
+              matches={filteredMatches}
+              emptyMessage={isAnyFilterActive ? "No tournament bracket matches match the current filter." : "No knockout fixtures scheduled yet."}
+            />
+          ) : (
+            <Table
+              columns={columns}
+              data={filteredMatches}
+              loading={loading}
+              searchPlaceholder="Search by team, venue, sport..."
+              emptyMessage={isAnyFilterActive ? "No matches match the selected filter criteria." : "No matches scheduled yet."}
+            />
+          )}
         </>
       ) : (
         /* ── Venues & Availability Tab ── */
@@ -1369,6 +1487,196 @@ export default function MatchesManager() {
           <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "12px" }}>
             <Button variant="outline" onClick={() => { setIsModalOpen(false); setScheduleError(""); }}>Cancel</Button>
             <Button type="submit" variant="primary">Confirm Schedule</Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* ── AUTO-GENERATE KNOCKOUT BRACKET MODAL ────────────────── */}
+      <Modal
+        isOpen={isBracketModalOpen}
+        onClose={() => { setIsBracketModalOpen(false); setBracketError(""); }}
+        title="Auto-Generate Knockout Tournament Fixtures"
+        size="md"
+      >
+        <form onSubmit={handleGenerateBracket} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+          <p style={{ margin: 0, fontSize: "0.84rem", color: "var(--nec-text-muted, #64748b)" }}>
+            Automatically constructs a single-elimination tournament bracket with linked rounds, progression slots, and automatic byes.
+          </p>
+
+          {/* Tournament */}
+          <div>
+            <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: "4px" }}>Tournament *</label>
+            <select
+              value={bracketTournamentId}
+              onChange={(e) => setBracketTournamentId(e.target.value)}
+              className="nec-form-input"
+              style={{ width: "100%", padding: "8px 10px", borderRadius: "6px" }}
+              required
+            >
+              <option value="">-- Select Tournament --</option>
+              {tournaments.map(t => (
+                <option key={t.id || t.tournament_id} value={String(t.id || t.tournament_id)}>
+                  {t.title || t.name} ({t.scope || "Intramural"})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Sport */}
+          <div>
+            <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: "4px" }}>Sport *</label>
+            <select
+              value={bracketSportId}
+              onChange={(e) => setBracketSportId(e.target.value)}
+              className="nec-form-input"
+              style={{ width: "100%", padding: "8px 10px", borderRadius: "6px" }}
+              required
+            >
+              <option value="">-- Select Sport --</option>
+              {sports.map(s => (
+                <option key={s.sport_id || s.id} value={String(s.sport_id || s.id)}>
+                  {s.name} ({s.sport_type || "Team"})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Venue */}
+          <div>
+            <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: "4px" }}>Venue / Ground *</label>
+            <select
+              value={bracketVenueId}
+              onChange={(e) => setBracketVenueId(e.target.value)}
+              className="nec-form-input"
+              style={{ width: "100%", padding: "8px 10px", borderRadius: "6px" }}
+              required
+            >
+              <option value="">-- Select Venue --</option>
+              {venues.map(v => (
+                <option key={v.venue_id || v.id} value={String(v.venue_id || v.id)}>
+                  {v.name} ({v.location || v.college_name || "Campus"})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Date, Time & Interval */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px" }}>
+            <div>
+              <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 600, marginBottom: "4px" }}>Start Date *</label>
+              <input
+                type="date"
+                value={bracketDate}
+                onChange={(e) => setBracketDate(e.target.value)}
+                className="nec-form-input"
+                style={{ width: "100%", padding: "7px 10px", borderRadius: "6px" }}
+                required
+              />
+            </div>
+            <div>
+              <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 600, marginBottom: "4px" }}>First Match Time</label>
+              <input
+                type="time"
+                value={bracketStartTime}
+                onChange={(e) => setBracketStartTime(e.target.value)}
+                className="nec-form-input"
+                style={{ width: "100%", padding: "7px 10px", borderRadius: "6px" }}
+                required
+              />
+            </div>
+            <div>
+              <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 600, marginBottom: "4px" }}>Interval Between Games</label>
+              <select
+                value={bracketInterval}
+                onChange={(e) => setBracketInterval(Number(e.target.value))}
+                className="nec-form-input"
+                style={{ width: "100%", padding: "7px 10px", borderRadius: "6px" }}
+              >
+                <option value={1}>1 hour</option>
+                <option value={2}>2 hours</option>
+                <option value={3}>3 hours</option>
+                <option value={4}>4 hours</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Live Bracket Preview Box */}
+          <div style={{
+            background: "var(--nec-surface-raised, #f8fafc)",
+            border: "1px solid var(--nec-border, #e2e8f0)",
+            borderRadius: "8px",
+            padding: "12px"
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+              <span style={{ fontSize: "0.82rem", fontWeight: 700, color: "var(--nec-navy, #0b2c5d)" }}>
+                Approved Registered Teams ({bracketEligibleTeams.length})
+              </span>
+              <span style={{ fontSize: "0.75rem", color: bracketEligibleTeams.length >= 2 ? "#16a34a" : "#dc2626", fontWeight: 600 }}>
+                {bracketEligibleTeams.length >= 2 ? "✓ Ready to Bracket" : "⚠ Need at least 2 approved teams"}
+              </span>
+            </div>
+
+            {bracketEligibleTeams.length > 0 ? (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "10px" }}>
+                {bracketEligibleTeams.map(t => (
+                  <span
+                    key={t.team_id || t.id}
+                    style={{
+                      fontSize: "0.75rem",
+                      padding: "3px 8px",
+                      borderRadius: "6px",
+                      background: "#e2e8f0",
+                      color: "#1e293b",
+                      fontWeight: 600
+                    }}
+                  >
+                    {t.name} {t.dept || t.department ? `(${t.dept || t.department})` : ""}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p style={{ margin: "4px 0 8px 0", fontSize: "0.78rem", color: "#64748b" }}>
+                No approved teams found for this sport. Ensure teams are approved in Team Approvals.
+              </p>
+            )}
+
+            {/* Explanation badge */}
+            {bracketEligibleTeams.length === 3 && (
+              <div style={{ fontSize: "0.75rem", background: "#eff6ff", color: "#1d4ed8", padding: "6px 10px", borderRadius: "6px", border: "1px solid #bfdbfe" }}>
+                <strong>3 Teams Format:</strong> Match 1 (Team 1 vs Team 2) &rarr; Championship Final (Winner of Match 1 vs Team 3 Bye).
+              </div>
+            )}
+            {bracketEligibleTeams.length === 4 && (
+              <div style={{ fontSize: "0.75rem", background: "#eff6ff", color: "#1d4ed8", padding: "6px 10px", borderRadius: "6px", border: "1px solid #bfdbfe" }}>
+                <strong>4 Teams Format:</strong> Semi-Final 1 (Match 1) &amp; Semi-Final 2 (Match 2) &rarr; Championship Final (Winner M1 vs Winner M2).
+              </div>
+            )}
+            {bracketEligibleTeams.length > 4 && (
+              <div style={{ fontSize: "0.75rem", background: "#eff6ff", color: "#1d4ed8", padding: "6px 10px", borderRadius: "6px", border: "1px solid #bfdbfe" }}>
+                <strong>{bracketEligibleTeams.length} Teams Format:</strong> Single-elimination knockout bracket with automatic byes and progression.
+              </div>
+            )}
+          </div>
+
+          {/* Error Banner */}
+          {bracketError && (
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", background: "#fef2f2", border: "1px solid #f87171", color: "#b91c1c", padding: "8px 12px", borderRadius: "6px", fontSize: "0.8rem" }}>
+              <AlertTriangle size={15} style={{ flexShrink: 0 }} />
+              <span>{bracketError}</span>
+            </div>
+          )}
+
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "6px" }}>
+            <Button variant="outline" onClick={() => { setIsBracketModalOpen(false); setBracketError(""); }}>
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              disabled={bracketLoading || bracketEligibleTeams.length < 2}
+            >
+              {bracketLoading ? "Generating Bracket..." : "Generate & Publish Fixtures"}
+            </Button>
           </div>
         </form>
       </Modal>

@@ -6,6 +6,7 @@ import Button from "../../components/common/Button";
 import { Card } from "../../components/common/Card";
 import PublicInfoCard from "../../components/common/PublicInfoCard";
 import SkeletonLoader from "../../components/common/SkeletonLoader";
+import TournamentBracket from "../../components/common/TournamentBracket";
 import {
   Calendar, Clock, MapPin, ArrowUpDown, Filter, Trophy,
   Radio, CheckCircle, Search, X, ChevronRight, Award
@@ -38,6 +39,7 @@ function formatDateTime(val) {
 export default function PublicFixtures({ departmentCode, onNavigate }) {
   const [scope, setScope] = useState("ALL"); // 'ALL', 'Intramural', 'Inter-Collegiate'
   const [statusTab, setStatusTab] = useState("UPCOMING"); // 'UPCOMING', 'TODAY', 'LIVE', 'ALL'
+  const [viewMode, setViewMode] = useState("table"); // 'table' | 'bracket'
   const [selectedTournament, setSelectedTournament] = useState("ALL");
   const [selectedSport, setSelectedSport] = useState("ALL");
   const [sortOption, setSortOption] = useState("date_asc");
@@ -333,39 +335,79 @@ export default function PublicFixtures({ departmentCode, onNavigate }) {
         </div>
       </div>
 
-      {/* Schedule Tabs */}
+      {/* Schedule Tabs & View Mode Switcher */}
       <div style={{
         display: "flex",
         flexWrap: "wrap",
-        gap: "8px",
+        gap: "12px",
+        alignItems: "center",
+        justifyContent: "space-between",
         borderBottom: "2px solid var(--nec-border)",
         paddingBottom: "12px"
       }}>
-        {[
-          { id: "UPCOMING", label: `Upcoming Scheduled (${scheduledCount})` },
-          { id: "TODAY", label: `Today's Matches (${todayCount})` },
-          { id: "LIVE", label: `Live In Progress (${liveCount})` },
-          { id: "ALL", label: `Complete Fixture History (${allMatches.length})` }
-        ].map(tab => (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+          {[
+            { id: "UPCOMING", label: `Upcoming Scheduled (${scheduledCount})` },
+            { id: "TODAY", label: `Today's Matches (${todayCount})` },
+            { id: "LIVE", label: `Live In Progress (${liveCount})` },
+            { id: "ALL", label: `Complete Fixture History (${allMatches.length})` }
+          ].map(tab => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setStatusTab(tab.id)}
+              style={{
+                padding: "8px 16px",
+                borderRadius: "8px",
+                border: "none",
+                fontWeight: 700,
+                fontSize: "0.85rem",
+                cursor: "pointer",
+                background: statusTab === tab.id ? "var(--nec-surface-raised)" : "transparent",
+                color: statusTab === tab.id ? "var(--nec-blue-accent)" : "var(--nec-text-muted)",
+                boxShadow: statusTab === tab.id ? "inset 0 -2px 0 var(--nec-blue-accent)" : "none"
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* View Mode Switcher: Table vs Bracket */}
+        <div style={{ display: "inline-flex", background: "var(--nec-surface-raised)", padding: "3px", borderRadius: "8px", border: "1px solid var(--nec-border)", gap: "4px" }}>
           <button
-            key={tab.id}
             type="button"
-            onClick={() => setStatusTab(tab.id)}
+            onClick={() => setViewMode("table")}
             style={{
-              padding: "8px 16px",
-              borderRadius: "8px",
+              padding: "5px 12px",
               border: "none",
+              borderRadius: "6px",
               fontWeight: 700,
-              fontSize: "0.85rem",
+              fontSize: "0.8rem",
               cursor: "pointer",
-              background: statusTab === tab.id ? "var(--nec-surface-raised)" : "transparent",
-              color: statusTab === tab.id ? "var(--nec-blue-accent)" : "var(--nec-text-muted)",
-              boxShadow: statusTab === tab.id ? "inset 0 -2px 0 var(--nec-blue-accent)" : "none"
+              background: viewMode === "table" ? "var(--nec-blue-accent, #0274be)" : "transparent",
+              color: viewMode === "table" ? "#fff" : "var(--nec-text-muted)"
             }}
           >
-            {tab.label}
+            📋 Table View
           </button>
-        ))}
+          <button
+            type="button"
+            onClick={() => setViewMode("bracket")}
+            style={{
+              padding: "5px 12px",
+              border: "none",
+              borderRadius: "6px",
+              fontWeight: 700,
+              fontSize: "0.8rem",
+              cursor: "pointer",
+              background: viewMode === "bracket" ? "var(--nec-blue-accent, #0274be)" : "transparent",
+              color: viewMode === "bracket" ? "#fff" : "var(--nec-text-muted)"
+            }}
+          >
+            🏆 Bracket View
+          </button>
+        </div>
       </div>
 
       {/* Filter Toolbar */}
@@ -458,9 +500,11 @@ export default function PublicFixtures({ departmentCode, onNavigate }) {
         </div>
       </div>
 
-      {/* Table / Empty State */}
+      {/* Table / Bracket / Empty State */}
       {loading ? (
         <SkeletonLoader rows={6} />
+      ) : viewMode === "bracket" ? (
+        <TournamentBracket matches={tabFilteredMatches} />
       ) : tabFilteredMatches.length === 0 ? (
         <Card style={{ padding: "48px 24px", textAlign: "center" }}>
           <Calendar size={48} style={{ color: "var(--nec-text-muted)", margin: "0 auto 16px" }} />
