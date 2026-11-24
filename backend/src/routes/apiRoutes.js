@@ -38,6 +38,11 @@ import {
     updateEventController,
     deleteEventController,
     toggleEventStatusController,
+    getEventResultsController,
+    recordEventResultController,
+    recordAttemptsController,
+    finalizeEventResultsController,
+    deleteEventResultController,
     searchStudentsController,
     getMyStudentProfileController,
     createStudentController,
@@ -410,6 +415,11 @@ router.patch('/appointments/:id/revoke', protect, authorize('Admin'), revokeAppo
 // Events / Tournament Registration Control
 router.get('/events/:id', getEventByIdController);
 router.get('/events/:id/competitions', listCompetitions);
+router.get('/events/:id/results', getEventResultsController);
+router.post('/events/:id/results', protect, authorize('Admin', 'Sports President', 'Coordinator', 'Score Updater'), recordEventResultController);
+router.post('/events/:id/results/attempts', protect, authorize('Admin', 'Sports President', 'Coordinator', 'Score Updater'), recordAttemptsController);
+router.post('/events/:id/results/finalize', protect, authorize('Admin', 'Sports President'), finalizeEventResultsController);
+router.delete('/events/:id/results/:resultId', protect, authorize('Admin', 'Sports President'), deleteEventResultController);
 router.get('/events/:id/teams', protect, authorize('Admin', 'Sports President', 'Coordinator'), getEventTeamsController);
 router.get('/events/:id/entries', protect, authorize('Admin', 'Sports President', 'Coordinator'), getEventEntriesController);
 router.post('/events/:id/entries', protect, authorize('Admin', 'Sports President', 'Coordinator'), addEventEntryController);

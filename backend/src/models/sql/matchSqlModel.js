@@ -386,3 +386,119 @@ export const updateMatchScore = async ({ matchId, scoreA, scoreB, detailScore, s
     return result.affectedRows > 0;
 };
 
+/**
+ * Unified schedule query combining:
+ * 1. Head-to-head Matches (Team vs Team or Player vs Player)
+ * 2. Competition Rounds & Heats (Track races, Athletics heats, Field sessions)
+ */
+export const getUnifiedSchedule = async (filters = {}) => {
+    // 1. Fetch matches
+    const matches = await getAllMatches(filters);
+    const mappedMatches = matches.map(m => ({
+        ...m,
+        id: m.match_id || m.id,
+        unified_id: `m_${m.match_id || m.id}`,
+        schedule_type: 'Match',
+        title: `${m.team_a_name || m.teamA || 'Team A'} vs ${m.team_b_name || m.teamB || 'Team B'}`,
+        matchup: `${m.team_a_name || m.teamA || 'Team A'} (${m.dept_a_code || m.deptA || '-'}) vs ${m.team_b_name || m.teamB || 'Team B'} (${m.dept_b_code || m.deptB || '-'})`,
+        participants_display: `${m.team_a_name || m.teamA || 'Team A'} vs ${m.team_b_name || m.teamB || 'Team B'}`,
+        venue: m.venue_name || m.venue || 'TBD',
+        venue_name: m.venue_name || m.venue || 'TBD',
+        scheduled_time: m.scheduled_time || m.date,
+        time: m.time,
+        date: m.date,
+        score_display: (m.score_a !== null && m.score_b !== null) ? `${m.score_a} - ${m.score_b}` : (m.status === 'Completed' ? 'Finished' : 'Upcoming')
+    }));
+
+    // 2. Fetch sport_competitions (Track Heats, Field Sessions, Single Finals)
+    let compWhere = [];
+    let compParams = [];
+
+    if (filters.eventId || filters.event_id) {
+        compWhere.push('c.event_id = ?');
+        compParams.push(Number(filters.eventId || filters.event_id));
+    }
+    if (filters.tournamentId || filters.tournament_id) {
+        compWhere.push('e.tournament_id = ?');
+        compParams.push(Number(filters.tournamentId || filters.tournament_id));
+    }
+    if (filters.sportId || filters.sport_id) {
+        compWhere.push('e.sport_id = ?');
+        compParams.push(Number(filters.sportId || filters.sport_id));
+    }
+    if (filters.scope && filters.scope !== 'ALL') {
+        const normScope = String(filters.scope).toLowerCase().includes('inter') ? 'Inter-Collegiate' : 'Intramural';
+        compWhere.push('(tour.scope = ? OR (? = "Intramural" AND tour.scope IS NULL))');
+        compParams.push(normScope, normScope);
+    }
+    if (filters.status && filters.status !== 'ALL') {
+        compWhere.push('c.status = ?');
+        compParams.push(filters.status);
+    }
+    if (filters.date) {
+        compWhere.push('DATE(c.scheduled_time) = ?');
+        compParams.push(filters.date);
+    }
+
+    const compWhereSql = compWhere.length ? `WHERE ${compWhere.join(' AND ')}` : '';
+    const [compRows] = await pool.execute(`
+        SELECT 
+            c.competition_id,
+            c.competition_id AS id,
+            CONCAT('c_', c.competition_id) AS unified_id,
+            'Competition' AS schedule_type,
+            c.name AS title,
+            c.event_id,
+            c.event_id AS eventId,
+            e.name AS event_name,
+            e.name AS eventName,
+            e.tournament_id,
+            e.tournament_id AS tournamentId,
+            tour.name AS tournament_name,
+            tour.name AS tournamentName,
+            tour.academic_year,
+            COALESCE(tour.scope, 'Intramural') AS tournament_scope,
+            COALESCE(tour.scope, 'Intramural') AS scope,
+            e.sport_id,
+            e.sport_id AS sportId,
+            s.name AS sport_name,
+            s.name AS sport,
+            c.round,
+            c.scoring,
+            c.unit,
+            c.status,
+            c.scheduled_time,
+            c.venue,
+            COALESCE(c.venue, e.venue, 'TBD') AS venue_name,
+            COALESCE(e.competition_format, 'Timed Race / Heats') AS competition_format,
+            (SELECT COUNT(*) FROM competition_entries ce WHERE ce.competition_id = c.competition_id) AS total_entries,
+            (SELECT COUNT(*) FROM competition_entries ce WHERE ce.competition_id = c.competition_id AND ce.result_status = 'Finished') AS finished_entries
+        FROM sport_competitions c
+        JOIN events e ON e.event_id = c.event_id
+        JOIN sports s ON s.sport_id = e.sport_id
+        JOIN tournaments tour ON tour.tournament_id = e.tournament_id
+        ${compWhereSql}
+        ORDER BY c.scheduled_time ASC, c.competition_id ASC
+    `, compParams);
+
+    const mappedComps = compRows.map(c => ({
+        ...c,
+        team_a_name: c.name,
+        team_b_name: `${c.round} (${c.total_entries} entries)`,
+        matchup: `${c.name} · ${c.round} (${c.total_entries || 0} Entries)`,
+        participants_display: `${c.total_entries || 0} Entries (${c.scoring})`,
+        score_display: c.status === 'Completed' ? `${c.finished_entries}/${c.total_entries} Finished` : `${c.scoring} (${c.unit})`,
+        date: c.scheduled_time ? String(c.scheduled_time).slice(0, 10) : 'TBD',
+        time: c.scheduled_time ? String(c.scheduled_time).slice(11, 16) : 'TBD'
+    }));
+
+    // Combine and sort chronologically
+    const combined = [...mappedMatches, ...mappedComps].sort((a, b) => {
+        const timeA = new Date(a.scheduled_time || a.date).getTime() || 0;
+        const timeB = new Date(b.scheduled_time || b.date).getTime() || 0;
+        return timeA - timeB;
+    });
+
+    return combined;
+};
+

@@ -303,7 +303,36 @@ export const eventsApi = {
   getEventTeams: (eventId) => apiFetch(`/events/${eventId}/teams`),
   getEventEntries: (eventId) => apiFetch(`/events/${eventId}/entries`),
   addEventEntry: (eventId, body) => apiFetch(`/events/${eventId}/entries`, "POST", body),
-  removeEventEntry: (entryId) => apiFetch(`/event-entries/${entryId}`, "DELETE")
+  removeEventEntry: (entryId) => apiFetch(`/event-entries/${entryId}`, "DELETE"),
+  getEventResults: (eventId) => apiFetch(`/events/${eventId}/results`),
+  recordEventResult: (eventId, data) => apiFetch(`/events/${eventId}/results`, "POST", data),
+  recordEventAttempts: (eventId, data) => apiFetch(`/events/${eventId}/results/attempts`, "POST", data),
+  finalizeEventResults: (eventId) => apiFetch(`/events/${eventId}/results/finalize`, "POST"),
+  deleteEventResult: (eventId, resultId) => apiFetch(`/events/${eventId}/results/${resultId}`, "DELETE")
+};
+
+/* --- Event Results API --- */
+export const eventResultsApi = {
+  getResults: (eventId) => apiFetch(`/events/${eventId}/results`),
+  recordResult: (eventId, data) => apiFetch(`/events/${eventId}/results`, "POST", data),
+  recordAttempts: (eventId, data) => apiFetch(`/events/${eventId}/results/attempts`, "POST", data),
+  finalizeResults: (eventId) => apiFetch(`/events/${eventId}/results/finalize`, "POST"),
+  deleteResult: (eventId, resultId) => apiFetch(`/events/${eventId}/results/${resultId}`, "DELETE")
+};
+
+/* --- Competitions API --- */
+export const competitionsApi = {
+  getCompetitions: (params = {}) => {
+    const qs = typeof params === 'object' && params !== null ? 
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== "" && v !== "ALL").map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('&') : '';
+    return apiFetch(`/competitions${qs ? `?${qs}` : ''}`);
+  },
+  getCompetitionDetails: (id) => apiFetch(`/competitions/${id}`),
+  createCompetition: (data) => apiFetch("/competitions", "POST", data),
+  updateCompetition: (id, data) => apiFetch(`/competitions/${id}`, "PATCH", data),
+  deleteCompetition: (id) => apiFetch(`/competitions/${id}`, "DELETE"),
+  registerEntry: (id, data) => apiFetch(`/competitions/${id}/entries`, "POST", data),
+  removeEntry: (id, entryId) => apiFetch(`/competitions/${id}/entries/${entryId}`, "DELETE")
 };
 
 /* --- Teams & Roster API --- */

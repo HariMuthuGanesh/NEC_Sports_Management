@@ -229,6 +229,7 @@ export default function TournamentBracket({
                         {/* Meta info */}
                         <div className="nec-bracket-meta-row">
                           <span className="nec-bracket-match-num">
+                            {(m.event_name || m.eventName) ? `${m.event_name || m.eventName} • ` : ''}
                             {m.match_number ? `Match #${m.match_number}` : (m.round || 'Fixture')}
                           </span>
                           <span className="nec-bracket-venue-info" title={m.venue || m.venue_name || 'TBD'}>

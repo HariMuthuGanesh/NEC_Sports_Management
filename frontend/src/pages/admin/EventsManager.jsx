@@ -57,6 +57,50 @@ const formatDateTime = (val) => {
   }
 };
 
+const deriveFormatSuggestion = (sportName = "", title = "", participationType = "Team") => {
+  const text = `${sportName} ${title}`.toLowerCase();
+  if (/100m|200m|400m|800m|1500m|relay|sprint|race|running|hurdle|swimming|swim|track/.test(text)) {
+    return {
+      competitionFormat: "Timed Race / Heats",
+      formatStage: "Qualification + Final",
+      fixtureRequirement: "Optional"
+    };
+  }
+  if (/long jump|high jump|triple jump|shot put|discus|javelin|hammer|pole vault|throw|jump|field/.test(text)) {
+    return {
+      competitionFormat: "Measured Performance",
+      formatStage: "Multiple Attempts",
+      fixtureRequirement: "None"
+    };
+  }
+  if (/cross country|marathon|triathlon|cycling/.test(text)) {
+    return {
+      competitionFormat: "Timed Race / Heats",
+      formatStage: "Direct Final",
+      fixtureRequirement: "None"
+    };
+  }
+  if (/weightlifting|powerlifting|archery|shooting/.test(text)) {
+    return {
+      competitionFormat: "Measured Performance",
+      formatStage: "Multiple Attempts",
+      fixtureRequirement: "None"
+    };
+  }
+  if (participationType === "Individual" || /badminton|table tennis|tennis|chess|carrom|squash|singles|judo|wrestling|boxing|taekwondo/.test(text)) {
+    return {
+      competitionFormat: "Individual Head-to-Head",
+      formatStage: "Knockout",
+      fixtureRequirement: "Required"
+    };
+  }
+  return {
+    competitionFormat: "Team Match",
+    formatStage: "Knockout",
+    fixtureRequirement: "Required"
+  };
+};
+
 export default function EventsManager() {
   const toast = useToast();
 
@@ -103,6 +147,9 @@ export default function EventsManager() {
     genderCategory: "Men",
     eventCategory: "Inter-Department",
     participationType: "Team",
+    competitionFormat: "Team Match",
+    formatStage: "Knockout",
+    fixtureRequirement: "Required",
     minPlayers: 11,
     maxPlayers: 18,
     maxTeams: 16,
@@ -148,15 +195,20 @@ export default function EventsManager() {
     loadData();
   }, [loadData]);
 
-  // Handle Sport Change in Form - Auto Populate Squad Defaults
+  // Handle Sport Change in Form - Auto Populate Squad & Format Defaults
   const handleSportSelect = (sportId) => {
     const sp = sports.find(s => String(s.sport_id) === String(sportId));
+    const pType = sp?.sport_type || "Team";
+    const suggested = deriveFormatSuggestion(sp?.name, formData.name, pType);
     setFormData(prev => ({
       ...prev,
       sportId,
-      participationType: sp?.sport_type || "Team",
-      minPlayers: sp?.min_players || (sp?.sport_type === "Individual" ? 1 : 11),
-      maxPlayers: sp?.max_players || (sp?.sport_type === "Individual" ? 1 : 18)
+      participationType: pType,
+      competitionFormat: suggested.competitionFormat,
+      formatStage: suggested.formatStage,
+      fixtureRequirement: suggested.fixtureRequirement,
+      minPlayers: sp?.min_players || (pType === "Individual" ? 1 : 11),
+      maxPlayers: sp?.max_players || (pType === "Individual" ? 1 : 18)
     }));
   };
 
@@ -167,14 +219,19 @@ export default function EventsManager() {
       ? selectedTournamentFilter 
       : (tournaments[0] ? String(tournaments[0].tournament_id || tournaments[0].id) : "");
     const defaultSport = sports[0];
+    const defaultPart = defaultSport?.sport_type || "Team";
+    const suggested = deriveFormatSuggestion(defaultSport?.name, "", defaultPart);
 
     setFormData({
       ...initialFormState,
       tournamentId: defaultTour,
       sportId: defaultSport ? String(defaultSport.sport_id) : "",
-      participationType: defaultSport?.sport_type || "Team",
-      minPlayers: defaultSport?.min_players || (defaultSport?.sport_type === "Individual" ? 1 : 11),
-      maxPlayers: defaultSport?.max_players || (defaultSport?.sport_type === "Individual" ? 1 : 18)
+      participationType: defaultPart,
+      competitionFormat: suggested.competitionFormat,
+      formatStage: suggested.formatStage,
+      fixtureRequirement: suggested.fixtureRequirement,
+      minPlayers: defaultSport?.min_players || (defaultPart === "Individual" ? 1 : 11),
+      maxPlayers: defaultSport?.max_players || (defaultPart === "Individual" ? 1 : 18)
     });
     setModalError("");
     setIsCreateModalOpen(true);
@@ -194,6 +251,10 @@ export default function EventsManager() {
       }
     }
 
+    const compFmt = ev.competition_format || ev.competitionFormat || "Team Match";
+    const fmtStg = ev.format_stage || ev.formatStage || "Knockout";
+    const fixReq = ev.fixture_requirement || ev.fixtureRequirement || (compFmt === "Measured Performance" ? "None" : "Required");
+
     setFormData({
       tournamentId: String(ev.tournament_id || ev.tournamentId || ""),
       name: ev.name || ev.title || "",
@@ -201,6 +262,9 @@ export default function EventsManager() {
       genderCategory: ev.gender_category || ev.genderCategory || ev.category || "Men",
       eventCategory: ev.event_category || ev.eventCategory || "Inter-Department",
       participationType: ev.participation_type || ev.participationType || (ev.sportType === "Individual" ? "Individual" : "Team"),
+      competitionFormat: compFmt,
+      formatStage: fmtStg,
+      fixtureRequirement: fixReq,
       minPlayers: ev.min_players || ev.minPlayers || 1,
       maxPlayers: ev.max_players || ev.maxPlayers || 1,
       maxTeams: ev.max_teams || ev.maxTeams || 16,
@@ -258,6 +322,12 @@ export default function EventsManager() {
         category: formData.genderCategory,
         event_category: formData.eventCategory,
         participation_type: formData.participationType,
+        competition_format: formData.competitionFormat,
+        competitionFormat: formData.competitionFormat,
+        format_stage: formData.formatStage,
+        formatStage: formData.formatStage,
+        fixture_requirement: formData.fixtureRequirement,
+        fixtureRequirement: formData.fixtureRequirement,
         min_players: min,
         max_players: max,
         max_teams: Number(formData.maxTeams) || 16,
@@ -508,6 +578,25 @@ export default function EventsManager() {
       }
     },
     {
+      key: "competitionFormat",
+      label: "Competition Format",
+      minWidth: "160px",
+      render: (_, row) => {
+        const fmt = row.competition_format || row.competitionFormat || "Team Match";
+        const stage = row.format_stage || row.formatStage || "Knockout";
+        const req = row.fixture_requirement || row.fixtureRequirement || "Required";
+        const badgeStatus = fmt === "Measured Performance" ? "warning" : fmt === "Timed Race / Heats" ? "live" : fmt === "Points-Based Competition" ? "info" : "neutral";
+        return (
+          <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
+            <Badge status={badgeStatus}>{fmt}</Badge>
+            <span style={{ fontSize: "0.72rem", color: "var(--nec-text-muted)" }}>
+              {stage} · Fixtures: {req}
+            </span>
+          </div>
+        );
+      }
+    },
+    {
       key: "teamsLimit",
       label: "Registrations",
       minWidth: "140px",
@@ -590,15 +679,25 @@ export default function EventsManager() {
         const isOpen = st === "Open" || st === "Registration Open";
         return (
           <div style={{ display: "flex", gap: "6px", alignItems: "center", flexWrap: "wrap" }}>
-            {/* Launch Fixtures Workspace */}
+            {/* Launch Workspace */}
             <Button
               variant="primary"
               size="sm"
               icon={CalendarDays}
               onClick={() => setActiveCompetitionEvent(row)}
-              title="Manage fixtures, team matches, heats and results for this event"
+              title={
+                (row.competition_format || row.competitionFormat) === "Measured Performance"
+                  ? "Manage attempts, measurements and results for this event"
+                  : (row.competition_format || row.competitionFormat) === "Timed Race / Heats"
+                    ? "Manage heats, rounds and qualifiers for this race"
+                    : "Manage fixtures, team matches and results for this event"
+              }
             >
-              Fixtures
+              {(row.competition_format || row.competitionFormat) === "Measured Performance"
+                ? "Performances"
+                : (row.competition_format || row.competitionFormat) === "Timed Race / Heats"
+                  ? "Heats & Rounds"
+                  : "Fixtures"}
             </Button>
 
             {/* View Registered Teams / Participants */}
@@ -1131,6 +1230,91 @@ export default function EventsManager() {
                 <option value="State">State</option>
                 <option value="National">National</option>
               </select>
+            </div>
+          </div>
+
+          {/* Competition Format & Scheduling Architecture */}
+          <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "12px", display: "flex", flexDirection: "column", gap: "10px" }}>
+            <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "#1e293b", display: "flex", alignItems: "center", gap: "6px" }}>
+              <Layers size={15} color="var(--nec-blue, #0274be)" />
+              <span>Competition Architecture & Scheduling</span>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
+              <div>
+                <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 700, marginBottom: "4px" }}>
+                  Competition Format
+                </label>
+                <select
+                  className="nec-table-search-input"
+                  style={{ width: "100%", margin: 0 }}
+                  value={formData.competitionFormat}
+                  onChange={(e) => {
+                    const fmt = e.target.value;
+                    let defReq = "Required";
+                    let defStage = formData.formatStage;
+                    if (fmt === "Measured Performance") {
+                      defReq = "None";
+                      defStage = "Multiple Attempts";
+                    } else if (fmt === "Timed Race / Heats") {
+                      defReq = "Optional";
+                      defStage = "Qualification + Final";
+                    } else if (fmt === "Single Final") {
+                      defReq = "None";
+                      defStage = "Direct Final";
+                    }
+                    setFormData(prev => ({
+                      ...prev,
+                      competitionFormat: fmt,
+                      fixtureRequirement: defReq,
+                      formatStage: defStage
+                    }));
+                  }}
+                >
+                  <option value="Team Match">Team Match</option>
+                  <option value="Individual Head-to-Head">Individual Head-to-Head</option>
+                  <option value="Timed Race / Heats">Timed Race / Heats</option>
+                  <option value="Measured Performance">Measured Performance</option>
+                  <option value="Points-Based Competition">Points-Based Competition</option>
+                  <option value="Single Final">Single Final</option>
+                  <option value="Multi-Round Competition">Multi-Round Competition</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 700, marginBottom: "4px" }}>
+                  Format Stage
+                </label>
+                <select
+                  className="nec-table-search-input"
+                  style={{ width: "100%", margin: 0 }}
+                  value={formData.formatStage}
+                  onChange={(e) => setFormData(prev => ({ ...prev, formatStage: e.target.value }))}
+                >
+                  <option value="Knockout">Knockout</option>
+                  <option value="Round Robin / League">Round Robin / League</option>
+                  <option value="Group Stage">Group Stage</option>
+                  <option value="Qualification + Final">Qualification + Final</option>
+                  <option value="Multiple Attempts">Multiple Attempts</option>
+                  <option value="Direct Final">Direct Final</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 700, marginBottom: "4px" }}>
+                  Fixture Requirement
+                </label>
+                <select
+                  className="nec-table-search-input"
+                  style={{ width: "100%", margin: 0 }}
+                  value={formData.fixtureRequirement}
+                  onChange={(e) => setFormData(prev => ({ ...prev, fixtureRequirement: e.target.value }))}
+                >
+                  <option value="Required">Required (Fixtures must be scheduled)</option>
+                  <option value="Optional">Optional (Heats / rounds or direct)</option>
+                  <option value="None">None (Direct participant performances)</option>
+                </select>
+              </div>
             </div>
           </div>
 

@@ -29,8 +29,8 @@ export default function ScoreSheet({ onNavigate }) {
   const [startingMatch, setStartingMatch] = useState(false);
   const [liveScores, setLiveScores] = useState({ scoreA: null, scoreB: null });
 
-  // Poll all matches every 15 s
-  const fetchMatches = useCallback(() => matchesApi.getMatches(), []);
+  // Poll all matches & competitions every 15 s
+  const fetchMatches = useCallback(() => matchesApi.getMatches({ includeCompetitions: true }), []);
   const { data: allMatches, loading, error, refetch } = useAutoRefresh(
     fetchMatches,
     { interval: 15000 }

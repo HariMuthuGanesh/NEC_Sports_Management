@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { matchesApi, sportsApi, teamsApi, tournamentsApi, eventsApi } from "../../services/api/apiServices";
+import { matchesApi, sportsApi, teamsApi, tournamentsApi, eventsApi, apiFetch } from "../../services/api/apiServices";
 import Table from "../../components/common/Table";
 import Badge from "../../components/common/Badge";
 import Button from "../../components/common/Button";
@@ -95,7 +95,7 @@ export default function MatchesManager() {
     }
     setError(null);
     Promise.all([
-      matchesApi.getMatches().catch(err => { console.warn("[MatchesManager] Failed to fetch matches:", err); return []; }),
+      matchesApi.getMatches({ includeCompetitions: true }).catch(err => { console.warn("[MatchesManager] Failed to fetch matches:", err); return []; }),
       sportsApi.getVenues().catch(err => { console.warn("[MatchesManager] Failed to fetch venues:", err); return []; }),
       teamsApi.getTeams().catch(err => { console.warn("[MatchesManager] Failed to fetch teams:", err); return []; }),
       tournamentsApi.getTournaments().catch(err => { console.warn("[MatchesManager] Failed to fetch tournaments:", err); return []; }),
@@ -113,7 +113,7 @@ export default function MatchesManager() {
       setTeams(safeTeams);
       setTournaments(safeTournaments);
       setEvents(safeEvents);
-      const safeSports = (Array.isArray(spList) ? spList : []).filter(sp => (sp.sport_type || "Team") === "Team");
+      const safeSports = Array.isArray(spList) ? spList : [];
       setSports(safeSports);
       if (!isBackground) {
         if (safeSports.length > 0 && !sportId) setSportId(String(safeSports[0].sport_id || safeSports[0].id));
@@ -231,28 +231,47 @@ export default function MatchesManager() {
   const toastContext = useToast();
   const toast = toastContext?.toast || toastContext;
 
-  const handleDeleteMatch = (matchId) => {
-    matchesApi.deleteMatch(matchId).then(() => {
-      loadData();
-    });
+  const handleDeleteMatch = async (row) => {
+    const isComp = row?.schedule_type === 'Competition' || row?.is_competition;
+    const matchId = row?.id || row?.match_id || row?.competition_id;
+    if (!matchId) return;
+    if (!window.confirm(`Are you sure you want to delete this ${isComp ? 'competition/heat' : 'match fixture'}?`)) return;
+    try {
+      if (isComp) {
+        await apiFetch(`/competitions/${matchId}`, 'DELETE');
+      } else {
+        await matchesApi.deleteMatch(matchId);
+      }
+      loadData(true);
+      if (toast?.success) toast.success(`Scheduled ${isComp ? 'competition' : 'match'} deleted`);
+    } catch (err) {
+      if (toast?.error) toast.error(err.message || 'Failed to delete fixture');
+    }
   };
 
-  const handleUpdateStatus = async (matchId, newStatus) => {
+  const handleUpdateStatus = async (row, newStatus) => {
+    const isComp = row?.schedule_type === 'Competition' || row?.is_competition;
+    const matchId = row?.id || row?.match_id || row?.competition_id;
+    if (!matchId) return;
     const prevMatches = [...matches];
-    setMatches(prev => prev.map(m => (m.id === matchId || m.match_id === matchId ? { ...m, status: newStatus } : m)));
+    setMatches(prev => prev.map(m => ((m.id === matchId || m.match_id === matchId || m.competition_id === matchId) ? { ...m, status: newStatus } : m)));
     try {
-      await matchesApi.updateMatchStatus(matchId, newStatus);
+      if (isComp) {
+        await apiFetch(`/competitions/${matchId}`, 'PATCH', { status: newStatus });
+      } else {
+        await matchesApi.updateMatchStatus(matchId, newStatus);
+      }
       if (toast?.success) {
-        toast.success(`Match marked as ${newStatus}`);
+        toast.success(`Marked as ${newStatus}`);
       } else if (typeof toast === "function") {
-        toast({ type: "success", message: `Match marked as ${newStatus}` });
+        toast({ type: "success", message: `Marked as ${newStatus}` });
       }
     } catch (err) {
       setMatches(prevMatches);
       if (toast?.error) {
-        toast.error(err.message || "Failed to update match status");
+        toast.error(err.message || "Failed to update status");
       } else if (typeof toast === "function") {
-        toast({ type: "error", message: err.message || "Failed to update match status" });
+        toast({ type: "error", message: err.message || "Failed to update status" });
       }
     }
   };
@@ -297,7 +316,31 @@ export default function MatchesManager() {
     },
     { key: "sport", label: "Sport", width: "120px", render: (val) => <strong>{val || "-"}</strong> },
     { key: "eventCategory", label: "Category", width: "120px", render: (val) => <Badge status={formatScope(val) === "Inter College" ? "danger" : "info"}>{formatScope(val)}</Badge> },
-    { key: "matchup", label: "Match Teams", render: (_, row) => <span>{row.teamA || "Team A"} ({row.deptA || "-"}) vs {row.teamB || "Team B"} ({row.deptB || "-"})</span> },
+    {
+      key: "matchup",
+      label: "Match Teams / Contest",
+      render: (_, row) => {
+        if (row.schedule_type === "Competition" || row.is_competition) {
+          return (
+            <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <Badge status="live">Heat / Round</Badge>
+                <strong>{row.title || row.round || "Contest"}</strong>
+              </div>
+              <span style={{ fontSize: "0.75rem", color: "var(--nec-text-muted)" }}>
+                {row.scoring ? `Scoring: ${row.scoring} (${row.unit || ""})` : "Track / Field Session"}
+              </span>
+            </div>
+          );
+        }
+        return (
+          <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+            <span>{row.teamA || "Team A"} ({row.deptA || "-"}) vs {row.teamB || "Team B"} ({row.deptB || "-"})</span>
+            {row.round && <span style={{ fontSize: "0.75rem", color: "var(--nec-text-muted)" }}>{row.round}</span>}
+          </div>
+        );
+      }
+    },
     { key: "schedule", label: "Date & Time", width: "190px", render: (_, row) => <span>📅 {formatDateTime(row.date, row.time)}</span> },
     { key: "venue", label: "Venue", width: "190px", render: (val) => <span>📍 {val || "TBD"}</span> },
     { key: "round", label: "Round", width: "120px" },
@@ -308,7 +351,7 @@ export default function MatchesManager() {
       render: (val, row) => (
         <select
           value={val || "Scheduled"}
-          onChange={(e) => handleUpdateStatus(row.id || row.match_id, e.target.value)}
+          onChange={(e) => handleUpdateStatus(row, e.target.value)}
           aria-label="Change Match Status"
           style={{
             padding: "4px 8px",
@@ -340,7 +383,7 @@ export default function MatchesManager() {
               variant="outline"
               size="sm"
               icon={Clock}
-              onClick={() => handleUpdateStatus(row.id || row.match_id, "Postponed")}
+              onClick={() => handleUpdateStatus(row, "Postponed")}
             >
               Postpone
             </Button>
@@ -349,7 +392,7 @@ export default function MatchesManager() {
               variant="outline"
               size="sm"
               icon={Calendar}
-              onClick={() => handleUpdateStatus(row.id || row.match_id, "Scheduled")}
+              onClick={() => handleUpdateStatus(row, "Scheduled")}
             >
               Resume
             </Button>
@@ -358,7 +401,7 @@ export default function MatchesManager() {
             variant="danger"
             size="sm"
             icon={Trash2}
-            onClick={() => handleDeleteMatch(row.id || row.match_id)}
+            onClick={() => handleDeleteMatch(row)}
             title="Cancel Match Fixture"
             ariaLabel="Cancel Match Fixture"
           />

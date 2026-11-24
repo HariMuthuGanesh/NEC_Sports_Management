@@ -489,3 +489,66 @@
   max-width: 420px;
 }
 
+/* ── Podium Showcase & Performance Styling ─────────────────── */
+.nec-podium-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.nec-podium-card {
+  border-radius: 14px;
+  padding: 22px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  background: var(--nec-surface, #fff);
+  border: 1px solid var(--nec-border, #e2e8f0);
+  box-shadow: var(--nec-shadow-sm, 0 1px 3px rgba(0,0,0,0.04));
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.nec-podium-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--nec-shadow-md, 0 4px 12px rgba(0,0,0,0.08));
+}
+.nec-podium-gold {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.14), rgba(251, 191, 36, 0.05));
+  border-color: rgba(245, 158, 11, 0.4);
+}
+.nec-podium-silver {
+  background: linear-gradient(135deg, rgba(148, 163, 184, 0.16), rgba(203, 213, 225, 0.05));
+  border-color: rgba(148, 163, 184, 0.4);
+}
+.nec-podium-bronze {
+  background: linear-gradient(135deg, rgba(180, 83, 9, 0.14), rgba(217, 119, 6, 0.05));
+  border-color: rgba(180, 83, 9, 0.35);
+}
+.nec-attempt-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: #f1f5f9;
+  color: #334155;
+}
+.nec-attempt-foul {
+  text-decoration: line-through;
+  color: #dc2626;
+  background: #fef2f2;
+}
+.nec-best-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+

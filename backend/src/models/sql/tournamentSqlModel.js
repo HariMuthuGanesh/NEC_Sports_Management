@@ -104,6 +104,7 @@ export const getAllTournaments = async (options = {}) => {
             COALESCE(t.is_featured, 0) AS is_featured,
             t.created_at,
             (SELECT COUNT(*) FROM events e WHERE e.tournament_id = t.tournament_id) AS total_events,
+            (SELECT COUNT(*) FROM events e WHERE e.tournament_id = t.tournament_id AND (e.event_status = 'Completed' OR (SELECT COUNT(*) FROM event_results er WHERE er.event_id = e.event_id AND er.is_finalized = 1) > 0)) AS completed_events,
             (
                 (SELECT COUNT(DISTINCT tm.team_id) FROM teams tm LEFT JOIN events ev ON ev.event_id = tm.event_id WHERE tm.tournament_id = t.tournament_id OR ev.tournament_id = t.tournament_id) +
                 (SELECT COUNT(*) FROM event_entries ee JOIN events ev ON ev.event_id = ee.event_id WHERE ev.tournament_id = t.tournament_id)
@@ -124,16 +125,36 @@ export const getAllTournaments = async (options = {}) => {
     `;
     const [rows] = await pool.execute(sql, params);
 
+    const mapProgress = (t) => {
+        if (!t) return null;
+        const totalEvents = Number(t.total_events || 0);
+        const completedEvents = Number(t.completed_events || 0);
+        const totalComps = Number(t.total_competitions || 0);
+        const completedComps = Number(t.completed_competitions || 0);
+        let progress = 0;
+        if (totalEvents > 0) {
+            progress = Math.round((completedEvents / totalEvents) * 100);
+        } else if (totalComps > 0) {
+            progress = Math.round((completedComps / totalComps) * 100);
+        }
+        return {
+            ...t,
+            progress: Math.min(100, Math.max(0, progress))
+        };
+    };
+
+    const mappedRows = rows.map(mapProgress);
+
     if (page && limit) {
         return {
-            items: rows,
+            items: mappedRows,
             total,
             page: Number(page),
             limit: Number(limit),
             totalPages: Math.ceil(total / Number(limit))
         };
     }
-    return rows;
+    return mappedRows;
 };
 
 export const getTournamentById = async (id) => {
@@ -166,6 +187,7 @@ export const getTournamentById = async (id) => {
             COALESCE(t.is_featured, 0) AS is_featured,
             t.created_at,
             (SELECT COUNT(*) FROM events e WHERE e.tournament_id = t.tournament_id) AS total_events,
+            (SELECT COUNT(*) FROM events e WHERE e.tournament_id = t.tournament_id AND (e.event_status = 'Completed' OR (SELECT COUNT(*) FROM event_results er WHERE er.event_id = e.event_id AND er.is_finalized = 1) > 0)) AS completed_events,
             (
                 (SELECT COUNT(DISTINCT tm.team_id) FROM teams tm LEFT JOIN events ev ON ev.event_id = tm.event_id WHERE tm.tournament_id = t.tournament_id OR ev.tournament_id = t.tournament_id) +
                 (SELECT COUNT(*) FROM event_entries ee JOIN events ev ON ev.event_id = ee.event_id WHERE ev.tournament_id = t.tournament_id)
@@ -184,7 +206,7 @@ export const getTournamentById = async (id) => {
         LIMIT 1
     `;
     const [rows] = await pool.execute(sql, [id]);
-    return rows[0] || null;
+    return mapProgress(rows[0]) || null;
 };
 
 export const createTournament = async (data) => {
@@ -414,6 +436,9 @@ export const getPublicTournamentDetails = async (tournamentId) => {
             e.name,
             e.category,
             e.gender_category,
+            e.competition_format,
+            e.format_stage,
+            e.fixture_requirement,
             e.event_status,
             s.name AS sport_name,
             s.sport_id,
@@ -445,6 +470,8 @@ export const getPublicTournamentDetails = async (tournamentId) => {
     const [matches] = await pool.execute(`
         SELECT 
             m.match_id,
+            m.event_id,
+            ev.name AS event_name,
             m.scheduled_time,
             m.round,
             COALESCE(m.pool, 'Pool A') AS pool,
@@ -468,6 +495,7 @@ export const getPublicTournamentDetails = async (tournamentId) => {
             v.name AS venue_name,
             s.name AS sport_name
         FROM matches m
+        LEFT JOIN events ev ON m.event_id = ev.event_id
         LEFT JOIN teams t1 ON m.team_a_id = t1.team_id
         LEFT JOIN departments d1 ON t1.department_id = d1.id
         LEFT JOIN teams t2 ON m.team_b_id = t2.team_id
@@ -479,10 +507,53 @@ export const getPublicTournamentDetails = async (tournamentId) => {
         ORDER BY m.scheduled_time ASC
     `, [tournamentId]);
 
+    // Competitions (Individual / Track / Field Heats & Finals)
+    const [competitions] = await pool.execute(`
+        SELECT 
+            sc.competition_id,
+            sc.event_id,
+            e.name AS event_name,
+            sc.name,
+            sc.round,
+            sc.scoring,
+            sc.unit,
+            sc.scheduled_time,
+            sc.status,
+            sc.venue
+        FROM sport_competitions sc
+        JOIN events e ON sc.event_id = e.event_id
+        WHERE e.tournament_id = ?
+        ORDER BY sc.scheduled_time ASC
+    `, [tournamentId]);
+
+    // Direct & Finalized Event Results
+    const [results] = await pool.execute(`
+        SELECT 
+            er.result_id,
+            er.event_id,
+            e.name AS event_name,
+            er.participant_name,
+            d.code AS department_code,
+            d.name AS department_name,
+            er.performance_value,
+            er.unit,
+            er.\`rank\`,
+            er.result_status,
+            er.remarks,
+            er.is_finalized
+        FROM event_results er
+        JOIN events e ON er.event_id = e.event_id
+        JOIN departments d ON er.department_id = d.id
+        WHERE e.tournament_id = ? AND er.is_finalized = 1
+        ORDER BY er.event_id ASC, (er.\`rank\` IS NULL), er.\`rank\` ASC
+    `, [tournamentId]);
+
     return {
         tournament,
         events,
         teams,
-        matches
+        matches,
+        competitions,
+        results
     };
 };

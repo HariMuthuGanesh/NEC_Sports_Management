@@ -609,11 +609,16 @@ export default function TournamentsManager() {
   if (selectedTournament) {
     const tourId = selectedTournament.tournament_id || selectedTournament.id;
     const totalEvents = workspaceEvents.length;
+    const completedEvents = workspaceEvents.filter(ev => 
+      ev.event_status === 'Completed' || ev.status === 'Completed' || (Number(ev.finalizedResults || ev.finalized_results) > 0)
+    ).length;
     const totalRegistrations = (workspaceRegistrations.teams?.length || 0) + (workspaceRegistrations.individuals?.length || 0);
     const totalComps = (workspaceSchedule.matches?.length || 0) + (workspaceSchedule.competitions?.length || 0);
     const completedComps = (workspaceSchedule.matches?.filter(m => m.status === "Completed")?.length || 0) + 
       (workspaceSchedule.competitions?.filter(c => c.status === "Completed")?.length || 0);
-    const progressPercent = totalComps > 0 ? Math.round((completedComps / totalComps) * 100) : 0;
+    const progressPercent = totalEvents > 0 
+      ? Math.round((completedEvents / totalEvents) * 100) 
+      : (totalComps > 0 ? Math.round((completedComps / totalComps) * 100) : 0);
 
     return (
       <div className="nec-portal-page nec-tournaments-container">

@@ -526,7 +526,8 @@ export default function PublicTournaments() {
               {[
                 { id: "events", label: `Events (${tournamentDetail?.events?.length || 0})` },
                 { id: "teams", label: `Teams / Colleges (${tournamentDetail?.teams?.length || 0})` },
-                { id: "matches", label: `Matches & Fixtures (${tournamentDetail?.matches?.length || 0})` }
+                { id: "matches", label: `Matches & Fixtures (${tournamentDetail?.matches?.length || 0})` },
+                { id: "results", label: `Podium & Results (${tournamentDetail?.results?.length || 0})` }
               ].map(tab => (
                 <button
                   key={tab.id}
@@ -586,11 +587,21 @@ export default function PublicTournaments() {
                               </div>
                               <div style={{ fontSize: "0.82rem", color: "var(--nec-text-muted)" }}>
                                 Sport: <strong>{ev.sport_name}</strong> • Category: {ev.category || "General"} {ev.gender_category ? `(${ev.gender_category})` : ""}
+                                {ev.competition_format && (
+                                  <span> • Format: <strong>{ev.competition_format}</strong></span>
+                                )}
                               </div>
                             </div>
-                            <Badge variant={ev.event_status === "Completed" ? "success" : "default"}>
-                              {ev.event_status || "Active"}
-                            </Badge>
+                            <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                              {ev.competition_format && (
+                                <Badge variant="neutral">
+                                  {ev.competition_format}
+                                </Badge>
+                              )}
+                              <Badge variant={ev.event_status === "Completed" ? "success" : "default"}>
+                                {ev.event_status || "Active"}
+                              </Badge>
+                            </div>
                           </div>
                         ))
                       )}
@@ -658,8 +669,13 @@ export default function PublicTournaments() {
                             }}
                           >
                             <div>
-                              <div style={{ fontSize: "0.8rem", color: "var(--nec-text-muted)", fontWeight: 700, marginBottom: "4px" }}>
-                                {m.sport_name} • {m.round} {m.pool ? `(${m.pool})` : ""} • {formatDate(m.scheduled_time)}
+                              <div style={{ fontSize: "0.8rem", color: "var(--nec-text-muted)", fontWeight: 700, marginBottom: "4px", display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                                {(m.event_name || m.eventName) && (
+                                  <span style={{ color: "var(--nec-blue-accent, #0274be)", display: "inline-flex", alignItems: "center", gap: "3px" }}>
+                                    <Trophy size={12} /> {m.event_name || m.eventName} •
+                                  </span>
+                                )}
+                                <span>{m.sport_name} • {m.round} {m.pool ? `(${m.pool})` : ""} • {formatDate(m.scheduled_time)}</span>
                               </div>
                               <div style={{ fontWeight: 800, fontSize: "1rem", color: "var(--nec-text-main)" }}>
                                 {m.team_a_name} {m.dept_a_code ? `(${m.dept_a_code})` : ""}
@@ -677,6 +693,83 @@ export default function PublicTournaments() {
                             </Badge>
                           </div>
                         ))
+                      )}
+                    </div>
+                  )}
+
+                  {/* Results & Podium Tab */}
+                  {detailTab === "results" && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                      {(!tournamentDetail.results || tournamentDetail.results.length === 0) ? (
+                        <div style={{ textAlign: "center", padding: "30px", color: "var(--nec-text-muted)" }}>
+                          No official results or podium standings finalized for this tournament yet.
+                        </div>
+                      ) : (
+                        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                          {tournamentDetail.results.map((res, idx) => (
+                            <div
+                              key={res.result_id || idx}
+                              style={{
+                                padding: "14px 18px",
+                                borderRadius: "10px",
+                                border: "1px solid var(--nec-border)",
+                                background: "var(--nec-surface)",
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                flexWrap: "wrap",
+                                gap: "10px"
+                              }}
+                            >
+                              <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+                                <div style={{
+                                  width: "36px",
+                                  height: "36px",
+                                  borderRadius: "50%",
+                                  background: res.rank === 1 ? "#fef3c7" : res.rank === 2 ? "#f1f5f9" : res.rank === 3 ? "#ffedd5" : "#f8fafc",
+                                  color: res.rank === 1 ? "#92400e" : res.rank === 2 ? "#475569" : res.rank === 3 ? "#9a3412" : "#64748b",
+                                  border: `1px solid ${res.rank === 1 ? "#fde68a" : res.rank === 2 ? "#cbd5e1" : res.rank === 3 ? "#fed7aa" : "#e2e8f0"}`,
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  fontWeight: 800,
+                                  fontSize: "0.95rem"
+                                }}>
+                                  #{res.rank || idx + 1}
+                                </div>
+                                <div>
+                                  <div style={{ fontWeight: 800, fontSize: "1rem", color: "var(--nec-text-main)" }}>
+                                    {res.participant_name}
+                                  </div>
+                                  <div style={{ fontSize: "0.8rem", color: "var(--nec-text-muted)" }}>
+                                    {res.event_name && <span>Event: <strong>{res.event_name}</strong> • </span>}
+                                    {res.sport_name && <span>{res.sport_name} • </span>}
+                                    <span>{res.department_name || res.institution_name || "National Engineering College"}</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                                {res.performance_value != null && (
+                                  <span style={{
+                                    padding: "4px 12px",
+                                    borderRadius: "8px",
+                                    background: "#ecfdf5",
+                                    color: "#065f46",
+                                    fontWeight: 700,
+                                    fontSize: "0.9rem",
+                                    border: "1px solid #a7f3d0"
+                                  }}>
+                                    {res.performance_value} {res.unit || ""}
+                                  </span>
+                                )}
+                                <Badge variant={res.rank === 1 ? "warning" : res.rank === 2 ? "neutral" : res.rank === 3 ? "danger" : "default"}>
+                                  {res.rank === 1 ? "🥇 Gold" : res.rank === 2 ? "🥈 Silver" : res.rank === 3 ? "🥉 Bronze" : `Rank ${res.rank}`}
+                                </Badge>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       )}
                     </div>
                   )}

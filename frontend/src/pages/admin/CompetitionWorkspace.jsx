@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { apiFetch, matchesApi } from '../../services/api/apiServices';
+import { apiFetch, matchesApi, eventsApi, eventResultsApi } from '../../services/api/apiServices';
 import { useAuth } from '../../context/AuthContext';
 import Button from '../../components/common/Button';
 import Table from '../../components/common/Table';
@@ -56,8 +56,25 @@ export default function CompetitionWorkspace({ tournamentId, defaultEventId, onC
   const [matches, setMatches] = useState([]);
   const [eventTeams, setEventTeams] = useState([]);
   const [venues, setVenues] = useState([]);
-  const [eventTab, setEventTab] = useState('matches'); // 'matches' | 'competitions'
+  const [eventTab, setEventTab] = useState('matches'); // 'matches' | 'competitions' | 'performances' | 'results' | 'entries'
   const [matchStatusFilter, setMatchStatusFilter] = useState('All');
+  const [eventResults, setEventResults] = useState([]);
+  const [recordingAttempt, setRecordingAttempt] = useState(false);
+  const [finalizingResults, setFinalizingResults] = useState(false);
+  const [attemptForm, setAttemptForm] = useState({
+    studentId: '',
+    participantName: '',
+    departmentId: '',
+    teamId: '',
+    attempt1: '',
+    foul1: false,
+    attempt2: '',
+    foul2: false,
+    attempt3: '',
+    foul3: false,
+    unit: 'm',
+    remarks: ''
+  });
 
   // Match Score Modal
   const [scoringMatch, setScoringMatch] = useState(null);
@@ -113,19 +130,25 @@ export default function CompetitionWorkspace({ tournamentId, defaultEventId, onC
   const load = useCallback(async () => {
     try {
       if (isEventScoped) {
-        // Load event-specific fixtures, matches, teams, venues
-        const [evRes, matchesRes, teamsRes, entriesRes, venuesRes] = await Promise.all([
+        // Load event-specific fixtures, matches, teams, venues, and results
+        const [evRes, matchesRes, teamsRes, entriesRes, venuesRes, resultsRes] = await Promise.all([
           apiFetch(`/events/${rawEvId}`).catch(() => null),
           matchesApi.getMatches({ eventId: rawEvId }).catch(() => []),
           apiFetch(`/events/${rawEvId}/teams`).catch(() => null),
           apiFetch(`/events/${rawEvId}/entries`).catch(() => []),
-          apiFetch('/venues').catch(() => [])
+          apiFetch('/venues').catch(() => []),
+          apiFetch(`/events/${rawEvId}/results`).catch(() => [])
         ]);
 
         if (evRes) {
           setEventData(evRes);
-          const pType = evRes.participation_type || evRes.participationType;
-          if (pType === 'Individual') {
+          const compFmt = evRes.competition_format || evRes.competitionFormat || (evRes.participation_type === 'Individual' ? 'Timed Race / Heats' : 'Team Match');
+          const fixReq = evRes.fixture_requirement || evRes.fixtureRequirement || (compFmt === 'Measured Performance' ? 'None' : 'Required');
+          
+          if (compFmt === 'Measured Performance' || fixReq === 'None') {
+            setEventTab('performances');
+            setFixtureKind('competition');
+          } else if (compFmt === 'Timed Race / Heats' || evRes.participation_type === 'Individual') {
             setEventTab('competitions');
             setFixtureKind('competition');
           } else {
@@ -144,6 +167,7 @@ export default function CompetitionWorkspace({ tournamentId, defaultEventId, onC
         setParentRegistrations({ entries: eList, teams: tList });
 
         setVenues(Array.isArray(venuesRes) ? venuesRes : []);
+        setEventResults(Array.isArray(resultsRes) ? resultsRes : []);
       }
 
       // Load competitions for event or tournament
@@ -414,6 +438,80 @@ export default function CompetitionWorkspace({ tournamentId, defaultEventId, onC
       }
       setDeletingComp(null);
     });
+  };
+
+  // ── Direct Event Results & Attempt Handlers ─────────────────
+  const handleSaveAttempts = async (e) => {
+    if (e) e.preventDefault();
+    if (!attemptForm.studentId && !attemptForm.participantName) {
+      setError('Please select or specify a registered participant.');
+      return;
+    }
+    setBusy(true);
+    try {
+      await apiFetch(`/events/${rawEvId}/results/attempts`, 'POST', {
+        student_id: attemptForm.studentId ? Number(attemptForm.studentId) : null,
+        participant_name: attemptForm.participantName,
+        department_id: attemptForm.departmentId ? Number(attemptForm.departmentId) : null,
+        team_id: attemptForm.teamId ? Number(attemptForm.teamId) : null,
+        attempts: [
+          { attemptNumber: 1, value: attemptForm.attempt1 !== '' ? Number(attemptForm.attempt1) : null, isFoul: Boolean(attemptForm.foul1) },
+          { attemptNumber: 2, value: attemptForm.attempt2 !== '' ? Number(attemptForm.attempt2) : null, isFoul: Boolean(attemptForm.foul2) },
+          { attemptNumber: 3, value: attemptForm.attempt3 !== '' ? Number(attemptForm.attempt3) : null, isFoul: Boolean(attemptForm.foul3) }
+        ],
+        unit: attemptForm.unit || 'm',
+        remarks: attemptForm.remarks || null
+      });
+      const res = await apiFetch(`/events/${rawEvId}/results`).catch(() => []);
+      setEventResults(Array.isArray(res) ? res : []);
+      setRecordingAttempt(false);
+      setAttemptForm({
+        studentId: '',
+        participantName: '',
+        departmentId: '',
+        teamId: '',
+        attempt1: '',
+        foul1: false,
+        attempt2: '',
+        foul2: false,
+        attempt3: '',
+        foul3: false,
+        unit: attemptForm.unit || 'm',
+        remarks: ''
+      });
+    } catch (err) {
+      setError(err.message || 'Failed to record attempts.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleFinalizeResults = async () => {
+    if (!window.confirm('Finalize and officially publish results for this event? This will lock rankings and update tournament progress.')) {
+      return;
+    }
+    setFinalizingResults(true);
+    try {
+      await apiFetch(`/events/${rawEvId}/results/finalize`, 'POST');
+      const res = await apiFetch(`/events/${rawEvId}/results`).catch(() => []);
+      setEventResults(Array.isArray(res) ? res : []);
+      const evRes = await apiFetch(`/events/${rawEvId}`).catch(() => null);
+      if (evRes) setEventData(evRes);
+    } catch (err) {
+      setError(err.message || 'Failed to finalize results.');
+    } finally {
+      setFinalizingResults(false);
+    }
+  };
+
+  const handleDeleteResult = async (resultId) => {
+    if (!window.confirm('Delete this recorded result entry?')) return;
+    try {
+      await apiFetch(`/events/${rawEvId}/results/${resultId}`, 'DELETE');
+      setEventResults((prev) => prev.filter((r) => (r.result_id || r.resultId) !== resultId));
+    } catch (err) {
+      setError(err.message || 'Failed to delete result.');
+    }
   };
 
   // ── Stats Calculations ──────────────────────────────────────
@@ -702,8 +800,17 @@ export default function CompetitionWorkspace({ tournamentId, defaultEventId, onC
 
   const partType = eventData?.participation_type || eventData?.participationType;
   const isBoth = partType === 'Both';
-  const showMatchView = isEventScoped ? (isBoth ? eventTab === 'matches' : partType !== 'Individual') : false;
-  const showCompView = isEventScoped ? (isBoth ? eventTab === 'competitions' : partType === 'Individual') : true;
+  const compFormat = eventData?.competition_format || eventData?.competitionFormat || (partType === 'Individual' ? 'Timed Race / Heats' : 'Team Match');
+  const fixtureReq = eventData?.fixture_requirement || eventData?.fixtureRequirement || (compFormat === 'Measured Performance' ? 'None' : 'Required');
+  const isDirectPerformance = compFormat === 'Measured Performance' || fixtureReq === 'None';
+  const isHeatsRounds = compFormat === 'Timed Race / Heats';
+  const isFinalized = eventResults.some((r) => r.is_finalized || r.isFinalized) || eventData?.event_status === 'Completed';
+
+  const showPerformancesView = isEventScoped && (eventTab === 'performances' || (!['matches', 'competitions', 'results', 'entries'].includes(eventTab) && isDirectPerformance));
+  const showResultsView = isEventScoped && eventTab === 'results';
+  const showEntriesView = isEventScoped && eventTab === 'entries';
+  const showMatchView = isEventScoped ? eventTab === 'matches' : false;
+  const showCompView = isEventScoped ? eventTab === 'competitions' : true;
 
   return (
     <section className="nec-comp-workspace">
@@ -736,7 +843,7 @@ export default function CompetitionWorkspace({ tournamentId, defaultEventId, onC
             </Button>
           )}
           <div className="nec-comp-icon-badge">
-            {isEventScoped ? <CalendarDays size={24} /> : <Trophy size={24} />}
+            {isDirectPerformance ? <Medal size={24} /> : isEventScoped ? <CalendarDays size={24} /> : <Trophy size={24} />}
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
@@ -744,18 +851,21 @@ export default function CompetitionWorkspace({ tournamentId, defaultEventId, onC
                 {selected
                   ? details?.name || 'Heat Details'
                   : isEventScoped
-                  ? `${eventData?.name || 'Event'} · Fixtures & Results`
+                  ? `${eventData?.name || 'Event'} · ${compFormat}`
                   : 'Event Competitions'}
               </h2>
-              {isEventScoped && partType && (
-                <Badge status={partType === 'Both' ? 'warning' : 'primary'}>
-                  {partType === 'Both' ? 'Both (Ind & Team)' : partType}
-                </Badge>
+              {isEventScoped && (
+                <>
+                  <Badge status={compFormat === 'Measured Performance' ? 'warning' : compFormat === 'Timed Race / Heats' ? 'live' : 'primary'}>
+                    {compFormat}
+                  </Badge>
+                  {isFinalized && <Badge status="success">Results Finalized</Badge>}
+                </>
               )}
             </div>
             <p className="nec-comp-subtitle">
               {isEventScoped
-                ? `${eventData?.sport_name || 'Sport'} · ${eventData?.tournament_name || 'Tournament'} · Manage team match fixtures, individual heats, and score results`
+                ? `${eventData?.sport_name || 'Sport'} · ${eventData?.tournament_name || 'Tournament'} · Format: ${compFormat} (${eventData?.format_stage || 'Direct Final'})`
                 : 'Track multi-event athletic competitions, heats, timed trials, and ranked results'}
             </p>
           </div>
@@ -768,21 +878,73 @@ export default function CompetitionWorkspace({ tournamentId, defaultEventId, onC
             </Button>
           )}
           {manager && !selected && (
-            <Button
-              variant="primary"
-              icon={Plus}
-              title={isEventScoped ? 'Create Fixture' : 'Create'}
-              ariaLabel={isEventScoped ? 'Create Fixture' : 'Create'}
-              onClick={() => {
-                setError('');
-                if (isEventScoped) {
-                  setFixtureKind(partType === 'Individual' ? 'competition' : 'match');
-                }
-                setCreating(true);
-              }}
-            >
-              {isEventScoped ? 'Create Fixture' : 'Create'}
-            </Button>
+            <>
+              {eventTab === 'performances' && (
+                <Button
+                  variant="primary"
+                  icon={Plus}
+                  onClick={() => setRecordingAttempt(true)}
+                  title="Record Athlete Performance & Attempts"
+                >
+                  Record Attempt
+                </Button>
+              )}
+              {eventTab === 'results' && !isFinalized && eventResults.length > 0 && (
+                <Button
+                  variant="primary"
+                  icon={CheckCircle2}
+                  loading={finalizingResults}
+                  onClick={handleFinalizeResults}
+                  title="Finalize & Publish Official Event Results"
+                >
+                  Finalize Results
+                </Button>
+              )}
+              {eventTab === 'matches' && (
+                <Button
+                  variant="primary"
+                  icon={Plus}
+                  title="Schedule Match Fixture"
+                  onClick={() => {
+                    setError('');
+                    setFixtureKind('match');
+                    setCreating(true);
+                  }}
+                >
+                  Create Match Fixture
+                </Button>
+              )}
+              {eventTab === 'competitions' && (
+                <Button
+                  variant="primary"
+                  icon={Plus}
+                  title="Schedule Heat / Round"
+                  onClick={() => {
+                    setError('');
+                    setFixtureKind('competition');
+                    setCreating(true);
+                  }}
+                >
+                  Create Heat / Round
+                </Button>
+              )}
+              {!['performances', 'results', 'matches', 'competitions', 'entries'].includes(eventTab) && (
+                <Button
+                  variant="primary"
+                  icon={Plus}
+                  onClick={() => {
+                    if (isDirectPerformance) {
+                      setRecordingAttempt(true);
+                    } else {
+                      setFixtureKind(partType === 'Individual' ? 'competition' : 'match');
+                      setCreating(true);
+                    }
+                  }}
+                >
+                  {isDirectPerformance ? 'Record Performance' : 'Create Fixture'}
+                </Button>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -795,24 +957,63 @@ export default function CompetitionWorkspace({ tournamentId, defaultEventId, onC
         </div>
       )}
 
-      {/* ── Sub-tabs for Both Mode ─────────────────────────────── */}
-      {isEventScoped && (isBoth || (matches.length > 0 && competitions.length > 0)) && !selected && (
-        <div style={{ display: 'flex', gap: '10px', borderBottom: '2px solid var(--nec-border, #e2e8f0)', paddingBottom: '8px' }}>
+      {/* ── Dynamic Navigation Tabs for Event Workspace ────────── */}
+      {isEventScoped && !selected && (
+        <div style={{ display: 'flex', gap: '8px', borderBottom: '2px solid var(--nec-border, #e2e8f0)', paddingBottom: '8px', flexWrap: 'wrap' }}>
+          {/* Direct Performance / Attempts Tab */}
+          {(isDirectPerformance || eventResults.length > 0) && (
+            <button
+              type="button"
+              className={`nec-comp-tab-btn ${showPerformancesView ? 'active' : ''}`}
+              onClick={() => setEventTab('performances')}
+              style={{ fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 16px' }}
+            >
+              <Activity size={16} /> Performances & Attempts ({eventResults.length})
+            </button>
+          )}
+
+          {/* Matches Tab */}
+          {(!isDirectPerformance || matches.length > 0) && (
+            <button
+              type="button"
+              className={`nec-comp-tab-btn ${eventTab === 'matches' ? 'active' : ''}`}
+              onClick={() => setEventTab('matches')}
+              style={{ fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 16px' }}
+            >
+              <Calendar size={16} /> Team Matches ({matches.length})
+            </button>
+          )}
+
+          {/* Heats & Rounds Tab */}
+          {(isHeatsRounds || competitions.length > 0) && (
+            <button
+              type="button"
+              className={`nec-comp-tab-btn ${eventTab === 'competitions' ? 'active' : ''}`}
+              onClick={() => setEventTab('competitions')}
+              style={{ fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 16px' }}
+            >
+              <Trophy size={16} /> Heats & Contests ({competitions.length})
+            </button>
+          )}
+
+          {/* Results & Podium Tab */}
           <button
             type="button"
-            className={`nec-comp-tab-btn ${eventTab === 'matches' ? 'active' : ''}`}
-            onClick={() => setEventTab('matches')}
+            className={`nec-comp-tab-btn ${eventTab === 'results' ? 'active' : ''}`}
+            onClick={() => setEventTab('results')}
             style={{ fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 16px' }}
           >
-            <Calendar size={16} /> Team Matches ({matches.length})
+            <Medal size={16} /> Podium & Results {isFinalized ? '✓' : ''}
           </button>
+
+          {/* Registered Athletes / Entries Tab */}
           <button
             type="button"
-            className={`nec-comp-tab-btn ${eventTab === 'competitions' ? 'active' : ''}`}
-            onClick={() => setEventTab('competitions')}
+            className={`nec-comp-tab-btn ${eventTab === 'entries' ? 'active' : ''}`}
+            onClick={() => setEventTab('entries')}
             style={{ fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 16px' }}
           >
-            <Trophy size={16} /> Heats & Contests ({competitions.length})
+            <Users size={16} /> Registered Entries ({parentRegistrations.entries.length || parentRegistrations.teams.length})
           </button>
         </div>
       )}
@@ -820,6 +1021,428 @@ export default function CompetitionWorkspace({ tournamentId, defaultEventId, onC
       {/* ── Main View (No Single Competition Selected) ─────────── */}
       {!selected && (
         <>
+          {/* VIEW: Direct Performances & Attempts */}
+          {showPerformancesView && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {/* KPI Metrics */}
+              <div className="nec-comp-stats-grid">
+                <div className="nec-comp-stat-card">
+                  <div className="nec-comp-stat-icon total">
+                    <Users size={20} />
+                  </div>
+                  <div>
+                    <div className="nec-comp-stat-val">{parentRegistrations.entries.length}</div>
+                    <div className="nec-comp-stat-lbl">Registered Athletes</div>
+                  </div>
+                </div>
+
+                <div className="nec-comp-stat-card">
+                  <div className="nec-comp-stat-icon ongoing">
+                    <Activity size={20} />
+                  </div>
+                  <div>
+                    <div className="nec-comp-stat-val">{eventResults.length}</div>
+                    <div className="nec-comp-stat-lbl">Recorded Marks</div>
+                  </div>
+                </div>
+
+                <div className="nec-comp-stat-card">
+                  <div className="nec-comp-stat-icon scheduled">
+                    <Trophy size={20} />
+                  </div>
+                  <div>
+                    <div className="nec-comp-stat-val" style={{ fontSize: '1.15rem' }}>
+                      {eventResults[0]?.participant_name || 'TBD'}
+                    </div>
+                    <div className="nec-comp-stat-lbl">
+                      Leader {eventResults[0]?.performance_value ? `(${eventResults[0].performance_value} ${eventResults[0].unit || 'm'})` : ''}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="nec-comp-stat-card">
+                  <div className="nec-comp-stat-icon completed">
+                    <CheckCircle2 size={20} />
+                  </div>
+                  <div>
+                    <div className="nec-comp-stat-val" style={{ fontSize: '1.05rem', color: isFinalized ? '#16a34a' : '#0274be' }}>
+                      {isFinalized ? 'Official' : 'Draft / Live'}
+                    </div>
+                    <div className="nec-comp-stat-lbl">{isFinalized ? 'Results Finalized' : 'Accepting Marks'}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Toolbar */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--nec-text-primary)' }}>
+                    Participant Attempt Records
+                  </span>
+                  <Badge status={isFinalized ? 'success' : 'warning'}>
+                    {isFinalized ? 'Official & Finalized' : 'Unfinalized / Draft'}
+                  </Badge>
+                </div>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                  {manager && !isFinalized && (
+                    <Button
+                      variant="primary"
+                      icon={Plus}
+                      onClick={() => setRecordingAttempt(true)}
+                    >
+                      Record Athlete Attempts
+                    </Button>
+                  )}
+                  {manager && !isFinalized && eventResults.length > 0 && (
+                    <Button
+                      variant="success"
+                      icon={CheckCircle2}
+                      loading={finalizingResults}
+                      onClick={handleFinalizeResults}
+                    >
+                      Finalize & Publish Podium
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {/* Performances Table or Empty State */}
+              {eventResults.length === 0 ? (
+                <div className="nec-comp-empty-state">
+                  <div className="nec-comp-empty-icon">
+                    <Activity size={28} />
+                  </div>
+                  <h3 className="nec-comp-empty-title">No Performance Attempts Recorded Yet</h3>
+                  <p className="nec-comp-empty-desc">
+                    This event uses the <strong>{compFormat}</strong> format. You can record participant attempts (distance, height, time, or points) directly without creating dummy fixtures.
+                  </p>
+                  {manager && (
+                    <Button
+                      variant="primary"
+                      icon={Plus}
+                      onClick={() => setRecordingAttempt(true)}
+                    >
+                      Record First Performance
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <div style={{ background: 'var(--nec-surface)', borderRadius: 14, border: '1px solid var(--nec-border)', padding: 14 }}>
+                  <Table
+                    data={eventResults}
+                    columns={[
+                      {
+                        key: 'rank',
+                        label: 'Rank',
+                        width: '90px',
+                        render: (val, row, idx) => {
+                          const r = val || row.rank || idx + 1;
+                          const bg = r === 1 ? '#fef3c7' : r === 2 ? '#f1f5f9' : r === 3 ? '#ffedd5' : '#f8fafc';
+                          const color = r === 1 ? '#92400e' : r === 2 ? '#475569' : r === 3 ? '#9a3412' : '#64748b';
+                          const border = r === 1 ? '#fde68a' : r === 2 ? '#cbd5e1' : r === 3 ? '#fed7aa' : '#e2e8f0';
+                          return (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '36px', height: '36px', borderRadius: '50%', fontWeight: 800, fontSize: '0.9rem', background: bg, color: color, border: `1px solid ${border}` }}>
+                              {r}
+                            </span>
+                          );
+                        }
+                      },
+                      {
+                        key: 'participant_name',
+                        label: 'Athlete & Department',
+                        minWidth: '220px',
+                        render: (val, row) => (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                            <strong style={{ fontSize: '0.92rem' }}>{val || row.student_name || 'Participant'}</strong>
+                            <span style={{ fontSize: '0.78rem', color: 'var(--nec-text-muted)' }}>
+                              {row.department_name || row.dept_name || row.department_code || 'General Entry'}
+                              {row.register_number ? ` · ${row.register_number}` : ''}
+                            </span>
+                          </div>
+                        )
+                      },
+                      {
+                        key: 'attempt1',
+                        label: 'Attempt 1',
+                        minWidth: '100px',
+                        render: (_, row) => {
+                          const att = row.attempts?.[0];
+                          if (!att) return <span style={{ color: '#94a3b8' }}>-</span>;
+                          return (
+                            <span className={`nec-attempt-pill ${att.isFoul ? 'nec-attempt-foul' : ''}`}>
+                              {att.isFoul ? 'FOUL' : `${att.value ?? '-'} ${row.unit || ''}`}
+                            </span>
+                          );
+                        }
+                      },
+                      {
+                        key: 'attempt2',
+                        label: 'Attempt 2',
+                        minWidth: '100px',
+                        render: (_, row) => {
+                          const att = row.attempts?.[1];
+                          if (!att) return <span style={{ color: '#94a3b8' }}>-</span>;
+                          return (
+                            <span className={`nec-attempt-pill ${att.isFoul ? 'nec-attempt-foul' : ''}`}>
+                              {att.isFoul ? 'FOUL' : `${att.value ?? '-'} ${row.unit || ''}`}
+                            </span>
+                          );
+                        }
+                      },
+                      {
+                        key: 'attempt3',
+                        label: 'Attempt 3',
+                        minWidth: '100px',
+                        render: (_, row) => {
+                          const att = row.attempts?.[2];
+                          if (!att) return <span style={{ color: '#94a3b8' }}>-</span>;
+                          return (
+                            <span className={`nec-attempt-pill ${att.isFoul ? 'nec-attempt-foul' : ''}`}>
+                              {att.isFoul ? 'FOUL' : `${att.value ?? '-'} ${row.unit || ''}`}
+                            </span>
+                          );
+                        }
+                      },
+                      {
+                        key: 'performance_value',
+                        label: 'Best Mark',
+                        minWidth: '120px',
+                        render: (val, row) => (
+                          <span className="nec-best-pill">
+                            {val != null ? `${val} ${row.unit || 'm'}` : 'No Mark'}
+                          </span>
+                        )
+                      },
+                      {
+                        key: 'result_status',
+                        label: 'Status',
+                        width: '100px',
+                        render: (val) => (
+                          <Badge status={val === 'Valid' ? 'success' : val === 'Foul' ? 'danger' : 'neutral'}>
+                            {val || 'Valid'}
+                          </Badge>
+                        )
+                      },
+                      {
+                        key: 'remarks',
+                        label: 'Remarks',
+                        minWidth: '130px',
+                        render: (val) => (
+                          <span style={{ fontSize: '0.8rem', color: 'var(--nec-text-muted)' }}>
+                            {val || '-'}
+                          </span>
+                        )
+                      },
+                      {
+                        key: 'result_id',
+                        label: 'Actions',
+                        width: '90px',
+                        render: (id, row) =>
+                          manager && !isFinalized ? (
+                            <Button
+                              size="sm"
+                              variant="danger"
+                              icon={Trash2}
+                              title="Delete result entry"
+                              onClick={() => handleDeleteResult(id || row.resultId)}
+                            />
+                          ) : null
+                      }
+                    ]}
+                    pageSize={15}
+                    searchPlaceholder="Search athlete name, department, or mark..."
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* VIEW: Podium & Official Results */}
+          {showResultsView && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {/* Podium Showcase */}
+              {eventResults.length > 0 ? (
+                <>
+                  <div className="nec-podium-grid">
+                    {/* 1st Place Gold */}
+                    {eventResults[0] && (
+                      <div className="nec-podium-card nec-podium-gold">
+                        <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#fbbf24', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '10px', boxShadow: '0 4px 10px rgba(245, 158, 11, 0.4)' }}>
+                          <Trophy size={26} color="#78350f" />
+                        </div>
+                        <Badge status="warning">1st Place · Gold</Badge>
+                        <h4 style={{ margin: '10px 0 2px', fontSize: '1.15rem', fontWeight: 800, color: 'var(--nec-text-primary)' }}>
+                          {eventResults[0].participant_name}
+                        </h4>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--nec-text-muted)', marginBottom: '8px' }}>
+                          {eventResults[0].department_name || eventResults[0].dept_name || 'National Engineering College'}
+                        </span>
+                        <div className="nec-best-pill" style={{ fontSize: '1rem', padding: '4px 14px' }}>
+                          {eventResults[0].performance_value != null ? `${eventResults[0].performance_value} ${eventResults[0].unit || ''}` : 'Winner'}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 2nd Place Silver */}
+                    {eventResults[1] && (
+                      <div className="nec-podium-card nec-podium-silver">
+                        <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '10px', boxShadow: '0 4px 10px rgba(148, 163, 184, 0.4)' }}>
+                          <Medal size={26} color="#1e293b" />
+                        </div>
+                        <Badge status="neutral">2nd Place · Silver</Badge>
+                        <h4 style={{ margin: '10px 0 2px', fontSize: '1.15rem', fontWeight: 800, color: 'var(--nec-text-primary)' }}>
+                          {eventResults[1].participant_name}
+                        </h4>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--nec-text-muted)', marginBottom: '8px' }}>
+                          {eventResults[1].department_name || eventResults[1].dept_name || 'National Engineering College'}
+                        </span>
+                        <div className="nec-best-pill" style={{ fontSize: '1rem', padding: '4px 14px' }}>
+                          {eventResults[1].performance_value != null ? `${eventResults[1].performance_value} ${eventResults[1].unit || ''}` : 'Runner-Up'}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 3rd Place Bronze */}
+                    {eventResults[2] && (
+                      <div className="nec-podium-card nec-podium-bronze">
+                        <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '10px', boxShadow: '0 4px 10px rgba(217, 119, 6, 0.4)' }}>
+                          <Award size={26} color="#451a03" />
+                        </div>
+                        <Badge status="danger">3rd Place · Bronze</Badge>
+                        <h4 style={{ margin: '10px 0 2px', fontSize: '1.15rem', fontWeight: 800, color: 'var(--nec-text-primary)' }}>
+                          {eventResults[2].participant_name}
+                        </h4>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--nec-text-muted)', marginBottom: '8px' }}>
+                          {eventResults[2].department_name || eventResults[2].dept_name || 'National Engineering College'}
+                        </span>
+                        <div className="nec-best-pill" style={{ fontSize: '1rem', padding: '4px 14px' }}>
+                          {eventResults[2].performance_value != null ? `${eventResults[2].performance_value} ${eventResults[2].unit || ''}` : '3rd Place'}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Complete Standings Table */}
+                  <div style={{ background: 'var(--nec-surface)', borderRadius: 14, border: '1px solid var(--nec-border)', padding: 14 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                      <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 700 }}>Complete Event Standings</h4>
+                      {manager && !isFinalized && (
+                        <Button
+                          variant="success"
+                          size="sm"
+                          icon={CheckCircle2}
+                          loading={finalizingResults}
+                          onClick={handleFinalizeResults}
+                        >
+                          Publish Official Results
+                        </Button>
+                      )}
+                    </div>
+                    <Table
+                      data={eventResults}
+                      columns={[
+                        {
+                          key: 'rank',
+                          label: 'Rank',
+                          width: '80px',
+                          render: (val, _, idx) => `#${val || idx + 1}`
+                        },
+                        {
+                          key: 'participant_name',
+                          label: 'Participant / Squad',
+                          render: (val, row) => (
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                              <strong>{val}</strong>
+                              <span style={{ fontSize: '0.75rem', color: 'var(--nec-text-muted)' }}>
+                                {row.department_name || row.dept_name || 'General Entry'}
+                              </span>
+                            </div>
+                          )
+                        },
+                        {
+                          key: 'performance_value',
+                          label: 'Official Mark / Score',
+                          render: (val, row) => `${val ?? '-'} ${row.unit || ''}`
+                        },
+                        {
+                          key: 'result_status',
+                          label: 'Status',
+                          render: (val) => <Badge status={val === 'Valid' ? 'success' : 'neutral'}>{val || 'Valid'}</Badge>
+                        },
+                        {
+                          key: 'remarks',
+                          label: 'Notes / Remarks',
+                          render: (val) => val || '-'
+                        }
+                      ]}
+                      pageSize={10}
+                    />
+                  </div>
+                </>
+              ) : (
+                <div className="nec-comp-empty-state">
+                  <div className="nec-comp-empty-icon">
+                    <Trophy size={28} />
+                  </div>
+                  <h3 className="nec-comp-empty-title">No Official Results Finalized Yet</h3>
+                  <p className="nec-comp-empty-desc">
+                    Record participant performance attempts or score match fixtures first, then finalize results to publish the official podium rankings.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* VIEW: Registered Entries */}
+          {showEntriesView && (
+            <div style={{ background: 'var(--nec-surface)', borderRadius: 14, border: '1px solid var(--nec-border)', padding: 14 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                <div>
+                  <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 700 }}>
+                    Registered {parentRegistrations.entries.length > 0 ? 'Athletes' : 'Teams'}
+                  </h4>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--nec-text-muted)' }}>
+                    Total entries enrolled for {eventData?.name || 'this event'}
+                  </span>
+                </div>
+              </div>
+              <Table
+                data={parentRegistrations.entries.length > 0 ? parentRegistrations.entries : parentRegistrations.teams}
+                columns={[
+                  {
+                    key: 'name',
+                    label: 'Name / Athlete',
+                    render: (_, row) => (
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <strong>{row.student_name || row.team_name || row.name || 'Participant'}</strong>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--nec-text-muted)' }}>
+                          {row.register_number ? `Reg: ${row.register_number}` : (row.deptCode || '')}
+                        </span>
+                      </div>
+                    )
+                  },
+                  {
+                    key: 'department_name',
+                    label: 'Department',
+                    render: (_, row) => row.department_name || row.dept_name || row.department_code || '-'
+                  },
+                  {
+                    key: 'year_of_study',
+                    label: 'Year / Category',
+                    render: (_, row) => row.year_of_study ? `Year ${row.year_of_study}` : (row.category_name || '-')
+                  },
+                  {
+                    key: 'created_at',
+                    label: 'Registered On',
+                    render: (val) => (val ? new Date(val).toLocaleDateString('en-IN') : '-')
+                  }
+                ]}
+                pageSize={10}
+                searchPlaceholder="Search registered entries..."
+              />
+            </div>
+          )}
+
           {/* VIEW A: Team Matches Fixtures */}
           {showMatchView && (
             <>
@@ -2053,6 +2676,177 @@ export default function CompetitionWorkspace({ tournamentId, defaultEventId, onC
             </Button>
           </div>
         </div>
+      </Modal>
+      {/* ── RECORD ATTEMPTS MODAL ────────────────────────────── */}
+      <Modal
+        isOpen={recordingAttempt}
+        onClose={() => setRecordingAttempt(false)}
+        title={`Record Athlete Performance · ${eventData?.name || 'Event'}`}
+        maxWidth="620px"
+      >
+        <form onSubmit={handleSaveAttempts} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, marginBottom: '6px' }}>
+              Select Registered Athlete <span style={{ color: '#dc2626' }}>*</span>
+            </label>
+            {parentRegistrations.entries?.length > 0 ? (
+              <select
+                className="nec-comp-select"
+                style={{ width: '100%', marginBottom: '8px' }}
+                value={attemptForm.studentId}
+                onChange={(e) => {
+                  const sId = e.target.value;
+                  const reg = parentRegistrations.entries.find((r) => String(r.student_id || r.id) === sId);
+                  setAttemptForm((prev) => ({
+                    ...prev,
+                    studentId: sId,
+                    participantName: reg?.student_name || reg?.name || prev.participantName,
+                    departmentId: reg?.department_id || reg?.dept_id || prev.departmentId
+                  }));
+                }}
+              >
+                <option value="">-- Choose Registered Athlete --</option>
+                {parentRegistrations.entries.map((r) => (
+                  <option key={r.entry_id || r.student_id} value={String(r.student_id || r.id)}>
+                    {r.student_name || r.name} ({r.register_number || 'ID'}) · {r.department_code || r.department_name || 'Dept'}
+                  </option>
+                ))}
+              </select>
+            ) : null}
+            <input
+              type="text"
+              className="nec-comp-input"
+              placeholder="Or enter participant / athlete full name..."
+              value={attemptForm.participantName}
+              onChange={(e) => setAttemptForm((prev) => ({ ...prev, participantName: e.target.value }))}
+              required={!attemptForm.studentId}
+            />
+          </div>
+
+          {/* Unit Selection & Best preview */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, marginBottom: '6px' }}>
+                Measurement Unit
+              </label>
+              <select
+                className="nec-comp-select"
+                style={{ width: '100%' }}
+                value={attemptForm.unit}
+                onChange={(e) => setAttemptForm((prev) => ({ ...prev, unit: e.target.value }))}
+              >
+                <option value="m">Meters (m) — Jumps & Throws</option>
+                <option value="cm">Centimeters (cm)</option>
+                <option value="kg">Kilograms (kg) — Weightlifting</option>
+                <option value="pts">Points (pts)</option>
+                <option value="s">Seconds (s) — Timed trials</option>
+              </select>
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, marginBottom: '6px' }}>
+                Calculated Best Mark
+              </label>
+              <div style={{ padding: '8px 12px', background: '#ecfdf5', borderRadius: '8px', border: '1px solid #a7f3d0', fontWeight: 800, color: '#065f46' }}>
+                {(() => {
+                  const val1 = !attemptForm.foul1 && attemptForm.attempt1 !== '' ? Number(attemptForm.attempt1) : null;
+                  const val2 = !attemptForm.foul2 && attemptForm.attempt2 !== '' ? Number(attemptForm.attempt2) : null;
+                  const val3 = !attemptForm.foul3 && attemptForm.attempt3 !== '' ? Number(attemptForm.attempt3) : null;
+                  const valid = [val1, val2, val3].filter((v) => v !== null && !isNaN(v));
+                  return valid.length > 0 ? `${Math.max(...valid)} ${attemptForm.unit}` : 'No Valid Mark Yet';
+                })()}
+              </div>
+            </div>
+          </div>
+
+          {/* Attempts 1, 2, 3 Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+            <div style={{ background: '#f8fafc', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, marginBottom: '4px' }}>Attempt 1</label>
+              <input
+                type="number"
+                step="any"
+                className="nec-comp-input"
+                placeholder={`Value (${attemptForm.unit})`}
+                disabled={attemptForm.foul1}
+                value={attemptForm.attempt1}
+                onChange={(e) => setAttemptForm((prev) => ({ ...prev, attempt1: e.target.value }))}
+              />
+              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', marginTop: '6px', color: '#dc2626', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={attemptForm.foul1}
+                  onChange={(e) => setAttemptForm((prev) => ({ ...prev, foul1: e.target.checked }))}
+                />
+                Foul / Invalid
+              </label>
+            </div>
+
+            <div style={{ background: '#f8fafc', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, marginBottom: '4px' }}>Attempt 2</label>
+              <input
+                type="number"
+                step="any"
+                className="nec-comp-input"
+                placeholder={`Value (${attemptForm.unit})`}
+                disabled={attemptForm.foul2}
+                value={attemptForm.attempt2}
+                onChange={(e) => setAttemptForm((prev) => ({ ...prev, attempt2: e.target.value }))}
+              />
+              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', marginTop: '6px', color: '#dc2626', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={attemptForm.foul2}
+                  onChange={(e) => setAttemptForm((prev) => ({ ...prev, foul2: e.target.checked }))}
+                />
+                Foul / Invalid
+              </label>
+            </div>
+
+            <div style={{ background: '#f8fafc', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, marginBottom: '4px' }}>Attempt 3</label>
+              <input
+                type="number"
+                step="any"
+                className="nec-comp-input"
+                placeholder={`Value (${attemptForm.unit})`}
+                disabled={attemptForm.foul3}
+                value={attemptForm.attempt3}
+                onChange={(e) => setAttemptForm((prev) => ({ ...prev, attempt3: e.target.value }))}
+              />
+              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', marginTop: '6px', color: '#dc2626', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={attemptForm.foul3}
+                  onChange={(e) => setAttemptForm((prev) => ({ ...prev, foul3: e.target.checked }))}
+                />
+                Foul / Invalid
+              </label>
+            </div>
+          </div>
+
+          {/* Remarks */}
+          <div>
+            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, marginBottom: '4px' }}>
+              Remarks / Wind / Notes
+            </label>
+            <input
+              type="text"
+              className="nec-comp-input"
+              placeholder="e.g. +1.4 m/s wind, new college record, personal best..."
+              value={attemptForm.remarks}
+              onChange={(e) => setAttemptForm((prev) => ({ ...prev, remarks: e.target.value }))}
+            />
+          </div>
+
+          <div className="nec-comp-modal-actions">
+            <Button type="button" variant="ghost" onClick={() => setRecordingAttempt(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="primary" loading={busy}>
+              Save Performance & Auto-Rank
+            </Button>
+          </div>
+        </form>
       </Modal>
     </section>
   );

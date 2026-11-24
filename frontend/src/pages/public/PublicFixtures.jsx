@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useCallback, useEffect } from "react";
-import { matchesApi, tournamentsApi } from "../../services/api/apiServices";
+import { matchesApi, tournamentsApi, eventsApi } from "../../services/api/apiServices";
 import Table from "../../components/common/Table";
 import Badge from "../../components/common/Badge";
 import Button from "../../components/common/Button";
@@ -39,15 +39,21 @@ function formatDateTime(val) {
 export default function PublicFixtures({ departmentCode, onNavigate }) {
   const [scope, setScope] = useState("ALL"); // 'ALL', 'Intramural', 'Inter-Collegiate'
   const [statusTab, setStatusTab] = useState("UPCOMING"); // 'UPCOMING', 'TODAY', 'LIVE', 'ALL'
+  const [userSelectedTab, setUserSelectedTab] = useState(false);
   const [viewMode, setViewMode] = useState("table"); // 'table' | 'bracket'
   const [selectedTournament, setSelectedTournament] = useState("ALL");
+  const [selectedEvent, setSelectedEvent] = useState("ALL");
   const [selectedSport, setSelectedSport] = useState("ALL");
   const [sortOption, setSortOption] = useState("date_asc");
   const [tournaments, setTournaments] = useState([]);
+  const [eventsList, setEventsList] = useState([]);
 
-  // Fetch matches with scope filter
+  // Fetch matches with scope filter and unified competitions inclusion
   const fetchMatches = useCallback(async () => {
-    const params = scope === "ALL" ? {} : { scope };
+    const params = {
+      includeCompetitions: true,
+      ...(scope === "ALL" ? {} : { scope })
+    };
     const res = await matchesApi.getMatches(params);
     return Array.isArray(res) ? res : [];
   }, [scope]);
@@ -67,6 +73,19 @@ export default function PublicFixtures({ departmentCode, onNavigate }) {
       .catch(() => setTournaments([]));
   }, [scope]);
 
+  // Fetch events list for tournament-specific filtering
+  useEffect(() => {
+    const params = {};
+    if (selectedTournament !== "ALL") params.tournamentId = selectedTournament;
+    if (scope !== "ALL") params.scope = scope;
+    eventsApi.getEvents(params)
+      .then(res => {
+        const list = Array.isArray(res) ? res : (res?.items || res?.data || []);
+        setEventsList(list);
+      })
+      .catch(() => setEventsList([]));
+  }, [selectedTournament, scope]);
+
   const allMatches = rawMatches || [];
   const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
@@ -80,7 +99,49 @@ export default function PublicFixtures({ departmentCode, onNavigate }) {
     return Array.from(set).sort();
   }, [allMatches]);
 
-  // Filter by statusTab and department
+  // Combined available events for tournament/event dropdown
+  const availableEvents = useMemo(() => {
+    const map = new Map();
+    eventsList.forEach(ev => {
+      const id = String(ev.event_id || ev.id);
+      map.set(id, { id, name: ev.name || ev.title, tournamentId: String(ev.tournament_id || ev.tournamentId || "") });
+    });
+    allMatches.forEach(m => {
+      const id = m.event_id || m.eventId;
+      const name = m.event_name || m.eventName;
+      if (id && name && !map.has(String(id))) {
+        map.set(String(id), { id: String(id), name, tournamentId: String(m.tournament_id || m.tournamentId || "") });
+      }
+    });
+
+    let list = Array.from(map.values());
+    if (selectedTournament !== "ALL") {
+      list = list.filter(ev => !ev.tournamentId || ev.tournamentId === String(selectedTournament));
+    }
+    return list.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+  }, [eventsList, allMatches, selectedTournament]);
+
+  // Smart continuity: If the visitor hasn't explicitly clicked a status tab yet,
+  // ensure they aren't greeted with a dead-end 0-match screen when live or completed matches exist!
+  useEffect(() => {
+    if (userSelectedTab || allMatches.length === 0) return;
+    const sched = allMatches.filter(m => m.status === "Scheduled").length;
+    const live = allMatches.filter(m => m.status === "Ongoing" || m.status === "Live").length;
+    if (sched === 0) {
+      if (live > 0) {
+        setStatusTab("LIVE");
+      } else {
+        setStatusTab("ALL");
+      }
+    }
+  }, [allMatches, userSelectedTab]);
+
+  const handleTournamentChange = (tId) => {
+    setSelectedTournament(tId);
+    setSelectedEvent("ALL");
+  };
+
+  // Filter by statusTab, department, tournament, event and sport
   const tabFilteredMatches = useMemo(() => {
     let list = [...allMatches];
 
@@ -97,12 +158,17 @@ export default function PublicFixtures({ departmentCode, onNavigate }) {
         return matchDate === todayStr;
       });
     } else if (statusTab === "LIVE") {
-      list = list.filter(m => m.status === "Ongoing");
+      list = list.filter(m => m.status === "Ongoing" || m.status === "Live");
     }
 
     // Tournament filter
     if (selectedTournament !== "ALL") {
       list = list.filter(m => String(m.tournament_id || m.tournamentId) === String(selectedTournament));
+    }
+
+    // Event filter
+    if (selectedEvent !== "ALL") {
+      list = list.filter(m => String(m.event_id || m.eventId) === String(selectedEvent));
     }
 
     // Sport filter
@@ -127,10 +193,10 @@ export default function PublicFixtures({ departmentCode, onNavigate }) {
     });
 
     return list;
-  }, [allMatches, departmentCode, statusTab, todayStr, selectedTournament, selectedSport, sortOption]);
+  }, [allMatches, departmentCode, statusTab, todayStr, selectedTournament, selectedEvent, selectedSport, sortOption]);
 
   const scheduledCount = useMemo(() => allMatches.filter(m => m.status === "Scheduled").length, [allMatches]);
-  const liveCount = useMemo(() => allMatches.filter(m => m.status === "Ongoing").length, [allMatches]);
+  const liveCount = useMemo(() => allMatches.filter(m => m.status === "Ongoing" || m.status === "Live").length, [allMatches]);
   const todayCount = useMemo(() => allMatches.filter(m => (m.scheduled_time || m.date || "").slice(0, 10) === todayStr).length, [allMatches, todayStr]);
 
   const columns = [
@@ -153,15 +219,44 @@ export default function PublicFixtures({ departmentCode, onNavigate }) {
     },
     {
       key: "tournament",
-      label: "Competition / Tournament",
+      label: "Tournament & Event Details",
       render: (_, row) => {
         const isInter = (row.scope || row.tournament_scope) === "Inter-Collegiate";
+        const eventTitle = row.event_name || row.eventName;
         return (
-          <div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
             <div style={{ fontWeight: 700, fontSize: "0.88rem", color: "var(--nec-text-main)" }}>
               {row.tournament_name || row.tournamentName || "Tournament"}
             </div>
-            <div style={{ display: "flex", gap: "6px", marginTop: "3px" }}>
+            {eventTitle ? (
+              <div style={{
+                fontWeight: 600,
+                fontSize: "0.82rem",
+                color: "var(--nec-blue-accent, #0274be)",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "5px"
+              }}>
+                <Trophy size={13} style={{ flexShrink: 0 }} />
+                <span>{eventTitle}</span>
+                {row.competition_format && (
+                  <span style={{
+                    fontSize: "0.68rem",
+                    color: "var(--nec-text-muted)",
+                    background: "var(--nec-surface-raised)",
+                    padding: "1px 5px",
+                    borderRadius: "4px"
+                  }}>
+                    {row.competition_format}
+                  </span>
+                )}
+              </div>
+            ) : (
+              <span style={{ fontSize: "0.76rem", color: "var(--nec-text-muted)", fontStyle: "italic" }}>
+                General Tournament Fixture
+              </span>
+            )}
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "2px" }}>
               <Badge style={{
                 background: isInter ? "#1e3a8a" : "#4338ca",
                 color: "#fff",
@@ -196,46 +291,74 @@ export default function PublicFixtures({ departmentCode, onNavigate }) {
     },
     {
       key: "matchup",
-      label: "Match Contestants",
-      render: (_, row) => (
-        <div className="nec-fixture-matchup-cell" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <div className="nec-fixture-team" style={{ textAlign: "left" }}>
-            <span className="nec-fixture-dept-tag" style={{
-              display: "inline-block",
-              background: "var(--nec-surface-raised)",
-              padding: "2px 6px",
-              borderRadius: "4px",
-              fontSize: "0.72rem",
-              fontWeight: 800
-            }}>
-              {row.dept_a_code || row.deptA || "TEAM"}
+      label: "Match Contestants / Participants",
+      render: (_, row) => {
+        const isComp = row.schedule_type === "Competition" || row.is_competition;
+        if (isComp) {
+          return (
+            <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <span style={{
+                  background: "#fef3c7",
+                  color: "#92400e",
+                  padding: "2px 7px",
+                  borderRadius: "5px",
+                  fontSize: "0.72rem",
+                  fontWeight: 800
+                }}>
+                  HEAT / SESSION
+                </span>
+                <strong style={{ fontSize: "0.9rem", color: "var(--nec-text-main)" }}>
+                  {row.title || row.round || "Competitive Contest"}
+                </strong>
+              </div>
+              <span style={{ fontSize: "0.75rem", color: "var(--nec-text-muted)" }}>
+                {row.scoring ? `Evaluation: ${row.scoring} (${row.unit || ""})` : "Track / Field Event Session"}
+              </span>
+            </div>
+          );
+        }
+
+        return (
+          <div className="nec-fixture-matchup-cell" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <div className="nec-fixture-team" style={{ textAlign: "left" }}>
+              <span className="nec-fixture-dept-tag" style={{
+                display: "inline-block",
+                background: "var(--nec-surface-raised)",
+                padding: "2px 6px",
+                borderRadius: "4px",
+                fontSize: "0.72rem",
+                fontWeight: 800
+              }}>
+                {row.dept_a_code || row.deptA || "TEAM"}
+              </span>
+              <div style={{ fontWeight: 700, fontSize: "0.92rem", color: "var(--nec-text-main)" }}>
+                {row.team_a_name || row.teamA}
+              </div>
+            </div>
+
+            <span className="nec-fixture-vs" style={{ color: "var(--nec-text-muted)", fontWeight: 800, fontSize: "0.75rem" }}>
+              VS
             </span>
-            <div style={{ fontWeight: 700, fontSize: "0.92rem", color: "var(--nec-text-main)" }}>
-              {row.team_a_name || row.teamA}
+
+            <div className="nec-fixture-team" style={{ textAlign: "left" }}>
+              <span className="nec-fixture-dept-tag" style={{
+                display: "inline-block",
+                background: "var(--nec-surface-raised)",
+                padding: "2px 6px",
+                borderRadius: "4px",
+                fontSize: "0.72rem",
+                fontWeight: 800
+              }}>
+                {row.dept_b_code || row.deptB || "TEAM"}
+              </span>
+              <div style={{ fontWeight: 700, fontSize: "0.92rem", color: "var(--nec-text-main)" }}>
+                {row.team_b_name || row.teamB}
+              </div>
             </div>
           </div>
-
-          <span className="nec-fixture-vs" style={{ color: "var(--nec-text-muted)", fontWeight: 800, fontSize: "0.75rem" }}>
-            VS
-          </span>
-
-          <div className="nec-fixture-team" style={{ textAlign: "left" }}>
-            <span className="nec-fixture-dept-tag" style={{
-              display: "inline-block",
-              background: "var(--nec-surface-raised)",
-              padding: "2px 6px",
-              borderRadius: "4px",
-              fontSize: "0.72rem",
-              fontWeight: 800
-            }}>
-              {row.dept_b_code || row.deptB || "TEAM"}
-            </span>
-            <div style={{ fontWeight: 700, fontSize: "0.92rem", color: "var(--nec-text-main)" }}>
-              {row.team_b_name || row.teamB}
-            </div>
-          </div>
-        </div>
-      )
+        );
+      }
     },
     {
       key: "venue",
@@ -251,8 +374,10 @@ export default function PublicFixtures({ departmentCode, onNavigate }) {
       key: "status",
       label: "Status / Result",
       render: (val, row) => {
-        const isLive = val === "Ongoing";
+        const isLive = val === "Ongoing" || val === "Live";
         const isComp = val === "Completed";
+        const isScheduleComp = row.schedule_type === "Competition" || row.is_competition;
+
         if (isLive) {
           return (
             <Badge style={{ background: "#ef4444", color: "#fff", fontWeight: 800, fontSize: "0.72rem" }}>
@@ -261,10 +386,24 @@ export default function PublicFixtures({ departmentCode, onNavigate }) {
           );
         }
         if (isComp) {
+          if (isScheduleComp) {
+            return (
+              <div>
+                <Badge variant="success" style={{ fontSize: "0.72rem", fontWeight: 700 }}>
+                  🏁 Completed
+                </Badge>
+                {row.winner_name && (
+                  <div style={{ fontSize: "0.72rem", color: "#16a34a", fontWeight: 700, marginTop: "2px" }}>
+                    🥇 {row.winner_name}
+                  </div>
+                )}
+              </div>
+            );
+          }
           return (
             <div>
               <Badge variant="default" style={{ fontSize: "0.72rem", fontWeight: 700 }}>
-                {row.score_a} - {row.score_b}
+                {row.score_a ?? 0} - {row.score_b ?? 0}
               </Badge>
               {row.winner_name && (
                 <div style={{ fontSize: "0.72rem", color: "#16a34a", fontWeight: 700, marginTop: "2px" }}>
@@ -350,12 +489,15 @@ export default function PublicFixtures({ departmentCode, onNavigate }) {
             { id: "UPCOMING", label: `Upcoming Scheduled (${scheduledCount})` },
             { id: "TODAY", label: `Today's Matches (${todayCount})` },
             { id: "LIVE", label: `Live In Progress (${liveCount})` },
-            { id: "ALL", label: `Complete Fixture History (${allMatches.length})` }
+            { id: "ALL", label: `Complete Master Schedule (${allMatches.length})` }
           ].map(tab => (
             <button
               key={tab.id}
               type="button"
-              onClick={() => setStatusTab(tab.id)}
+              onClick={() => {
+                setUserSelectedTab(true);
+                setStatusTab(tab.id);
+              }}
               style={{
                 padding: "8px 16px",
                 borderRadius: "8px",
@@ -429,7 +571,7 @@ export default function PublicFixtures({ departmentCode, onNavigate }) {
             <select
               className="nec-fixture-select"
               value={selectedTournament}
-              onChange={(e) => setSelectedTournament(e.target.value)}
+              onChange={(e) => handleTournamentChange(e.target.value)}
               style={{
                 padding: "6px 10px",
                 borderRadius: "6px",
@@ -437,13 +579,41 @@ export default function PublicFixtures({ departmentCode, onNavigate }) {
                 background: "var(--nec-surface)",
                 color: "var(--nec-text-main)",
                 fontSize: "0.82rem",
-                fontWeight: 600
+                fontWeight: 600,
+                maxWidth: "220px"
               }}
             >
               <option value="ALL">All Tournaments</option>
               {tournaments.map(t => (
                 <option key={t.tournament_id || t.id} value={t.tournament_id || t.id}>
                   {t.name || t.title}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Event Dropdown */}
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <span style={{ fontSize: "0.82rem", fontWeight: 700, color: "var(--nec-text-muted)" }}>Event:</span>
+            <select
+              className="nec-fixture-select"
+              value={selectedEvent}
+              onChange={(e) => setSelectedEvent(e.target.value)}
+              style={{
+                padding: "6px 10px",
+                borderRadius: "6px",
+                border: "1px solid var(--nec-border)",
+                background: "var(--nec-surface)",
+                color: "var(--nec-text-main)",
+                fontSize: "0.82rem",
+                fontWeight: 600,
+                maxWidth: "220px"
+              }}
+            >
+              <option value="ALL">All Events {availableEvents.length > 0 ? `(${availableEvents.length})` : ""}</option>
+              {availableEvents.map(ev => (
+                <option key={ev.id} value={ev.id}>
+                  {ev.name}
                 </option>
               ))}
             </select>
@@ -512,17 +682,35 @@ export default function PublicFixtures({ departmentCode, onNavigate }) {
         <Card style={{ padding: "48px 24px", textAlign: "center" }}>
           <Calendar size={48} style={{ color: "var(--nec-text-muted)", margin: "0 auto 16px" }} />
           <h3 style={{ margin: "0 0 8px", color: "var(--nec-text-main)" }}>
-            {statusTab === "UPCOMING" ? "No Upcoming Matches Scheduled" : "No Matches Found"}
+            {statusTab === "UPCOMING" ? "No Upcoming Matches Scheduled" : "No Matches Found for Current Filter"}
           </h3>
-          <p style={{ margin: 0, color: "var(--nec-text-muted)", maxWidth: "520px", marginInline: "auto" }}>
+          <p style={{ margin: 0, color: "var(--nec-text-muted)", maxWidth: "560px", marginInline: "auto" }}>
             {statusTab === "UPCOMING"
-              ? "All currently scheduled fixtures for this tournament or scope have concluded. You can inspect all past results or browse active tournaments."
+              ? (liveCount > 0
+                  ? `All upcoming fixtures have already commenced or concluded. There is currently ${liveCount} match live in progress and ${allMatches.length} overall fixtures available in the continuous master schedule.`
+                  : "All currently scheduled fixtures for this tournament or scope have concluded. You can inspect all past results or browse active tournaments.")
               : "No fixtures match your current filter criteria. Try resetting filters or switching between Intra College and Inter College views."}
           </p>
-          <div style={{ display: "flex", gap: "10px", justifyContent: "center", marginTop: "20px" }}>
-            <Button variant="secondary" onClick={() => setStatusTab("ALL")}>
-              View Complete Fixture History
-            </Button>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", justifyContent: "center", marginTop: "20px" }}>
+            {liveCount > 0 && statusTab !== "LIVE" && (
+              <Button
+                variant="danger"
+                onClick={() => { setUserSelectedTab(true); setStatusTab("LIVE"); }}
+                style={{ background: "#ef4444", color: "#fff", fontWeight: 700 }}
+              >
+                🔴 View Live In Progress ({liveCount})
+              </Button>
+            )}
+            {statusTab !== "ALL" && (
+              <Button variant="secondary" onClick={() => { setUserSelectedTab(true); setStatusTab("ALL"); }}>
+                📋 View Complete Master Schedule ({allMatches.length})
+              </Button>
+            )}
+            {(selectedTournament !== "ALL" || selectedEvent !== "ALL" || selectedSport !== "ALL") && (
+              <Button variant="outline" onClick={() => { setSelectedTournament("ALL"); setSelectedEvent("ALL"); setSelectedSport("ALL"); }}>
+                Reset Filters
+              </Button>
+            )}
             {onNavigate && (
               <Button variant="primary" onClick={() => onNavigate("public_tournaments")}>
                 Browse Tournaments

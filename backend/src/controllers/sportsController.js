@@ -16,7 +16,12 @@ import {
     deleteEventSql,
     updateEventStatusSql,
     getTournamentRegistrationsSql,
-    getTournamentScheduleSql
+    getTournamentScheduleSql,
+    getEventResultsSql,
+    recordEventResultSql,
+    recordMultipleAttemptsSql,
+    finalizeEventResultsSql,
+    deleteEventResultSql
 } from '../models/sql/eventSqlModel.js';
 import {
     getAllTournaments,
@@ -27,7 +32,7 @@ import {
     getPublicTournamentDetails
 } from '../models/sql/tournamentSqlModel.js';
 import { getAllVenues, createVenue as createVenueSql, updateVenue as updateVenueSql, deleteVenue as deleteVenueSql } from '../models/sql/venueSqlModel.js';
-import { getAllMatches, getMatchesByTournament, createMatch as createMatchSql } from '../models/sql/matchSqlModel.js';
+import { getAllMatches, getMatchesByTournament, createMatch as createMatchSql, getUnifiedSchedule } from '../models/sql/matchSqlModel.js';
 import { getTeamsByTournament } from '../models/sql/teamSqlModel.js';
 import {
     getAllDepartments,
@@ -264,6 +269,67 @@ export const deleteEventController = async (req, res, next) => {
     }
 };
 
+/* --- Event Results Controllers (Direct Performance & Final Rankings) --- */
+export const getEventResultsController = async (req, res, next) => {
+    try {
+        const rawId = req.params.id;
+        const eventId = typeof rawId === 'string' && rawId.startsWith('ev_') ? Number(rawId.replace('ev_', '')) : Number(rawId);
+        if (!eventId) return res.status(400).json({ success: false, error: { message: 'Valid Event ID is required.' } });
+        const data = await getEventResultsSql(eventId);
+        return res.json({ success: true, data });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const recordEventResultController = async (req, res, next) => {
+    try {
+        const rawId = req.params.id;
+        const eventId = typeof rawId === 'string' && rawId.startsWith('ev_') ? Number(rawId.replace('ev_', '')) : Number(rawId);
+        if (!eventId) return res.status(400).json({ success: false, error: { message: 'Valid Event ID is required.' } });
+        const resultId = await recordEventResultSql(eventId, req.body);
+        return res.status(201).json({ success: true, data: { result_id: resultId, id: resultId, ...req.body } });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const recordAttemptsController = async (req, res, next) => {
+    try {
+        const rawId = req.params.id;
+        const eventId = typeof rawId === 'string' && rawId.startsWith('ev_') ? Number(rawId.replace('ev_', '')) : Number(rawId);
+        if (!eventId) return res.status(400).json({ success: false, error: { message: 'Valid Event ID is required.' } });
+        const resultId = await recordMultipleAttemptsSql(eventId, req.body);
+        return res.json({ success: true, data: { result_id: resultId, id: resultId, ...req.body } });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const finalizeEventResultsController = async (req, res, next) => {
+    try {
+        const rawId = req.params.id;
+        const eventId = typeof rawId === 'string' && rawId.startsWith('ev_') ? Number(rawId.replace('ev_', '')) : Number(rawId);
+        if (!eventId) return res.status(400).json({ success: false, error: { message: 'Valid Event ID is required.' } });
+        await finalizeEventResultsSql(eventId);
+        return res.json({ success: true, message: 'Event results finalized and event marked as completed.' });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const deleteEventResultController = async (req, res, next) => {
+    try {
+        const resultId = Number(req.params.resultId);
+        if (!resultId) return res.status(400).json({ success: false, error: { message: 'Valid Result ID is required.' } });
+        const success = await deleteEventResultSql(resultId);
+        if (!success) return res.status(404).json({ success: false, error: { message: 'Result not found or is finalized.' } });
+        return res.json({ success: true, message: 'Result deleted successfully.' });
+    } catch (err) {
+        next(err);
+    }
+};
+
 export const toggleEventStatusController = async (req, res, next) => {
     try {
         const rawId = req.params.id;
@@ -349,6 +415,10 @@ export const deleteVenueController = async (req, res, next) => {
 /* --- Matches & Tournaments Matches --- */
 export const getMatches = async (req, res, next) => {
     try {
+        if (req.query.includeCompetitions === 'true' || req.query.unified === 'true') {
+            const data = await getUnifiedSchedule(req.query);
+            return res.json({ success: true, data });
+        }
         const data = await getAllMatches(req.query);
         return res.json({ success: true, data });
     } catch (err) {

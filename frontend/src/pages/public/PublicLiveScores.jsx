@@ -126,7 +126,10 @@ export default function PublicLiveScores() {
   const [selectedMatch, setSelectedMatch] = useState(null);
 
   const fetchMatches = useCallback(async () => {
-    const params = scope === "ALL" ? {} : { scope };
+    const params = {
+      includeCompetitions: true,
+      ...(scope === "ALL" ? {} : { scope })
+    };
     const res = await matchesApi.getMatches(params);
     return Array.isArray(res) ? res : [];
   }, [scope]);
@@ -355,8 +358,41 @@ export default function PublicLiveScores() {
                     </Badge>
                   </div>
 
-                  <div style={{ fontSize: "0.78rem", color: "var(--nec-text-muted)", marginBottom: "8px" }}>
-                    {m.tournament_name || m.tournamentName || "Tournament"}
+                  <div style={{
+                    fontSize: "0.8rem",
+                    color: "var(--nec-text-muted)",
+                    marginBottom: "8px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    flexWrap: "wrap"
+                  }}>
+                    <span style={{ fontWeight: 600 }}>{m.tournament_name || m.tournamentName || "Tournament"}</span>
+                    {(m.event_name || m.eventName) && (
+                      <>
+                        <span style={{ color: "var(--nec-border)" }}>•</span>
+                        <span style={{
+                          fontWeight: 700,
+                          color: "var(--nec-blue-accent, #0274be)",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "3px"
+                        }}>
+                          <Trophy size={12} />
+                          {m.event_name || m.eventName}
+                        </span>
+                      </>
+                    )}
+                    {m.competition_format && (
+                      <span style={{
+                        fontSize: "0.68rem",
+                        background: "var(--nec-surface-raised)",
+                        padding: "1px 5px",
+                        borderRadius: "4px"
+                      }}>
+                        {m.competition_format}
+                      </span>
+                    )}
                   </div>
 
                   {/* Teams & Scores Row */}
@@ -462,7 +498,9 @@ export default function PublicLiveScores() {
               textAlign: "center"
             }}>
               <div style={{ fontSize: "0.82rem", color: "var(--nec-text-muted)", fontWeight: 700, marginBottom: "4px" }}>
-                {selectedMatch.sport_name || selectedMatch.sport} • {selectedMatch.round} • {formatMatchDate(selectedMatch.scheduled_time || selectedMatch.date)}
+                {selectedMatch.tournament_name || selectedMatch.tournamentName} • {selectedMatch.sport_name || selectedMatch.sport}
+                {(selectedMatch.event_name || selectedMatch.eventName) && ` • 🏆 ${selectedMatch.event_name || selectedMatch.eventName}`}
+                {` • ${selectedMatch.round} • ${formatMatchDate(selectedMatch.scheduled_time || selectedMatch.date)}`}
               </div>
               <div style={{ fontSize: "1.2rem", fontWeight: 800, color: "var(--nec-text-main)", marginBottom: "4px" }}>
                 {selectedMatch.team_a_name || selectedMatch.teamA} vs {selectedMatch.team_b_name || selectedMatch.teamB}
