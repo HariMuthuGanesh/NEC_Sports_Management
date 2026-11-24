@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { tournamentsApi, publicApi, competitionLevelsApi } from "../../services/api/apiServices";
+import { formatScope, DISPLAY_SCOPES } from "../../utils/scopeLabels";
 import { Card } from "../../components/common/Card";
 import Badge from "../../components/common/Badge";
 import Button from "../../components/common/Button";
@@ -327,8 +328,8 @@ export default function PublicTournaments() {
           gap: "20px"
         }}>
           {filteredTournaments.map(t => {
-            const tScope = t.scope || t.tournament_scope || "Intramural";
-            const isInter = tScope === "Inter-Collegiate";
+            const formattedScope = formatScope(t.scope || t.tournament_scope);
+            const isInter = formattedScope === DISPLAY_SCOPES.INTER_COLLEGE;
             const isOngoing = t.status === "Ongoing";
 
             return (
@@ -339,6 +340,7 @@ export default function PublicTournaments() {
                   display: "flex",
                   flexDirection: "column",
                   justifyContent: "space-between",
+                  height: "100%",
                   borderRadius: "14px",
                   border: isOngoing ? "2px solid #22c55e" : "1px solid var(--nec-border)",
                   position: "relative",
@@ -363,9 +365,9 @@ export default function PublicTournaments() {
                       >
                         {isInter ? "🌐 Inter College" : "🏛️ Intra College"}
                       </Badge>
-                      {t.tier && (
+                      {t.tier && formatScope(t.tier) !== formattedScope && (
                         <Badge variant="outline" style={{ fontSize: "0.75rem", fontWeight: 600 }}>
-                          {t.tier}
+                          {formatScope(t.tier)}
                         </Badge>
                       )}
                     </div>
@@ -482,11 +484,11 @@ export default function PublicTournaments() {
               <div>
                 <div style={{ display: "flex", gap: "8px", marginBottom: "8px" }}>
                   <Badge style={{ background: "#f5c451", color: "#0d233a", fontWeight: 800 }}>
-                    {tournamentDetail?.tournament?.scope || "Tournament"}
+                    {formatScope(tournamentDetail?.tournament?.scope) || "Tournament"}
                   </Badge>
-                  {tournamentDetail?.tournament?.tier && (
+                  {tournamentDetail?.tournament?.tier && formatScope(tournamentDetail.tournament.tier) !== formatScope(tournamentDetail.tournament.scope) && (
                     <Badge variant="outline" style={{ color: "#fff", borderColor: "rgba(255,255,255,0.4)" }}>
-                      {tournamentDetail.tournament.tier}
+                      {formatScope(tournamentDetail.tournament.tier)}
                     </Badge>
                   )}
                 </div>

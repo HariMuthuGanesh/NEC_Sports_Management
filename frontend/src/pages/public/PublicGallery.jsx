@@ -538,21 +538,20 @@ export default function PublicGallery({ onNavigate }) {
               variant="primary"
               size="sm"
               onClick={handleApplyDateRange}
-              style={{ fontSize: "0.78rem", padding: "4px 10px" }}
+              style={{ fontSize: "0.78rem", padding: "5px 12px", fontWeight: 700 }}
             >
               Apply Filter
             </Button>
-            {(fromDate || toDate || fromTime || toTime || appliedDateRange.fromDate || appliedDateRange.toDate) && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleResetDateRange}
-                style={{ fontSize: "0.78rem", padding: "4px 10px" }}
-                icon={RotateCcw}
-              >
-                Reset
-              </Button>
-            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleResetDateRange}
+              disabled={!fromDate && !toDate && !fromTime && !toTime && !appliedDateRange.fromDate && !appliedDateRange.toDate}
+              style={{ fontSize: "0.78rem", padding: "5px 12px", fontWeight: 700 }}
+              icon={RotateCcw}
+            >
+              Reset Filter
+            </Button>
           </div>
 
           {dateRangeError && (

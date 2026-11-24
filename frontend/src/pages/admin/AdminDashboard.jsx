@@ -1,11 +1,11 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { StatCard, Card } from "../../components/common/Card";
 import Button from "../../components/common/Button";
 import Badge from "../../components/common/Badge";
 import Table from "../../components/common/Table";
 import { tournamentsApi, teamsApi, matchesApi, sportsApi, eventsApi } from "../../services/api/apiServices";
 import { useAuth } from "../../context/AuthContext";
-import { Trophy, Calendar, CheckSquare, Users, Plus, Radio, ArrowRight, Activity, Award } from "lucide-react";
+import { Trophy, Calendar, CheckSquare, Users, Plus, Radio, ArrowRight, Activity, Award, RefreshCw, CheckCircle2, Ban } from "lucide-react";
 import ErrorState from "../../components/common/ErrorState";
 import EmptyState from "../../components/common/EmptyState";
 import { useAutoRefresh } from "../../hooks/useAutoRefresh";
@@ -13,12 +13,13 @@ import "./AdminPortal.css";
 
 export default function AdminDashboard({ onNavigate }) {
   const { t } = useAuth();
+  const [actionLoadingId, setActionLoadingId] = useState(null);
 
   const fetchDashboardData = async () => {
     const [tournaments = [], teams = [], matches = [], venues = [], sports = [], events = []] = await Promise.all([
       tournamentsApi.getTournaments().catch(err => { console.warn("[AdminDashboard] Failed to fetch tournaments:", err); return []; }),
       teamsApi.getTeams().catch(err => { console.warn("[AdminDashboard] Failed to fetch teams:", err); return []; }),
-      matchesApi.getMatches().catch(err => { console.warn("[AdminDashboard] Failed to fetch matches:", err); return []; }),
+      matchesApi.getMatches({ includeCompetitions: true }).catch(err => { console.warn("[AdminDashboard] Failed to fetch matches:", err); return []; }),
       sportsApi.getVenues().catch(err => { console.warn("[AdminDashboard] Failed to fetch venues:", err); return []; }),
       sportsApi.getSports().catch(err => { console.warn("[AdminDashboard] Failed to fetch sports:", err); return []; }),
       eventsApi.getEvents().catch(err => { console.warn("[AdminDashboard] Failed to fetch events:", err); return []; })
@@ -33,17 +34,22 @@ export default function AdminDashboard({ onNavigate }) {
 
     const pending = teamList.filter(t => t.status === "Pending");
     const activeEventsCount = eventList.filter(e => {
-      const st = (e.status || e.registration_status || "").toLowerCase();
-      return st === "open" || st === "registration open" || st === "ongoing";
+      const st = (e.event_status || e.status || e.registration_status || "").toLowerCase();
+      return st === "open" || st === "registration open" || st === "ongoing" || st === "active";
+    }).length;
+
+    const activeTournamentsCount = tournamentList.filter(tour => {
+      const st = (tour.status || "").toLowerCase();
+      return st === "ongoing" || st === "live" || st === "active";
     }).length;
 
     return {
       pendingTeams: pending,
       stats: {
         tournamentsCount: tournamentList.length,
-        openRegsCount: activeEventsCount,
+        openRegsCount: Math.max(activeEventsCount, activeTournamentsCount) || activeEventsCount || activeTournamentsCount,
         pendingApprovals: pending.length,
-        upcomingMatches: matchList.filter(m => m.status === "Scheduled" || m.status === "Ongoing").length,
+        upcomingMatches: matchList.filter(m => m.status === "Scheduled" || m.status === "Ongoing" || m.status === "Live").length,
         totalTeams: teamList.length,
         totalVenues: venueList.length,
         totalSports: sportList.length
@@ -51,10 +57,54 @@ export default function AdminDashboard({ onNavigate }) {
     };
   };
 
-  const { data: dashboardData, loading, error } = useAutoRefresh(
+  const { data: dashboardData, loading, error, refetch, lastUpdated } = useAutoRefresh(
     fetchDashboardData,
-    { interval: 20000 }
+    { interval: 10000 }
   );
+
+  // Global event listener for direct instantaneous desk updates across the application
+  useEffect(() => {
+    let timer = null;
+    const handleDataUpdate = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        refetch();
+      }, 300);
+    };
+    window.addEventListener("nec-data-updated", handleDataUpdate);
+    return () => {
+      if (timer) clearTimeout(timer);
+      window.removeEventListener("nec-data-updated", handleDataUpdate);
+    };
+  }, [refetch]);
+
+  const handleDirectApprove = async (teamId) => {
+    setActionLoadingId(teamId);
+    try {
+      await teamsApi.updateTeamStatus(teamId, "Approved");
+      window.dispatchEvent(new CustomEvent("nec-data-updated"));
+      refetch();
+    } catch (err) {
+      alert("Failed to approve team: " + err.message);
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleDirectReject = async (teamId) => {
+    const reason = window.prompt("Reason for team rejection (optional):");
+    if (reason === null) return;
+    setActionLoadingId(teamId);
+    try {
+      await teamsApi.updateTeamStatus(teamId, "Rejected", reason || "Rejected by Physical Director");
+      window.dispatchEvent(new CustomEvent("nec-data-updated"));
+      refetch();
+    } catch (err) {
+      alert("Failed to reject team: " + err.message);
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
 
   const stats = dashboardData?.stats || {
     tournamentsCount: 0,
@@ -73,7 +123,43 @@ export default function AdminDashboard({ onNavigate }) {
     { key: "name", label: "Team Name", render: (val) => <strong>{val}</strong> },
     { key: "sportId", label: "Sport", width: "120px", render: (val, row) => String(val || row.sportName || "").replace("sp_", "").toUpperCase() },
     { key: "captainName", label: "Captain", render: (val, row) => <span>{val} ({row.captainRoll})</span> },
-    { key: "status", label: "Status", width: "110px", render: (val) => <Badge status="warning">Pending Review</Badge> }
+    { key: "status", label: "Status", width: "110px", render: (val) => <Badge status="warning">Pending Review</Badge> },
+    {
+      key: "actions",
+      label: "Direct Approval",
+      width: "180px",
+      render: (_, row) => {
+        const teamId = row.team_id || row.id;
+        const isActioning = actionLoadingId === teamId;
+        return (
+          <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+            <Button
+              variant="outline"
+              size="sm"
+              icon={CheckCircle2}
+              loading={isActioning}
+              disabled={isActioning}
+              onClick={() => handleDirectApprove(teamId)}
+              style={{ fontSize: "0.75rem", padding: "4px 8px", borderColor: "#16a34a", color: "#16a34a" }}
+              title="Approve Team Registration Directly"
+            >
+              Approve
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={Ban}
+              disabled={isActioning}
+              onClick={() => handleDirectReject(teamId)}
+              style={{ fontSize: "0.75rem", padding: "4px 8px", color: "#dc2626" }}
+              title="Reject Team Registration"
+            >
+              Reject
+            </Button>
+          </div>
+        );
+      }
+    }
   ];
 
   return (
@@ -86,6 +172,18 @@ export default function AdminDashboard({ onNavigate }) {
           <h1 className="nec-page-title" style={{ fontSize: "2rem", marginTop: "2px" }}>{t.directorsDesk || "Physical Director's Desk"}</h1>
         </div>
         <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+          <Button
+            variant="outline"
+            size="sm"
+            icon={RefreshCw}
+            onClick={refetch}
+            disabled={loading}
+          >
+            Refresh Desk
+          </Button>
+          <span style={{ fontSize: "0.78rem", color: "var(--nec-text-muted)" }}>
+            ⚡ Live Sync (auto-updates)
+          </span>
           <Button variant="primary" icon={Plus} onClick={() => onNavigate("admin_events")}>
             {t.createEvent || "Create Event"}
           </Button>

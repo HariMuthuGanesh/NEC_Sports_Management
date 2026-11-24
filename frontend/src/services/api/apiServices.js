@@ -92,6 +92,11 @@ export const apiFetch = async (endpoint, method = 'GET', body = null, isRetry = 
 
     if (response.ok) {
       const resJson = await response.json();
+      if (isMutating && typeof window !== "undefined") {
+        try {
+          window.dispatchEvent(new CustomEvent("nec-data-updated", { detail: { endpoint, method: upperMethod } }));
+        } catch {}
+      }
       return resJson.data !== undefined ? resJson.data : resJson;
     }
 
@@ -154,7 +159,13 @@ export const apiFetchFull = async (endpoint, method = 'GET', body = null, isRetr
     clearTimeout(timeoutId);
 
     if (response.ok) {
-      return await response.json();
+      const resJson = await response.json();
+      if (isMutating && typeof window !== "undefined") {
+        try {
+          window.dispatchEvent(new CustomEvent("nec-data-updated", { detail: { endpoint, method: upperMethod } }));
+        } catch {}
+      }
+      return resJson;
     }
 
     const errorJson = await response.json().catch(() => null);

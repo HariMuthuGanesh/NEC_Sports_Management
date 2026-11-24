@@ -7,6 +7,7 @@ export default function Button({
   variant = "primary", // primary | secondary | outline | outline-danger | danger | ghost | success | link
   size = "md", // xs | sm | md | lg
   icon: Icon,
+  iconOnly = false,
   loading = false,
   disabled = false,
   onClick,
@@ -21,7 +22,7 @@ export default function Button({
   const actionIcons = { delete: Trash2, remove: Trash2, edit: Pencil, add: Plus, create: Plus, save: Save, cancel: X, close: X, refresh: RefreshCw, export: Download, download: Download, print: Printer, view: Eye, approve: Check };
   const ActionIcon = Icon || actionIcons[action];
   const actionLabel = action ? action[0].toUpperCase() + action.slice(1) : null;
-  const isIconOnly = Boolean(action || (!children && ActionIcon));
+  const isIconOnly = Boolean(iconOnly || (!children && ActionIcon));
   const iconSize = size === "xs" ? 13 : size === "sm" ? 15 : size === "lg" ? 20 : 16;
 
   return (

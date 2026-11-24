@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { teamsApi, playersApi, sportsApi, tournamentsApi, eventsApi } from "../../services/api/apiServices";
+import { formatScope } from "../../utils/scopeLabels";
 import Table from "../../components/common/Table";
 import Badge from "../../components/common/Badge";
 import Button from "../../components/common/Button";
@@ -107,6 +108,7 @@ export default function TeamsManager() {
       const res = await teamsApi.deleteTeam(teamId);
       if (res?.softDeleted) alert(res.message);
       loadTeams();
+      window.dispatchEvent(new CustomEvent("nec-data-updated"));
     } catch (err) {
       alert("Failed to delete team: " + err.message);
     }
@@ -231,6 +233,7 @@ export default function TeamsManager() {
       loadTeams();
       setRejectingTeamId(null);
       setRejectionReasonText("");
+      window.dispatchEvent(new CustomEvent("nec-data-updated"));
     }).catch(err => {
       alert("Failed to update status: " + err.message);
     });
@@ -269,9 +272,14 @@ export default function TeamsManager() {
           <div>
             <strong style={{ fontSize: "0.95rem" }}>{val || row.team_name}</strong>
             {(row.tournamentName || row.eventName) && (
-              <div style={{ fontSize: "0.75rem", color: "var(--nec-navy, #1e3a8a)", fontWeight: 600 }}>
-                {row.tournamentName ? `${row.tournamentName} ` : ""}
-                {row.eventName ? `• ${row.eventName}` : ""}
+              <div style={{ fontSize: "0.75rem", color: "var(--nec-navy, #1e3a8a)", fontWeight: 600, display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap", marginTop: "2px" }}>
+                <span>{row.tournamentName ? `${row.tournamentName} ` : ""}</span>
+                {row.eventName && <span>• {row.eventName}</span>}
+                {row.tournamentScope && (
+                  <Badge variant="outline" style={{ fontSize: "0.68rem", fontWeight: 700 }}>
+                    {formatScope(row.tournamentScope)}
+                  </Badge>
+                )}
               </div>
             )}
             <div style={{ fontSize: "0.75rem", color: "var(--nec-text-muted)" }}>
@@ -429,7 +437,9 @@ export default function TeamsManager() {
               icon={Trash2}
               onClick={() => handleDeleteTeam(row.team_id || row.id)}
               title="Delete Team"
-            />
+            >
+              Delete
+            </Button>
           </div>
         );
       }
