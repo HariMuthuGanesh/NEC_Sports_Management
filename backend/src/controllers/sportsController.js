@@ -49,7 +49,8 @@ import {
     cancelAnnouncement as cancelAnnouncementSql,
     deleteAnnouncement as deleteAnnouncementSql
 } from '../models/sql/announcementSqlModel.js';
-import { ensureStudentAndUserExists } from '../services/studentProvisionService.js';
+import { ensureStudentAndUserExists, setStudentSportsInterest } from '../services/studentProvisionService.js';
+import { sendAnnouncementEmail, buildCollegeEmail } from '../services/emailService.js';
 import {
     searchStudents as searchStudentsSql
 } from '../models/sql/studentSqlModel.js';
@@ -568,6 +569,108 @@ export const getAnnouncements = async (req, res, next) => {
     }
 };
 
+const dispatchAnnouncementToInterestedStudents = async (announcement) => {
+    const status = announcement.status || 'Published';
+    const emailScope = announcement.email_scope || (announcement.send_email === false ? 'none' : 'all');
+    if (status !== 'Published' || announcement.send_email === false || emailScope === 'none') {
+        return { queued: false, recipientCount: 0 };
+    }
+
+    let recipients = [];
+
+    if (emailScope === 'custom') {
+        const regList = Array.isArray(announcement.email_register_numbers)
+            ? announcement.email_register_numbers.map(r => String(r || '').trim()).filter(Boolean)
+            : [];
+        const idList = Array.isArray(announcement.email_student_ids)
+            ? announcement.email_student_ids.map(Number).filter(n => !isNaN(n) && n > 0)
+            : [];
+
+        if (idList.length > 0) {
+            const placeholders = idList.map(() => '?').join(',');
+            const [rows] = await pool.execute(
+                `SELECT s.register_number, u.email
+                 FROM students s
+                 LEFT JOIN users u ON u.id = s.user_id
+                 WHERE s.student_id IN (${placeholders})`,
+                idList
+            );
+            rows.forEach(r => {
+                const addr = buildCollegeEmail(r.register_number) || (r.email && String(r.email).trim());
+                if (addr) recipients.push(addr);
+            });
+        }
+        regList.forEach(reg => {
+            const addr = buildCollegeEmail(reg);
+            if (addr) recipients.push(addr);
+        });
+    } else if (emailScope === 'sport' && announcement.email_sport_id) {
+        const sportId = Number(announcement.email_sport_id);
+        const [rows] = await pool.execute(
+            `SELECT DISTINCT s.register_number, u.email
+             FROM students s
+             LEFT JOIN users u ON u.id = s.user_id
+             WHERE s.interested_in_sports = 1
+               AND (u.id IS NULL OR u.is_active = 1)
+               AND (
+                 EXISTS (
+                   SELECT 1 FROM team_members tm
+                   JOIN teams t ON t.team_id = tm.team_id
+                   WHERE tm.student_id = s.student_id AND t.sport_id = ? AND t.status <> 'Disqualified'
+                 )
+                 OR EXISTS (
+                   SELECT 1 FROM event_results er
+                   JOIN events ev ON ev.event_id = er.event_id
+                   WHERE er.student_id = s.student_id AND ev.sport_id = ?
+                 )
+               )`,
+            [sportId, sportId]
+        );
+        recipients = rows
+            .map(r => buildCollegeEmail(r.register_number) || (r.email && String(r.email).trim()))
+            .filter(Boolean);
+    } else {
+        const targetDept = emailScope === 'department'
+            ? (announcement.email_department_id || announcement.target_department_id || announcement.department_id || null)
+            : (announcement.target_department_id || announcement.department_id || null);
+
+        const params = [];
+        let sql = `
+            SELECT s.register_number, u.email
+            FROM students s
+            LEFT JOIN users u ON u.id = s.user_id
+            WHERE s.interested_in_sports = 1
+              AND (u.id IS NULL OR u.is_active = 1)
+        `;
+        if (targetDept) {
+            sql += ' AND s.department_id = ?';
+            params.push(targetDept);
+        }
+
+        const [rows] = await pool.execute(sql, params);
+        recipients = rows
+            .map(r => buildCollegeEmail(r.register_number) || (r.email && String(r.email).trim()))
+            .filter(Boolean);
+    }
+
+    recipients = [...new Set(recipients)];
+    if (recipients.length === 0) {
+        return { queued: false, recipientCount: 0 };
+    }
+
+    // Fire-and-forget batch email delivery so API response stays fast
+    sendAnnouncementEmail({
+        recipients,
+        title: announcement.title || 'New Announcement',
+        content: announcement.content || '',
+        priority: announcement.priority || 'Medium',
+        category: announcement.category || 'General',
+        targetAudience: announcement.target_audience || 'All'
+    }).catch(err => console.error('[Announcement Email Dispatch Error]', err.message));
+
+    return { queued: true, recipientCount: recipients.length };
+};
+
 export const createAnnouncementController = async (req, res, next) => {
     try {
         const authorId = req.user?.id || 1;
@@ -595,8 +698,17 @@ export const createAnnouncementController = async (req, res, next) => {
                 }
             }
         }
+
+        const emailDispatch = await dispatchAnnouncementToInterestedStudents(req.body);
         
-        return res.status(201).json({ success: true, data: { announcement_id: id, ...req.body } });
+        return res.status(201).json({
+            success: true,
+            data: {
+                announcement_id: id,
+                ...req.body,
+                emailRecipientsCount: emailDispatch.recipientCount
+            }
+        });
     } catch (err) {
         next(err);
     }
@@ -604,10 +716,16 @@ export const createAnnouncementController = async (req, res, next) => {
 
 export const updateAnnouncementController = async (req, res, next) => {
     try {
+        const [[existing]] = await pool.execute('SELECT status FROM announcements WHERE announcement_id = ? LIMIT 1', [req.params.id]);
         const success = await updateAnnouncementSql(req.params.id, req.body);
         if (!success) {
             return res.status(404).json({ success: false, error: { message: "Announcement not found" } });
         }
+
+        if (existing && existing.status !== 'Published' && req.body.status === 'Published') {
+            await dispatchAnnouncementToInterestedStudents(req.body);
+        }
+
         return res.json({ success: true, data: { message: "Announcement updated successfully" } });
     } catch (err) {
         next(err);
@@ -1136,12 +1254,41 @@ export const getStudentAttendanceController = async (req, res, next) => {
 export const createStudentController = async (req, res, next) => {
     try {
         if (req.user.role === 'Coordinator' && !req.user.dept_id) return res.status(403).json({ success: false, error: { message: 'No department assigned.' } });
+        const interestedInSports = req.body.interestedInSports !== undefined
+            ? Boolean(req.body.interestedInSports)
+            : (req.body.interested_in_sports !== undefined ? Boolean(req.body.interested_in_sports) : true);
         const result = await ensureStudentAndUserExists({
             registerNumber: req.body.registerNumber || req.body.rollNo,
-            requiredDepartmentId: req.user.role === 'Coordinator' ? req.user.dept_id : null
+            requiredDepartmentId: req.user.role === 'Coordinator' ? req.user.dept_id : null,
+            interestedInSports
         });
         return res.status(201).json({ success: true, data: { ...result, student_id: result.studentId, name: result.studentName } });
     } catch (err) { next(err); }
+};
+
+export const updateStudentSportsInterestController = async (req, res, next) => {
+    try {
+        if (req.user.role === 'Coordinator' && !req.user.dept_id) {
+            return res.status(403).json({ success: false, error: { message: 'No department assigned.' } });
+        }
+        const rawInterested = req.body.interested !== undefined ? req.body.interested : req.body.interested_in_sports;
+        if (rawInterested === undefined) {
+            return res.status(400).json({ success: false, error: { message: 'interested (boolean) is required.' } });
+        }
+        const paramId = req.params.id;
+        const parsedId = paramId && /^\d+$/.test(paramId) ? Number(paramId) : null;
+        const registerNumber = req.body.registerNumber || req.body.register_number || req.body.rollNo || (!parsedId ? paramId : null);
+
+        const result = await setStudentSportsInterest({
+            studentId: parsedId,
+            registerNumber,
+            interested: Boolean(rawInterested),
+            requiredDepartmentId: req.user.role === 'Coordinator' ? req.user.dept_id : null
+        });
+        return res.json({ success: true, data: result });
+    } catch (err) {
+        next(err);
+    }
 };
 
 // Logged-in student's own record (students.user_id = session user) plus their team memberships.
@@ -1149,7 +1296,7 @@ export const createStudentController = async (req, res, next) => {
 export const getMyStudentProfileController = async (req, res, next) => {
     try {
         const [[student]] = await pool.execute(
-            `SELECT s.student_id, s.student_name, s.register_number, s.department_id,
+            `SELECT s.student_id, s.student_name, s.register_number, s.department_id, s.interested_in_sports,
                     d.code AS dept_code, d.name AS dept_name
              FROM students s
              LEFT JOIN departments d ON d.id = s.department_id
@@ -1174,6 +1321,8 @@ export const getMyStudentProfileController = async (req, res, next) => {
                 studentId: student.student_id,
                 name: student.student_name,
                 rollNo: student.register_number,
+                collegeEmail: buildCollegeEmail(student.register_number),
+                interestedInSports: Boolean(student.interested_in_sports),
                 deptId: student.department_id,
                 deptCode: student.dept_code,
                 deptName: student.dept_name,

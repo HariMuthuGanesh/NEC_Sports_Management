@@ -48,6 +48,7 @@ CREATE TABLE IF NOT EXISTS students (
   student_type ENUM('Day-Scholar','Hosteller') DEFAULT 'Day-Scholar',
   sports_type VARCHAR(50) DEFAULT 'Day-Scholar',
   medical_fitness TINYINT(1) DEFAULT 1,
+  interested_in_sports TINYINT(1) NOT NULL DEFAULT 0,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
   FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE

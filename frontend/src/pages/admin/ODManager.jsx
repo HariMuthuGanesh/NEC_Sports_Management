@@ -30,17 +30,30 @@ function OdStatusBadge({ status }) {
 }
 
 // ── Client-side OD PDF letter generation (no extra server needed) ─────────────
+const escapeHtml = (v) => String(v ?? "")
+  .replace(/&/g, "&amp;")
+  .replace(/</g, "&lt;")
+  .replace(/>/g, "&gt;")
+  .replace(/"/g, "&quot;")
+  .replace(/'/g, "&#39;");
+
 function generateOdLetterHtml(od) {
   const fromDate = od.from_date ? new Date(od.from_date).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" }) : "-";
   const toDate   = od.to_date   ? new Date(od.to_date).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" }) : "-";
   const approvedDate = od.approved_at ? new Date(od.approved_at).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" }) : new Date().toLocaleDateString("en-IN");
   const days = od.total_days || 1;
+  const studentName = escapeHtml(od.student_name || "—");
+  const regNo = escapeHtml(od.register_number || "—");
+  const deptName = escapeHtml(od.department_name || "—");
+  const deptCode = escapeHtml(od.department_code || "—");
+  const tourName = escapeHtml(od.tournament_name || "Sports Tournament");
+  const sportName = od.sport_name ? escapeHtml(od.sport_name) : "";
 
   return `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>OD Letter - ${od.student_name || "Student"}</title>
+  <title>OD Letter - ${escapeHtml(od.student_name || "Student")}</title>
   <style>
     body { font-family: "Times New Roman", serif; font-size: 13pt; margin: 40px 60px; color: #000; }
     h2 { text-align: center; font-size: 16pt; margin-bottom: 2px; }
@@ -65,25 +78,25 @@ function generateOdLetterHtml(od) {
   <hr/>
 
   <div class="meta">
-    <span class="ref">Ref No: NEC/DPE/OD/${od.request_id || "—"}/${new Date().getFullYear()}</span>
-    <span>Date: ${approvedDate}</span>
+    <span class="ref">Ref No: NEC/DPE/OD/${escapeHtml(od.request_id || "—")}/${new Date().getFullYear()}</span>
+    <span>Date: ${escapeHtml(approvedDate)}</span>
   </div>
 
   <p><strong>TO WHOM IT MAY CONCERN</strong></p>
 
   <p>
     This is to certify that the following student of our institution has been
-    deputed to participate in the <strong>${od.tournament_name || "Sports Tournament"}</strong>
-    ${od.sport_name ? `(${od.sport_name})` : ""} on official duty.
+    deputed to participate in the <strong>${tourName}</strong>
+    ${sportName ? `(${sportName})` : ""} on official duty.
   </p>
 
   <table>
-    <tr><td>Student Name</td><td>: ${od.student_name || "—"}</td></tr>
-    <tr><td>Register Number</td><td>: ${od.register_number || "—"}</td></tr>
-    <tr><td>Department</td><td>: ${od.department_name || "—"} (${od.department_code || "—"})</td></tr>
-    <tr><td>Event / Tournament</td><td>: ${od.tournament_name || "—"}</td></tr>
-    ${od.sport_name ? `<tr><td>Sport</td><td>: ${od.sport_name}</td></tr>` : ""}
-    <tr><td>Period of OD</td><td>: ${fromDate}${fromDate !== toDate ? " to " + toDate : ""} (${days} day${days > 1 ? "s" : ""})</td></tr>
+    <tr><td>Student Name</td><td>: ${studentName}</td></tr>
+    <tr><td>Register Number</td><td>: ${regNo}</td></tr>
+    <tr><td>Department</td><td>: ${deptName} (${deptCode})</td></tr>
+    <tr><td>Event / Tournament</td><td>: ${tourName}</td></tr>
+    ${sportName ? `<tr><td>Sport</td><td>: ${sportName}</td></tr>` : ""}
+    <tr><td>Period of OD</td><td>: ${escapeHtml(fromDate)}${fromDate !== toDate ? " to " + escapeHtml(toDate) : ""} (${days} day${days > 1 ? "s" : ""})</td></tr>
   </table>
 
   <p>
@@ -114,9 +127,9 @@ function downloadOdLetter(od) {
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-  // Open in new tab so browser can print-to-PDF
+  // Open in new tab before revoking the object URL so the browser can load it
   window.open(url, "_blank");
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
 }
 
 // ── Reject Modal ──────────────────────────────────────────────────────────────
@@ -273,7 +286,7 @@ export default function ODManager() {
         return (
           <div>
             <div style={{ fontWeight: 600 }}>{from === to ? from : `${from} — ${to}`}</div>
-            <div style={{ fontSize: "0.77rem", color: "var(--nec-text-muted)" }}>{row.total_days} day{row.total_days !== 1 ? "s" : ""}</div>
+            <div style={{ fontSize: "0.77rem", color: "var(--nec-text-muted)" }}>{row.total_days || 1} day{(row.total_days || 1) !== 1 ? "s" : ""}</div>
           </div>
         );
       }

@@ -222,13 +222,13 @@ export default function StudentManager() {
       )
     },
     {
-      key: "batchYears",
+      key: "batch",
       label: "Programme",
       width: "140px",
       render: (val, row) => (
         <div style={{ fontSize: "0.82rem" }}>
           {row.degree && <div style={{ fontWeight: 600 }}>{row.degree}</div>}
-          <div style={{ color: "var(--nec-text-muted)" }}>{val || row.batchYear || row.year || "—"}</div>
+          <div style={{ color: "var(--nec-text-muted)" }}>{val || row.year || row.batchYear || row.batchYears || "—"}</div>
         </div>
       )
     },

@@ -175,29 +175,31 @@ export const bulkApproveMatchOdController = async (req, res, next) => {
             SELECT o.request_id, s.user_id, s.department_id, s.student_name 
             FROM od_requests o
             JOIN students s ON o.student_id = s.student_id
-            WHERE o.match_id = ? AND o.status = 'Pending'
+            WHERE o.match_id = ? AND o.approval_status = 'Pending'
         `, [matchId]);
 
         const count = await bulkApproveOdForMatch(matchId, req.user.id);
         
         if (count > 0 && pendingOds.length > 0) {
-            for (const od of pendingOds) {
+            await Promise.all(pendingOds.flatMap((od) => {
+                const tasks = [];
                 if (od.user_id) {
-                    await sendSystemNotification({ 
-                        userId: od.user_id, 
-                        title: "OD Approved", 
-                        message: `Your OD for Match ID ${matchId} was approved.`, 
-                        type: 'OD_STATUS' 
-                    });
+                    tasks.push(sendSystemNotification({
+                        userId: od.user_id,
+                        title: "OD Approved",
+                        message: `Your OD for Match ID ${matchId} was approved.`,
+                        type: 'OD_STATUS'
+                    }));
                 }
                 if (od.department_id) {
-                    await notifyDepartmentCoordinator(od.department_id, { 
-                        title: "OD Approved", 
-                        message: `OD for ${od.student_name} (Match ID ${matchId}) was approved.`, 
-                        type: 'OD_STATUS' 
-                    });
+                    tasks.push(notifyDepartmentCoordinator(od.department_id, {
+                        title: "OD Approved",
+                        message: `OD for ${od.student_name} (Match ID ${matchId}) was approved.`,
+                        type: 'OD_STATUS'
+                    }));
                 }
-            }
+                return tasks;
+            }));
         }
         
         return res.json({

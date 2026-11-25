@@ -360,9 +360,19 @@ export const confirmCollegeTeamV2 = async (req, res, next) => {
             collegeTeamId = insertRes.insertId;
         }
 
-        for (const p of players) {
-            await connection.execute(`INSERT INTO college_team_members (college_team_id, student_id, source_department_id, suggested_by_system, admin_confirmed, confirmed_by) VALUES (?, ?, ?, TRUE, TRUE, ?)`,
-                [collegeTeamId, Number(p.student_id), Number(p.source_department_id), req.user.id]);
+        if (players.length > 0) {
+            const memberValues = players.map(p => [
+                collegeTeamId,
+                Number(p.student_id),
+                Number(p.source_department_id),
+                true,
+                true,
+                req.user.id
+            ]);
+            await connection.query(
+                `INSERT INTO college_team_members (college_team_id, student_id, source_department_id, suggested_by_system, admin_confirmed, confirmed_by) VALUES ?`,
+                [memberValues]
+            );
         }
         await connection.commit();
         return res.status(201).json({ success: true, data: { college_team_id: collegeTeamId, count: players.length, team_name: teamName } });

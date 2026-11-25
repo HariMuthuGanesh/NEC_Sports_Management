@@ -402,7 +402,7 @@ export default function AppointmentsManager() {
             <Award size={24} />
           </div>
           <div>
-            <div className="nec-app-stat-val">{meta?.stats?.active_count || appointments.filter(a => a.status === 'Active').length}</div>
+            <div className="nec-app-stat-val">{meta?.stats?.active_count ?? appointments.filter(a => a.status === 'Active').length}</div>
             <div className="nec-app-stat-label">Total Active Appointments</div>
           </div>
         </div>
@@ -412,7 +412,7 @@ export default function AppointmentsManager() {
             <ShieldCheck size={24} />
           </div>
           <div>
-            <div className="nec-app-stat-val">{meta?.stats?.college_leaders_count || appointments.filter(a => a.status === 'Active' && a.appointment_scope === 'College').length}</div>
+            <div className="nec-app-stat-val">{meta?.stats?.college_leaders_count ?? appointments.filter(a => a.status === 'Active' && a.appointment_scope === 'College').length}</div>
             <div className="nec-app-stat-label">College Sports Presidents</div>
           </div>
         </div>
@@ -422,7 +422,7 @@ export default function AppointmentsManager() {
             <Building2 size={24} />
           </div>
           <div>
-            <div className="nec-app-stat-val">{meta?.stats?.dept_coordinators_count || appointments.filter(a => a.status === 'Active' && a.appointment_scope === 'Department').length}</div>
+            <div className="nec-app-stat-val">{meta?.stats?.dept_coordinators_count ?? appointments.filter(a => a.status === 'Active' && a.appointment_scope === 'Department').length}</div>
             <div className="nec-app-stat-label">Department Coordinators</div>
           </div>
         </div>

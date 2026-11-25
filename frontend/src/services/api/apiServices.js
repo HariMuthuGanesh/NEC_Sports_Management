@@ -363,7 +363,7 @@ export const teamsApi = {
   getCaptainTeams: () => apiFetch("/captain/teams"),
   registerTeam: (teamData) => apiFetch("/teams", "POST", teamData),
   updateTeam: (teamId, teamData) => apiFetch(`/teams/${teamId}`, "PUT", teamData),
-  updateTeamStatus: (teamId, status) => apiFetch(`/teams/${teamId}/status`, "PUT", { status }),
+  updateTeamStatus: (teamId, status, rejectionReason = null) => apiFetch(`/teams/${teamId}/status`, "PUT", { status, rejectionReason }),
   setTeamCaptain: (teamId, studentId) => apiFetch(`/teams/${teamId}/captain`, "PUT", { student_id: studentId }),
   deleteTeam: (teamId) => apiFetch(`/teams/${teamId}`, "DELETE")
 };

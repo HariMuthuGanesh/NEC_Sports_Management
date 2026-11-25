@@ -84,7 +84,6 @@ export const createCoordinatorController = async (req, res, next) => {
         if (departmentId) {
             await conn.execute('UPDATE departments SET coordinator_user_id = ? WHERE id = ?', [userId, departmentId]);
         }
-        await conn.commit();
 
         const emailDelivery = await sendPasswordResetEmail({
             to: email,
@@ -93,8 +92,11 @@ export const createCoordinatorController = async (req, res, next) => {
             resetBy: 'Account Provisioning'
         });
         if (!emailDelivery.success) {
-            return res.status(502).json({ success: false, error: { code: 'EMAIL_DELIVERY_FAILED', message: 'The account was created, but its sign-in email could not be delivered.' } });
+            await conn.rollback();
+            return res.status(502).json({ success: false, error: { code: 'EMAIL_DELIVERY_FAILED', message: 'Account creation rolled back because the sign-in email could not be delivered.' } });
         }
+
+        await conn.commit();
 
         return res.status(201).json({
             success: true,
@@ -128,6 +130,13 @@ export const updateCoordinatorController = async (req, res, next) => {
         const newDeptId = departmentProvided ? (Number(b.departmentId ?? b.department_id) || null) : staff.department_id;
 
         await conn.beginTransaction();
+        if (staff.user_id && email !== staff.email) {
+            const [[dupUser]] = await conn.execute('SELECT id FROM users WHERE email = ? AND id <> ? LIMIT 1', [email, staff.user_id]);
+            if (dupUser) {
+                await conn.rollback();
+                return res.status(409).json({ success: false, error: { code: 'DUPLICATE_EMAIL', message: 'Email address is already in use by another account.' } });
+            }
+        }
         await conn.execute(
             'UPDATE staff_profiles SET full_name = ?, designation = ?, email = ?, phone = ?, department_id = ? WHERE staff_id = ?',
             [fullName, designation, email, phone, newDeptId, staffId]

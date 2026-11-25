@@ -195,6 +195,13 @@ export const updateAppointmentController = async (req, res, next) => {
     const status = req.body.status || existing.status;
     const remarks = req.body.remarks !== undefined ? req.body.remarks : existing.remarks;
 
+    if (tenureStart && tenureEnd && new Date(tenureEnd) < new Date(tenureStart)) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_TENURE', message: 'Tenure end date must be on or after tenure start date.' }
+      });
+    }
+
     // Check conflict if active
     if (status === 'Active') {
       const conflict = await findConflictingAppointment({

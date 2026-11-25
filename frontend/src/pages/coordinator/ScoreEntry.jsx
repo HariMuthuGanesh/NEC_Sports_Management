@@ -231,7 +231,7 @@ export default function ScoreEntry({ onNavigate }) {
   };
 
   const handleOpenScoreSheet = (m) => {
-    if (m.status !== "Ongoing" && currentUser.role !== "Admin") return;
+    if (m.status !== "Ongoing" && currentUser?.role !== "Admin") return;
     sessionStorage.setItem("nec_sports_selected_match_id", m.id);
     sessionStorage.setItem("nec_sports_selected_match", JSON.stringify(m));
     if (onNavigate) {
@@ -252,7 +252,8 @@ export default function ScoreEntry({ onNavigate }) {
         m.detailScore || "",
         false // sets Ongoing
       );
-      toast.success(`${m.teamA} vs ${m.teamB} is now LIVE!`);
+      const matchLabel = m.teamA && m.teamB ? `${m.teamA} vs ${m.teamB}` : (m.eventName || m.sport || "Match");
+      toast.success(`${matchLabel} is now LIVE!`);
       refetch();
     } catch (err) {
       console.error(err);

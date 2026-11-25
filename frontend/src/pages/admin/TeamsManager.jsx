@@ -151,7 +151,7 @@ export default function TeamsManager() {
         team_type: formData.team_type || "Inter-Department",
         coach_name: formData.coachName.trim() || null,
         jersey_color: formData.jerseyColor.trim() || null,
-        status: "Pending"
+        status: formData.status || "Pending"
       });
 
       setFormSuccess("Team registered successfully.");

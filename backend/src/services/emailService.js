@@ -131,6 +131,122 @@ export const sendPasswordResetEmail = async ({ to, username, tempPassword, reset
 };
 
 /**
+ * Derive standard NEC college email address from a student's register number.
+ * Example: 24104111 -> 24104111@nec.edu.in
+ */
+export const buildCollegeEmail = (registerNumber) => {
+    const clean = String(registerNumber || '').trim().toLowerCase();
+    return clean ? `${clean}@nec.edu.in` : null;
+};
+
+/**
+ * Send an admin announcement email in private BCC batches to sports-interested students.
+ */
+export const sendAnnouncementEmail = async ({
+    recipients = [],
+    title,
+    content,
+    priority = 'Medium',
+    category = 'General',
+    targetAudience = 'All'
+}) => {
+    const uniqueRecipients = [...new Set(recipients.map(r => String(r || '').trim().toLowerCase()).filter(Boolean))];
+    if (uniqueRecipients.length === 0) {
+        return { success: true, sentCount: 0, skipped: true, reason: 'NO_RECIPIENTS' };
+    }
+
+    const transporter = createTransporter();
+    if (!transporter) {
+        console.warn(`[EMAIL SKIPPED] SMTP not configured. Announcement "${title}" not emailed to ${uniqueRecipients.length} student(s).`);
+        return { success: false, sentCount: 0, skipped: true, reason: 'EMAIL_NOT_CONFIGURED' };
+    }
+
+    const fromAddress = process.env.EMAIL_FROM || '"NEC Sports Directorate" <no-reply@nec.edu.in>';
+    const portalUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/announcements`;
+    const safeTitle = escapeHtml(title);
+    const safeContent = escapeHtml(content).replace(/\n/g, '<br>');
+    const safePriority = escapeHtml(priority);
+    const safeCategory = escapeHtml(category);
+    const safeAudience = escapeHtml(targetAudience);
+    const safePortalUrl = escapeHtml(portalUrl);
+
+    const priorityColor = priority === 'Urgent' ? '#dc2626' : priority === 'High' ? '#d97706' : '#0274be';
+
+    const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 20px; color: #1e293b; }
+        .email-container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; }
+        .header { background: #0b2c5d; padding: 22px 26px; color: #ffffff; }
+        .header h1 { margin: 0; font-size: 18px; font-weight: 700; }
+        .meta { margin-top: 8px; font-size: 12px; color: #cbd5e1; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; color: #ffffff; background: ${priorityColor}; margin-right: 6px; }
+        .content { padding: 28px 26px; }
+        .title { font-size: 18px; font-weight: 700; color: #0f172a; margin: 0 0 14px 0; }
+        .body-text { font-size: 14px; line-height: 1.65; color: #334155; background: #f8fafc; border-left: 3px solid ${priorityColor}; padding: 14px 16px; border-radius: 4px; }
+        .cta-wrap { margin-top: 24px; }
+        .cta-btn { display: inline-block; background: #0274be; color: #ffffff !important; padding: 10px 22px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 13px; }
+        .footer { font-size: 12px; color: #94a3b8; border-top: 1px solid #f1f5f9; padding: 16px 26px; }
+      </style>
+    </head>
+    <body>
+      <div class="email-container">
+        <div class="header">
+          <h1>NEC Sports Announcement</h1>
+          <div class="meta">
+            <span class="badge">${safePriority}</span>
+            <span>Category: ${safeCategory} &bull; Audience: ${safeAudience}</span>
+          </div>
+        </div>
+        <div class="content">
+          <h2 class="title">${safeTitle}</h2>
+          <div class="body-text">${safeContent}</div>
+          <div class="cta-wrap">
+            <a href="${safePortalUrl}" class="cta-btn" target="_blank">View on Sports Portal</a>
+          </div>
+        </div>
+        <div class="footer">
+          You received this email because you opted into NEC Sports updates.
+        </div>
+      </div>
+    </body>
+    </html>
+    `;
+
+    const BATCH_SIZE = 50;
+    let sentCount = 0;
+    const errors = [];
+
+    for (let i = 0; i < uniqueRecipients.length; i += BATCH_SIZE) {
+        const batch = uniqueRecipients.slice(i, i + BATCH_SIZE);
+        try {
+            await transporter.sendMail({
+                from: fromAddress,
+                to: fromAddress,
+                bcc: batch,
+                subject: `[NEC Sports - ${priority}] ${title}`,
+                text: `${title}\nPriority: ${priority} | Category: ${category}\n\n${content}\n\nView more at: ${portalUrl}`,
+                html: htmlContent
+            });
+            sentCount += batch.length;
+        } catch (err) {
+            console.error(`[EMAIL ERROR] Announcement batch failed:`, err.message);
+            errors.push(err.message);
+        }
+    }
+
+    return {
+        success: errors.length === 0,
+        sentCount,
+        totalRecipients: uniqueRecipients.length,
+        errors: errors.length > 0 ? errors : undefined
+    };
+};
+
+/**
  * Service to dispatch system notifications and email alerts
  */
 export const sendSystemNotification = async ({ userId, title, message, type = 'GENERAL' }) => {

@@ -148,7 +148,7 @@ export default function CollegeTeamBuilder() {
         if (String(t.eventId || t.event_id) !== String(filterEvent) && t.eventName !== filterEvent) return false;
       }
       if (filterScope !== "ALL") {
-        const scope = t.team_type || t.teamType || (t.department_id ? "Inter-Department" : "Outer-College");
+        const scope = t.team_type || t.teamType || (t.dept_id || t.deptId || t.department_id ? "Inter-Department" : "Outer-College");
         if (scope !== filterScope) return false;
       }
 
@@ -172,7 +172,7 @@ export default function CollegeTeamBuilder() {
 
       // 4. Status Filter
       if (filterStatus !== "ALL") {
-        if ((t.status || "Pending").toUpperCase() !== filterStatus.toUpperCase()) return false;
+        if ((t.status || "Approved").toUpperCase() !== filterStatus.toUpperCase()) return false;
       }
 
       // 5. Search Text Filter
@@ -397,7 +397,7 @@ export default function CollegeTeamBuilder() {
           sport_id: Number(selectedSportId),
           department_id: Number(builderDeptId),
           status: "Pending",
-          team_type: "Department",
+          team_type: "Inter-Department",
           player_ids: selectedPlayers.map((p) => p.student_id)
         });
 
@@ -966,7 +966,7 @@ export default function CollegeTeamBuilder() {
                     <option value="Disqualified">Disqualified</option>
                   </select>
 
-                  {(teamSearch || filterDept !== "ALL" || filterCategory !== "ALL" || filterSport !== "ALL" || filterStatus !== "ALL") && (
+                  {(teamSearch || filterTournament !== "ALL" || filterEvent !== "ALL" || filterScope !== "ALL" || filterDept !== "ALL" || filterCategory !== "ALL" || filterSport !== "ALL" || filterStatus !== "ALL") && (
                     <button
                       type="button"
                       className="nec-ct-reset-btn"
@@ -981,7 +981,7 @@ export default function CollegeTeamBuilder() {
               </div>
 
               {/* Active Filter Chips */}
-              {(filterDept !== "ALL" || filterCategory !== "ALL" || filterSport !== "ALL" || filterStatus !== "ALL" || teamSearch) && (
+              {(filterTournament !== "ALL" || filterEvent !== "ALL" || filterScope !== "ALL" || filterDept !== "ALL" || filterCategory !== "ALL" || filterSport !== "ALL" || filterStatus !== "ALL" || teamSearch) && (
                 <div className="nec-ct-active-chips">
                   <span className="nec-ct-chip-label">Active Filters:</span>
                   {filterDept !== "ALL" && (

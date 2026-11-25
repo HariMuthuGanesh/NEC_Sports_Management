@@ -58,14 +58,29 @@ if not exist "%ROOT_DIR%\frontend\node_modules\" (
 echo [OK] Dependencies checked.
 echo.
 
-:: 4. Start Backend Server in a dedicated window
+:: 4. Run Backend Database Migrations
+echo Running database migrations...
+pushd "%ROOT_DIR%\backend"
+call npm run migrate
+if %errorlevel% neq 0 (
+    popd
+    echo.
+    echo [ERROR] Database migration failed. Ensure MySQL is running and backend\.env is configured.
+    pause
+    exit /b 1
+)
+popd
+echo [OK] Database is up to date.
+echo.
+
+:: 5. Start Backend Server in a dedicated window
 echo Starting Backend Server on port 5000...
 start "NEC Sports - Backend (Port 5000)" /D "%ROOT_DIR%\backend" cmd /k "echo Starting Backend (npm run dev)... && npm run dev"
 
 :: Small delay to allow backend to bind ports
 timeout /t 2 /nobreak >nul
 
-:: 5. Start Frontend Server in a dedicated window
+:: 6. Start Frontend Server in a dedicated window
 echo Starting Frontend Client on port 5173...
 start "NEC Sports - Frontend (Port 5173)" /D "%ROOT_DIR%\frontend" cmd /k "echo Starting Frontend (npm run dev)... && npm run dev"
 

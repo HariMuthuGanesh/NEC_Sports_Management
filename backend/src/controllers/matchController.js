@@ -1,6 +1,6 @@
 import { createMatch as createMatchSql, deleteMatch as deleteMatchSql, updateMatchScore, getAllMatches } from '../models/sql/matchSqlModel.js';
 import pool from '../config/db.js';
-import { assertTeamAccess } from '../services/accessScope.js';
+import { assertTeamAccess, assertMatchAccess } from '../services/accessScope.js';
 import { resolveTeamCaptainUserId, sendSystemNotification, notifyDepartmentCoordinator, notifyTeamMembers } from '../services/emailService.js';
 
 /**
@@ -60,7 +60,7 @@ export const createMatch = async (req, res, next) => {
         let teamRows = [];
         if (teamIdsToValidate.length > 0) {
             const [rows] = await pool.execute(
-                `SELECT team_id, sport_id, tournament_id, status, name FROM teams WHERE team_id IN (${teamIdsToValidate.map(() => '?').join(',')})`,
+                `SELECT team_id, sport_id, tournament_id, status, name, department_id FROM teams WHERE team_id IN (${teamIdsToValidate.map(() => '?').join(',')})`,
                 teamIdsToValidate
             );
             teamRows = rows;
@@ -115,20 +115,24 @@ export const createMatch = async (req, res, next) => {
             bracket_round: req.body.bracket_round || null
         });
 
-        if (team_a_id) {
-            const captainA = await resolveTeamCaptainUserId(team_a_id);
-            if (captainA) await sendSystemNotification({ userId: captainA, title: 'New Match Scheduled', message: `Your team ${team_a_name || 'A'} has a new match scheduled for ${scheduled_time}.`, type: 'MATCH_ALERT' });
-            
-            const [tA] = await pool.execute('SELECT department_id FROM teams WHERE team_id = ? LIMIT 1', [team_a_id]);
-            if (tA[0]?.department_id) await notifyDepartmentCoordinator(tA[0].department_id, { title: 'New Match Scheduled', message: `Team ${team_a_name || 'A'} has a match scheduled for ${scheduled_time}.`, type: 'MATCH_ALERT' });
+        const teamById = new Map(teamRows.map(t => [Number(t.team_id), t]));
+        const notifyTasks = [];
+        for (const [tid, fallbackLabel] of [[idA, team_a_name || teamA || 'A'], [idB, team_b_name || teamB || 'B']]) {
+            if (!tid) continue;
+            const tInfo = teamById.get(Number(tid));
+            const tLabel = tInfo?.name || fallbackLabel;
+            notifyTasks.push(
+                resolveTeamCaptainUserId(tid).then(captainId =>
+                    captainId ? sendSystemNotification({ userId: captainId, title: 'New Match Scheduled', message: `Your team ${tLabel} has a new match scheduled for ${scheduled_time}.`, type: 'MATCH_ALERT' }) : null
+                )
+            );
+            if (tInfo?.department_id) {
+                notifyTasks.push(
+                    notifyDepartmentCoordinator(tInfo.department_id, { title: 'New Match Scheduled', message: `Team ${tLabel} has a match scheduled for ${scheduled_time}.`, type: 'MATCH_ALERT' })
+                );
+            }
         }
-        if (team_b_id) {
-            const captainB = await resolveTeamCaptainUserId(team_b_id);
-            if (captainB) await sendSystemNotification({ userId: captainB, title: 'New Match Scheduled', message: `Your team ${team_b_name || 'B'} has a new match scheduled for ${scheduled_time}.`, type: 'MATCH_ALERT' });
-
-            const [tB] = await pool.execute('SELECT department_id FROM teams WHERE team_id = ? LIMIT 1', [team_b_id]);
-            if (tB[0]?.department_id) await notifyDepartmentCoordinator(tB[0].department_id, { title: 'New Match Scheduled', message: `Team ${team_b_name || 'B'} has a match scheduled for ${scheduled_time}.`, type: 'MATCH_ALERT' });
-        }
+        await Promise.all(notifyTasks);
 
         return res.status(201).json({ success: true, data: { match_id: matchId, scheduled_time, round } });
     } catch (err) {
@@ -151,6 +155,35 @@ export const deleteMatch = async (req, res, next) => {
             return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: `Match ${matchId} not found.` } });
         }
         return res.json({ success: true, data: { message: 'Match deleted successfully.' } });
+    } catch (err) {
+        next(err);
+    }
+};
+
+/**
+ * PATCH /api/matches/:id/status
+ * Updates match status with manual override tracking.
+ */
+export const updateMatchStatus = async (req, res, next) => {
+    try {
+        const matchId = parseInt(req.params.id, 10);
+        if (isNaN(matchId)) {
+            return res.status(400).json({ success: false, error: { code: 'INVALID_ID', message: 'Match ID must be a number.' } });
+        }
+        await assertMatchAccess(req.user, matchId);
+        const { status } = req.body;
+        const validStatuses = ['Scheduled', 'Ongoing', 'Completed', 'Postponed'];
+        if (!validStatuses.includes(status)) {
+            return res.status(400).json({ success: false, error: { code: 'INVALID_STATUS', message: `Status must be one of: ${validStatuses.join(', ')}` } });
+        }
+        const [result] = await pool.execute(
+            'UPDATE matches SET status = ?, manual_status_override = 1, status_updated_at = NOW() WHERE match_id = ?',
+            [status, matchId]
+        );
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Match not found.' } });
+        }
+        return res.json({ success: true, data: { match_id: matchId, status } });
     } catch (err) {
         next(err);
     }

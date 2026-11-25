@@ -99,7 +99,14 @@ export const uploadOfficialOdDocController = async (req, res, next) => {
       replace
     } = req.body;
 
+    const cleanupUploadedFile = () => {
+      if (req.file?.path && fs.existsSync(req.file.path)) {
+        try { fs.unlinkSync(req.file.path); } catch { /* ignore cleanup error */ }
+      }
+    };
+
     if (!sportId && !sportName) {
+      cleanupUploadedFile();
       return res.status(400).json({
         success: false,
         error: { code: 'MISSING_SPORT', message: 'Sport selection is required.' }
@@ -107,6 +114,7 @@ export const uploadOfficialOdDocController = async (req, res, next) => {
     }
 
     if (!departmentId && !departmentCode) {
+      cleanupUploadedFile();
       return res.status(400).json({
         success: false,
         error: { code: 'MISSING_DEPARTMENT', message: 'Department selection is required.' }

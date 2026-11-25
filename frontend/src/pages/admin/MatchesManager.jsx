@@ -95,7 +95,7 @@ export default function MatchesManager() {
     }
     setError(null);
     Promise.all([
-      matchesApi.getMatches({ includeCompetitions: true }).catch(err => { console.warn("[MatchesManager] Failed to fetch matches:", err); return []; }),
+      matchesApi.getMatches({ includeCompetitions: true }),
       sportsApi.getVenues().catch(err => { console.warn("[MatchesManager] Failed to fetch venues:", err); return []; }),
       teamsApi.getTeams().catch(err => { console.warn("[MatchesManager] Failed to fetch teams:", err); return []; }),
       tournamentsApi.getTournaments().catch(err => { console.warn("[MatchesManager] Failed to fetch tournaments:", err); return []; }),
@@ -117,8 +117,8 @@ export default function MatchesManager() {
       setSports(safeSports);
       if (!isBackground) {
         if (safeSports.length > 0 && !sportId) setSportId(String(safeSports[0].sport_id || safeSports[0].id));
-        if (safeVenues.length > 0) setVenue(String(safeVenues[0].venue_id || safeVenues[0].id));
-        if (safeTournaments.length > 0) setTournamentId(String(safeTournaments[0].id || safeTournaments[0].tournament_id));
+        if (safeVenues.length > 0 && !venue) setVenue(String(safeVenues[0].venue_id || safeVenues[0].id));
+        if (safeTournaments.length > 0 && !tournamentId) setTournamentId(String(safeTournaments[0].id || safeTournaments[0].tournament_id));
         if (safeSports.length > 0 && !bracketSportId) setBracketSportId(String(safeSports[0].sport_id || safeSports[0].id));
         if (safeTournaments.length > 0 && !bracketTournamentId) setBracketTournamentId(String(safeTournaments[0].id || safeTournaments[0].tournament_id));
         if (safeVenues.length > 0 && !bracketVenueId) setBracketVenueId(String(safeVenues[0].venue_id || safeVenues[0].id));
@@ -315,7 +315,7 @@ export default function MatchesManager() {
       )
     },
     { key: "sport", label: "Sport", width: "120px", render: (val) => <strong>{val || "-"}</strong> },
-    { key: "eventCategory", label: "Category", width: "120px", render: (val) => <Badge status={formatScope(val) === "Inter College" ? "danger" : "info"}>{formatScope(val)}</Badge> },
+    { key: "eventCategory", label: "Category", width: "120px", render: (val, row) => { const rawScope = row.tournament_scope || row.scope || val || row.category || (row.is_external ? "Inter-Collegiate" : "Intramural"); const formatted = formatScope(rawScope); return <Badge status={formatted === "Inter College" ? "danger" : "info"}>{formatted}</Badge>; } },
     {
       key: "matchup",
       label: "Match Teams / Contest",
@@ -414,14 +414,14 @@ export default function MatchesManager() {
   const distinctTournaments = Array.from(new Set(matches.map(m => m.tournamentName || m.tournament_name).filter(Boolean)));
   const distinctEvents = Array.from(new Set(matches.map(m => m.eventName || m.event_name).filter(Boolean)));
   const distinctSports = Array.from(new Set(matches.map(m => m.sport || m.sport_name).filter(Boolean)));
-  const distinctCategories = Array.from(new Set(matches.map(m => formatScope(m.eventCategory || m.category || (m.is_external ? "Inter-Collegiate" : "Intramural"))).filter(Boolean)));
+  const distinctCategories = Array.from(new Set(matches.map(m => formatScope(m.tournament_scope || m.scope || m.eventCategory || m.category || (m.is_external ? "Inter-Collegiate" : "Intramural"))).filter(Boolean)));
   const distinctVenues = Array.from(new Set(venues.map(v => v.name).filter(Boolean)));
 
   const filteredMatches = matches.filter(m => {
     const tour = m.tournamentName || m.tournament_name || "";
     const ev = m.eventName || m.event_name || "";
     const sport = m.sport || m.sport_name || "";
-    const cat = formatScope(m.eventCategory || m.category || (m.is_external ? "Inter-Collegiate" : "Intramural"));
+    const cat = formatScope(m.tournament_scope || m.scope || m.eventCategory || m.category || (m.is_external ? "Inter-Collegiate" : "Intramural"));
     const st = m.status || "Scheduled";
     const v = m.venue || m.venue_name || "";
 

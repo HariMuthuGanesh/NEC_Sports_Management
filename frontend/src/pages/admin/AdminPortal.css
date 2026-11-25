@@ -386,3 +386,77 @@
     justify-content: center;
   }
 }
+
+/* ── Shared Admin Form & Modal Input Controls ──────────────────────── */
+.nec-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nec-form-label {
+  display: block;
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--nec-text-muted, #475569);
+}
+
+.nec-input,
+.nec-form-input,
+.nec-form-select {
+  box-sizing: border-box;
+  padding: 9px 12px;
+  border-radius: var(--nec-radius-md, 8px);
+  border: 1px solid var(--nec-border-dark, #cbd5e1);
+  background: var(--nec-surface, #ffffff);
+  color: var(--nec-text-main, #0f172a);
+  font-family: inherit;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.nec-form-input,
+.nec-form-select,
+.nec-ann-modal-form .nec-input {
+  width: 100%;
+}
+
+.nec-input:focus,
+.nec-form-input:focus,
+.nec-form-select:focus {
+  outline: none;
+  border-color: var(--nec-blue, #0274be);
+  box-shadow: 0 0 0 3px rgba(2, 116, 190, 0.15);
+}
+
+.nec-input::placeholder,
+.nec-form-input::placeholder {
+  color: var(--nec-text-muted, #94a3b8);
+}
+
+[data-theme="dark"] .nec-input,
+[data-theme="dark"] .nec-form-input,
+[data-theme="dark"] .nec-form-select {
+  background: var(--nec-surface-raised, #1e293b);
+  border-color: var(--nec-border, #334155);
+  color: var(--nec-text-main, #f1f5f9);
+}
+
+.nec-ann-email-box {
+  background: var(--nec-surface-raised, #f8fafc);
+  border: 1px solid var(--nec-border, #e2e8f0);
+  border-radius: var(--nec-radius-md, 8px);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+[data-theme="dark"] .nec-ann-email-box {
+  background: rgba(30, 41, 59, 0.65);
+  border-color: var(--nec-border, #334155);
+}

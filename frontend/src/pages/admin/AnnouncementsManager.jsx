@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { announcementsApi, tournamentsApi, eventsApi, sportsApi } from "../../services/api/apiServices";
+import { announcementsApi, tournamentsApi, eventsApi, sportsApi, studentLookupApi } from "../../services/api/apiServices";
 import { Card } from "../../components/common/Card";
 import Badge from "../../components/common/Badge";
 import Button from "../../components/common/Button";
@@ -22,7 +22,8 @@ import {
   Users,
   AlertTriangle,
   Search,
-  Filter
+  Filter,
+  Mail
 } from "lucide-react";
 import "./AdminPortal.css";
 
@@ -49,6 +50,12 @@ export default function AnnouncementsManager() {
   const [tournaments, setTournaments] = useState([]);
   const [events, setEvents] = useState([]);
   const [departments, setDepartments] = useState([]);
+  const [sports, setSports] = useState([]);
+
+  // Custom Student Email Picker State
+  const [studentQuery, setStudentQuery] = useState("");
+  const [studentResults, setStudentResults] = useState([]);
+  const [selectedStudents, setSelectedStudents] = useState([]);
 
   // Filter States
   const [statusTab, setStatusTab] = useState("ALL");
@@ -75,22 +82,41 @@ export default function AnnouncementsManager() {
     target_department_id: "",
     scheduled_publish_time: "",
     expires_at: "",
-    status: "Published"
+    status: "Published",
+    email_scope: "all",
+    email_department_id: "",
+    email_sport_id: ""
   });
 
   useEffect(() => {
     Promise.all([
       tournamentsApi.getTournaments ? tournamentsApi.getTournaments().catch(() => []) : Promise.resolve([]),
       eventsApi.getEvents ? eventsApi.getEvents().catch(() => []) : Promise.resolve([]),
-      sportsApi.getDepartments ? sportsApi.getDepartments().catch(() => []) : Promise.resolve([])
-    ]).then(([tData, eData, dData]) => {
+      sportsApi.getDepartments ? sportsApi.getDepartments().catch(() => []) : Promise.resolve([]),
+      sportsApi.getSports ? sportsApi.getSports().catch(() => []) : Promise.resolve([])
+    ]).then(([tData, eData, dData, sData]) => {
       setTournaments(Array.isArray(tData) ? tData : []);
       setEvents(Array.isArray(eData) ? eData : []);
       setDepartments(Array.isArray(dData) ? dData : []);
+      setSports(Array.isArray(sData) ? sData : []);
     }).catch(err => {
       console.warn("Failed to load reference catalogs:", err);
     });
   }, []);
+
+  useEffect(() => {
+    const q = studentQuery.trim();
+    if (formData.email_scope !== "custom" || q.length < 2) {
+      setStudentResults([]);
+      return;
+    }
+    const timer = setTimeout(() => {
+      studentLookupApi.searchStudent(q)
+        .then(rows => setStudentResults(Array.isArray(rows) ? rows.slice(0, 8) : []))
+        .catch(() => setStudentResults([]));
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [studentQuery, formData.email_scope]);
 
   const loadAnnouncements = () => {
     setLoading(true);
@@ -129,8 +155,14 @@ export default function AnnouncementsManager() {
       target_department_id: "",
       scheduled_publish_time: "",
       expires_at: "",
-      status: "Published"
+      status: "Published",
+      email_scope: "all",
+      email_department_id: "",
+      email_sport_id: ""
     });
+    setSelectedStudents([]);
+    setStudentQuery("");
+    setStudentResults([]);
     setIsModalOpen(true);
   };
 
@@ -155,8 +187,14 @@ export default function AnnouncementsManager() {
       target_department_id: ann.target_department_id ? String(ann.target_department_id) : "",
       scheduled_publish_time: toDatetimeLocal(ann.scheduled_publish_time),
       expires_at: toDatetimeLocal(ann.expires_at),
-      status: ann.status || "Published"
+      status: ann.status || "Published",
+      email_scope: "all",
+      email_department_id: ann.target_department_id ? String(ann.target_department_id) : "",
+      email_sport_id: ""
     });
+    setSelectedStudents([]);
+    setStudentQuery("");
+    setStudentResults([]);
     setIsModalOpen(true);
   };
 
@@ -176,6 +214,19 @@ export default function AnnouncementsManager() {
       return;
     }
 
+    if (chosenStatus === "Published" && formData.email_scope === "department" && !formData.email_department_id) {
+      toast.error("Please select a department for department-wise email.");
+      return;
+    }
+    if (chosenStatus === "Published" && formData.email_scope === "sport" && !formData.email_sport_id) {
+      toast.error("Please select a sport for sport-wise email.");
+      return;
+    }
+    if (chosenStatus === "Published" && formData.email_scope === "custom" && selectedStudents.length === 0) {
+      toast.error("Please select or add at least one student to email.");
+      return;
+    }
+
     setSubmitting(true);
     const payload = {
       ...formData,
@@ -184,7 +235,12 @@ export default function AnnouncementsManager() {
       event_id: formData.event_id ? Number(formData.event_id) : null,
       target_department_id: formData.target_department_id ? Number(formData.target_department_id) : null,
       scheduled_publish_time: chosenStatus === "Scheduled" ? formData.scheduled_publish_time : null,
-      expires_at: formData.expires_at || null
+      expires_at: formData.expires_at || null,
+      send_email: formData.email_scope !== "none",
+      email_scope: formData.email_scope,
+      email_department_id: formData.email_department_id ? Number(formData.email_department_id) : null,
+      email_sport_id: formData.email_sport_id ? Number(formData.email_sport_id) : null,
+      email_register_numbers: selectedStudents.map(s => s.registerNumber)
     };
 
     try {
@@ -493,160 +549,15 @@ export default function AnnouncementsManager() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         title={editingId ? "Edit Institutional Announcement" : "Post Official Announcement / Circular"}
-      >
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-          <div>
-            <label className="nec-form-label">Announcement Title *</label>
-            <input
-              type="text"
-              required
-              className="nec-input"
-              placeholder="e.g. Inter-Department Meet Schedule & Registration Guidelines"
-              value={formData.title}
-              onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-            />
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-            <div>
-              <label className="nec-form-label">Category</label>
-              <select
-                className="nec-input"
-                value={formData.category}
-                onChange={e => setFormData(prev => ({ ...prev, category: e.target.value }))}
-              >
-                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </div>
-
-            <div>
-              <label className="nec-form-label">Priority Level</label>
-              <select
-                className="nec-input"
-                value={formData.priority}
-                onChange={e => setFormData(prev => ({ ...prev, priority: e.target.value }))}
-              >
-                <option value="Low">Low — General Info</option>
-                <option value="Medium">Medium — Schedule Update</option>
-                <option value="High">High — Important Notice</option>
-                <option value="Urgent">Urgent — Immediate Attention</option>
-              </select>
-            </div>
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-            <div>
-              <label className="nec-form-label">Target Audience</label>
-              <select
-                className="nec-input"
-                value={formData.target_audience}
-                onChange={e => setFormData(prev => ({ ...prev, target_audience: e.target.value }))}
-              >
-                {AUDIENCES.map(a => <option key={a} value={a}>{a}</option>)}
-              </select>
-            </div>
-
-            <div>
-              <label className="nec-form-label">Academic Year</label>
-              <select
-                className="nec-input"
-                value={formData.academic_year}
-                onChange={e => setFormData(prev => ({ ...prev, academic_year: e.target.value }))}
-              >
-                <option value="2025-2026">2025-2026</option>
-                <option value="2024-2025">2024-2025</option>
-                <option value="2023-2024">2023-2024</option>
-              </select>
-            </div>
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-            <div>
-              <label className="nec-form-label">Tournament Scope (Optional)</label>
-              <select
-                className="nec-input"
-                value={formData.tournament_id}
-                onChange={e => setFormData(prev => ({ ...prev, tournament_id: e.target.value, event_id: "" }))}
-              >
-                <option value="">Institution-wide</option>
-                {tournaments.map(t => (
-                  <option key={t.tournament_id} value={t.tournament_id}>{t.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="nec-form-label">Event Scope (Optional)</label>
-              <select
-                className="nec-input"
-                value={formData.event_id}
-                onChange={e => setFormData(prev => ({ ...prev, event_id: e.target.value }))}
-              >
-                <option value="">No specific event</option>
-                {filteredEventsForModal.map(ev => (
-                  <option key={ev.event_id} value={ev.event_id}>{ev.name}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label className="nec-form-label">Target Department (Optional)</label>
-            <select
-              className="nec-input"
-              value={formData.target_department_id}
-              onChange={e => setFormData(prev => ({ ...prev, target_department_id: e.target.value }))}
-            >
-              <option value="">All Departments</option>
-              {departments.map(d => (
-                <option key={d.id} value={d.id}>{d.name} ({d.code})</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="nec-form-label">Announcement Body / Content *</label>
-            <textarea
-              required
-              className="nec-input"
-              style={{ minHeight: "110px", resize: "vertical" }}
-              placeholder="Enter comprehensive announcement content..."
-              value={formData.content}
-              onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
-            />
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-            <div>
-              <label className="nec-form-label">Scheduled Publish Time (Optional)</label>
-              <input
-                type="datetime-local"
-                className="nec-input"
-                value={formData.scheduled_publish_time}
-                onChange={e => setFormData(prev => ({ ...prev, scheduled_publish_time: e.target.value }))}
-              />
-              <small style={{ color: "var(--nec-text-muted)" }}>Leave blank to publish now.</small>
-            </div>
-
-            <div>
-              <label className="nec-form-label">Expiry Date / Time (Optional)</label>
-              <input
-                type="datetime-local"
-                className="nec-input"
-                value={formData.expires_at}
-                onChange={e => setFormData(prev => ({ ...prev, expires_at: e.target.value }))}
-              />
-              <small style={{ color: "var(--nec-text-muted)" }}>Auto-archives after this date.</small>
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "16px", flexWrap: "wrap", gap: "8px" }}>
+        size="lg"
+        maxWidth="780px"
+        footer={
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", flexWrap: "wrap", gap: "10px" }}>
             <Button variant="outline" onClick={() => setIsModalOpen(false)}>
               Cancel
             </Button>
 
-            <div style={{ display: "flex", gap: "8px" }}>
+            <div style={{ display: "flex", gap: "10px" }}>
               <Button
                 variant="outline"
                 loading={submitting}
@@ -675,6 +586,323 @@ export default function AnnouncementsManager() {
                 </Button>
               )}
             </div>
+          </div>
+        }
+      >
+        <div className="nec-ann-modal-form" style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+          {/* 1. Title */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+            <label className="nec-form-label" style={{ display: "block", margin: 0 }}>Announcement Title *</label>
+            <input
+              type="text"
+              required
+              className="nec-input"
+              style={{ width: "100%", boxSizing: "border-box" }}
+              placeholder="e.g. Inter-Department Meet Schedule & Registration Guidelines"
+              value={formData.title}
+              onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+            />
+          </div>
+
+          {/* 2. Classification & Audience */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "12px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+              <label className="nec-form-label" style={{ display: "block", margin: 0 }}>Category</label>
+              <select
+                className="nec-input"
+                style={{ width: "100%", boxSizing: "border-box" }}
+                value={formData.category}
+                onChange={e => setFormData(prev => ({ ...prev, category: e.target.value }))}
+              >
+                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+              <label className="nec-form-label" style={{ display: "block", margin: 0 }}>Priority Level</label>
+              <select
+                className="nec-input"
+                style={{ width: "100%", boxSizing: "border-box" }}
+                value={formData.priority}
+                onChange={e => setFormData(prev => ({ ...prev, priority: e.target.value }))}
+              >
+                <option value="Low">Low — General Info</option>
+                <option value="Medium">Medium — Schedule Update</option>
+                <option value="High">High — Important Notice</option>
+                <option value="Urgent">Urgent — Immediate Attention</option>
+              </select>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+              <label className="nec-form-label" style={{ display: "block", margin: 0 }}>Target Audience</label>
+              <select
+                className="nec-input"
+                style={{ width: "100%", boxSizing: "border-box" }}
+                value={formData.target_audience}
+                onChange={e => setFormData(prev => ({ ...prev, target_audience: e.target.value }))}
+              >
+                {AUDIENCES.map(a => <option key={a} value={a}>{a}</option>)}
+              </select>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+              <label className="nec-form-label" style={{ display: "block", margin: 0 }}>Academic Year</label>
+              <select
+                className="nec-input"
+                style={{ width: "100%", boxSizing: "border-box" }}
+                value={formData.academic_year}
+                onChange={e => setFormData(prev => ({ ...prev, academic_year: e.target.value }))}
+              >
+                <option value="2025-2026">2025-2026</option>
+                <option value="2024-2025">2024-2025</option>
+                <option value="2023-2024">2023-2024</option>
+              </select>
+            </div>
+          </div>
+
+          {/* 3. Body */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+            <label className="nec-form-label" style={{ display: "block", margin: 0 }}>Announcement Body / Content *</label>
+            <textarea
+              required
+              className="nec-input"
+              style={{ width: "100%", boxSizing: "border-box", minHeight: "120px", resize: "vertical" }}
+              placeholder="Enter comprehensive announcement content..."
+              value={formData.content}
+              onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
+            />
+          </div>
+
+          {/* 4. Optional Scope */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "12px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+              <label className="nec-form-label" style={{ display: "block", margin: 0 }}>Tournament Scope (Optional)</label>
+              <select
+                className="nec-input"
+                style={{ width: "100%", boxSizing: "border-box" }}
+                value={formData.tournament_id}
+                onChange={e => setFormData(prev => ({ ...prev, tournament_id: e.target.value, event_id: "" }))}
+              >
+                <option value="">Institution-wide</option>
+                {tournaments.map(t => (
+                  <option key={t.tournament_id} value={t.tournament_id}>{t.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+              <label className="nec-form-label" style={{ display: "block", margin: 0 }}>Event Scope (Optional)</label>
+              <select
+                className="nec-input"
+                style={{ width: "100%", boxSizing: "border-box" }}
+                value={formData.event_id}
+                onChange={e => setFormData(prev => ({ ...prev, event_id: e.target.value }))}
+              >
+                <option value="">No specific event</option>
+                {filteredEventsForModal.map(ev => (
+                  <option key={ev.event_id} value={ev.event_id}>{ev.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+              <label className="nec-form-label" style={{ display: "block", margin: 0 }}>Target Department (Optional)</label>
+              <select
+                className="nec-input"
+                style={{ width: "100%", boxSizing: "border-box" }}
+                value={formData.target_department_id}
+                onChange={e => setFormData(prev => ({ ...prev, target_department_id: e.target.value }))}
+              >
+                <option value="">All Departments</option>
+                {departments.map(d => (
+                  <option key={d.id} value={d.id}>{d.name} ({d.code})</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* 5. Scheduling */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "12px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+              <label className="nec-form-label" style={{ display: "block", margin: 0 }}>Scheduled Publish Time (Optional)</label>
+              <input
+                type="datetime-local"
+                className="nec-input"
+                style={{ width: "100%", boxSizing: "border-box" }}
+                value={formData.scheduled_publish_time}
+                onChange={e => setFormData(prev => ({ ...prev, scheduled_publish_time: e.target.value }))}
+              />
+              <small style={{ color: "var(--nec-text-muted)" }}>Leave blank to publish now.</small>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+              <label className="nec-form-label" style={{ display: "block", margin: 0 }}>Expiry Date / Time (Optional)</label>
+              <input
+                type="datetime-local"
+                className="nec-input"
+                style={{ width: "100%", boxSizing: "border-box" }}
+                value={formData.expires_at}
+                onChange={e => setFormData(prev => ({ ...prev, expires_at: e.target.value }))}
+              />
+              <small style={{ color: "var(--nec-text-muted)" }}>Auto-archives after this date.</small>
+            </div>
+          </div>
+
+          {/* 6. Email Notification Targeting */}
+          <div className="nec-ann-email-box">
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", fontWeight: 700, fontSize: "0.86rem", color: "var(--nec-navy, #0b2c5d)" }}>
+              <Mail size={15} />
+              <span>College Email Delivery (Sports-Interested Students)</span>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: formData.email_scope === "department" || formData.email_scope === "sport" ? "1fr 1fr" : "1fr", gap: "12px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                <label className="nec-form-label" style={{ display: "block", margin: 0 }}>Send Email To</label>
+                <select
+                  className="nec-input"
+                  style={{ width: "100%", boxSizing: "border-box" }}
+                  value={formData.email_scope}
+                  onChange={e => setFormData(prev => ({ ...prev, email_scope: e.target.value }))}
+                >
+                  <option value="all">All Sports-Interested Students</option>
+                  <option value="department">Department-Wise (Interested Students)</option>
+                  <option value="sport">Sport-Wise (Participants / Squads)</option>
+                  <option value="custom">Particular Student(s)</option>
+                  <option value="none">Do Not Send Email</option>
+                </select>
+              </div>
+
+              {formData.email_scope === "department" && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                  <label className="nec-form-label" style={{ display: "block", margin: 0 }}>Select Department *</label>
+                  <select
+                    className="nec-input"
+                    style={{ width: "100%", boxSizing: "border-box" }}
+                    value={formData.email_department_id}
+                    onChange={e => setFormData(prev => ({ ...prev, email_department_id: e.target.value }))}
+                  >
+                    <option value="">-- Choose Department --</option>
+                    {departments.map(d => (
+                      <option key={d.id} value={d.id}>{d.name} ({d.code})</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {formData.email_scope === "sport" && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                  <label className="nec-form-label" style={{ display: "block", margin: 0 }}>Select Sport *</label>
+                  <select
+                    className="nec-input"
+                    style={{ width: "100%", boxSizing: "border-box" }}
+                    value={formData.email_sport_id}
+                    onChange={e => setFormData(prev => ({ ...prev, email_sport_id: e.target.value }))}
+                  >
+                    <option value="">-- Choose Sport --</option>
+                    {sports.map(sp => (
+                      <option key={sp.sport_id || sp.id} value={sp.sport_id || sp.id}>{sp.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+
+            {formData.email_scope === "custom" && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <input
+                    type="text"
+                    className="nec-input"
+                    style={{ flex: 1, boxSizing: "border-box" }}
+                    placeholder="Search by student name or register no (e.g. 24104111)..."
+                    value={studentQuery}
+                    onChange={e => setStudentQuery(e.target.value)}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      const reg = studentQuery.trim();
+                      if (!reg) return;
+                      if (!selectedStudents.some(s => s.registerNumber.toLowerCase() === reg.toLowerCase())) {
+                        setSelectedStudents(prev => [...prev, { registerNumber: reg, name: reg }]);
+                      }
+                      setStudentQuery("");
+                      setStudentResults([]);
+                    }}
+                  >
+                    Add Reg No
+                  </Button>
+                </div>
+
+                {studentResults.length > 0 && (
+                  <div style={{ border: "1px solid var(--nec-border, #cbd5e1)", borderRadius: "6px", background: "#fff", maxHeight: "150px", overflowY: "auto" }}>
+                    {studentResults.map(st => {
+                      const reg = st.registerNumber || st.register_number || st.rollNo;
+                      const name = st.studentName || st.student_name || st.name || reg;
+                      return (
+                        <button
+                          key={reg}
+                          type="button"
+                          onClick={() => {
+                            if (reg && !selectedStudents.some(s => s.registerNumber === reg)) {
+                              setSelectedStudents(prev => [...prev, { registerNumber: reg, name }]);
+                            }
+                            setStudentQuery("");
+                            setStudentResults([]);
+                          }}
+                          style={{
+                            width: "100%",
+                            textAlign: "left",
+                            padding: "8px 12px",
+                            border: "none",
+                            borderBottom: "1px solid #f1f5f9",
+                            background: "transparent",
+                            cursor: "pointer",
+                            fontSize: "0.84rem",
+                            display: "flex",
+                            justifyContent: "space-between"
+                          }}
+                        >
+                          <span><strong>{name}</strong> ({reg})</span>
+                          <span style={{ color: "#64748b" }}>{String(reg).toLowerCase()}@nec.edu.in</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {selectedStudents.length > 0 && (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                    {selectedStudents.map(st => (
+                      <span
+                        key={st.registerNumber}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          padding: "4px 10px",
+                          borderRadius: "999px",
+                          background: "#e0f2fe",
+                          color: "#0369a1",
+                          fontSize: "0.8rem",
+                          fontWeight: 600
+                        }}
+                      >
+                        {st.name !== st.registerNumber ? `${st.name} (${st.registerNumber})` : st.registerNumber}
+                        <button
+                          type="button"
+                          onClick={() => setSelectedStudents(prev => prev.filter(x => x.registerNumber !== st.registerNumber))}
+                          style={{ border: "none", background: "transparent", cursor: "pointer", color: "#0369a1", fontWeight: 700, padding: 0 }}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </Modal>

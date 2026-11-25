@@ -1,5 +1,4 @@
 import { listCompetitions, createCompetition, competitionDetails, registerCompetitionEntry, updateCompetition, deleteCompetition, removeCompetitionEntry } from '../controllers/competitionController.js';
-import { assertMatchAccess } from '../services/accessScope.js';
 import express from 'express';
 import { protect, optionalProtect, authorize } from '../middleware/authMiddleware.js';
 import {
@@ -46,6 +45,7 @@ import {
     searchStudentsController,
     getMyStudentProfileController,
     createStudentController,
+    updateStudentSportsInterestController,
     createAnnouncementController,
     updateAnnouncementController,
     cancelAnnouncementController,
@@ -62,7 +62,7 @@ import {
     getPublicHomeSummary,
     getPublicTournamentDetailsController
 } from '../controllers/sportsController.js';
-import { createMatch, deleteMatch, updateScore, generateBracketFixtures } from '../controllers/matchController.js';
+import { createMatch, deleteMatch, updateMatchStatus, updateScore, generateBracketFixtures } from '../controllers/matchController.js';
 import {
     addPlayerToTeam,
     createTeam,
@@ -319,6 +319,8 @@ router.get('/students/search', protect, authorize('Admin', 'Coordinator', 'Capta
 // Must be before any /students/:param routes that could clash
 router.get('/students/:registerNumber/attendance', protect, authorize('Admin', 'Coordinator'), getStudentAttendanceController);
 router.post('/students', protect, authorize('Admin', 'Coordinator'), createStudentController);
+router.post('/students/sports-interest', protect, authorize('Admin', 'Coordinator', 'Sports President'), updateStudentSportsInterestController);
+router.patch('/students/:id/sports-interest', protect, authorize('Admin', 'Coordinator', 'Sports President'), updateStudentSportsInterestController);
 
 // Venue CRUD (Admin only)
 router.post('/venues', protect, authorize('Admin', 'Sports President'), createVenueController);
@@ -334,23 +336,7 @@ router.patch('/matches/:id/score', protect, authorize('Admin', 'Score Updater'),
 router.post('/matches/generate-bracket', protect, authorize('Admin', 'Sports President'), generateBracketFixtures);
 router.post('/matches', protect, authorize('Admin', 'Sports President', 'Coordinator'), createMatch);
 router.delete('/matches/:id', protect, authorize('Admin', 'Sports President'), deleteMatch);
-router.patch('/matches/:id/status', protect, authorize('Admin', 'Sports President', 'Coordinator'), async (req, res, next) => {
-    // Inline simple status patch - just update the status column
-    try {
-        await assertMatchAccess(req.user, Number(req.params.id));
-        const { status } = req.body;
-        const validStatuses = ['Scheduled', 'Ongoing', 'Completed', 'Postponed'];
-        if (!validStatuses.includes(status)) {
-            return res.status(400).json({ success: false, error: { code: 'INVALID_STATUS', message: `Status must be one of: ${validStatuses.join(', ')}` } });
-        }
-        const { default: pool } = await import('../config/db.js');
-        const [result] = await pool.execute('UPDATE matches SET status = ? WHERE match_id = ?', [status, req.params.id]);
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Match not found.' } });
-        }
-        return res.json({ success: true, data: { match_id: req.params.id, status } });
-    } catch (err) { next(err); }
-});
+router.patch('/matches/:id/status', protect, authorize('Admin', 'Sports President', 'Coordinator'), updateMatchStatus);
 
 // Teams listing (scoped for Coordinator when authenticated, accessible to all)
 router.get('/teams', optionalProtect, getTeams);
@@ -480,7 +466,7 @@ router.post('/od/match/:matchId/bulk-approve', protect, authorize('Admin'), bulk
 router.get('/od/my', protect, getMyOdRequestsController);
 
 // Admin/President/Coordinator: list all OD requests with filters
-router.get('/od', protect, authorize('Admin', 'Coordinator', 'President'), listOdRequestsController);
+router.get('/od', protect, authorize('Admin', 'Coordinator', 'Sports President'), listOdRequestsController);
 // Admin/Coordinator: get single OD request by ID
 router.get('/od/:requestId', protect, authorize('Admin', 'Coordinator'), getOdRequestController);
 // Admin: approve / reject
@@ -488,9 +474,9 @@ router.patch('/od/:requestId/approve', protect, authorize('Admin'), approveOdCon
 router.patch('/od/:requestId/reject', protect, authorize('Admin'), rejectOdController);
 
 // ── Official Signed OD Documents (Sport-wise & Dept-wise Principal Approved PDF Upload) ──
-router.post('/od/official-documents/upload', protect, authorize('Admin', 'President', 'Sports President'), uploadOdDocMiddleware, uploadOfficialOdDocController);
-router.get('/od/official-documents', protect, authorize('Admin', 'President', 'Sports President', 'Coordinator'), listOfficialOdDocsController);
-router.delete('/od/official-documents/:id', protect, authorize('Admin', 'President', 'Sports President'), deleteOfficialOdDocController);
+router.post('/od/official-documents/upload', protect, authorize('Admin', 'Sports President'), uploadOdDocMiddleware, uploadOfficialOdDocController);
+router.get('/od/official-documents', protect, authorize('Admin', 'Sports President', 'Coordinator'), listOfficialOdDocsController);
+router.delete('/od/official-documents/:id', protect, authorize('Admin', 'Sports President'), deleteOfficialOdDocController);
 
 // ── Department Sport Captains & Squad Routes ─────────────────────────────
 router.get('/department-sport-captains', protect, authorize('Coordinator'), listDepartmentSportCaptains);
@@ -503,11 +489,11 @@ router.post('/my-squad/members', protect, authorize('Captain'), addSquadMember);
 router.delete('/my-squad/members/:studentId', protect, authorize('Captain'), removeSquadMember);
 
 // ── College Team Builder Routes (Real match_attendance Data) ──────────────
-router.get('/college-teams', protect, authorize('Admin', 'President'), getCollegeTeamsListV2);
-router.get('/college-teams/:id/members', protect, authorize('Admin', 'President'), getCollegeTeamMembersV2);
-router.delete('/college-teams/:id', protect, authorize('Admin', 'President'), deleteCollegeTeamV2);
-router.get('/college-teams/:sportId/suggestions', protect, authorize('Admin', 'President'), getCollegeTeamSuggestionsV2);
-router.post('/college-teams/:sportId/confirm', protect, authorize('Admin', 'President'), confirmCollegeTeamV2);
+router.get('/college-teams', protect, authorize('Admin', 'Sports President'), getCollegeTeamsListV2);
+router.get('/college-teams/:id/members', protect, authorize('Admin', 'Sports President'), getCollegeTeamMembersV2);
+router.delete('/college-teams/:id', protect, authorize('Admin', 'Sports President'), deleteCollegeTeamV2);
+router.get('/college-teams/:sportId/suggestions', protect, authorize('Admin', 'Sports President'), getCollegeTeamSuggestionsV2);
+router.post('/college-teams/:sportId/confirm', protect, authorize('Admin', 'Sports President'), confirmCollegeTeamV2);
 
 // ── System & Real-Time Scheduled Status Synchronization ────────────────────
 router.post('/system/sync-scheduled-statuses', protect, authorize('Admin'), async (req, res, next) => {

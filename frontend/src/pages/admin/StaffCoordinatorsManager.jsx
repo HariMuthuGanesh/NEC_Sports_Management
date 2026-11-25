@@ -8,7 +8,7 @@ import { Plus, Pencil, UserX, UserCheck, Calendar, Trophy, Users, Trash2, Shield
 import "./AdminPortal.css";
 
 const emptyForm = { fullName: "", designation: "", email: "", phone: "", departmentId: "", username: "" };
-const emptyAssignForm = { tournamentId: "", eventId: "", staffId: "", role: "Coordinator" };
+const emptyAssignForm = { tournamentId: "", eventId: "", staffId: "", role: "Lead Coordinator" };
 
 export default function StaffCoordinatorsManager() {
   const [activeTab, setActiveTab] = useState("staff"); // "staff" | "assignments"
@@ -93,7 +93,7 @@ export default function StaffCoordinatorsManager() {
       tournamentId: firstTourId ? String(firstTourId) : "",
       eventId: "",
       staffId: staff[0]?.user_id ? String(staff[0].user_id) : "",
-      role: "Coordinator"
+      role: "Lead Coordinator"
     });
     if (firstTourId) {
       setFilteredEvents(events.filter(e => Number(e.tournament_id) === Number(firstTourId)));
@@ -162,7 +162,6 @@ export default function StaffCoordinatorsManager() {
         role: assignForm.role
       });
       setIsAssignModalOpen(false);
-      loadAssignments();
       load();
     } catch (err) {
       setAssignError(err.message || "Failed to assign staff coordinator.");
@@ -175,7 +174,6 @@ export default function StaffCoordinatorsManager() {
     if (!window.confirm("Remove this event staff assignment?")) return;
     try {
       await sportsApi.removeStaffFromEvent(assignmentId);
-      loadAssignments();
       load();
     } catch (err) {
       alert("Failed to remove assignment: " + err.message);

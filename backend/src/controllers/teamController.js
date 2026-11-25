@@ -195,6 +195,9 @@ export const createTeam = async (req, res, next) => {
             if (event.registration_status!=='Open') return res.status(409).json({success:false,error:{message:'Event registration is closed.'}});
         }
         const resolvedCaptainId = captain_id || (req.user?.role === 'Captain' ? req.user.id : null);
+        const initialStatus = ['Admin', 'Sports President'].includes(req.user?.role) && status === 'Approved'
+            ? 'Approved'
+            : 'Pending';
 
         const teamId = await createTeamSql({
             name,
@@ -205,7 +208,7 @@ export const createTeam = async (req, res, next) => {
             captain_id: resolvedCaptainId,
             coach_name: coach_name || coachName || null,
             jersey_color: jersey_color || jerseyColor || null,
-            status: 'Pending',
+            status: initialStatus,
             team_type: req.body.team_type || req.body.teamType || 'Inter-Department',
             gender_category: req.body.gender_category || req.body.genderCategory || null
         });
@@ -219,16 +222,25 @@ export const createTeam = async (req, res, next) => {
             }
         }
 
+        const playerIds = Array.isArray(req.body.player_ids) ? [...new Set(req.body.player_ids.map(Number).filter(n => !isNaN(n) && n > 0))] : [];
+        if (playerIds.length > 0) {
+            const values = playerIds.map(sid => [teamId, sid, 'Player']);
+            await pool.query(
+                'INSERT IGNORE INTO team_members (team_id, student_id, role) VALUES ?',
+                [values]
+            );
+        }
+
         // Trigger notification to Admins and Coordinator
         await notifyAdmins({
             title: 'New Team Registration',
-            message: `Team "${name}" has been registered for tournament event by ${req.user?.username || 'Team Lead'} and is pending review.`,
+            message: `Team "${name}" has been registered for tournament event by ${req.user?.username || 'Team Lead'} (${initialStatus}).`,
             type: 'TEAM_ALERT'
         });
         if (resolvedDeptId) {
             await notifyDepartmentCoordinator(resolvedDeptId, {
                 title: 'New Team Registration',
-                message: `Team "${name}" has been registered in your department and is pending review.`,
+                message: `Team "${name}" has been registered in your department (${initialStatus}).`,
                 type: 'TEAM_ALERT'
             });
         }
@@ -243,7 +255,7 @@ export const createTeam = async (req, res, next) => {
                 department_id: resolvedDeptId,
                 sportId: resolvedSportId,
                 tournamentId: resolvedTourId,
-                status: ['Admin','Sports President'].includes(req.user?.role) ? (status || 'Approved') : 'Pending'
+                status: initialStatus
             }
         });
     } catch (err) {
@@ -583,7 +595,7 @@ export const setTeamCaptainController = async (req, res, next) => {
         // Update teams.captain_id
         if (member.user_id) {
             await connection.execute('UPDATE teams SET captain_id = ? WHERE team_id = ?', [member.user_id, teamId]);
-            await connection.execute("UPDATE users SET role = 'Captain' WHERE id = ? AND role = 'Student'", [member.user_id]);
+            await connection.execute("UPDATE users SET role = 'Captain', token_version = token_version + 1 WHERE id = ? AND role = 'Player'", [member.user_id]);
         }
 
         // Also record in department_sport_captains if applicable so department rosters stay synced
