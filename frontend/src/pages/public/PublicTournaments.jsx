@@ -333,7 +333,7 @@ export default function PublicTournaments() {
             const isOngoing = t.status === "Ongoing";
 
             return (
-              <Card
+              <div
                 key={t.tournament_id || t.id}
                 className="nec-tournament-card"
                 style={{
@@ -343,16 +343,25 @@ export default function PublicTournaments() {
                   height: "100%",
                   borderRadius: "14px",
                   border: isOngoing ? "2px solid #22c55e" : "1px solid var(--nec-border)",
+                  background: "var(--nec-surface)",
                   position: "relative",
                   overflow: "hidden",
                   transition: "transform 0.2s, box-shadow 0.2s",
-                  padding: "20px"
+                  padding: "20px",
+                  boxShadow: "var(--nec-shadow-sm)"
                 }}
               >
                 {/* Top Badge Row */}
-                <div>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "8px", marginBottom: "12px" }}>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
+                  <div style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "flex-start",
+                    gap: "8px",
+                    marginBottom: "12px",
+                    minHeight: "46px"
+                  }}>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", alignItems: "center" }}>
                       <Badge
                         variant={isInter ? "primary" : "secondary"}
                         style={{
@@ -373,7 +382,7 @@ export default function PublicTournaments() {
                     </div>
                     <Badge
                       variant={isOngoing ? "success" : t.status === "Upcoming" ? "primary" : "default"}
-                      style={{ fontSize: "0.75rem", fontWeight: 700 }}
+                      style={{ fontSize: "0.75rem", fontWeight: 700, whiteSpace: "nowrap" }}
                     >
                       {isOngoing ? "🟢 LIVE / ONGOING" : t.status}
                     </Badge>
@@ -382,10 +391,15 @@ export default function PublicTournaments() {
                   {/* Title & Academic Year */}
                   <h3 style={{
                     margin: "0 0 6px",
-                    fontSize: "1.25rem",
+                    fontSize: "1.2rem",
                     fontWeight: 800,
                     color: "var(--nec-text-main)",
-                    lineHeight: 1.3
+                    lineHeight: 1.35,
+                    minHeight: "3.2rem",
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden"
                   }}>
                     {t.name || t.title}
                   </h3>
@@ -394,21 +408,21 @@ export default function PublicTournaments() {
                   </div>
 
                   {/* Details metadata */}
-                  <div style={{ display: "flex", flexDirection: "column", gap: "8px", fontSize: "0.85rem", color: "var(--nec-text-muted)", marginBottom: "16px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                      <Calendar size={15} style={{ flexShrink: 0, color: "var(--nec-blue-accent)" }} />
-                      <span>{formatDate(t.start_date || t.startDate)} – {formatDate(t.end_date || t.endDate)}</span>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px", fontSize: "0.85rem", color: "var(--nec-text-muted)", marginBottom: "16px", flex: 1 }}>
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
+                      <Calendar size={15} style={{ flexShrink: 0, marginTop: "2px", color: "var(--nec-blue-accent)" }} />
+                      <span style={{ lineHeight: 1.4 }}>{formatDate(t.start_date || t.startDate)} – {formatDate(t.end_date || t.endDate)}</span>
                     </div>
                     {t.venue && (
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                        <MapPin size={15} style={{ flexShrink: 0, color: "#e11d48" }} />
-                        <span>{t.venue}</span>
+                      <div style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
+                        <MapPin size={15} style={{ flexShrink: 0, marginTop: "2px", color: "#e11d48" }} />
+                        <span style={{ lineHeight: 1.4 }}>{t.venue}</span>
                       </div>
                     )}
                     {t.organizer && (
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                        <Building size={15} style={{ flexShrink: 0, color: "#059669" }} />
-                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.organizer}</span>
+                      <div style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
+                        <Building size={15} style={{ flexShrink: 0, marginTop: "2px", color: "#059669" }} />
+                        <span style={{ lineHeight: 1.4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.organizer}</span>
                       </div>
                     )}
                   </div>
@@ -418,6 +432,7 @@ export default function PublicTournaments() {
                 <div style={{
                   borderTop: "1px solid var(--nec-border)",
                   paddingTop: "14px",
+                  marginTop: "auto",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between"
@@ -442,7 +457,7 @@ export default function PublicTournaments() {
                     View Details <ChevronRight size={14} style={{ marginLeft: "4px" }} />
                   </Button>
                 </div>
-              </Card>
+              </div>
             );
           })}
         </div>

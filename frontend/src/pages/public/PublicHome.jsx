@@ -399,16 +399,19 @@ export default function PublicHome({ onNavigate }) {
             {featuredTournaments.map(t => {
               const isInter = t.scope === "Inter-Collegiate";
               return (
-                <Card key={t.tournament_id} style={{
+                <div key={t.tournament_id} style={{
                   padding: "16px",
                   borderRadius: "12px",
                   display: "flex",
                   flexDirection: "column",
                   justifyContent: "space-between",
-                  border: "1px solid var(--nec-border)"
+                  height: "100%",
+                  background: "var(--nec-surface)",
+                  border: "1px solid var(--nec-border)",
+                  boxShadow: "var(--nec-shadow-sm)"
                 }}>
-                  <div>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                  <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px", minHeight: "26px" }}>
                       <Badge style={{
                         background: isInter ? "#1e3a8a" : "#4338ca",
                         color: "#fff",
@@ -421,7 +424,17 @@ export default function PublicHome({ onNavigate }) {
                         {t.status}
                       </Badge>
                     </div>
-                    <h4 style={{ margin: "0 0 6px", fontSize: "1.05rem", fontWeight: 800, color: "var(--nec-text-main)" }}>
+                    <h4 style={{
+                      margin: "0 0 6px",
+                      fontSize: "1.05rem",
+                      fontWeight: 800,
+                      color: "var(--nec-text-main)",
+                      minHeight: "2.7rem",
+                      display: "-webkit-box",
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: "vertical",
+                      overflow: "hidden"
+                    }}>
                       {t.name}
                     </h4>
                     <div style={{ fontSize: "0.8rem", color: "var(--nec-text-muted)", marginBottom: "10px" }}>
@@ -436,7 +449,7 @@ export default function PublicHome({ onNavigate }) {
                   <div style={{
                     borderTop: "1px solid var(--nec-border)",
                     paddingTop: "10px",
-                    marginTop: "10px",
+                    marginTop: "auto",
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center"
@@ -448,7 +461,7 @@ export default function PublicHome({ onNavigate }) {
                       Explore <ChevronRight size={14} />
                     </Button>
                   </div>
-                </Card>
+                </div>
               );
             })}
           </div>

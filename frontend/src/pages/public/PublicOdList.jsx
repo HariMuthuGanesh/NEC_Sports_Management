@@ -318,22 +318,25 @@ export default function PublicOdList() {
             const refNumber = doc.reference_number || `NEC/OD/${doc.academic_year || "2025-26"}/${String(docId).padStart(4, "0")}`;
 
             return (
-              <Card
+              <div
                 key={docId}
                 className="nec-doc-item-card"
                 style={{
                   borderRadius: "14px",
                   border: "1px solid var(--nec-border)",
+                  background: "var(--nec-surface)",
                   padding: "20px",
                   display: "flex",
                   flexDirection: "column",
                   justifyContent: "space-between",
-                  boxShadow: "var(--nec-shadow-sm)"
+                  height: "100%",
+                  boxShadow: "var(--nec-shadow-sm)",
+                  transition: "transform 0.2s, box-shadow 0.2s"
                 }}
               >
-                <div>
+                <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
                   {/* Top Badges */}
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", minHeight: "26px" }}>
                     <Badge variant="primary" style={{ background: "#1e3a8a", color: "#fff", fontWeight: 700, fontSize: "0.72rem" }}>
                       {doc.sport_name || "Athletics"}
                     </Badge>
@@ -343,7 +346,18 @@ export default function PublicOdList() {
                   </div>
 
                   {/* Title & Ref */}
-                  <h4 style={{ margin: "0 0 6px", fontSize: "1.1rem", fontWeight: 800, color: "var(--nec-text-main)", lineHeight: 1.3 }}>
+                  <h4 style={{
+                    margin: "0 0 6px",
+                    fontSize: "1.1rem",
+                    fontWeight: 800,
+                    color: "var(--nec-text-main)",
+                    lineHeight: 1.35,
+                    minHeight: "2.9rem",
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden"
+                  }}>
                     {doc.title || `${doc.sport_name} - ${doc.department_code} Official OD Letter`}
                   </h4>
 
@@ -358,24 +372,32 @@ export default function PublicOdList() {
                   </div>
 
                   {/* Metadata */}
-                  <div style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "0.82rem", color: "var(--nec-text-muted)", marginBottom: "16px" }}>
+                  <div style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "8px",
+                    fontSize: "0.82rem",
+                    color: "var(--nec-text-muted)",
+                    marginBottom: "16px",
+                    flex: 1
+                  }}>
                     {doc.tournament_name && (
-                      <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                        <Trophy size={13} style={{ color: "var(--nec-gold)" }} />
-                        <span>{doc.tournament_name}</span>
+                      <div style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
+                        <Trophy size={14} style={{ color: "var(--nec-gold)", flexShrink: 0, marginTop: "2px" }} />
+                        <span style={{ lineHeight: 1.4 }}>{doc.tournament_name}</span>
                       </div>
                     )}
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                      <Building size={13} />
-                      <span>Department: <strong>{doc.department_name || doc.department_code}</strong></span>
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
+                      <Building size={14} style={{ flexShrink: 0, marginTop: "2px" }} />
+                      <span style={{ lineHeight: 1.4 }}>Department: <strong>{doc.department_name || doc.department_code}</strong></span>
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                      <Calendar size={13} />
-                      <span>Academic Year: <strong>{doc.academic_year}</strong> • Signed: {formatDate(doc.uploaded_at || doc.created_at)}</span>
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
+                      <Calendar size={14} style={{ flexShrink: 0, marginTop: "2px" }} />
+                      <span style={{ lineHeight: 1.4 }}>Academic Year: <strong>{doc.academic_year}</strong> • Signed: {formatDate(doc.uploaded_at || doc.created_at)}</span>
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                      <ShieldCheck size={13} style={{ color: "#16a34a" }} />
-                      <span>Authority: <strong>Principal & Director of Physical Education</strong></span>
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
+                      <ShieldCheck size={14} style={{ color: "#16a34a", flexShrink: 0, marginTop: "2px" }} />
+                      <span style={{ lineHeight: 1.4 }}>Authority: <strong>Principal & Director of Physical Education</strong></span>
                     </div>
                   </div>
                 </div>
@@ -383,7 +405,8 @@ export default function PublicOdList() {
                 {/* Footer Action */}
                 <div style={{
                   borderTop: "1px solid var(--nec-border)",
-                  paddingTop: "14px"
+                  paddingTop: "14px",
+                  marginTop: "auto"
                 }}>
                   <Button
                     variant="primary"
@@ -395,7 +418,7 @@ export default function PublicOdList() {
                     View & Verify Signed Document
                   </Button>
                 </div>
-              </Card>
+              </div>
             );
           })}
         </div>
