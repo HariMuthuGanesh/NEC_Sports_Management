@@ -383,6 +383,16 @@ export const studentLookupApi = {
 
 export const playersApi = {
   getAllPlayers: (query = "") => apiFetchFull(`/students?q=${encodeURIComponent(query)}`),
+  getStudentsDirectory: (params = {}) => {
+    const qs = Object.entries({ directory: 'true', ...params })
+      .filter(([, v]) => v !== undefined && v !== null && v !== "" && v !== "ALL")
+      .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+      .join('&');
+    return apiFetchFull(`/students?${qs}`);
+  },
+  getStudentSportsProfile: (id) => apiFetch(`/students/${id}/sports-profile`),
+  addStudentSportInterest: (id, data) => apiFetch(`/students/${id}/sports-interest`, 'POST', data),
+  removeStudentSportInterest: (id, sportId) => apiFetch(`/students/${id}/sports-interest/${sportId}`, 'DELETE'),
   // The logged-in student's own record and teams. Resolves to null when no student record is linked (404).
   getMyProfile: () => apiFetch("/students/me").catch((err) => (err?.status === 404 ? null : Promise.reject(err))),
   createStudent: (studentData) => apiFetch("/students", "POST", studentData),
@@ -681,6 +691,7 @@ export const appointmentsApi = {
   createAppointment: (data) => apiFetch('/appointments', 'POST', data),
   updateAppointment: (id, data) => apiFetch(`/appointments/${id}`, 'PUT', data),
   revokeAppointment: (id, reason) => apiFetch(`/appointments/${id}/revoke`, 'PATCH', { reason }),
+  deleteAppointment: (id) => apiFetch(`/appointments/${id}`, 'DELETE'),
   getAppointmentsMetadata: () => apiFetch('/appointments/meta')
 };
 

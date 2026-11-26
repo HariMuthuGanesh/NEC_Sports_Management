@@ -52,7 +52,11 @@ import {
 import { ensureStudentAndUserExists, setStudentSportsInterest } from '../services/studentProvisionService.js';
 import { sendAnnouncementEmail, buildCollegeEmail } from '../services/emailService.js';
 import {
-    searchStudents as searchStudentsSql
+    searchStudents as searchStudentsSql,
+    getStudentsDirectory,
+    getStudentSportsProfile,
+    addStudentSportInterest,
+    removeStudentSportInterest
 } from '../models/sql/studentSqlModel.js';
 import {
     searchImsStudents,
@@ -1188,7 +1192,52 @@ export const getOverviewStats = async (req, res, next) => {
 /* --- Students --- */
 export const searchStudentsController = async (req, res, next) => {
     try {
-        const query = req.query.q || '';
+        const query = req.query.q || req.query.search || '';
+        const {
+            departmentId,
+            sportId,
+            activityType,
+            batch,
+            appointmentStatus,
+            page,
+            limit,
+            sortBy,
+            sortOrder,
+            directory
+        } = req.query;
+
+        // Directory mode with multi-filtering and pagination
+        if (directory === 'true' || departmentId || sportId || activityType || batch || appointmentStatus || page) {
+            const result = await getStudentsDirectory({
+                search: query,
+                departmentId: departmentId || 'ALL',
+                sportId: sportId || 'ALL',
+                activityType: activityType || 'ALL',
+                batch: batch || 'ALL',
+                appointmentStatus: appointmentStatus || 'ALL',
+                page: Number(page) || 1,
+                limit: Number(limit) || 20,
+                sortBy: sortBy || 'student_name',
+                sortOrder: sortOrder || 'ASC'
+            });
+
+            // Strip sensitive contact information if unauthorized
+            const canSeeContact = ['Admin', 'Sports President', 'Coordinator'].includes(req.user?.role);
+            let rows = result.rows;
+            if (!canSeeContact && Array.isArray(rows)) {
+                rows = rows.map(({ personal_email, email, personal_phone, phone, ...rest }) => rest);
+            }
+
+            return res.json({
+                success: true,
+                data: rows,
+                total: result.total,
+                page: Number(page) || 1,
+                limit: Number(limit) || 20,
+                meta: { source: 'Local Records (IMS Ready)', imsConnected: false, imsPopulated: false }
+            });
+        }
+
         const imsPopulated = await hasImsStudents();
         let data = null;
         let source = 'sportsdb';
@@ -1216,6 +1265,54 @@ export const searchStudentsController = async (req, res, next) => {
             data,
             meta: { source, imsConnected: Boolean(imsPopulated && source === 'ims'), imsPopulated }
         });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const getStudentSportsProfileController = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const profile = await getStudentSportsProfile(Number(id));
+        if (!profile) {
+            return res.status(404).json({
+                success: false,
+                error: { code: 'NOT_FOUND', message: 'Student profile not found.' }
+            });
+        }
+        return res.json({ success: true, data: profile });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const addStudentSportInterestController = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { sportId, interestStatus = 'Interested', source = 'Local' } = req.body;
+        if (!sportId) {
+            return res.status(400).json({ success: false, error: { message: 'Sport is required.' } });
+        }
+        await addStudentSportInterest({
+            studentId: Number(id),
+            sportId: Number(sportId),
+            interestStatus,
+            source
+        });
+        return res.json({ success: true, message: 'Sports interest recorded successfully.' });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const removeStudentSportInterestController = async (req, res, next) => {
+    try {
+        const { id, sportId } = req.params;
+        await removeStudentSportInterest({
+            studentId: Number(id),
+            sportId: Number(sportId)
+        });
+        return res.json({ success: true, message: 'Sports interest removed successfully.' });
     } catch (err) {
         next(err);
     }

@@ -345,6 +345,50 @@ CREATE TABLE IF NOT EXISTS college_team_members (
   FOREIGN KEY (confirmed_by) REFERENCES users(id)
 );
 
+-- 19. Student Leadership Appointments
+CREATE TABLE IF NOT EXISTS student_appointments (
+  appointment_id INT AUTO_INCREMENT PRIMARY KEY,
+  student_id INT NOT NULL,
+  academic_year VARCHAR(20) NOT NULL,
+  appointment_role VARCHAR(100) NOT NULL,
+  role_code VARCHAR(50) NULL,
+  position_category ENUM('Male', 'Female') NULL,
+  gender ENUM('Male', 'Female', 'Other') NULL DEFAULT NULL,
+  appointment_scope ENUM('College', 'Department') NOT NULL DEFAULT 'Department',
+  department_id INT NULL,
+  appointment_date DATE NOT NULL,
+  tenure_start DATE NOT NULL,
+  tenure_end DATE NOT NULL,
+  status ENUM('Active', 'Completed', 'Revoked') NOT NULL DEFAULT 'Active',
+  revoked_reason VARCHAR(255) NULL,
+  revoked_at DATETIME NULL,
+  appointed_by INT NULL,
+  remarks TEXT NULL,
+  ims_sync_status ENUM('Pending', 'Synced', 'LocalOnly') NOT NULL DEFAULT 'LocalOnly',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_app_student FOREIGN KEY (student_id) REFERENCES students(student_id) ON DELETE RESTRICT,
+  CONSTRAINT fk_app_dept FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE SET NULL,
+  INDEX idx_app_year (academic_year),
+  INDEX idx_app_status (status),
+  INDEX idx_app_scope_dept (appointment_scope, department_id),
+  INDEX idx_app_student (student_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 20. Student Sports Interests (Directory Multi-Sport Association)
+CREATE TABLE IF NOT EXISTS student_sport_interests (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  student_id INT NOT NULL,
+  sport_id INT NOT NULL,
+  interest_status ENUM('Interested', 'Competitive', 'Recreational', 'Inactive') NOT NULL DEFAULT 'Interested',
+  source ENUM('Local', 'Student Portal', 'Future IMS') NOT NULL DEFAULT 'Local',
+  recorded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_student_sport (student_id, sport_id),
+  FOREIGN KEY (student_id) REFERENCES students(student_id) ON DELETE CASCADE,
+  FOREIGN KEY (sport_id) REFERENCES sports(sport_id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- ============================================================================
 -- NOTE ON DEPRECATED V1 PARALLEL TABLES:
 -- The following tables from experimental migration 003 are DEPRECATED and are

@@ -6,6 +6,7 @@ import {
   createAppointment,
   updateAppointment,
   revokeAppointment,
+  deleteAppointment,
   getAppointmentsMetadata
 } from '../models/sql/appointmentSqlModel.js';
 
@@ -16,6 +17,7 @@ export const listAppointmentsController = async (req, res, next) => {
       scope,
       departmentId,
       role,
+      gender,
       status,
       search,
       page = 1,
@@ -33,6 +35,7 @@ export const listAppointmentsController = async (req, res, next) => {
       scope,
       departmentId,
       role,
+      gender,
       status,
       search,
       limit: limitNum,
@@ -76,7 +79,10 @@ export const createAppointmentController = async (req, res, next) => {
   try {
     const studentId = req.body.student_id || req.body.studentId;
     const academicYear = (req.body.academic_year || req.body.academicYear || '').trim();
-    const role = (req.body.appointment_role || req.body.role || '').trim();
+    let role = (req.body.appointment_role || req.body.role || '').trim();
+    let gender = req.body.gender || null;
+    let positionCategory = req.body.position_category || req.body.positionCategory || null;
+    let roleCode = req.body.role_code || req.body.roleCode || null;
     const scope = req.body.appointment_scope || req.body.scope || 'Department';
     const departmentId = req.body.department_id || req.body.departmentId || null;
     const appointmentDate = req.body.appointment_date || req.body.appointmentDate;
@@ -84,6 +90,18 @@ export const createAppointmentController = async (req, res, next) => {
     const tenureEnd = req.body.tenure_end || req.body.tenureEnd;
     const status = req.body.status || 'Active';
     const remarks = req.body.remarks || null;
+
+    if (!positionCategory && gender && ['Male', 'Female'].includes(gender)) {
+      positionCategory = gender;
+    }
+    if (!positionCategory) {
+      if (role.toLowerCase().includes('female') || role.toLowerCase().includes('women') || role.toLowerCase().includes('girl')) {
+        positionCategory = 'Female';
+      } else if (role.toLowerCase().includes('male') || role.toLowerCase().includes('men') || role.toLowerCase().includes('boy')) {
+        positionCategory = 'Male';
+      }
+    }
+    if (!gender) gender = positionCategory;
 
     if (!studentId || !academicYear || !role || !appointmentDate || !tenureStart || !tenureEnd) {
       return res.status(400).json({
@@ -130,11 +148,14 @@ export const createAppointmentController = async (req, res, next) => {
       const conflict = await findConflictingAppointment({
         academicYear,
         role,
+        positionCategory,
+        roleCode,
         scope,
         departmentId
       });
 
       if (conflict) {
+        const catDesc = positionCategory ? ` (${positionCategory})` : '';
         const scopeDesc = scope === 'College'
           ? `at the College level`
           : `for the specified department`;
@@ -142,7 +163,7 @@ export const createAppointmentController = async (req, res, next) => {
           success: false,
           error: {
             code: 'CONFLICTING_APPOINTMENT',
-            message: `An active appointment for "${role}" already exists ${scopeDesc} for academic year ${academicYear} (Appointed: ${conflict.student_name} [${conflict.register_number}]). Revoke or complete the existing appointment first.`
+            message: `An active appointment for "${role}"${catDesc} already exists ${scopeDesc} for academic year ${academicYear} (Appointed: ${conflict.student_name} [${conflict.register_number}]). Revoke or complete the existing appointment first.`
           }
         });
       }
@@ -152,6 +173,9 @@ export const createAppointmentController = async (req, res, next) => {
       studentId: Number(studentId),
       academicYear,
       role,
+      roleCode,
+      positionCategory,
+      gender,
       scope,
       departmentId: departmentId ? Number(departmentId) : null,
       appointmentDate,
@@ -186,6 +210,22 @@ export const updateAppointmentController = async (req, res, next) => {
     }
 
     const role = (req.body.appointment_role || req.body.role || existing.appointment_role).trim();
+    let gender = req.body.gender !== undefined ? req.body.gender : existing.gender;
+    let positionCategory = req.body.position_category || req.body.positionCategory || existing.position_category;
+    let roleCode = req.body.role_code || req.body.roleCode || existing.role_code;
+
+    if (!positionCategory && gender && ['Male', 'Female'].includes(gender)) {
+      positionCategory = gender;
+    }
+    if (!positionCategory && role) {
+      if (role.toLowerCase().includes('female') || role.toLowerCase().includes('women') || role.toLowerCase().includes('girl')) {
+        positionCategory = 'Female';
+      } else if (role.toLowerCase().includes('male') || role.toLowerCase().includes('men') || role.toLowerCase().includes('boy')) {
+        positionCategory = 'Male';
+      }
+    }
+    if (!gender) gender = positionCategory;
+
     const scope = req.body.appointment_scope || req.body.scope || existing.appointment_scope;
     const departmentId = req.body.department_id !== undefined ? req.body.department_id : existing.department_id;
     const academicYear = (req.body.academic_year || req.body.academicYear || existing.academic_year).trim();
@@ -207,17 +247,20 @@ export const updateAppointmentController = async (req, res, next) => {
       const conflict = await findConflictingAppointment({
         academicYear,
         role,
+        positionCategory,
+        roleCode,
         scope,
         departmentId,
         excludeId: Number(id)
       });
 
       if (conflict) {
+        const catDesc = positionCategory ? ` (${positionCategory})` : '';
         return res.status(409).json({
           success: false,
           error: {
             code: 'CONFLICTING_APPOINTMENT',
-            message: `Another active appointment for "${role}" already exists for academic year ${academicYear} (${conflict.student_name}).`
+            message: `Another active appointment for "${role}"${catDesc} already exists for academic year ${academicYear} (${conflict.student_name}).`
           }
         });
       }
@@ -225,6 +268,9 @@ export const updateAppointmentController = async (req, res, next) => {
 
     await updateAppointment(Number(id), {
       role,
+      roleCode,
+      positionCategory,
+      gender,
       scope,
       departmentId: departmentId ? Number(departmentId) : null,
       academicYear,
@@ -276,6 +322,28 @@ export const revokeAppointmentController = async (req, res, next) => {
     return res.json({
       success: true,
       message: `Appointment for ${existing.student_name} (${existing.appointment_role}) has been revoked.`
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const deleteAppointmentController = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const existing = await getAppointmentById(Number(id));
+    if (!existing) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Appointment not found.' }
+      });
+    }
+
+    await deleteAppointment(Number(id));
+
+    return res.json({
+      success: true,
+      message: `Appointment record for ${existing.student_name} (${existing.appointment_role}) has been permanently deleted.`
     });
   } catch (err) {
     next(err);

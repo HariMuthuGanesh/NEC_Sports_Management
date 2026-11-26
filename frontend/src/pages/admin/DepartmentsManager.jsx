@@ -115,20 +115,8 @@ export default function DepartmentsManager() {
       )
     },
     { key: "name", label: "Department Name", render: (val) => <strong>{unescapeEntity(val) || "-"}</strong> },
-    { 
-      key: "coordinator_name", 
-      label: "Staff Coordinator", 
-      render: (val, row) => val ? (
-        <div>
-          <strong>{val}</strong>
-          <div style={{ fontSize: "0.75rem", color: "var(--nec-text-muted)" }}>{row.coordinator_email}</div>
-        </div>
-      ) : (
-        <span style={{ color: "var(--nec-text-muted)", fontStyle: "italic" }}>Not Assigned</span>
-      ) 
-    },
-    { key: "students", label: "Enrolled Students", width: "130px", render: (val) => <span>{val || 0} students</span> },
-    { key: "teams_count", label: "Teams", width: "90px", render: (val) => <span style={{ fontWeight: 600 }}>{val || 0} teams</span> },
+    { key: "students", label: "Enrolled Students", width: "140px", render: (val) => <span>{val || 0} students</span> },
+    { key: "teams_count", label: "Teams", width: "100px", render: (val) => <span style={{ fontWeight: 600 }}>{val || 0} teams</span> },
     {
       key: "actions", label: "Actions", width: "140px",
       render: (_, row) => (
@@ -152,7 +140,7 @@ export default function DepartmentsManager() {
               Academic Structure
             </span>
           </div>
-          <h2 className="nec-page-title">{t.departments || "Departments & Coordinators"}</h2>
+          <h2 className="nec-page-title">Academic Departments Catalog</h2>
         </div>
         <Button variant="primary" icon={Plus} onClick={openAdd}>Add Department</Button>
       </div>
@@ -167,7 +155,6 @@ export default function DepartmentsManager() {
           <div className="nec-stats-grid" style={{ marginBottom: "20px" }}>
             {[
               { label: "Total Departments", value: depts.length },
-              { label: "Assigned Coordinators", value: depts.filter(d => d.coordinator_user_id).length },
               { label: "Total Registered Teams", value: depts.reduce((acc, d) => acc + (Number(d.teams_count) || 0), 0) },
               { label: "Total Enrolled Students", value: depts.reduce((acc, d) => acc + (Number(d.students) || 0), 0) }
             ].map(({ label, value }) => (
@@ -182,26 +169,15 @@ export default function DepartmentsManager() {
         </>
       )}
 
-      <Modal isOpen={showModal} onClose={() => setShowModal(false)} title={editDept ? "Edit Department & Coordinator" : "Add Department"}>
+      <Modal isOpen={showModal} onClose={() => setShowModal(false)} title={editDept ? "Edit Department" : "Add Department"}>
         <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
           <div className="nec-form-group">
             <label className="nec-form-label">Department Full Name *</label>
             <input className="nec-table-search-input" style={{ maxWidth: "100%" }} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Computer Science & Engineering" />
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-            <div className="nec-form-group">
-              <label className="nec-form-label">Short Code *</label>
-              <input className="nec-table-search-input" style={{ maxWidth: "100%" }} value={form.code} onChange={e => setForm(f => ({ ...f, code: e.target.value }))} placeholder="CSE" maxLength={8} />
-            </div>
-            <div className="nec-form-group">
-              <label className="nec-form-label">Designated Staff Coordinator</label>
-              <select className="nec-table-search-input" style={{ maxWidth: "100%" }} value={form.coordinatorUserId} onChange={e => setForm(f => ({ ...f, coordinatorUserId: e.target.value }))}>
-                <option value="">-- Select Coordinator --</option>
-                {coordinators.map(c => (
-                  <option key={c.id} value={c.id}>{c.username} ({c.email})</option>
-                ))}
-              </select>
-            </div>
+          <div className="nec-form-group">
+            <label className="nec-form-label">Short Code *</label>
+            <input className="nec-table-search-input" style={{ maxWidth: "100%" }} value={form.code} onChange={e => setForm(f => ({ ...f, code: e.target.value }))} placeholder="CSE" maxLength={8} />
           </div>
           <div className="nec-form-group">
             <label className="nec-form-label">Department Color Code</label>

@@ -11,6 +11,7 @@ import {
   Clock,
   Edit2,
   Eye,
+  Trash2,
   RefreshCw,
   ChevronLeft,
   ChevronRight,
@@ -25,12 +26,28 @@ import SkeletonLoader from "../../components/common/SkeletonLoader";
 import { appointmentsApi, sportsApi, studentLookupApi } from "../../services/api/apiServices";
 import "./AppointmentsManager.css";
 
+const COLLEGE_ROLES = [
+  "Sports President",
+  "Vice President (Sports)",
+  "Sports Secretary",
+  "Joint Sports Secretary",
+  "Custom Role..."
+];
+
+const DEPARTMENT_ROLES = [
+  "Department Sports Coordinator",
+  "Department Sports Secretary",
+  "Joint Department Coordinator",
+  "Custom Role..."
+];
+
 const PRESET_ROLES = [
   "Sports President",
   "Department Sports Coordinator",
   "Vice President (Sports)",
   "Sports Secretary",
   "Joint Sports Secretary",
+  "Department Sports Secretary",
   "Custom Role..."
 ];
 
@@ -50,6 +67,7 @@ export default function AppointmentsManager() {
   const [search, setSearch] = useState("");
   const [filterYear, setFilterYear] = useState("ALL");
   const [filterScope, setFilterScope] = useState("ALL");
+  const [filterGender, setFilterGender] = useState("ALL");
   const [filterDept, setFilterDept] = useState("ALL");
   const [filterRole, setFilterRole] = useState("ALL");
   const [filterStatus, setFilterStatus] = useState("ALL");
@@ -64,6 +82,7 @@ export default function AppointmentsManager() {
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [revokeModalOpen, setRevokeModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [revocationReason, setRevocationReason] = useState("");
@@ -80,6 +99,7 @@ export default function AppointmentsManager() {
   const [formData, setFormData] = useState({
     academicYear: defaultYear,
     scope: "Department",
+    gender: "Male",
     departmentId: "",
     roleSelect: "Department Sports Coordinator",
     customRole: "",
@@ -92,6 +112,16 @@ export default function AppointmentsManager() {
     tenureEnd: `${new Date().getFullYear() + 1}-06-30`,
     remarks: ""
   });
+
+  const handleScopeChange = (newScope) => {
+    setFormData(prev => ({
+      ...prev,
+      scope: newScope,
+      roleSelect: newScope === "College" ? "Sports President" : "Department Sports Coordinator",
+      customRole: "",
+      departmentId: newScope === "College" ? "" : prev.departmentId
+    }));
+  };
 
   // Student Search in Modal
   const [studentQuery, setStudentQuery] = useState("");
@@ -127,6 +157,7 @@ export default function AppointmentsManager() {
         search: search.trim() || undefined,
         academicYear: filterYear !== "ALL" ? filterYear : undefined,
         scope: filterScope !== "ALL" ? filterScope : undefined,
+        gender: filterGender !== "ALL" ? filterGender : undefined,
         departmentId: filterDept !== "ALL" ? filterDept : undefined,
         role: filterRole !== "ALL" ? filterRole : undefined,
         status: activeTab === "current" ? "Active" : (filterStatus !== "ALL" ? filterStatus : undefined)
@@ -142,7 +173,7 @@ export default function AppointmentsManager() {
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, search, filterYear, filterScope, filterDept, filterRole, filterStatus, activeTab]);
+  }, [page, pageSize, search, filterYear, filterScope, filterGender, filterDept, filterRole, filterStatus, activeTab]);
 
   useEffect(() => {
     fetchAppointments();
@@ -191,6 +222,7 @@ export default function AppointmentsManager() {
     setFormData({
       academicYear: defaultYear,
       scope: "Department",
+      gender: "Male",
       departmentId: "",
       roleSelect: "Department Sports Coordinator",
       customRole: "",
@@ -234,6 +266,8 @@ export default function AppointmentsManager() {
         student_id: Number(formData.studentId),
         academic_year: formData.academicYear.trim(),
         appointment_role: finalRole,
+        position_category: formData.gender,
+        gender: formData.gender,
         appointment_scope: formData.scope,
         department_id: formData.scope === "Department" ? Number(formData.departmentId) : null,
         appointment_date: formData.appointmentDate,
@@ -267,6 +301,8 @@ export default function AppointmentsManager() {
     try {
       await appointmentsApi.updateAppointment(selectedAppointment.appointment_id, {
         role: selectedAppointment.appointment_role,
+        position_category: selectedAppointment.position_category || selectedAppointment.gender,
+        gender: selectedAppointment.gender,
         scope: selectedAppointment.appointment_scope,
         departmentId: selectedAppointment.department_id,
         academicYear: selectedAppointment.academic_year,
@@ -310,6 +346,28 @@ export default function AppointmentsManager() {
     } catch (err) {
       console.error(err);
       setModalError(err.message || "Failed to revoke appointment.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Handle Delete Submit (CRUD: Delete)
+  const handleDeleteSubmit = async (e) => {
+    e.preventDefault();
+    if (!selectedAppointment) return;
+
+    setSubmitting(true);
+    setModalError(null);
+    try {
+      await appointmentsApi.deleteAppointment(selectedAppointment.appointment_id || selectedAppointment.id);
+      setSuccessMsg(`Appointment record for "${selectedAppointment.student_name}" successfully deleted.`);
+      setDeleteModalOpen(false);
+      setSelectedAppointment(null);
+      fetchAppointments();
+      loadInitialData();
+    } catch (err) {
+      console.error(err);
+      setModalError(err.message || "Failed to delete appointment.");
     } finally {
       setSubmitting(false);
     }
@@ -403,7 +461,7 @@ export default function AppointmentsManager() {
           </div>
           <div>
             <div className="nec-app-stat-val">{meta?.stats?.active_count ?? appointments.filter(a => a.status === 'Active').length}</div>
-            <div className="nec-app-stat-label">Total Active Appointments</div>
+            <div className="nec-app-stat-label">Active Appointments</div>
           </div>
         </div>
 
@@ -413,7 +471,7 @@ export default function AppointmentsManager() {
           </div>
           <div>
             <div className="nec-app-stat-val">{meta?.stats?.college_leaders_count ?? appointments.filter(a => a.status === 'Active' && a.appointment_scope === 'College').length}</div>
-            <div className="nec-app-stat-label">College Sports Presidents</div>
+            <div className="nec-app-stat-label">College Level Leaders</div>
           </div>
         </div>
 
@@ -432,8 +490,8 @@ export default function AppointmentsManager() {
             <Calendar size={24} />
           </div>
           <div>
-            <div className="nec-app-stat-val">{meta?.academicYears?.length || 1}</div>
-            <div className="nec-app-stat-label">Academic Years on Record</div>
+            <div className="nec-app-stat-val">{meta?.stats?.total_records ?? appointments.length}</div>
+            <div className="nec-app-stat-label">Total Appointments Recorded</div>
           </div>
         </div>
       </div>
@@ -515,6 +573,19 @@ export default function AppointmentsManager() {
 
           <select
             className="nec-app-select"
+            value={filterGender}
+            onChange={(e) => {
+              setFilterGender(e.target.value);
+              setPage(1);
+            }}
+          >
+            <option value="ALL">All Wings / Genders</option>
+            <option value="Male">👨 Boys Wing (Male)</option>
+            <option value="Female">👩 Girls Wing (Female)</option>
+          </select>
+
+          <select
+            className="nec-app-select"
             value={filterDept}
             onChange={(e) => {
               setFilterDept(e.target.value);
@@ -552,6 +623,7 @@ export default function AppointmentsManager() {
               setSearch("");
               setFilterYear("ALL");
               setFilterScope("ALL");
+              setFilterGender("ALL");
               setFilterDept("ALL");
               setFilterRole("ALL");
               setFilterStatus("ALL");
@@ -583,16 +655,16 @@ export default function AppointmentsManager() {
             <table className="nec-table">
               <thead>
                 <tr>
-                  <th style={{ width: "90px" }}>Appt #</th>
-                  <th>Student Leader</th>
-                  <th style={{ width: "130px" }}>Register #</th>
-                  <th style={{ width: "160px" }}>Department</th>
-                  <th>Appointment Role</th>
-                  <th style={{ width: "100px" }}>Scope</th>
-                  <th style={{ width: "110px" }}>AY</th>
-                  <th style={{ width: "180px" }}>Tenure Period</th>
-                  <th style={{ width: "100px" }}>Status</th>
-                  <th style={{ width: "130px", textAlign: "right" }}>Actions</th>
+                  <th style={{ width: "80px" }}>Appt #</th>
+                  <th>Student Name</th>
+                  <th style={{ width: "125px" }}>Register #</th>
+                  <th>Appointment Title</th>
+                  <th style={{ width: "125px" }}>Position Category</th>
+                  <th style={{ width: "135px" }}>Dept / Scope</th>
+                  <th style={{ width: "95px" }}>Academic Year</th>
+                  <th style={{ width: "170px" }}>Tenure Period</th>
+                  <th style={{ width: "95px" }}>Status</th>
+                  <th style={{ width: "135px", textAlign: "right" }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -600,6 +672,7 @@ export default function AppointmentsManager() {
                   const targetDept = a.department_name ? `${a.department_code || "DEPT"}` : (a.student_home_dept_code || "N/A");
                   const startDate = a.tenure_start ? new Date(a.tenure_start).toLocaleDateString() : "";
                   const endDate = a.tenure_end ? new Date(a.tenure_end).toLocaleDateString() : "";
+                  const category = a.position_category || a.gender || "Male";
 
                   return (
                     <tr key={a.appointment_id || a.id}>
@@ -624,24 +697,24 @@ export default function AppointmentsManager() {
                         </span>
                       </td>
                       <td>
+                        <strong style={{ fontSize: "0.9rem", color: "var(--nec-text-main, #0f172a)" }}>
+                          {a.appointment_role || a.role}
+                        </strong>
+                      </td>
+                      <td>
+                        <span className={`nec-gender-pill ${category.toLowerCase()}`}>
+                          {category === "Female" ? "♀ Female" : "♂ Male"}
+                        </span>
+                      </td>
+                      <td>
                         <span className="nec-dept-pill">
                           {targetDept}
                         </span>
-                        {a.department_name && (
-                          <div style={{ fontSize: "0.72rem", color: "var(--nec-text-muted, #64748b)", marginTop: "2px" }}>
-                            {a.department_name}
-                          </div>
-                        )}
-                      </td>
-                      <td>
-                        <span style={{ fontWeight: 700, color: "var(--nec-text-main, #0f172a)" }}>
-                          {a.appointment_role || a.role}
-                        </span>
-                      </td>
-                      <td>
-                        <span className={`nec-scope-pill ${a.appointment_scope === "College" ? "college" : "department"}`}>
-                          {a.appointment_scope}
-                        </span>
+                        <div style={{ marginTop: "3px" }}>
+                          <span className={`nec-scope-pill ${a.appointment_scope === "College" ? "college" : "department"}`}>
+                            {a.appointment_scope}
+                          </span>
+                        </div>
                       </td>
                       <td>
                         <span style={{ fontSize: "0.85rem", fontWeight: 600 }}>
@@ -688,8 +761,9 @@ export default function AppointmentsManager() {
                           {a.status === "Active" && (
                             <button
                               type="button"
-                              className="nec-icon-btn danger"
+                              className="nec-icon-btn"
                               title="Revoke Official Appointment"
+                              style={{ color: "#d97706" }}
                               onClick={() => {
                                 setSelectedAppointment(a);
                                 setRevocationReason("");
@@ -700,6 +774,19 @@ export default function AppointmentsManager() {
                               <XCircle size={15} />
                             </button>
                           )}
+
+                          <button
+                            type="button"
+                            className="nec-icon-btn danger"
+                            title="Delete Appointment Record"
+                            onClick={() => {
+                              setSelectedAppointment(a);
+                              setModalError(null);
+                              setDeleteModalOpen(true);
+                            }}
+                          >
+                            <Trash2 size={15} />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -758,7 +845,7 @@ export default function AppointmentsManager() {
             </div>
           )}
 
-          {/* Academic Year & Scope */}
+          {/* Academic Year, Scope & Gender */}
           <div className="nec-app-form-grid">
             <div className="nec-app-form-group">
               <label className="nec-app-form-label">
@@ -785,12 +872,7 @@ export default function AppointmentsManager() {
                     name="scope"
                     value="College"
                     checked={formData.scope === "College"}
-                    onChange={() => setFormData({
-                      ...formData,
-                      scope: "College",
-                      roleSelect: "Sports President",
-                      departmentId: ""
-                    })}
+                    onChange={() => handleScopeChange("College")}
                   />
                   <span><strong>College</strong> (Varsity/Council)</span>
                 </label>
@@ -800,15 +882,25 @@ export default function AppointmentsManager() {
                     name="scope"
                     value="Department"
                     checked={formData.scope === "Department"}
-                    onChange={() => setFormData({
-                      ...formData,
-                      scope: "Department",
-                      roleSelect: "Department Sports Coordinator"
-                    })}
+                    onChange={() => handleScopeChange("Department")}
                   />
                   <span><strong>Department</strong> (Coordinator)</span>
                 </label>
               </div>
+            </div>
+
+            <div className="nec-app-form-group">
+              <label className="nec-app-form-label">
+                Position Category <span style={{ color: "#ef4444" }}>*</span>
+              </label>
+              <select
+                className="nec-app-select"
+                value={formData.gender}
+                onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+              >
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+              </select>
             </div>
           </div>
 
@@ -910,7 +1002,7 @@ export default function AppointmentsManager() {
                 value={formData.roleSelect}
                 onChange={(e) => setFormData({ ...formData, roleSelect: e.target.value })}
               >
-                {PRESET_ROLES.map((r) => (
+                {(formData.scope === "College" ? COLLEGE_ROLES : DEPARTMENT_ROLES).map((r) => (
                   <option key={r} value={r}>
                     {r}
                   </option>
@@ -1036,12 +1128,18 @@ export default function AppointmentsManager() {
                 <strong style={{ fontFamily: "monospace" }}>{selectedAppointment.register_number || "N/A"}</strong>
               </div>
               <div>
-                <span style={{ color: "#64748b", fontSize: "0.78rem", display: "block" }}>Department</span>
-                <strong>{selectedAppointment.department_name || selectedAppointment.student_home_dept_name || "All Departments"}</strong>
+                <span style={{ color: "#64748b", fontSize: "0.78rem", display: "block" }}>Position Category</span>
+                <span className={`nec-gender-pill ${String(selectedAppointment.position_category || selectedAppointment.gender || "Male").toLowerCase()}`} style={{ marginTop: "3px" }}>
+                  {(selectedAppointment.position_category || selectedAppointment.gender) === "Female" ? "♀ Female" : "♂ Male"}
+                </span>
               </div>
               <div>
                 <span style={{ color: "#64748b", fontSize: "0.78rem", display: "block" }}>Academic Year</span>
                 <strong>AY {selectedAppointment.academic_year}</strong>
+              </div>
+              <div>
+                <span style={{ color: "#64748b", fontSize: "0.78rem", display: "block" }}>Department</span>
+                <strong>{selectedAppointment.department_name || selectedAppointment.student_home_dept_name || "All Departments"}</strong>
               </div>
               <div>
                 <span style={{ color: "#64748b", fontSize: "0.78rem", display: "block" }}>Tenure Start</span>
@@ -1133,6 +1231,20 @@ export default function AppointmentsManager() {
                 />
               </div>
 
+              <div className="nec-app-form-group">
+                <label className="nec-app-form-label">Position Category</label>
+                <select
+                  className="nec-app-select"
+                  value={selectedAppointment.position_category || selectedAppointment.gender || "Male"}
+                  onChange={(e) => setSelectedAppointment({ ...selectedAppointment, position_category: e.target.value, gender: e.target.value })}
+                >
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="nec-app-form-grid">
               <div className="nec-app-form-group">
                 <label className="nec-app-form-label">Academic Year</label>
                 <input
@@ -1250,6 +1362,46 @@ export default function AppointmentsManager() {
               </Button>
               <Button variant="danger" type="submit" loading={submitting}>
                 Revoke Appointment
+              </Button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════
+          MODAL 5: DELETE APPOINTMENT (CRUD: DELETE)
+         ════════════════════════════════════════════════════════════════════ */}
+      {selectedAppointment && deleteModalOpen && (
+        <Modal
+          isOpen={deleteModalOpen}
+          onClose={() => setDeleteModalOpen(false)}
+          title="Delete Appointment Record"
+          size="sm"
+        >
+          <form onSubmit={handleDeleteSubmit} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+            {modalError && (
+              <div style={{ color: "#d9534f", backgroundColor: "#fdf7f7", padding: "10px 14px", borderRadius: "8px", border: "1px solid #d9534f", display: "flex", alignItems: "center", gap: "8px", fontSize: "0.88rem" }}>
+                <AlertCircle size={16} />
+                <span>{modalError}</span>
+              </div>
+            )}
+
+            <div style={{ padding: "14px", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "8px", display: "flex", gap: "10px" }}>
+              <Trash2 size={22} style={{ color: "#dc2626", flexShrink: 0, marginTop: "2px" }} />
+              <div style={{ fontSize: "0.88rem", color: "#991b1b" }}>
+                Are you sure you want to permanently delete the appointment record of <strong>{selectedAppointment.student_name}</strong> as <strong>{selectedAppointment.appointment_role}</strong> ({selectedAppointment.academic_year})?
+                <div style={{ marginTop: "6px", fontSize: "0.8rem", color: "#b91c1c" }}>
+                  This action cannot be undone.
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", borderTop: "1px solid #e2e8f0", paddingTop: "12px" }}>
+              <Button variant="ghost" type="button" onClick={() => setDeleteModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button variant="danger" type="submit" loading={submitting}>
+                Delete Permanently
               </Button>
             </div>
           </form>

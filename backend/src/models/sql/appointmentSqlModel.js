@@ -5,6 +5,7 @@ export const getAllAppointments = async ({
   scope,
   departmentId,
   role,
+  gender,
   status,
   search,
   limit = 50,
@@ -33,6 +34,11 @@ export const getAllAppointments = async ({
   if (role && role !== 'ALL') {
     conditions.push('a.appointment_role = ?');
     params.push(role);
+  }
+
+  if (gender && gender !== 'ALL') {
+    conditions.push('(a.position_category = ? OR a.gender = ? OR a.appointment_role LIKE ?)');
+    params.push(gender, gender, `%${gender}%`);
   }
 
   if (status && status !== 'ALL') {
@@ -76,6 +82,9 @@ export const getAllAppointments = async ({
       a.academic_year,
       a.appointment_role,
       a.appointment_role AS role,
+      a.role_code,
+      a.position_category,
+      a.gender,
       a.appointment_scope,
       a.appointment_scope AS scope,
       a.department_id,
@@ -87,6 +96,7 @@ export const getAllAppointments = async ({
       a.revoked_at,
       a.appointed_by,
       a.remarks,
+      a.ims_sync_status,
       a.created_at,
       a.updated_at,
       s.student_name,
@@ -146,6 +156,8 @@ export const getAppointmentById = async (id) => {
 export const findConflictingAppointment = async ({
   academicYear,
   role,
+  positionCategory = null,
+  roleCode = null,
   scope,
   departmentId,
   excludeId = null
@@ -160,12 +172,20 @@ export const findConflictingAppointment = async ({
 
   if (scope === 'College') {
     conditions.push('appointment_scope = "College"');
-    conditions.push('appointment_role = ?');
-    params.push(role);
   } else {
     conditions.push('appointment_scope = "Department"');
     conditions.push('department_id = ?');
     params.push(Number(departmentId));
+  }
+
+  // Conflict evaluation: match by roleCode or (role + category)
+  if (roleCode) {
+    conditions.push('role_code = ?');
+    params.push(roleCode);
+  } else if (positionCategory) {
+    conditions.push('(appointment_role = ? AND (position_category = ? OR gender = ?))');
+    params.push(role, positionCategory, positionCategory);
+  } else {
     conditions.push('appointment_role = ?');
     params.push(role);
   }
@@ -185,6 +205,9 @@ export const createAppointment = async ({
   studentId,
   academicYear,
   role,
+  roleCode = null,
+  positionCategory = null,
+  gender = null,
   scope,
   departmentId = null,
   appointmentDate,
@@ -192,19 +215,34 @@ export const createAppointment = async ({
   tenureEnd,
   status = 'Active',
   appointedBy = null,
-  remarks = null
+  remarks = null,
+  imsSyncStatus = 'LocalOnly'
 }) => {
+  const cat = positionCategory || (gender === 'Female' ? 'Female' : (gender === 'Male' ? 'Male' : null));
+  const gen = gender || cat;
+
+  let rCode = roleCode;
+  if (!rCode && role && cat) {
+    if (role.includes('President') && cat === 'Male') rCode = 'SPORTS_PRESIDENT_MALE';
+    else if (role.includes('President') && cat === 'Female') rCode = 'SPORTS_PRESIDENT_FEMALE';
+    else if (role.includes('Coordinator') && cat === 'Male') rCode = 'DEPT_COORD_MALE';
+    else if (role.includes('Coordinator') && cat === 'Female') rCode = 'DEPT_COORD_FEMALE';
+  }
+
   const sql = `
     INSERT INTO student_appointments (
-      student_id, academic_year, appointment_role, appointment_scope,
+      student_id, academic_year, appointment_role, role_code, position_category, gender, appointment_scope,
       department_id, appointment_date, tenure_start, tenure_end,
-      status, appointed_by, remarks
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      status, appointed_by, remarks, ims_sync_status
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
   const [result] = await pool.execute(sql, [
     studentId,
     academicYear,
     role,
+    rCode,
+    cat,
+    gen,
     scope,
     scope === 'College' ? null : (departmentId ? Number(departmentId) : null),
     appointmentDate,
@@ -212,13 +250,17 @@ export const createAppointment = async ({
     tenureEnd,
     status,
     appointedBy,
-    remarks
+    remarks,
+    imsSyncStatus
   ]);
   return result.insertId;
 };
 
 export const updateAppointment = async (id, {
   role,
+  roleCode = null,
+  positionCategory = null,
+  gender = null,
   scope,
   departmentId = null,
   academicYear,
@@ -226,12 +268,27 @@ export const updateAppointment = async (id, {
   tenureStart,
   tenureEnd,
   status,
-  remarks
+  remarks,
+  imsSyncStatus = 'LocalOnly'
 }) => {
+  const cat = positionCategory || (gender === 'Female' ? 'Female' : (gender === 'Male' ? 'Male' : null));
+  const gen = gender || cat;
+
+  let rCode = roleCode;
+  if (!rCode && role && cat) {
+    if (role.includes('President') && cat === 'Male') rCode = 'SPORTS_PRESIDENT_MALE';
+    else if (role.includes('President') && cat === 'Female') rCode = 'SPORTS_PRESIDENT_FEMALE';
+    else if (role.includes('Coordinator') && cat === 'Male') rCode = 'DEPT_COORD_MALE';
+    else if (role.includes('Coordinator') && cat === 'Female') rCode = 'DEPT_COORD_FEMALE';
+  }
+
   const sql = `
     UPDATE student_appointments
     SET 
       appointment_role = COALESCE(?, appointment_role),
+      role_code = COALESCE(?, role_code),
+      position_category = COALESCE(?, position_category),
+      gender = COALESCE(?, gender),
       appointment_scope = COALESCE(?, appointment_scope),
       department_id = ?,
       academic_year = COALESCE(?, academic_year),
@@ -239,11 +296,15 @@ export const updateAppointment = async (id, {
       tenure_start = COALESCE(?, tenure_start),
       tenure_end = COALESCE(?, tenure_end),
       status = COALESCE(?, status),
-      remarks = ?
+      remarks = ?,
+      ims_sync_status = COALESCE(?, ims_sync_status)
     WHERE appointment_id = ?
   `;
   const [result] = await pool.execute(sql, [
     role,
+    rCode,
+    cat,
+    gen,
     scope,
     scope === 'College' ? null : (departmentId ? Number(departmentId) : null),
     academicYear,
@@ -252,6 +313,7 @@ export const updateAppointment = async (id, {
     tenureEnd,
     status,
     remarks,
+    imsSyncStatus,
     id
   ]);
   return result.affectedRows > 0;
@@ -270,13 +332,26 @@ export const revokeAppointment = async (id, reason) => {
   return result.affectedRows > 0;
 };
 
+export const deleteAppointment = async (id) => {
+  const sql = `
+    DELETE FROM student_appointments
+    WHERE appointment_id = ?
+  `;
+  const [result] = await pool.execute(sql, [id]);
+  return result.affectedRows > 0;
+};
+
 export const getAppointmentsMetadata = async () => {
   const [statsRows] = await pool.query(`
     SELECT
       COUNT(*) AS total_records,
       SUM(CASE WHEN status = 'Active' THEN 1 ELSE 0 END) AS active_count,
       SUM(CASE WHEN status = 'Active' AND appointment_scope = 'College' THEN 1 ELSE 0 END) AS college_leaders_count,
+      SUM(CASE WHEN status = 'Active' AND appointment_scope = 'College' AND (gender = 'Male' OR appointment_role LIKE '%Male%') THEN 1 ELSE 0 END) AS college_male_presidents_count,
+      SUM(CASE WHEN status = 'Active' AND appointment_scope = 'College' AND (gender = 'Female' OR appointment_role LIKE '%Female%') THEN 1 ELSE 0 END) AS college_female_presidents_count,
       SUM(CASE WHEN status = 'Active' AND appointment_scope = 'Department' THEN 1 ELSE 0 END) AS dept_coordinators_count,
+      SUM(CASE WHEN status = 'Active' AND appointment_scope = 'Department' AND (gender = 'Male' OR appointment_role LIKE '%Male%') THEN 1 ELSE 0 END) AS dept_male_coordinators_count,
+      SUM(CASE WHEN status = 'Active' AND appointment_scope = 'Department' AND (gender = 'Female' OR appointment_role LIKE '%Female%') THEN 1 ELSE 0 END) AS dept_female_coordinators_count,
       SUM(CASE WHEN status = 'Revoked' THEN 1 ELSE 0 END) AS revoked_count,
       SUM(CASE WHEN status = 'Completed' THEN 1 ELSE 0 END) AS completed_count
     FROM student_appointments

@@ -98,8 +98,7 @@ export default function Sidebar({
             items: [
               { id: "college_teams", label: "College Teams", icon: Building2 },
               { id: "admin_teams", label: "Team Approvals & Catalog", icon: Users },
-              { id: "admin_students", label: "Student Registry", icon: UserCheck },
-              { id: "admin_staff", label: "Staff Coordinators", icon: UserCheck },
+              { id: "admin_students", label: "Student Sports Directory", icon: UserCheck },
               { id: "admin_appointments", label: "Appointments", icon: Award },
               { id: "admin_matches", label: t.matchScheduler, icon: Calendar },
               { id: "admin_score_entry", label: "Score Entry", icon: Edit3 },

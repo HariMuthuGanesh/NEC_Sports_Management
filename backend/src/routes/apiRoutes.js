@@ -46,6 +46,9 @@ import {
     getMyStudentProfileController,
     createStudentController,
     updateStudentSportsInterestController,
+    getStudentSportsProfileController,
+    addStudentSportInterestController,
+    removeStudentSportInterestController,
     createAnnouncementController,
     updateAnnouncementController,
     cancelAnnouncementController,
@@ -122,6 +125,7 @@ import {
     createAppointmentController,
     updateAppointmentController,
     revokeAppointmentController,
+    deleteAppointmentController,
     getAppointmentsMetadataController
 } from '../controllers/appointmentController.js';
 // NOTE: departmentTeamController.js (department_teams / department_team_members
@@ -316,6 +320,10 @@ router.get('/od/public/official-documents/:id/view', viewOfficialOdPdfController
 router.get('/students/me', protect, getMyStudentProfileController);
 router.get('/students', protect, authorize('Admin', 'Coordinator', 'Captain', 'Sports President'), searchStudentsController);
 router.get('/students/search', protect, authorize('Admin', 'Coordinator', 'Captain', 'Sports President'), searchStudentsController);
+// Student Sports Directory & Sports Profile
+router.get('/students/:id/sports-profile', protect, authorize('Admin', 'Coordinator', 'Sports President'), getStudentSportsProfileController);
+router.post('/students/:id/sports-interest', protect, authorize('Admin', 'Coordinator', 'Sports President'), addStudentSportInterestController);
+router.delete('/students/:id/sports-interest/:sportId', protect, authorize('Admin', 'Coordinator', 'Sports President'), removeStudentSportInterestController);
 // Must be before any /students/:param routes that could clash
 router.get('/students/:registerNumber/attendance', protect, authorize('Admin', 'Coordinator'), getStudentAttendanceController);
 router.post('/students', protect, authorize('Admin', 'Coordinator'), createStudentController);
@@ -397,6 +405,7 @@ router.get('/appointments/:id', protect, authorize('Admin', 'Sports President'),
 router.post('/appointments', protect, authorize('Admin'), createAppointmentController);
 router.put('/appointments/:id', protect, authorize('Admin'), updateAppointmentController);
 router.patch('/appointments/:id/revoke', protect, authorize('Admin'), revokeAppointmentController);
+router.delete('/appointments/:id', protect, authorize('Admin'), deleteAppointmentController);
 
 // Events / Tournament Registration Control
 router.get('/events/:id', getEventByIdController);
