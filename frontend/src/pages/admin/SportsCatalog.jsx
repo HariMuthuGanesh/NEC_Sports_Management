@@ -26,7 +26,8 @@ import "./AdminPortal.css";
 
 export default function SportsCatalog() {
   const { t } = useAuth();
-  const toast = useToast();
+  const toastContext = useToast();
+  const toast = toastContext?.toast || toastContext;
   const [sports, setSports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -130,7 +131,7 @@ export default function SportsCatalog() {
       setCatName("");
       const list = await sportsApi.getSportCategories(catSport.sport_id);
       setCatList(Array.isArray(list) ? list : []);
-      toast.success("Category added successfully.");
+      if (toast?.success) toast.success("Category added successfully.");
     } catch (err) {
       setCatError(err.message || "Could not add category.");
     }
@@ -141,7 +142,7 @@ export default function SportsCatalog() {
     try {
       await sportsApi.deleteSportCategory(categoryId);
       setCatList(prev => prev.filter(c => c.category_id !== categoryId));
-      toast.success("Category removed.");
+      if (toast?.success) toast.success("Category removed.");
     } catch (err) {
       setCatError(err.message || "Could not remove category.");
     }
@@ -184,10 +185,10 @@ export default function SportsCatalog() {
     try {
       if (editingSport) {
         await sportsApi.updateSport(editingSport.sport_id, payload);
-        toast.success(`Sport "${trimmedName}" updated successfully.`);
+        if (toast?.success) toast.success(`Sport "${trimmedName}" updated successfully.`);
       } else {
         await sportsApi.addSport(payload);
-        toast.success(`Sport "${trimmedName}" added to catalog.`);
+        if (toast?.success) toast.success(`Sport "${trimmedName}" added to catalog.`);
       }
       setIsModalOpen(false);
       setEditingSport(null);
@@ -204,10 +205,10 @@ export default function SportsCatalog() {
     if (!window.confirm(`Are you sure you want to delete "${sport.name}"? This action cannot be undone.`)) return;
     try {
       await sportsApi.deleteSport(sport.sport_id);
-      toast.success(`Sport "${sport.name}" deleted from catalog.`);
+      if (toast?.success) toast.success(`Sport "${sport.name}" deleted from catalog.`);
       loadSports();
     } catch (err) {
-      toast.error(err.message || "Failed to delete sport.");
+      if (toast?.error) toast.error(err.message || "Failed to delete sport.");
     }
   };
 

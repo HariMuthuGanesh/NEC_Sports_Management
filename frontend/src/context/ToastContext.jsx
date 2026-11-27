@@ -25,16 +25,24 @@ export function ToastProvider({ children }) {
     return id;
   }, [removeToast]);
 
-  const toast = {
-    success: (msg, duration) => showToast(msg, 'success', duration),
-    error: (msg, duration) => showToast(msg, 'error', duration),
-    info: (msg, duration) => showToast(msg, 'info', duration),
-    warning: (msg, duration) => showToast(msg, 'warning', duration),
-    dismiss: removeToast
-  };
+  const toast = useCallback((msgOrOpts, type = 'info', duration = 4000) => {
+    if (typeof msgOrOpts === 'object' && msgOrOpts !== null) {
+      return showToast(msgOrOpts.message, msgOrOpts.type || 'info', msgOrOpts.duration || duration);
+    }
+    return showToast(msgOrOpts, type, duration);
+  }, [showToast]);
+
+  toast.success = (msg, duration) => showToast(msg, 'success', duration);
+  toast.error = (msg, duration) => showToast(msg, 'error', duration);
+  toast.info = (msg, duration) => showToast(msg, 'info', duration);
+  toast.warning = (msg, duration) => showToast(msg, 'warning', duration);
+  toast.dismiss = removeToast;
+  toast.showToast = showToast;
+  toast.removeToast = removeToast;
+  toast.toast = toast;
 
   return (
-    <ToastContext.Provider value={{ showToast, removeToast, toast }}>
+    <ToastContext.Provider value={toast}>
       {children}
       <ToastContainer toasts={toasts} onDismiss={removeToast} />
     </ToastContext.Provider>
@@ -45,17 +53,16 @@ export const useToast = () => {
   const context = useContext(ToastContext);
   if (!context) {
     // Graceful fallback if invoked outside provider
-    return {
-      showToast: (msg) => console.log('[Toast]', msg),
-      removeToast: () => {},
-      toast: {
-        success: (msg) => console.log('[Toast Success]', msg),
-        error: (msg) => console.error('[Toast Error]', msg),
-        info: (msg) => console.log('[Toast Info]', msg),
-        warning: (msg) => console.warn('[Toast Warning]', msg),
-        dismiss: () => {}
-      }
-    };
+    const fallback = (msg) => console.log('[Toast]', msg);
+    fallback.showToast = (msg) => console.log('[Toast]', msg);
+    fallback.removeToast = () => {};
+    fallback.dismiss = () => {};
+    fallback.success = (msg) => console.log('[Toast Success]', msg);
+    fallback.error = (msg) => console.error('[Toast Error]', msg);
+    fallback.info = (msg) => console.log('[Toast Info]', msg);
+    fallback.warning = (msg) => console.warn('[Toast Warning]', msg);
+    fallback.toast = fallback;
+    return fallback;
   }
   return context;
 };
